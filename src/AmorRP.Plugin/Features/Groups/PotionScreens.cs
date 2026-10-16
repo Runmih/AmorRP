@@ -39,9 +39,10 @@ public sealed partial class GroupsPanel
             return;
         }
         recipeChoice = Math.Clamp(recipeChoice, 0, recipes.Length - 1);
-        if (!ImGui.BeginTable("ProductionLayout", 2, ImGuiTableFlags.Resizable | ImGuiTableFlags.BordersInnerV)) return;
-        ImGui.TableSetupColumn("Recipes", ImGuiTableColumnFlags.WidthStretch, .4f); ImGui.TableSetupColumn("Create", ImGuiTableColumnFlags.WidthStretch, .6f);
-        ImGui.TableNextColumn(); ImGui.BeginChild("ProductionRecipes", new(0, 0), true);
+        var narrow = ImGui.GetContentRegionAvail().X < ImGui.GetFontSize() * 38;
+        if (!ImGui.BeginTable("ProductionLayout", narrow ? 1 : 2, ImGuiTableFlags.Resizable | ImGuiTableFlags.BordersInnerV)) return;
+        ImGui.TableSetupColumn("Recipes", ImGuiTableColumnFlags.WidthStretch, .4f); if (!narrow) ImGui.TableSetupColumn("Create", ImGuiTableColumnFlags.WidthStretch, .6f);
+        ImGui.TableNextColumn(); ImGui.BeginChild("ProductionRecipes", new(0, narrow ? ImGui.GetTextLineHeightWithSpacing() * 7 : 0), true);
         ImGui.TextUnformatted("Choose a potion");
         for (var i = 0; i < recipes.Length; i++)
         {
@@ -57,7 +58,8 @@ public sealed partial class GroupsPanel
         var cost = (long)productionQuantity * recipe.Potion.CreationCost;
         var remaining = quotas?.Items.FirstOrDefault(x => x.Kind == "potion_points")?.Remaining ?? 0;
         var max = serviceLimits?.MaxCreationQuantity ?? 100;
-        ImGui.TextUnformatted($"Your points: {remaining} · cost: {recipe.Potion.CreationCost} each");
+        Wrapped($"Cost: {recipe.Potion.CreationCost} points per potion");
+        Wrapped($"You can craft {remaining / Math.Max(1, recipe.Potion.CreationCost)} more with your remaining points.");
         var error = productionQuantity < 1 || productionQuantity > max ? $"Choose between 1 and {max} copies."
             : cost > remaining ? $"Not enough points: {cost} needed, {remaining} remaining." : null;
         FieldNote("ProductionQuantity", error, $"Total: {cost} points · remaining after creation: {remaining - cost}");

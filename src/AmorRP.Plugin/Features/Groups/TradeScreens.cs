@@ -102,6 +102,7 @@ public sealed partial class GroupsPanel
                 else
                 {
                     var error = done.Exception?.GetBaseException(); tradeFeedback = error is FoundationApiException ? error.Message : "Trade sync unavailable. The last confirmed offer is still shown.";
+                    if (feedback.Latest("trade") is { } message) message.Details = UserFeedback.Details(error);
                     tradePollError = "Trade notifications could not refresh. Retrying shortly.";
                     nextTradePoll = DateTimeOffset.UtcNow.AddSeconds(30);
                     if (error is FoundationApiException api && api.Status == System.Net.HttpStatusCode.Unauthorized) { ClearGroupViews(); session = null; }
@@ -121,6 +122,7 @@ public sealed partial class GroupsPanel
             // Only the latest trade is needed for invitation/active recovery. Old outcomes
             // remain in history; do not repeatedly download full historical item previews.
             var pageTrades = await client.GetAsync<TradePage>(uri, $"api/v1/groups/{id}/trades?limit=1", token, ct);
+            var balances = loadInventory ? await client.GetAsync<AmorRP.Contracts.Currency.BalancePage>(uri, $"api/v1/groups/{id}/members/{session.Character.Id}/balances", token, ct) : null;
             HoldingPage? inventory = loadInventory ? await client.GetAsync<HoldingPage>(uri, $"api/v1/groups/{id}/inventory", token, ct) : null;
             if (inventory != null && inventoryCount > inventory.Items.Length)
             {
@@ -130,6 +132,8 @@ public sealed partial class GroupsPanel
                 inventory = inventory with { Items = list.ToArray() };
             }
             return (Action)(() => {
+                if (balances?.Items.FirstOrDefault() is { } balance && group?.Id == id && balance.Version >= group.MyBalance.Version)
+                    group = group with { MyBalance = balance };
                 if (inventory != null) { tradeInventory = inventory.Items; tradeInventoryCursor = inventory.NextCursor; }
                 var previous = ActiveTrade;
                 foreach (var t in pageTrades.Items) ObserveTrade(t);
@@ -228,7 +232,8 @@ public sealed partial class GroupsPanel
         ObserveTrade(t); tradeSelection = t.Id; tradeConflictRetries = 0;
         if (tradeWindowCloseRequested && t.State is "open" or "confirming") RequestTradeCancel();
         if (!Active(t)) tradeOutcomeUntil = DateTimeOffset.UtcNow + FeedbackLifetime;
-        tradeFeedback = t.State == "completed" ? "Trade completed." : t.State == "cancelled" ? t.EndReason! : "Trade updated.";
+        tradeFeedback = "";
+        actionResult = t.State == "completed" ? "Trade completed. Items and currency have been exchanged." : t.State == "cancelled" ? t.EndReason ?? "Trade cancelled." : UserFeedback.Success(request);
         if (request.Path.EndsWith("/trades", StringComparison.Ordinal))
         { requestedTradeTab = 1; if (!tradeWindowCloseRequested) OpenTradeWindow?.Invoke(); }
         nextTradePoll = default;

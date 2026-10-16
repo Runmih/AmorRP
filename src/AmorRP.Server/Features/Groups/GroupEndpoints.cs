@@ -16,7 +16,7 @@ public static class GroupEndpoints
         app.MapDelete("/api/v1/groups/{groupId}/members/{characterId}/block", (HttpContext h, Guid groupId, Guid characterId, [Microsoft.AspNetCore.Mvc.FromBody] MemberRemoval b, GroupService s, CancellationToken ct) => s.MembershipAsync(h, groupId, characterId, b, "unblock", ct));
         app.MapGet("/api/v1/groups", (HttpContext h, GroupService s, CancellationToken ct) => s.ListAsync(h, ct));
         app.MapPost("/api/v1/groups", (HttpContext h, GroupCreate b, GroupService s, CancellationToken ct) => s.CreateAsync(h, b, ct));
-        app.MapPost("/api/v1/groups/join", (HttpContext h, JoinGroup b, GroupService s, CancellationToken ct) => s.JoinAsync(h, b, ct));
+        app.MapPost("/api/v1/groups/join", (HttpContext h, JoinGroup b, GroupService s, CancellationToken ct) => s.JoinAsync(h, b, ct)).RequireRateLimiting("identity-probe");
         app.MapGet("/api/v1/groups/{groupId}", (HttpContext h, Guid groupId, GroupService s, CancellationToken ct) => s.ReadAsync(h, groupId, "group", ct));
         app.MapPatch("/api/v1/groups/{groupId}", (HttpContext h, Guid groupId, GroupEdit b, GroupService s, CancellationToken ct) => s.EditAsync(h, groupId, b, "edit", ct));
         app.MapPost("/api/v1/groups/{groupId}/leave", (HttpContext h, Guid groupId, GroupService s, CancellationToken ct) => s.EditAsync(h, groupId, null, "leave", ct));

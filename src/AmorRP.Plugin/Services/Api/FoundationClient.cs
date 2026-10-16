@@ -12,8 +12,9 @@ using AmorRP.Contracts.Common;
 
 namespace AmorRP.Plugin.Services.Api;
 
-public sealed class FoundationApiException(HttpStatusCode status, string code, string message, string? requestId = null) : Exception(message)
+public sealed class FoundationApiException(HttpStatusCode status, string code, string message, string? requestId = null) : Exception(UserFeedback.Error(status, code, message))
 {
+    public string ServerMessage { get; } = message;
     public HttpStatusCode Status { get; } = status;
     public string Code { get; } = code;
     public string? RequestId { get; } = requestId;

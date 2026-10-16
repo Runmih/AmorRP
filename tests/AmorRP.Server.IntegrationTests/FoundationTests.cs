@@ -109,15 +109,15 @@ public sealed partial class FoundationTests : PostgresTestDatabase
         Assert.Equal(6, (await c.GetFromJsonAsync<GroupPage>("/api/v1/groups", TestContext.Current.CancellationToken))!.Items.Length);
     }
     [Fact]
-    public async Task One_use_invitation_has_only_one_winner_and_codes_are_not_listed()
+    public async Task Permanent_invitation_accepts_concurrent_members_and_codes_are_not_listed()
     {
         using var f = Factory(); await Migrate(f); using var owner = f.CreateClient(); await Login(owner, "120"); var group = await Create(owner); var invitation = await Invite(owner, group, 1);
         using var a = f.CreateClient(); using var b = f.CreateClient(); await Login(a, "121"); await Login(b, "122");
         using var ar = Request(HttpMethod.Post, "/api/v1/groups/join", new JoinGroup(invitation.InvitationCode, true)); using var br = Request(HttpMethod.Post, "/api/v1/groups/join", new JoinGroup(invitation.InvitationCode, true));
-        var result = await Task.WhenAll(a.SendAsync(ar, TestContext.Current.CancellationToken), b.SendAsync(br, TestContext.Current.CancellationToken)); Assert.Single(result, x => x.IsSuccessStatusCode); Assert.Single(result, x => x.StatusCode == HttpStatusCode.Conflict); foreach(var r in result) r.Dispose();
+        var result = await Task.WhenAll(a.SendAsync(ar, TestContext.Current.CancellationToken), b.SendAsync(br, TestContext.Current.CancellationToken)); Assert.All(result, x => Assert.True(x.IsSuccessStatusCode)); foreach(var r in result) r.Dispose();
         var listed = await owner.GetStringAsync($"/api/v1/groups/{group.Id}/invitations", TestContext.Current.CancellationToken); Assert.DoesNotContain(invitation.InvitationCode, listed);
         await using var scope = f.Services.CreateAsyncScope(); var db = scope.ServiceProvider.GetRequiredService<AmorDbContext>();
-        Assert.Equal(1, (await db.Invitations.SingleAsync(TestContext.Current.CancellationToken)).Used); Assert.DoesNotContain(invitation.InvitationCode, (await db.Operations.FirstAsync(x => x.Kind == "invitation.create", TestContext.Current.CancellationToken)).ProtectedResponse);
+        Assert.Equal(2, (await db.Invitations.SingleAsync(TestContext.Current.CancellationToken)).Used); Assert.DoesNotContain(invitation.InvitationCode, (await db.Operations.FirstAsync(x => x.Kind == "invitation.create", TestContext.Current.CancellationToken)).ProtectedResponse);
     }
     [Fact]
     public async Task Currency_permission_isolation_idempotency_and_concurrent_debits_preserve_ledger()

@@ -96,11 +96,13 @@ public sealed partial class GroupsPanel
         Wrapped("Build your offer with the arrows. Currency saves when you leave its field.");
         tradeDraft ??= new(t, session.Character.Id);
         var own = TradeDraft.Own(t, session.Character.Id); var other = t.Initiator.Character.Id == session.Character.Id ? t.Recipient : t.Initiator;
-        ImGui.SetNextItemWidth(140); ImGui.InputInt("Quantity for arrows", ref transferQuantity); transferQuantity = Math.Max(1, transferQuantity);
-        if (ImGui.BeginTable("TradeInventoryAndOffers", 2, ImGuiTableFlags.BordersInnerV | ImGuiTableFlags.SizingStretchSame))
+        DrawTradeBalance(own);
+        FieldLabel("Items moved per click"); ImGui.SetNextItemWidth(ImGui.GetFontSize() * 7); ImGui.InputInt("##QuantityForArrows", ref transferQuantity); transferQuantity = Math.Max(1, transferQuantity);
+        var narrow = ImGui.GetContentRegionAvail().X < ImGui.CalcTextSize("Your inventory and trading offers").X * 2;
+        if (ImGui.BeginTable("TradeInventoryAndOffers", narrow ? 1 : 2, ImGuiTableFlags.BordersInnerV | ImGuiTableFlags.SizingStretchSame))
         {
             ImGui.TableNextColumn();
-            ImGui.BeginChild("TradeInventory", new System.Numerics.Vector2(0, Math.Max(180, ImGui.GetContentRegionAvail().Y - 80)), true);
+            ImGui.BeginChild("TradeInventory", new System.Numerics.Vector2(0, narrow ? ImGui.GetTextLineHeightWithSpacing() * 8 : Math.Max(180, ImGui.GetContentRegionAvail().Y - 80)), true);
             ImGui.TextUnformatted("Your inventory");
             foreach (var item in tradeInventory)
             {
@@ -110,7 +112,7 @@ public sealed partial class GroupsPanel
                 ImGui.BeginDisabled(available == 0);
                 if (ImGui.ArrowButton("AddToOffer", ImGuiDir.Right)) ChangeOfferItem(t, item.Id, inDraft + Math.Min(transferQuantity, available));
                 ImGui.EndDisabled(); ImGui.SameLine();
-                ImGui.TextUnformatted($"{item.Name} × {available}");
+                DrawItemTypeIcon(item.TypeId); ImGui.SameLine(); ImGui.TextUnformatted($"{item.Name} × {available}");
                 ImGui.PopID();
             }
             if (tradeInventoryCursor != null && ImGui.SmallButton("More inventory"))
@@ -120,11 +122,12 @@ public sealed partial class GroupsPanel
             }
             ImGui.EndChild();
             ImGui.TableNextColumn();
-            var areaHeight = Math.Max(180, ImGui.GetContentRegionAvail().Y - 80);
+            var areaHeight = narrow ? ImGui.GetTextLineHeightWithSpacing() * 20 : Math.Max(180, ImGui.GetContentRegionAvail().Y - 80);
             ImGui.BeginChild("MyOffer", new System.Numerics.Vector2(0, areaHeight / 2), true);
-            ImGui.TextUnformatted("You offer");
+            ImGui.TextUnformatted("You offer — " + session.Character.DisplayName);
             ImGui.SetNextItemWidth(Math.Min(200, ImGui.GetContentRegionAvail().X));
-            var currencyChanged = ImGui.InputText(group.Currency.Name, ref tradeDraft.CurrencyText, 64);
+            FieldLabel("Amount of " + group.Currency.Name);
+            var currencyChanged = ImGui.InputText("##TradeCurrency", ref tradeDraft.CurrencyText, 64);
             tradeDraft.CurrencyFocused = ImGui.IsItemActive();
             if (currencyChanged && (Reviewing(t) || tradeReadyRequested)) RequestTradeCancel();
             if (ImGui.IsItemDeactivatedAfterEdit()) { if (tradeDraft.CommitCurrency()) tradeConflictRetries = 0; }
@@ -155,6 +158,15 @@ public sealed partial class GroupsPanel
         { finalReview = t; popupForTrade = t.Id; ImGui.OpenPopup("Final trade confirmation"); }
         DrawFinalConfirmation(t);
     }
+    private void DrawTradeBalance(TradeOffer own)
+    {
+        var balance = group!.MyBalance;
+        Wrapped($"Your balance: {balance.Owned} {group.Currency.Name}");
+        if (System.Numerics.BigInteger.TryParse(balance.Available, out var available) && System.Numerics.BigInteger.TryParse(own.CurrencyAmount, out var offered))
+            Wrapped($"Available for this offer: {available + offered} {group.Currency.Name}");
+        Wrapped("In your offer: " + (tradeDraft?.CurrencyText ?? own.CurrencyAmount) + " " + group.Currency.Name);
+        ImGui.Separator();
+    }
     private void ChangeOfferItem(Trade t, Guid id, int quantity)
     {
         if (Reviewing(t) || tradeReadyRequested) { RequestTradeCancel(); return; }
@@ -178,6 +190,7 @@ public sealed partial class GroupsPanel
     }
     private void DrawFinalConfirmation(Trade current)
     {
+        ImGui.SetNextWindowSizeConstraints(new(0, 0), ImGui.GetMainViewport().WorkSize * .9f);
         if (!ImGui.BeginPopupModal("Final trade confirmation", ImGuiWindowFlags.AlwaysAutoResize)) return;
         if (current.State != "confirming" || finalReview?.Id != current.Id || finalReview.Revision != current.Revision || tradeCancelRequested)
         { ImGui.CloseCurrentPopup(); ImGui.EndPopup(); return; }
@@ -185,7 +198,7 @@ public sealed partial class GroupsPanel
         var own = TradeDraft.Own(review, session!.Character.Id); var other = review.Initiator.Character.Id == session.Character.Id ? review.Recipient : review.Initiator;
         Wrapped("Group: " + group!.Name);
         ImGui.TextUnformatted("Both players accepted. Review the exact exchange below.");
-        ImGui.BeginChild("FinalOfferSummary", new System.Numerics.Vector2(520, 320), true);
+        ImGui.BeginChild("FinalOfferSummary", new System.Numerics.Vector2(Math.Min(ImGui.GetFontSize() * 32, ImGui.GetMainViewport().WorkSize.X * .75f), Math.Min(ImGui.GetFontSize() * 20, ImGui.GetMainViewport().WorkSize.Y * .5f)), true);
         ImGui.TextUnformatted("You send"); DrawOffer(own); ImGui.Separator();
         ImGui.TextUnformatted("You receive"); DrawOffer(other); ImGui.EndChild();
         Wrapped("Editing, cancelling or closing the trade ends this deal. Nothing transfers until both players confirm here.");

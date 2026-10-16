@@ -36,6 +36,7 @@ public sealed partial class GroupsPanel(IPlayerState player, Configuration confi
     private readonly GroupImageCache icons = new(textures, "currency icon", true);
     private readonly GroupImageCache logos = new(textures, "group logo");
     private DateTimeOffset lastRefresh, nextRefresh;
+    private int syncFailures;
     private bool showInactive, serviceCompatible;
     private string? memberDraftEtag;
     private int policyDraftVersion, editGroupVersion, editCurrencyVersion;
@@ -71,7 +72,6 @@ public sealed partial class GroupsPanel(IPlayerState player, Configuration confi
     private Guid? balanceFor;
     private string deleteConfirmation = "";
     private int nextPoints, nextLetters;
-    private int inviteHours = 24, inviteUses = 5;
 
     public void Draw(string backendUrl, bool compactMode = false)
     {
@@ -101,7 +101,7 @@ public sealed partial class GroupsPanel(IPlayerState player, Configuration confi
         if (compactMode) { DrawConsumables(); ImGui.EndChild(); DrawActionFeedback(pending); return; }
         ImGui.Separator();
         ImGui.PushStyleColor(ImGuiCol.Header, new System.Numerics.Vector4(0.33f, 0.23f, 0.49f, 0.85f));
-        ImGui.BeginChild("MainNavigation", new System.Numerics.Vector2(160, 0), true);
+        ImGui.BeginChild("MainNavigation", new System.Numerics.Vector2(ImGui.GetFrameHeight() + ImGui.CalcTextSize("Inventory").X + ImGui.GetStyle().ItemSpacing.X * 3 + ImGui.GetStyle().WindowPadding.X * 2, 0), true);
         foreach (var section in Enum.GetValues<MainSection>())
         {
             var icon = section switch
@@ -119,7 +119,7 @@ public sealed partial class GroupsPanel(IPlayerState player, Configuration confi
         }
         ImGui.EndChild(); ImGui.PopStyleColor(); ImGui.SameLine();
         ImGui.BeginChild("SectionContent", new System.Numerics.Vector2(0, 0), false);
-        ImGui.PushItemWidth(Math.Min(340, Math.Max(120, ImGui.GetContentRegionAvail().X - 210)));
+        ImGui.PushItemWidth(-1);
         switch (mainSection)
         {
             case MainSection.Home: DrawHome(); break;
@@ -146,7 +146,7 @@ public sealed partial class GroupsPanel(IPlayerState player, Configuration confi
             if (saved != null && localName.Length > 0) Resume(saved);
         }
     }
-    private string loginFeedback = "";
+    private string loginFeedback = "", loginDiagnostic = "";
     private bool waitingForBrowser;
     private LoginAttemptCreated? loginAttempt;
     private string loginPairingCode = "";
@@ -156,7 +156,7 @@ public sealed partial class GroupsPanel(IPlayerState player, Configuration confi
     { loginAttempt = null; loginPairingCode = ""; loginPairingReady = waitingForBrowser = false; loginExchangeKey = default; }
     private void BeginLogin(string localName, string localWorld, uint worldId)
     {
-        loginFeedback = ""; ResetLogin();
+        loginFeedback = loginDiagnostic = ""; ResetLogin();
         var body = new LoginStart(localName, worldId.ToString(System.Globalization.CultureInfo.InvariantCulture), localWorld, saved?.CharacterId);
         var uri = origin!;
         Start(async ct => {
@@ -177,7 +177,7 @@ public sealed partial class GroupsPanel(IPlayerState player, Configuration confi
         {
             if (busy)
             {
-                if (ImGui.Button("Cancel login")) { ClearWork(); loginFeedback = ""; ResetLogin(); }
+                if (ImGui.Button("Cancel login")) { ClearWork(); loginFeedback = loginDiagnostic = ""; ResetLogin(); }
                 Wrapped(waitingForBrowser ? "Complete sign-in in your browser." : "Signing in…");
             }
             else
@@ -197,7 +197,7 @@ public sealed partial class GroupsPanel(IPlayerState player, Configuration confi
                         }
                         ImGui.EndDisabled(); ImGui.SameLine();
                         if (ImGui.Button("Cancel login")) { ClearWork(); ResetLogin(); loginFeedback = ""; }
-                        if (loginFeedback.Length > 0) Wrapped(loginFeedback);
+                        DrawLoginFeedback();
                         return;
                     }
                 }
@@ -205,7 +205,7 @@ public sealed partial class GroupsPanel(IPlayerState player, Configuration confi
                 if (ImGui.Button("Log in with XIVAuth")) BeginLogin(localName, localWorld, worldId);
                 ImGui.EndDisabled();
                 if (localName.Length == 0 || localWorld.Length == 0) Wrapped("Log into your FFXIV character first.");
-                if (loginFeedback.Length > 0) Wrapped(loginFeedback);
+                DrawLoginFeedback();
             }
             return;
         }
@@ -245,7 +245,7 @@ public sealed partial class GroupsPanel(IPlayerState player, Configuration confi
     }
     private void Accept(SessionTokens tokens)
     {
-        session = tokens; loginFeedback = ""; ResetLogin();
+        session = tokens; loginFeedback = loginDiagnostic = ""; ResetLogin();
         saved = configuration.SavedSessions.SingleOrDefault(x => x.Origin == origin!.AbsoluteUri && x.CharacterId == tokens.Character.Id);
         if (saved == null) { saved = new SavedSession { Origin = origin!.AbsoluteUri, CharacterId = tokens.Character.Id }; configuration.SavedSessions.Add(saved); }
         saved.DisplayName = tokens.Character.DisplayName; saved.HomeWorldName = tokens.Character.HomeWorldName;
@@ -276,13 +276,15 @@ public sealed partial class GroupsPanel(IPlayerState player, Configuration confi
         if (syncWork is not { IsCompleted: true }) return;
         var finished = syncWork; syncWork = null;
         if (syncView != viewGeneration || syncData != dataGeneration) { _ = finished.Exception; refreshNeeded = affectedRefresh == null; if (affectedRefresh != null) RefreshAffected(affectedRefresh); return; }
-        if (finished.IsCompletedSuccessfully) { connectionError = ""; finished.Result(); }
+        if (finished.IsCompletedSuccessfully) { connectionError = connectionDiagnostic = ""; syncFailures = 0; finished.Result(); }
         else
         {
-            var error = finished.Exception?.GetBaseException(); nextRefresh = DateTimeOffset.UtcNow.AddMinutes(1);
+            var error = finished.Exception?.GetBaseException();
+            syncFailures = Math.Min(syncFailures + 1, 5);
+            nextRefresh = DateTimeOffset.UtcNow.AddSeconds(Math.Min(60, 5 * Math.Pow(2, syncFailures - 1)));
             if (error is InvalidOperationException) serviceCompatible = false;
-            status = error is FoundationApiException or InvalidOperationException ? error.Message : "Sync unavailable; showing the last confirmed data.";
-            connectionError = status;
+            status = error is FoundationApiException or InvalidOperationException ? error.Message : "Reconnecting to Amor RP… Your last confirmed information and unfinished edits have been kept.";
+            connectionError = status; connectionDiagnostic = UserFeedback.Details(error);
             if (error is FoundationApiException api && api.Status is System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.NotFound)
             { ClearGroupViews(); if (api.Status == System.Net.HttpStatusCode.Unauthorized) session = null; else refreshNeeded = true; }
         }
@@ -300,14 +302,15 @@ public sealed partial class GroupsPanel(IPlayerState player, Configuration confi
                 waitingForBrowser = false;
                 if (failure is FoundationApiException { Code: "login_pairing_locked" or "login_not_ready" or "login_expired" }) ResetLogin();
                 loginFeedback = failure is FoundationApiException or InvalidOperationException ? failure.Message : "Could not reach Amor RP. Wait a moment and try logging in again.";
+                loginDiagnostic = UserFeedback.Details(failure);
             }
             nextRefresh = DateTimeOffset.UtcNow.AddMinutes(1);
-            status = failure is FoundationApiException or InvalidOperationException ? failure.Message : "Connection failed or timed out. Retry with the saved operation key.";
-            if (currentCommand == null && session != null) connectionError = status;
+            status = failure is FoundationApiException or InvalidOperationException ? failure.Message : "Could not reach Amor RP. Your changes have been kept; check the action result before trying again.";
+            if (currentCommand == null && session != null) { connectionError = status; connectionDiagnostic = UserFeedback.Details(failure); }
             if (currentCommand != null)
             {
                 actionResult = status;
-                actionDiagnostic = failure is FoundationApiException a ? $"HTTP {(int)a.Status}; code: {a.Code}; request: {a.RequestId ?? "unavailable"}; operation key: {currentCommand.Key}" : $"Outcome unresolved; operation key: {currentCommand.Key}";
+                actionDiagnostic = UserFeedback.Details(failure) + "\nAction ID: " + currentCommand.Key;
                 if (currentCommand.Read().Path.EndsWith("/announcements", StringComparison.Ordinal))
                     announcementPostError = status + (failure is FoundationApiException { OutcomeUncertain: false } ? "" : " Close this window to recover the saved action.");
                 NoteAuthorizationFailure(currentCommand.Read(), failure);
@@ -318,7 +321,7 @@ public sealed partial class GroupsPanel(IPlayerState player, Configuration confi
             {
                 var commandFailed = currentCommand != null;
                 if (api.OutcomeUncertain && commandFailed && feedback.Latest("action") is { } message)
-                    message.Text += " An earlier attempt may have committed; keep this key and check the receipt after reconnecting.";
+                    message.Text += " This may already have been saved. Use Check action result after reconnecting before trying again.";
                 if (!api.OutcomeUncertain && (int)api.Status is >= 400 and < 500 && api.Status != System.Net.HttpStatusCode.TooManyRequests && api.Code != "operation_replay_expired" && currentCommand != null)
                 { configuration.PendingCommands.Remove(currentCommand); save(); currentCommand = null; refreshNeeded = session != null; }
                 if (api.Status == System.Net.HttpStatusCode.NotFound && !commandFailed && group != null) refreshNeeded = true;
@@ -342,7 +345,7 @@ public sealed partial class GroupsPanel(IPlayerState player, Configuration confi
         Start(async ct => {
             var response = await client.CommandWithMetadataAsync(origin!, request, pending.Key, token, ct);
             return () => {
-                configuration.PendingCommands.Remove(pending); save(); status = "Action completed."; actionResult = "Action completed."; actionDiagnostic = "Operation key: " + pending.Key;
+                configuration.PendingCommands.Remove(pending); save(); status = UserFeedback.Success(request); actionResult = status; actionDiagnostic = "Operation key: " + pending.Key;
                 ApplyFormSuccess(request, response.Json);
                 ApplyHomeSuccess(request, response.Json);
                 ApplyInventorySuccess(request, response, recovering);
@@ -357,6 +360,7 @@ public sealed partial class GroupsPanel(IPlayerState player, Configuration confi
                 {
                     var updated = JsonSerializer.Deserialize<CommandResult<Member>>(response.Json, FoundationClient.Json)!;
                     members = members.Select(x => x.Character.Id == updated.Result.Character.Id ? updated.Result : x).ToArray();
+                    memberSearchResults = memberSearchResults.Select(x => x.Character.Id == updated.Result.Character.Id ? updated.Result : x).ToArray();
                     if (memberSelection == updated.Result.Character.Id) memberDraftEtag = updated.Result.Etag; AcceptAuthorizationSave(request, updated);
                     AcceptMemberDescriptionSave(request, updated.Result);
                 }
@@ -377,9 +381,9 @@ public sealed partial class GroupsPanel(IPlayerState player, Configuration confi
         nextRefresh = DateTimeOffset.UtcNow.AddMinutes(1);
         StartSync(async ct => {
             var capability = await client.GetAsync<CapabilitiesResponse>(uri, "api/v1/capabilities", token, ct);
-            if (capability.ApiVersion != "1" || !Version.TryParse(capability.ServerVersion, out var serverVersion) || serverVersion < new Version(0, 0, 6, 0)
+            if (capability.ApiVersion != "1" || !Version.TryParse(capability.ServerVersion, out var serverVersion) || serverVersion < new Version(0, 0, 6, 16)
                 || !Version.TryParse(capability.MinimumClientVersion, out var minimumClient) || minimumClient > typeof(GroupsPanel).Assembly.GetName().Version)
-                throw new InvalidOperationException("Update Amor RP: M5 requires server 0.0.6.0 and a compatible plugin.");
+                throw new InvalidOperationException("Amor RP needs an update. Check for a plugin update; the server may also need updating.");
             if (capability.Maintenance) throw new InvalidOperationException(capability.Message);
             var groupList = new List<Group>(); string? groupCursor = null;
             do { var page = await client.GetAsync<GroupPage>(uri, "api/v1/groups" + (groupCursor == null ? "" : "?cursor=" + Uri.EscapeDataString(groupCursor)), token, ct); groupList.AddRange(page.Items); groupCursor = page.NextCursor; } while (groupCursor != null);
@@ -432,13 +436,13 @@ public sealed partial class GroupsPanel(IPlayerState player, Configuration confi
                 var changedGroup = group?.Id != active?.Id;
                 serviceCompatible = true; serviceLimits = capability.Limits;
                 if (lastRefresh == default && !initialAllowancesEdited) { initialPoints = capability.Limits.DefaultPotionPoints; initialLetters = capability.Limits.DefaultLettersPerWeek; }
-                if (changedGroup) ClearGroupViews();
+                if (changedGroup) { ClearGroupViews(); ClearMemberSearch(); }
                 groups = list.Items; group = active; selected = active?.Id; members = roster?.Items ?? []; invitations = invites?.Items ?? [];
                 membersCursor = roster?.NextCursor; invitationsCursor = invites?.NextCursor;
                 policies = limits; transfer = proposal;
                 if (saved != null) { saved.SelectedGroupId = selected; save(); }
                 if (limits != null && (changedGroup || !policyDraftLoaded)) LoadActivePolicy(limits);
-                if (!members.Any(x => x.Character.Id == memberSelection)) memberSelection = null;
+                if (!members.Concat(memberSearchResults).Any(x => x.Character.Id == memberSelection)) memberSelection = null;
                 if (!(active?.OwnerCharacterId == actorId || active?.MyCapabilities.Contains("inventory.remove") == true)) { memberHoldings = []; memberInventoryFor = null; memberHoldingSelection = null; }
                 if (inspectorState != null && memberInventoryFor == inspector) { memberHoldings = inspectorState.Items; memberHoldingCursor = inspectorState.NextCursor; }
                 AcceptInventoryState(inventoryState);
@@ -461,7 +465,7 @@ public sealed partial class GroupsPanel(IPlayerState player, Configuration confi
         work = null; currentCommand = null;
     }
     private void Clear()
-    { ClearAnnouncementNotifications(); ClearTradeInbox(); ResetGroupForms(); ResetLogin(); loginFeedback = ""; scope = ""; serviceCompatible = false; affectedRefresh = null; ClearWork(); origin = null; session = null; saved = null; selected = null; group = null; groups = []; members = []; invitations = []; transfer = null; refreshNeeded = false; createdCode = ""; contextTarget = null; contextLookup = null; ClearTransientFeedback(); connectionError = ""; lastRefresh = default; nextRefresh = default; ClearGroupViews(); }
+    { ClearMemberSearch(); personalNote = savedPersonalNote = noteKey = ""; ClearAnnouncementNotifications(); ClearTradeInbox(); ResetGroupForms(); ResetLogin(); loginFeedback = loginDiagnostic = ""; syncFailures = 0; scope = ""; serviceCompatible = false; affectedRefresh = null; ClearWork(); origin = null; session = null; saved = null; selected = null; group = null; groups = []; members = []; invitations = []; transfer = null; refreshNeeded = false; createdCode = ""; contextTarget = null; contextLookup = null; ClearTransientFeedback(); connectionError = connectionDiagnostic = ""; lastRefresh = default; nextRefresh = default; ClearGroupViews(); }
     private static void Wrapped(string message) { ImGui.PushTextWrapPos(); ImGui.TextUnformatted(message); ImGui.PopTextWrapPos(); }
-    public void Dispose() { ClearAnnouncementNotifications(); ClearTradeInbox(); ClearWork(); lifetime.Dispose(); icons.Dispose(); logos.Dispose(); client.Dispose(); }
+    public void Dispose() { ClearMemberSearch(); personalNote = savedPersonalNote = noteKey = ""; ClearAnnouncementNotifications(); ClearTradeInbox(); ClearWork(); lifetime.Dispose(); icons.Dispose(); logos.Dispose(); client.Dispose(); }
 }

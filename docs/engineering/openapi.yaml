@@ -1323,6 +1323,13 @@ paths:
         required: false
         schema: *id001
         description: Owner only; others cannot enumerate dormant members.
+      - name: search
+        in: query
+        required: false
+        schema:
+          type: string
+          maxLength: 200
+        description: Case-insensitive literal name or home-world substring, applied before pagination. Cursors are bound to the search.
   /api/v1/groups/{groupId}/members/{characterId}/capabilities:
     put:
       operationId: setMemberCapabilities
@@ -1812,12 +1819,12 @@ paths:
       operationId: createInvitation
       tags:
       - Invitations
-      summary: Create bounded expiring invitation; return code once
+      summary: Create permanent invitation; return nine-character code once
       security:
       - Session: []
       responses:
         '201':
-          description: Create bounded expiring invitation; return code once
+          description: Create permanent invitation; return nine-character code once
           content:
             application/json:
               schema:
@@ -7011,16 +7018,13 @@ components:
         expiresInHours:
           type: integer
           format: int32
-          minimum: 1
-          maximum: 168
+          deprecated: true
+          description: Accepted for legacy clients but ignored; invitations do not expire.
         maxUses:
           type: integer
           format: int32
-          minimum: 1
-          maximum: 100
-      required:
-      - expiresInHours
-      - maxUses
+          deprecated: true
+          description: Accepted for legacy clients but ignored; invitations have unlimited uses.
       additionalProperties: false
     Invitation:
       type: object
@@ -7050,7 +7054,7 @@ components:
           $ref: '#/components/schemas/Invitation'
         invitationCode:
           type: string
-          description: Secret returned once; stored as hash.
+          description: Nine-character case-insensitive secret returned once; stored as a hash. Valid until revoked.
       required:
       - invitation
       - invitationCode

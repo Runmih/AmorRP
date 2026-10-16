@@ -92,8 +92,8 @@ public sealed partial class GroupsPanel
     {
         var quota = quotas?.Items.FirstOrDefault(x => x.Kind == kind);
         if (quota == null) return;
-        Wrapped($"{(kind == "potion_points" ? "Potion points" : "Writing allowance")}: {quota.Remaining}/{quota.Limit} remaining");
-        Wrapped($"Resets: {quota.ResetAt.LocalDateTime:g}");
+        Wrapped(kind == "potion_points" ? $"Weekly potion points: {quota.Remaining} of {quota.Limit} remaining" : $"You can create {quota.Remaining} more written items this week.");
+        Wrapped($"Next reset: {quota.ResetAt.LocalDateTime:g} (your local time)");
     }
     // One type registry feeds both the fixed category tabs and All's dependent
     // type choices. Add future types to their family here.
@@ -140,9 +140,10 @@ public sealed partial class GroupsPanel
             if (ImGui.Combo("##InventorySort", ref sort, new[] { "Sort: name", "Sort: type", "Sort: category" }, 3)) ApplyInventoryFilters();
             ImGui.EndTable();
         }
-        if (!ImGui.BeginTable("InventoryLayout", 2, ImGuiTableFlags.Resizable | ImGuiTableFlags.BordersInnerV)) return;
-        ImGui.TableSetupColumn("Items", ImGuiTableColumnFlags.WidthStretch, .47f); ImGui.TableSetupColumn("Details", ImGuiTableColumnFlags.WidthStretch, .53f);
-        ImGui.TableNextColumn(); ImGui.BeginChild("InventoryRows", new(0, 0), true);
+        var narrow = ImGui.GetContentRegionAvail().X < ImGui.CalcTextSize("Inventory details and available quantities").X * 1.7f;
+        if (!ImGui.BeginTable("InventoryLayout", narrow ? 1 : 2, ImGuiTableFlags.Resizable | ImGuiTableFlags.BordersInnerV)) return;
+        ImGui.TableSetupColumn("Items", ImGuiTableColumnFlags.WidthStretch, .47f); if (!narrow) ImGui.TableSetupColumn("Details", ImGuiTableColumnFlags.WidthStretch, .53f);
+        ImGui.TableNextColumn(); ImGui.BeginChild("InventoryRows", new(0, narrow ? ImGui.GetTextLineHeightWithSpacing() * 9 : 0), true);
         var visible = holdings.Where(x => InventoryTypes().Contains(x.TypeId) && (filterType.Length == 0 || x.TypeId == filterType)).ToArray();
         DrawHoldingRows("OwnHoldings", visible, holdingSelection, ReadHolding);
         if (visible.Length == 0) Wrapped("No items match this view. Clear the filters, create an item in Crafting or receive one in a trade.");

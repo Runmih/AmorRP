@@ -29,7 +29,7 @@ public sealed partial class GroupsPanel
         {
             Wrapped("Crafting creates RP items for the selected group.");
             Wrapped("Potions require the Craft Potions permission. Ask the owner or a moderator with Manage Gameplay Permissions for access. Each potion spends your character's weekly potion points.");
-            Wrapped("Books, letters and notes are available to all group members within the weekly written-item allowance.");
+            Wrapped("Books, letters and notes are available to all group members within your weekly writing limit. Each book, letter or note counts as one item.");
             Wrapped("Potion recipes define item descriptions, messages and costs. Editing recipes requires the separate Potion Creation moderation permission.");
             ImGui.EndTabItem();
         }

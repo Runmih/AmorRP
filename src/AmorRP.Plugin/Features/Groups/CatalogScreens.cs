@@ -23,9 +23,10 @@ public sealed partial class GroupsPanel
     private void DrawCatalogEditor()
     {
         if (!CanDefinePotions) return;
-        if (!ImGui.BeginTable("RecipeLayout", 2, ImGuiTableFlags.Resizable | ImGuiTableFlags.BordersInnerV)) return;
-        ImGui.TableSetupColumn("Recipes", ImGuiTableColumnFlags.WidthStretch, .35f); ImGui.TableSetupColumn("Editor", ImGuiTableColumnFlags.WidthStretch, .65f);
-        ImGui.TableNextColumn(); ImGui.BeginChild("RecipeList", Vector2.Zero, true);
+        var narrow = ImGui.GetContentRegionAvail().X < ImGui.GetFontSize() * 38;
+        if (!ImGui.BeginTable("RecipeLayout", narrow ? 1 : 2, ImGuiTableFlags.Resizable | ImGuiTableFlags.BordersInnerV)) return;
+        ImGui.TableSetupColumn("Recipes", ImGuiTableColumnFlags.WidthStretch, .35f); if (!narrow) ImGui.TableSetupColumn("Editor", ImGuiTableColumnFlags.WidthStretch, .65f);
+        ImGui.TableNextColumn(); ImGui.BeginChild("RecipeList", new(0, narrow ? ImGui.GetTextLineHeightWithSpacing() * 7 : 0), true);
         ImGui.TextUnformatted("Group recipes");
         if (ImGui.Button("+ New recipe")) NewRecipe();
         foreach (var recipe in definitions)

@@ -34,10 +34,11 @@ public sealed partial class GroupService
         object response;
         if (body != null && invitationId == null)
         {
-            ApiFault.Require(body.ExpiresInHours is >= 1 and <= 168 && body.MaxUses is >= 1 and <= 100, 422, "invalid_request", "Invitation bounds are 1–168 hours and 1–100 uses.");
             ApiFault.Require(await db.Invitations.CountAsync(x => x.GroupId == groupId && !x.Revoked && x.ExpiresAt > time.GetUtcNow() && x.Used < x.MaxUses, ct) < policy.Value.MaxActiveInvitationsPerGroup,
-                409, "invitation_limit_reached", "Revoke an old invitation before creating more.");
-            var code = SecretVault.NewSecret(); var invite = new InvitationRow { GroupId = groupId, CodeHash = SecretVault.Hash(code), MaxUses = body.MaxUses, ExpiresAt = time.GetUtcNow().AddHours(body.ExpiresInHours) };
+                409, "invitation_limit_reached", "Delete an old invitation before creating more.");
+            string code;
+            do { code = InvitationCode.New(); } while (await db.Invitations.AnyAsync(x => x.CodeHash == SecretVault.Hash(code), ct));
+            var invite = new InvitationRow { GroupId = groupId, CodeHash = SecretVault.Hash(code), MaxUses = int.MaxValue, ExpiresAt = InvitationCode.PermanentUntil };
             db.Invitations.Add(invite); response = new CommandResult<InvitationCreated>(op.Id, new(InvitationView(invite), code));
         }
         else

@@ -5,7 +5,15 @@ namespace AmorRP.Plugin.Features.Groups;
 
 public sealed partial class GroupsPanel
 {
-    private string connectionError = "";
+    private void DrawLoginFeedback()
+    {
+        if (loginFeedback.Length == 0) return;
+        Wrapped(loginFeedback);
+        if (loginDiagnostic.Length == 0) return;
+        if (ImGui.SmallButton("Login details")) ImGui.OpenPopup("LoginDetails");
+        if (ImGui.BeginPopup("LoginDetails")) { Wrapped(loginDiagnostic); ImGui.EndPopup(); }
+    }
+    private string connectionError = "", connectionDiagnostic = "";
     // The shared header contains the selector and group entry buttons. Background work never adds
     // rows here; exceptional feedback lives below the content, not above it.
     private void DrawGroupSelection()
@@ -14,8 +22,9 @@ public sealed partial class GroupsPanel
         var joinWidth = ImGui.CalcTextSize("Join").X + style.FramePadding.X * 2;
         var createWidth = ImGui.CalcTextSize("Create group").X + style.FramePadding.X * 2;
         var leaveWidth = ImGui.CalcTextSize("Leave").X + style.FramePadding.X * 2;
-        DrawGroupSelector("##Group", Math.Max(1, ImGui.GetContentRegionAvail().X - joinWidth - createWidth - leaveWidth - style.ItemSpacing.X * 3));
-        ImGui.SameLine(); if (ImGui.Button("Join", new(joinWidth, 0))) OpenJoinGroup?.Invoke();
+        var stacked = ImGui.GetContentRegionAvail().X < joinWidth + createWidth + leaveWidth + ImGui.CalcTextSize("Choose a group").X + style.ItemSpacing.X * 5;
+        DrawGroupSelector("##Group", stacked ? -1 : Math.Max(1, ImGui.GetContentRegionAvail().X - joinWidth - createWidth - leaveWidth - style.ItemSpacing.X * 3));
+        if (!stacked) ImGui.SameLine(); if (ImGui.Button("Join", new(joinWidth, 0))) OpenJoinGroup?.Invoke();
         ImGui.SameLine(); if (ImGui.Button("Create group", new(createWidth, 0))) OpenCreateGroup?.Invoke();
         ImGui.SameLine(); ImGui.BeginDisabled(group == null || Owner || TradeBlocksGroupSwitch);
         if (ActionButton("Leave")) LeaveGroup();
@@ -57,17 +66,20 @@ public sealed partial class GroupsPanel
         {
             Wrapped(connectionError);
             if (ImGui.SmallButton("Retry connection")) Refresh();
+            ImGui.SameLine();
+            if (ImGui.SmallButton("Connection details")) ImGui.OpenPopup("ConnectionDetails");
+            if (ImGui.BeginPopup("ConnectionDetails")) { Wrapped(connectionDiagnostic); ImGui.EndPopup(); }
             ImGui.Separator();
         }
         if (pending != null)
         {
-            Wrapped(recovery ? "This action's outcome needs checking before another change." : "Saving action…");
+            Wrapped(recovery ? "We could not confirm whether this action was saved. Check its result before making another change." : "Saving action…");
             if (recovery)
             {
                 ImGui.BeginDisabled(work != null);
                 if (ImGui.SmallButton("Retry original action")) ExecutePending(pending, false, recovering: true);
                 ImGui.SameLine();
-                if (ImGui.SmallButton("Check committed receipt")) CheckReceipt(pending);
+                if (ImGui.SmallButton("Check action result")) CheckReceipt(pending);
                 ImGui.EndDisabled();
             }
             ImGui.Separator();
@@ -106,7 +118,7 @@ public sealed partial class GroupsPanel
                 configuration.PendingCommands.Remove(pending); save(); ApplyFormSuccess(pending.Read(), null);
                 NoteAuthorizationReceipt(pending.Read(), receipt.Id);
                 if (pending.Read().Path is "api/v1/groups" or "api/v1/groups/join") selected = receipt.GroupId;
-                actionResult = "The action committed. Chat is never posted by receipt recovery.";
+                actionResult = "Your action was saved. Any chat message has not been sent again.";
                 status = "Refreshing current state."; refreshNeeded = true;
             };
         }, "Checking receipt…");

@@ -31,7 +31,7 @@ resource belongs to it. Switching the display does not migrate assets.
   and dormant memberships do not consume a slot. Recommended scope: per character.
 - Owner creation atomically creates group, owner membership, currency and policies.
   M3 adds the default categories when the inventory feature becomes available. Admission and ownership-transfer limits use database locking.
-- Only owner issues revocable, expiring invitations. Joining requires explicit
+- Only the owner issues permanent, revocable nine-character invitations with unlimited uses. Joining requires explicit
   acceptance of group visibility/data rules; possession of a code is not membership.
 - Intended behavior (A20): voluntary leave and owner removal deactivate membership
   without blocking invited rejoining. Blocking is separate and prevents rejoining

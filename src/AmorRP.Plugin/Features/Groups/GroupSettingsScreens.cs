@@ -27,15 +27,14 @@ public sealed partial class GroupsPanel
     }
     private void DrawInvitations()
     {
-        FieldLabel("Valid for hours (1–168)"); ImGui.InputInt("##InviteHours", ref inviteHours);
-        FieldLabel("Maximum uses (1–100)"); ImGui.InputInt("##InviteUses", ref inviteUses);
-        if (ActionButton("Create invitation")) Mutate("POST", $"api/v1/groups/{group!.Id}/invitations", new InvitationCreate(inviteHours, inviteUses));
-        if (createdCode.Length > 0) { FieldLabel("New invitation code"); ImGui.InputText("##CreatedInvite", ref createdCode, 100, ImGuiInputTextFlags.ReadOnly); }
-        foreach (var invite in invitations)
+        Wrapped("Invitation codes stay valid until you delete them. Share them only with people you want to join.");
+        if (ActionButton("Create invitation")) Mutate("POST", $"api/v1/groups/{group!.Id}/invitations", new InvitationCreate());
+        if (createdCode.Length > 0) { FieldLabel("New invitation code"); ImGui.InputText("##CreatedInvite", ref createdCode, 100, ImGuiInputTextFlags.ReadOnly); if (ImGui.Button("Copy code")) { ImGui.SetClipboardText(createdCode); actionResult = "Invitation code copied."; } }
+        foreach (var invite in invitations.Where(x => !x.Revoked && x.ExpiresAt > DateTimeOffset.UtcNow && x.Used < x.MaxUses))
         {
             ImGui.PushID(invite.Id.ToString());
-            Wrapped($"{invite.Used}/{invite.MaxUses} uses; expires {invite.ExpiresAt.LocalDateTime:g}{(invite.Revoked ? " — revoked" : "")}");
-            if (!invite.Revoked && ActionButton("Revoke invitation")) Mutate("DELETE", $"api/v1/groups/{group!.Id}/invitations/{invite.Id}", null);
+            Wrapped($"Invitation {invite.Id.ToString()[^6..].ToUpperInvariant()} · {invite.Used} joined · no expiry");
+            if (!invite.Revoked && ActionButton("Delete invitation")) Mutate("DELETE", $"api/v1/groups/{group!.Id}/invitations/{invite.Id}", null);
             ImGui.PopID();
         }
         if (invitationsCursor != null && ActionButton("More invitations", mutation: false))

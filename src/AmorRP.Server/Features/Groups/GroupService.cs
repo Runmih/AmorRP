@@ -64,9 +64,9 @@ public sealed partial class GroupService(AmorDbContext db, SessionAccess session
     }
     public async Task<IResult> JoinAsync(HttpContext http, JoinGroup body, CancellationToken ct)
     {
-        ApiFault.Require(body.AcceptMemberVisibility && SecretVault.IsCredential(body.InvitationCode), 422, "invalid_request", "Accept group member visibility and provide a valid invitation.");
+        ApiFault.Require(body.AcceptMemberVisibility && InvitationCode.IsValid(body.InvitationCode), 422, "invalid_request", "Accept group member visibility and provide a valid invitation.");
         var session = await sessions.GetAsync(http, ct);
-        var hash = SecretVault.Hash(body.InvitationCode);
+        var hash = SecretVault.Hash(InvitationCode.Normalize(body.InvitationCode));
         var discovered = await db.Invitations.AsNoTracking().SingleOrDefaultAsync(x => x.CodeHash == hash, ct);
         ApiFault.Require(discovered != null, 404, "not_found", "Invitation not found.");
         await using var tx = await db.Database.BeginTransactionAsync(ct);
@@ -81,7 +81,7 @@ public sealed partial class GroupService(AmorDbContext db, SessionAccess session
         ApiFault.Require(member?.Status != "blocked", 403, "membership_blocked", "Owner must restore your eligibility before rejoining.");
         ApiFault.Require(member?.Status != "active", 409, "already_joined", "Character is already a member.");
         var invite = await db.Invitations.SingleAsync(x => x.Id == discovered!.Id, ct);
-        ApiFault.Require(!invite.Revoked && invite.ExpiresAt > time.GetUtcNow() && invite.Used < invite.MaxUses, 409, "invitation_unavailable", "Invitation expired, revoked or fully used.");
+        ApiFault.Require(!invite.Revoked && invite.ExpiresAt > time.GetUtcNow() && invite.Used < invite.MaxUses, 409, "invitation_unavailable", "This invitation is no longer available. Ask the group owner for a new code.");
         await CapsAsync(session.CharacterId, false, ct);
         if (member == null) { member = new MembershipRow { GroupId = group!.Id, CharacterId = session.CharacterId }; db.Memberships.Add(member); }
         else { member.Status = "active"; member.Capabilities = []; member.Version++; }

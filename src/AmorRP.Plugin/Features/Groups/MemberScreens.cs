@@ -5,12 +5,16 @@ namespace AmorRP.Plugin.Features.Groups;
 
 public sealed partial class GroupsPanel
 {
-    private string memberSearch = "";
-    private Member? SelectedMember => members.FirstOrDefault(x => x.Character.Id == memberSelection);
+    private string memberSearch = "", appliedMemberSearch = "";
+    private Member[] memberSearchResults = [];
+    private string? memberSearchCursor;
+    private Member? SelectedMember => members.Concat(memberSearchResults).FirstOrDefault(x => x.Character.Id == memberSelection);
     private void SelectMember(Member row)
     {
+        if (!members.Any(x => x.Character.Id == row.Character.Id)) members = [..members, row];
         memberSelection = row.Character.Id; memberDraftEtag = row.Etag;
         ResetMemberDescription(row);
+        LoadPersonalNote(row);
         grantGeneralModeration = row.Capabilities.Contains("group.moderate"); grantAnnouncements = row.Capabilities.Contains("announcements.manage"); grantGameplayPermissions = row.Capabilities.Contains("members.gameplay.manage");
         grantCoins = row.Capabilities.Contains("currency.manage"); grantPotions = row.Capabilities.Contains("items.potion.create"); grantRemoval = row.Capabilities.Contains("inventory.remove"); tradingAllowed = !row.TradingRestricted; grantDefinitions = row.Capabilities.Contains("items.potion.define");
         reason = removalReason = itemRemovalReason = delta = ""; removeItemsConfirmed = false;
@@ -20,23 +24,24 @@ public sealed partial class GroupsPanel
     private void DrawMembers()
     {
         if (group == null) { Wrapped("Join or create a group first."); return; }
-        if (Owner && ImGui.Checkbox("Show inactive members", ref showInactive)) { members = []; memberSelection = null; refreshNeeded = true; }
-        if (!ImGui.BeginTable("MemberLayout", 2, ImGuiTableFlags.Resizable | ImGuiTableFlags.BordersInnerV)) return;
-        ImGui.TableSetupColumn("Members", ImGuiTableColumnFlags.WidthStretch, .38f); ImGui.TableSetupColumn("Details", ImGuiTableColumnFlags.WidthStretch, .62f);
-        ImGui.TableNextColumn(); ImGui.BeginChild("MemberRoster", Vector2.Zero, true);
-        ImGui.SetNextItemWidth(-1); ImGui.InputTextWithHint("##MemberSearch", "Filter loaded members…", ref memberSearch, 400);
-        foreach (var row in members.Where(x => (x.Character.DisplayName + " " + x.Character.HomeWorldName).Contains(memberSearch, StringComparison.OrdinalIgnoreCase)))
+        if (Owner && ImGui.Checkbox("Show inactive members", ref showInactive)) { members = []; memberSelection = null; ClearMemberSearch(); refreshNeeded = true; }
+        var narrow = ImGui.GetContentRegionAvail().X < ImGui.CalcTextSize("Character description and private notes").X * 1.7f;
+        if (!ImGui.BeginTable("MemberLayout", narrow ? 1 : 2, ImGuiTableFlags.Resizable | ImGuiTableFlags.BordersInnerV)) return;
+        ImGui.TableSetupColumn("Members", ImGuiTableColumnFlags.WidthStretch, .38f); if (!narrow) ImGui.TableSetupColumn("Details", ImGuiTableColumnFlags.WidthStretch, .62f);
+        ImGui.TableNextColumn(); ImGui.BeginChild("MemberRoster", new(0, narrow ? ImGui.GetTextLineHeightWithSpacing() * 9 : 0), true);
+        ImGui.SetNextItemWidth(-1); var searchNow = ImGui.InputTextWithHint("##MemberSearch", "Search all members (Enter)…", ref memberSearch, 201, ImGuiInputTextFlags.EnterReturnsTrue);
+        if (searchNow || ImGui.IsItemDeactivatedAfterEdit()) SearchMembers();
+        if (appliedMemberSearch.Length > 0 && ImGui.SmallButton("Clear search")) { memberSearch = ""; SearchMembers(); }
+        var visibleMembers = appliedMemberSearch.Length > 0 ? memberSearchResults : members;
+        if (appliedMemberSearch.Length > 0 && visibleMembers.Length == 0) Wrapped("No members found.");
+        foreach (var row in visibleMembers)
         {
             ImGui.PushID(row.Character.Id.ToString());
             if (ImGui.Selectable(row.Character.DisplayName + "###Member", memberSelection == row.Character.Id)) SelectMember(row);
             ImGui.TextDisabled(row.Character.HomeWorldName + " · " + (row.IsOwner ? "owner" : row.Status == "dormant" ? "inactive" : row.Status)); ImGui.PopID();
         }
-        if (membersCursor != null && ActionButton("More members", mutation: false))
-        {
-            var cursor = membersCursor; var id = group.Id; var token = session!.AccessToken; var owner = Owner && showInactive;
-            Start(async ct => { var page = await client.GetAsync<MemberPage>(origin!, $"api/v1/groups/{id}/members?cursor={Uri.EscapeDataString(cursor)}" + (owner ? "&includeDormant=true" : ""), token, ct);
-                return () => { members = members.Concat(page.Items).DistinctBy(x => x.Character.Id).ToArray(); membersCursor = page.NextCursor; }; }, "Loading more members…");
-        }
+        if ((appliedMemberSearch.Length > 0 ? memberSearchCursor : membersCursor) != null && ActionButton("More members", mutation: false))
+            SearchMembers(more: true);
         ImGui.EndChild(); ImGui.TableNextColumn(); ImGui.BeginChild("SelectedMember", Vector2.Zero, true); ImGui.PushItemWidth(-1);
         var target = SelectedMember;
         if (target == null) Wrapped("Select a member on the left. Their available actions appear here.");
@@ -46,6 +51,7 @@ public sealed partial class GroupsPanel
             DrawMemberDescription(target);
             if (target.Status == "active" && target.Character.Id != session!.Character.Id && !target.TradingRestricted && !group.MyTradingRestricted && ImGui.Button("Trade with this member"))
             { contextTarget = null; tradeTargetId = target.Character.Id; requestedTradeTab = 1; OpenTradeWindow?.Invoke(); }
+            DrawPersonalNote(target);
             if (CanManageGameplay && target.Status == "active")
             {
                 if (target.IsOwner)

@@ -19,14 +19,23 @@ public sealed partial class GroupService
         var session = await sessions.GetAsync(http, ct); var (group, _) = await access.RequireAsync(groupId, session.CharacterId, ct);
         var dormant = http.Request.Query["includeDormant"] == "true";
         if (dormant) GroupAccess.Owner(group, session.CharacterId);
-        var scope = $"members:{groupId}:{session.CharacterId}:{dormant}"; var (limit, after) = pages.Read(http, scope);
+        var search = http.Request.Query["search"].ToString().Trim();
+        ApiFault.Require(search.Length <= 200, 422, "invalid_request", "Member search must be 200 characters or fewer.");
+        var scope = $"members:{groupId}:{session.CharacterId}:{dormant}:{SecretVault.Hash(search)}"; var (limit, after) = pages.Read(http, scope);
         var query = db.Memberships.Where(x => x.GroupId == groupId && (dormant || x.Status == "active"));
+        if (search.Length > 0)
+        {
+            var pattern = "%" + search.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_") + "%";
+            var matching = db.Characters.Where(x => EF.Functions.ILike(x.DisplayName + " " + x.HomeWorldName, pattern, "\\")).Select(x => x.Id);
+            query = query.Where(x => matching.Contains(x.CharacterId));
+        }
         if (after.HasValue) query = query.Where(x => x.CharacterId.CompareTo(after.Value) > 0);
         var rows = await query.OrderBy(x => x.CharacterId).Take(limit + 1).ToArrayAsync(ct);
+        var characters = await db.Characters.Where(x => rows.Select(m => m.CharacterId).Contains(x.Id)).ToDictionaryAsync(x => x.Id, ct);
         var items = new List<Member>();
         foreach (var row in rows.Take(limit))
         {
-            var character = await db.Characters.SingleAsync(x => x.Id == row.CharacterId, ct);
+            var character = characters[row.CharacterId];
             items.Add(new(SessionAccess.View(character), row.Status, group.OwnerCharacterId == row.CharacterId,
                 group.OwnerCharacterId == row.CharacterId ? GroupAccess.GrantableActions : row.Capabilities, row.TradingRestricted, row.Version, GroupAccess.MemberETag(row), row.Description));
         }

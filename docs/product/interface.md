@@ -352,3 +352,35 @@ never saved in plugin configuration. Retries retain the same in-memory operation
 key; a fresh login is needed after plugin restart, expiry or lockout. Saved login
 and automatic renewal do not repeat pairing. A server without pairing support is
 rejected for new logins rather than silently using the insecure older handoff.
+
+
+## 0.0.6.16 usability update
+
+Action feedback names the completed action and explains failures in plain language.
+HTTP status, server code, request ID and action ID remain available through Details;
+connection and login failures also have a Details button. Quiet refreshes retry after
+5, 10, 20, 40 and then 60 seconds while preserving last-confirmed data and drafts.
+Unknown write outcomes still require the saved action's retry/result check.
+
+Inventory, member profiles and crafting forms stack their columns when space is
+limited; navigation and breakpoints follow the current font size. Inventory type
+icons keep their text labels. Trades show the current character's total currency,
+amount available for this offer (including currency already reserved by this trade),
+and draft offer amount. The peer's private balance is never requested.
+
+Member search matches names and home worlds across the full group on the server,
+before pagination. Submit with Enter or leave the field; further pages retain the
+same search. Search cursors cannot be reused for a different search or group.
+
+Member profiles include Your private notes, separate from the shared character
+description. Notes allow 300 characters, are encrypted for the current Windows user,
+and stay on this computer. They are keyed by server, signed-in character, group and
+viewed character; they are never uploaded or visible to group owners. Save private
+note persists changes; saving an empty note deletes it.
+
+Group invitations contain nine unambiguous uppercase letters/digits, accept lowercase
+entry, and never expire or run out of uses. Owners can copy a newly created code
+and delete an invitation to invalidate it. Codes remain hashed and are returned only
+at creation. Joining requires a verified login and has a separate per-network request
+budget. Existing usable invitations become permanent on upgrade; expired, exhausted
+or revoked invitations remain unavailable. Existing long codes remain accepted.
