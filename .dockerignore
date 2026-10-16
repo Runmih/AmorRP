@@ -1,0 +1,12 @@
+.git
+.vs
+.tools
+artifacts
+**/bin
+**/obj
+**/.env
+**/.env.*
+tests
+docs
+scripts
+src/AmorRP.Plugin

@@ -1,0 +1,19 @@
+<Project Sdk="Dalamud.NET.Sdk/15.0.0">
+  <PropertyGroup>
+    <AssemblyName>AmorRP</AssemblyName>
+    <RootNamespace>AmorRP.Plugin</RootNamespace>
+    <Version>0.0.6.15</Version>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Description>Bringing FFXIV roleplay venues and communities together with RP groups, inventories, currency, crafting and trading.</Description>
+    <PackageProjectUrl>https://github.com/Runmih/AmorRP</PackageProjectUrl>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+  </PropertyGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Assets/default-coin.png" />
+    <None Include="Assets/Branding/icon.png" Link="icon.png" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../../licenses/AmorRP.licenses.json" Link="AmorRP.licenses.json" CopyToOutputDirectory="PreserveNewest" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="10.0.12" />
+    <ProjectReference Include="../AmorRP.Contracts/AmorRP.Contracts.csproj" />
+    <ProjectReference Include="../AmorRP.Core/AmorRP.Core.csproj" />
+  </ItemGroup>
+</Project>

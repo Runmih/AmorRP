@@ -1,0 +1,45 @@
+# Deployment template only; no resources have been provisioned.
+# Render does not automatically discover a Blueprint nested in deploy/.
+# Select this file explicitly when creating the Blueprint.
+# This template uses paid compute and its separate pre-deploy command.
+# For an existing free service, follow docs/delivery/m3-install-test.md:
+# no pre-deploy command; set AMORRP_MIGRATE_ON_START=true instead.
+services:
+  - type: web
+    name: amorrp-server
+    runtime: docker
+    plan: starter
+    region: frankfurt
+    dockerfilePath: ./deploy/Dockerfile
+    dockerContext: .
+    healthCheckPath: /health/ready
+    preDeployCommand: dotnet AmorRP.Server.dll --migrate
+    autoDeployTrigger: off
+    envVars:
+      - key: ConnectionStrings__Database
+        sync: false
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: XivAuth__Enabled
+        value: "false"
+      - key: XivAuth__DurableEnabled
+        value: "false"
+      - key: XivAuth__DurableCallbackUrl
+        sync: false
+      - key: SecretVault__ActiveKeyId
+        value: primary
+      - key: SecretVault__Keys__primary
+        sync: false
+      - key: XivAuth__ClientId
+        sync: false
+      - key: XivAuth__ClientSecret
+        sync: false
+      - key: XivAuth__CallbackUrl
+        sync: false
+databases:
+  - name: amorrp-database
+    databaseName: amorrp
+    user: amorrp
+    plan: basic-256mb
+    region: frankfurt
+    postgresMajorVersion: "18"

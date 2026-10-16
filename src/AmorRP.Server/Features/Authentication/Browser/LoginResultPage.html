@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>{{title}} · Amor RP</title>
+  <style nonce="{{nonce}}">
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100svh; display: grid; place-items: center start;
+      padding: 40px clamp(24px, 7vw, 120px); color: #f3f0fa; font-family: "Segoe UI", system-ui, sans-serif;
+      background: linear-gradient(120deg, #11101999, #11101933),
+                  url("{{backgroundPath}}") center / cover no-repeat fixed, #111019;
+    }
+    body::before {
+      content: ""; position: fixed; inset: 16px; pointer-events: none;
+      border: 1px solid #c8b3e51a; border-radius: 12px;
+    }
+    main {
+      width: min(100%, 510px); padding: 44px 40px 32px; text-align: center;
+      background: #15131ff2; border: 1px solid #c6a6ee38; border-radius: 22px;
+      box-shadow: 0 24px 90px #0007;
+    }
+    .brand { margin: 0 0 32px; color: #d4b7f6; font-size: 13px; letter-spacing: .25em; font-weight: 600; }
+    .seal {
+      display: grid; place-items: center; width: 64px; height: 64px; margin: 0 auto 24px;
+      border-radius: 50%; color: #c8edd8; background: #233d344d; border: 1px solid #a8d7bd55;
+    }
+    .seal svg { width: 28px; height: 28px; }
+    .failure-mark { display: none; }
+    [data-verified="false"] .seal { color: #f0d6b3; background: #503b274d; border-color: #e9c38e55; }
+    [data-verified="false"] .success-mark { display: none; }
+    [data-verified="false"] .failure-mark { display: block; }
+    .eyebrow { margin: 0 0 12px; color: #c9bed7; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; }
+    h1 { margin: 0; font: 500 clamp(28px, 5vw, 36px)/1.2 Georgia, serif; letter-spacing: -.025em; }
+    .description { margin: 20px 0 28px; color: #c4bdcf; line-height: 1.75; font-size: 15px; }
+    strong { font-weight: 600; color: #f3f0fa; }
+    .pairing { margin: 24px 0; }
+    #pairing-code { display: block; padding: 16px 8px; background: #09080d88; border-radius: 9px; font: 22px ui-monospace, monospace; letter-spacing: .08em; user-select: all; overflow-wrap: anywhere; }
+    .warning { color: #f0d6b3; font-size: 14px; line-height: 1.6; }
+    [data-verified="false"] .pairing { display: none; }
+    .actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
+    button {
+      min-height: 44px; padding: 11px 22px; border: 1px solid #ba92e6;
+      border-radius: 9px; background: #bb98e1; color: #21152d; font: 600 14px "Segoe UI", system-ui, sans-serif;
+      cursor: pointer;
+    }
+    button:hover { background: #c9aaea; }
+    button:focus-visible { outline: 3px solid #fff; outline-offset: 4px; }
+    .secondary { background: transparent; border-color: #aaa0bd4d; color: #d7cde4; }
+    .secondary:hover { background: #c5a8e51a; }
+    [hidden] { display: none !important; }
+    .closing { min-height: 3.2em; margin: 24px 0 0; color: #aaa1b8; font-size: 12px; line-height: 1.6; }
+    footer { margin-top: 20px; padding-top: 20px; border-top: 1px solid #c8b3e51f; color: #aaa1b8; font-size: 11px; }
+    @media (max-width: 800px) { body { place-items: center; padding: 32px 20px; } }
+    @media (max-width: 440px) { main { padding: 32px 24px 24px; } body::before { inset: 8px; } }
+  </style>
+</head>
+<body>
+  <main data-verified="{{verified}}">
+    <p class="brand">AMOR RP</p>
+    <div class="seal" aria-hidden="true">
+      <svg class="success-mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4L19 6"/></svg>
+      <svg class="failure-mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 5v9m0 4v.1"/></svg>
+    </div>
+    <p class="eyebrow">{{status}}</p>
+    <h1>{{heading}}</h1>
+    <p class="description">{{description}}</p>
+    <section class="pairing" aria-label="Plugin pairing">
+      <code id="pairing-code">{{pairingCode}}</code>
+      <p class="warning">Only enter this code in your own Amor RP plugin. If someone sent you this login link, close this page. Never send them the code.</p>
+      <button id="copy-code" type="button" hidden>Copy pairing code</button>
+    </section>
+    <div class="actions">
+      <button id="close-tab" type="button" hidden>Close tab</button>
+    </div>
+    <p class="closing" id="closing">{{closing}}</p>
+    <p class="closing" id="close-result" role="status" hidden></p>
+    <footer>Character verification through XIVAuth</footer>
+  </main>
+  <script nonce="{{nonce}}">
+    (() => {
+      "use strict";
+      // Strip the OAuth query; the pairing code is never put in a URL or storage.
+      try { window.history.replaceState(null, "", window.location.pathname); } catch {}
+      const verified = document.querySelector("main").dataset.verified === "true";
+      const closeButton = document.getElementById("close-tab");
+      const copyButton = document.getElementById("copy-code");
+      const result = document.getElementById("close-result");
+      closeButton.hidden = false;
+      closeButton.addEventListener("click", () => {
+        try { window.close(); } catch {}
+        result.textContent = "If this tab stays open, close it manually once you have finished pairing.";
+        result.hidden = false;
+      });
+      if (!verified) return;
+      copyButton.hidden = false;
+      copyButton.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(document.getElementById("pairing-code").textContent);
+          copyButton.textContent = "Copied";
+        } catch { copyButton.textContent = "Select and copy the code above"; }
+      });
+      // Do not auto-close: the browser-only secret must remain available for pairing.
+    })();
+  </script>
+</body>
+</html>

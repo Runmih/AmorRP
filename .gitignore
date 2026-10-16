@@ -1,0 +1,17 @@
+**/bin/
+**/obj/
+.vs/
+.idea/
+node_modules/
+.tools/
+artifacts/
+.env
+.env.*
+!.env.example
+appsettings.*.local.json
+*.user
+*.suo
+*.db
+TestResults/
+__pycache__/
+.venv/

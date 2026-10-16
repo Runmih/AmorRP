@@ -1,0 +1,90 @@
+name: Plugin package
+on:
+  push:
+    branches: [main]
+    paths-ignore: [repo.json, "packages/**", "images/**"]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Publish this version to the main Dalamud feed (bump version for changed bytes)'
+        type: boolean
+        default: false
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
+        with:
+          global-json-file: global.json
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+      - name: Fetch verified official Dalamud references
+        shell: pwsh
+        run: |
+          ./scripts/Fetch-Dalamud.ps1
+          "DALAMUD_HOME=$((Resolve-Path '.tools/dalamud').Path)" >> $env:GITHUB_ENV
+      - name: Build and verify plugin ZIP
+        shell: pwsh
+        run: |
+          dotnet restore src/AmorRP.Plugin/AmorRP.Plugin.csproj --locked-mode
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          dotnet build src/AmorRP.Plugin/AmorRP.Plugin.csproj -c Release --no-restore -p:Platform=x64
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python scripts/check-plugin-package.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python scripts/check-plugin-repository.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: AmorRP-plugin
+          path: src/AmorRP.Plugin/bin/x64/Release/AmorRP/latest.zip
+          if-no-files-found: error
+          retention-days: 30
+  publish:
+    if: github.event_name == 'workflow_dispatch' && inputs.publish && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      actions: read
+    concurrency:
+      group: plugin-main-repository
+      cancel-in-progress: false
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+      - name: Require successful server, contracts and helper checks for this commit
+        run: |
+          gh run list --repo "$GITHUB_REPOSITORY" --workflow server-ci.yml --commit "$GITHUB_SHA" --status success --json headSha --limit 100 > "$RUNNER_TEMP/checks.json"
+          python -c 'import json, os; assert any(r["headSha"] == os.environ["GITHUB_SHA"] for r in json.load(open(os.environ["RUNNER_TEMP"] + "/checks.json"))), "Run Server and contracts successfully on this commit before publishing"'
+      - name: Download this run's verified Windows package
+        run: gh run download "$GITHUB_RUN_ID" --repo "$GITHUB_REPOSITORY" --name AmorRP-plugin --dir "$RUNNER_TEMP/plugin-package"
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: main
+          fetch-depth: 0
+          path: distribution
+      - name: Require matching source on main
+        working-directory: distribution
+        run: git diff --exit-code "$GITHUB_SHA" HEAD -- . ':!repo.json' ':!packages' ':!images'
+      - name: Prepare feed and immutable versioned package
+        run: |
+          python scripts/prepare-plugin-repository.py --package "$RUNNER_TEMP/plugin-package/latest.zip" --destination distribution --source-commit "$GITHUB_SHA" --build-url "https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+      - name: Publish together without rewriting history
+        working-directory: distribution
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add README.md LICENSE.md repo.json packages images
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "Publish Amor RP package"
+          git push origin HEAD:main

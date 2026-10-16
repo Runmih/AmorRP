@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><IsTestProject>true</IsTestProject></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/AmorRP.Contracts/AmorRP.Contracts.csproj" />
+    <ProjectReference Include="../../src/AmorRP.Core/AmorRP.Core.csproj" />
+    <Compile Include="../../src/AmorRP.Plugin/Services/Ui/WrappedTextProjection.cs" Link="Services/Ui/WrappedTextProjection.cs" />
+    <Compile Include="../../src/AmorRP.Plugin/Services/Ui/FeedbackQueue.cs" Link="Services/Ui/FeedbackQueue.cs" />
+    <Compile Include="../../src/AmorRP.Plugin/Services/Api/*.cs" Link="Services/Api/%(Filename)%(Extension)" />
+    <Compile Include="../../src/AmorRP.Plugin/Services/Game/ChatCommand.cs" Link="Services/Game/ChatCommand.cs" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="xunit.runner.visualstudio" PrivateAssets="all" />
+  </ItemGroup>
+</Project>
