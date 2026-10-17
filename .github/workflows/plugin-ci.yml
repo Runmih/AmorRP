@@ -1,7 +1,7 @@
 name: Plugin package
 on:
   push:
-    branches: [main]
+    branches: [main, testing]
     paths-ignore: [repo.json, "packages/**", "images/**"]
   pull_request:
   workflow_dispatch:
@@ -46,7 +46,7 @@ jobs:
           if-no-files-found: error
           retention-days: 30
   publish:
-    if: github.event_name == 'workflow_dispatch' && inputs.publish && github.ref == 'refs/heads/main'
+    if: github.event_name == 'workflow_dispatch' && inputs.publish && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
     needs: build
     runs-on: ubuntu-24.04
     permissions:
@@ -73,12 +73,16 @@ jobs:
           ref: main
           fetch-depth: 0
           path: distribution
-      - name: Require matching source on main
+      - name: Require matching source on the selected release branch
         working-directory: distribution
-        run: git diff --exit-code "$GITHUB_SHA" HEAD -- . ':!repo.json' ':!packages' ':!images'
+        run: |
+          git fetch origin "$GITHUB_REF_NAME"
+          git diff --exit-code "$GITHUB_SHA" "origin/$GITHUB_REF_NAME" -- . ':!repo.json' ':!packages' ':!images'
       - name: Prepare feed and immutable versioned package
         run: |
-          python scripts/prepare-plugin-repository.py --package "$RUNNER_TEMP/plugin-package/latest.zip" --destination distribution --source-commit "$GITHUB_SHA" --build-url "https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          release_channel=stable
+          if [ "$GITHUB_REF_NAME" = testing ]; then release_channel=testing; fi
+          python scripts/prepare-plugin-repository.py --channel "$release_channel" --package "$RUNNER_TEMP/plugin-package/latest.zip" --destination distribution --source-commit "$GITHUB_SHA" --build-url "https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
       - name: Publish together without rewriting history
         working-directory: distribution
         run: |

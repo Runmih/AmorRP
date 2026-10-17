@@ -1,7 +1,7 @@
 name: Server and contracts
 on:
   push:
-    branches: [main]
+    branches: [main, testing]
     paths-ignore: [repo.json, "packages/**", "images/**"]
   pull_request:
   workflow_dispatch:
