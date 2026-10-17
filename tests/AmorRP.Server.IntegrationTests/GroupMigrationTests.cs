@@ -45,4 +45,20 @@ public sealed partial class FoundationTests
         Assert.Equal(3, results.Count(x => x == System.Net.HttpStatusCode.Created));
         Assert.Equal(1, results.Count(x => x == System.Net.HttpStatusCode.Conflict));
     }
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Downgrade_refuses_to_discard_individual_ownership_or_joining_privacy(bool password)
+    {
+        var ct = TestContext.Current.CancellationToken;
+        using var f = Factory(); await Migrate(f); using var owner = f.CreateClient(); await Login(owner, "1042"); var c = await Create(owner);
+        using var member = f.CreateClient(); var id = (await Login(member, "1043")).Character.Id; await Join(member, await Invite(owner, c));
+        await GrantHome(owner, c, id, "groups.create");
+        await Command<GroupProfile>(password ? owner : member, HttpMethod.Post, $"/api/v2/communities/{c.Id}/groups", new GroupWrite("Private policy", "", password ? "password" : "open", password ? "secret" : null));
+        await using var scope = f.Services.CreateAsyncScope(); var db = scope.ServiceProvider.GetRequiredService<AmorDbContext>();
+        var rejected = await Assert.ThrowsAsync<Npgsql.PostgresException>(() => db.GetService<IMigrator>().MigrateAsync("20261017002828_CommunitiesAndGroups", ct));
+        Assert.Equal("P0001", rejected.SqlState);
+        Assert.Contains("restore a matching backup", rejected.MessageText);
+    }
+
 }

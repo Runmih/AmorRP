@@ -108,4 +108,26 @@ public sealed partial class FoundationTests
         using var join = Request(HttpMethod.Post, $"/api/v2/communities/{c.Id}/groups/{closed.Id}/join", new GroupJoin());
         using var rejected = await outsider.SendAsync(join, ct); Assert.Equal(HttpStatusCode.Forbidden, rejected.StatusCode);
     }
+    [Fact]
+    public async Task Password_guess_limit_does_not_exhaust_XIVAuth_login_budget()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        using var f = Factory().WithWebHostBuilder(b => b.UseSetting("ServicePolicy:LoginRequestsPerMinute", "60"));
+        await Migrate(f); using var owner = f.CreateClient(); await Login(owner, "1060"); var c = await Create(owner);
+        using var member = f.CreateClient(); await Login(member, "1061"); await Join(member, await Invite(owner, c));
+        var group = await Command<GroupProfile>(owner, HttpMethod.Post, $"/api/v2/communities/{c.Id}/groups", new GroupWrite("Protected", "", "password", "correct-password"));
+        var limited = false;
+        for (var n = 0; n < 50; n++)
+        {
+            using var attempt = Request(HttpMethod.Post, $"/api/v2/communities/{c.Id}/groups/{group.Id}/join", new GroupJoin("incorrect-password"));
+            using var response = await member.SendAsync(attempt, ct);
+            Assert.Contains(response.StatusCode, new[] { HttpStatusCode.Forbidden, HttpStatusCode.TooManyRequests });
+            limited |= response.StatusCode == HttpStatusCode.TooManyRequests;
+        }
+        Assert.True(limited);
+        using var login = Request(HttpMethod.Post, "/api/v2/auth/login-attempts", new AmorRP.Contracts.Auth.LoginStart("Person 1062", "35", "Zalera"));
+        login.Headers.Add("X-Login-Request-Credential", AmorRP.Server.Infrastructure.Security.SecretVault.NewSecret());
+        using var created = await member.SendAsync(login, ct); Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+    }
+
 }

@@ -16,6 +16,7 @@ public sealed class ServicePolicyOptions : IValidatableObject
     [Range(1, 720)] public int OwnershipProposalHours { get; set; } = 24;
     // Budgets are per client IPv4 address / IPv6 /64, not shared across the service.
     [Range(60, 100000)] public int ApiRequestsPerMinute { get; set; } = 6000;
+    [Range(5, 120)] public int GroupJoinRequestsPerMinute { get; set; } = 20;
     [Range(60, 10000)] public int LoginRequestsPerMinute { get; set; } = 1200;
     [Range(1, 100)] public int OwnedCommunities { get; set; } = 3;
     [Range(1, 10000)] public int MaxRetainedCreatedCommunitiesPerCharacter { get; set; } = 30;

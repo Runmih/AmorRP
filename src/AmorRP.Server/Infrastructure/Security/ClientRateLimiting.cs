@@ -32,6 +32,8 @@ public static class ClientRateLimiting
                 context.Request.Path.StartsWithSegments("/health") ? RateLimitPartition.GetNoLimiter("health")
                 : Partition(context, policy.ApiRequestsPerMinute));
             options.AddPolicy("identity-probe", context => Partition(context, policy.LoginRequestsPerMinute));
+            // Password guesses use their own limiter; group joins must not consume OAuth's budget.
+            options.AddPolicy("group-join", context => Partition(context, policy.GroupJoinRequestsPerMinute));
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
             options.OnRejected = async (context, ct) =>
             {

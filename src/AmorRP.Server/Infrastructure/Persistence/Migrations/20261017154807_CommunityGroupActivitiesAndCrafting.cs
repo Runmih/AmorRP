@@ -228,7 +228,8 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
         {
             migrationBuilder.Sql("""
                 DO $$ BEGIN
-                  IF EXISTS (SELECT 1 FROM group_notices) OR EXISTS (SELECT 1 FROM group_events)
+                  IF EXISTS (SELECT 1 FROM groups g JOIN communities c ON c."Id"=g."CommunityId" WHERE g."OwnerCharacterId"<>c."OwnerCharacterId" OR g."JoinMode"<>'open' OR g."PasswordHash" IS NOT NULL)
+                    OR EXISTS (SELECT 1 FROM group_notices) OR EXISTS (SELECT 1 FROM group_events)
                     OR EXISTS (SELECT 1 FROM group_announcements) OR EXISTS (SELECT 1 FROM group_favorites)
                     OR EXISTS (SELECT 1 FROM group_memberships m JOIN groups g ON g."CommunityId"=m."CommunityId" AND g."Id"=m."GroupId" WHERE m."CharacterId"<>g."OwnerCharacterId")
                     OR EXISTS (SELECT 1 FROM item_definitions WHERE "TypeId" NOT IN ('potion'))
