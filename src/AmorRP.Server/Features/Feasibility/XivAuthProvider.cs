@@ -42,7 +42,8 @@ public sealed class XivAuthProvider(HttpClient client, IOptions<XivAuthOptions> 
             throw new InvalidOperationException("Unexpected provider grant.");
         var accessToken = token.GetProperty("access_token").GetString();
         if (string.IsNullOrEmpty(accessToken)) throw new InvalidOperationException("Missing provider grant.");
-        var url = QueryHelpers.AddQueryString(Origin + "api/v2/characters",
+        // XIVAuth owns this v1 API; it does not follow Amor RP API version changes.
+        var url = QueryHelpers.AddQueryString(Origin + "api/v1/characters",
             new Dictionary<string, string?> { ["name"] = selected.DisplayName, ["home_world"] = selected.HomeWorld });
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);

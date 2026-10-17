@@ -50,7 +50,7 @@ public sealed class XivAuthProviderTests
                 Assert.DoesNotContain("refresh", form);
                 return Json($$"""{"access_token":"test-provider-token","token_type":"Bearer","scope":"{{scope}}","expires_in":7200}""");
             }
-            Assert.Equal("/api/v2/characters", request.RequestUri.AbsolutePath);
+            Assert.Equal("/api/v1/characters", request.RequestUri.AbsolutePath);
             Assert.Contains("home_world=Raiden", request.RequestUri.Query);
             Assert.Contains("name=Ada%20Example", request.RequestUri.Query);
             Assert.Equal("Bearer", request.Headers.Authorization?.Scheme);

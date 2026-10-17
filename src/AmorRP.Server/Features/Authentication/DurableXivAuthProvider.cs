@@ -47,10 +47,11 @@ public sealed class DurableXivAuthProvider(HttpClient client, IOptions<XivAuthOp
         if (!string.Equals(token.GetProperty("token_type").GetString(), "Bearer", StringComparison.OrdinalIgnoreCase)
             || scopes == null || !scopes.SequenceEqual(new[] { "character", "refresh" })
             || !token.TryGetProperty("refresh_token", out var refresh) || string.IsNullOrWhiteSpace(refresh.GetString())) return null;
+        // XIVAuth owns this v1 API; it does not follow Amor RP API version changes.
         var url = id == null
-            ? QueryHelpers.AddQueryString(XivAuthProvider.Origin + "api/v2/characters", new Dictionary<string, string?> {
+            ? QueryHelpers.AddQueryString(XivAuthProvider.Origin + "api/v1/characters", new Dictionary<string, string?> {
                 ["name"] = selected!.DisplayName, ["home_world"] = selected.HomeWorldName })
-            : XivAuthProvider.Origin + "api/v2/characters/" + Uri.EscapeDataString(id);
+            : XivAuthProvider.Origin + "api/v1/characters/" + Uri.EscapeDataString(id);
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token.GetProperty("access_token").GetString());
         using var response = await client.SendAsync(request, ct);

@@ -70,7 +70,8 @@ case and requires an explicit migration/recovery policy.
 
 For a returning verified binding, fetch/revalidate the authorized character using
 the stored Lodestone ID and verify the ownership key. The reviewed provider has
-`GET /api/v2/characters/{lodestone_id}` for this purpose; a public Lodestone ID
+`GET /api/v1/characters/{lodestone_id}` for this purpose (XIVAuth’s API version
+is independent of Amor RP’s `/api/v2` routes); a public Lodestone ID
 alone never proves ownership. After verified profile refresh, update display name
 and home world on the existing internal Character record. Do not create a replacement
 record, reset quotas, rewrite asset owners or require joining communities again.
