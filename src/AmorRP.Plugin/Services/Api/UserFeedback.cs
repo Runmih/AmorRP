@@ -6,14 +6,14 @@ public static class UserFeedback
     public static string Error(HttpStatusCode status, string code, string serverMessage) => code switch
     {
         "authentication_required" or "refresh_reused" or "refresh_superseded" => "Your login has expired. Sign in again to continue.",
-        "capability_required" or "owner_required" => "You do not have permission for this action. Ask your group owner for access.",
-        "membership_inactive" or "membership_blocked" => "You no longer have access to this group. Contact its owner if you need help.",
+        "capability_required" or "owner_required" => "You do not have permission for this action. Ask your community owner for access.",
+        "membership_inactive" or "membership_blocked" => "You no longer have access to this community. Contact its owner if you need help.",
         "version_mismatch" or "precondition_required" or "holding_changed" or "definition_changed" => "This information changed since you opened it. Refresh, check the latest values, and try again.",
         "quota_exhausted" => "You have used your weekly crafting limit. You can craft again after the next reset.",
         "insufficient_available_quantity" => "You do not have enough available items or currency. Some may already be reserved for another trade.",
-        "invitation_unavailable" => "This invitation is no longer available. Ask the group owner for a new code.",
-        "already_joined" => "You are already a member of this group. Choose it from the group list.",
-        "trading_restricted" => "Trading is disabled for one of these characters. Ask the group owner to check Trading permissions.",
+        "invitation_unavailable" => "This invitation is no longer available. Ask the community owner for a new code.",
+        "already_joined" => "You are already a member of this community. Choose it from the community list.",
+        "trading_restricted" => "Trading is disabled for one of these characters. Ask the community owner to check Trading permissions.",
         "trade_changed" => "The trade changed. Review the latest offer before accepting it.",
         "trade_busy" => "One of you already has a trade in progress. Finish or cancel it before starting another.",
         "trade_closed" or "trade_not_open" or "trade_not_invited" => "This trade is no longer available. Start a new trade if you still want to exchange items.",
@@ -27,7 +27,7 @@ public static class UserFeedback
         "login_pairing_locked" => "Too many incorrect pairing codes. Start a new login attempt.",
         "rate_limited" => "Too many requests. Please wait a minute before trying again.",
         "identity_provider_unavailable" or "authentication_unavailable" => "XIVAuth is temporarily unavailable. Please try signing in again shortly.",
-        "not_found" => "This group, member or item is no longer available. Refresh and select it again.",
+        "not_found" => "This community, member or item is no longer available. Refresh and select it again.",
         _ => (int)status switch
         {
             401 => "Your login has expired. Sign in again to continue.",
@@ -44,6 +44,12 @@ public static class UserFeedback
     public static string Success(CommandRequest request)
     {
         var p = request.Path;
+        if (p.Contains("/groups", StringComparison.Ordinal))
+        {
+            if (p.EndsWith("/logo", StringComparison.Ordinal)) return request.Method == "DELETE" ? "Group logo removed." : "Group logo updated.";
+            return request.Method == "DELETE" ? "Group deleted." : request.Method == "POST" ? "Group created." : "Group profile saved.";
+        }
+
         if (p.EndsWith("/currency/adjustments", StringComparison.Ordinal)) return "Currency balance updated.";
         if (p.EndsWith("/description", StringComparison.Ordinal)) return "Character description saved.";
         if (p.EndsWith("/capabilities", StringComparison.Ordinal)) return "Member permissions saved.";
@@ -55,17 +61,17 @@ public static class UserFeedback
         if (p.Contains("/invitations/", StringComparison.Ordinal)) return "Invitation deleted. Its code can no longer be used.";
         if (p.EndsWith("/invitations", StringComparison.Ordinal)) return "Invitation created. Share the code below to invite someone.";
         if (p.EndsWith("/policies", StringComparison.Ordinal)) return "Weekly crafting limits saved.";
-        if (p.EndsWith("/deletion", StringComparison.Ordinal)) return "Group deleted.";
-        if (p.Contains("/ownership-transfers", StringComparison.Ordinal)) return p.EndsWith("/accept", StringComparison.Ordinal) ? "Group ownership transferred." : p.EndsWith("/cancel", StringComparison.Ordinal) ? "Ownership transfer cancelled." : "Ownership transfer proposed.";
-        if (p.EndsWith("/logo", StringComparison.Ordinal)) return request.Method == "DELETE" ? "Group logo removed." : "Group logo updated.";
+        if (p.EndsWith("/deletion", StringComparison.Ordinal)) return "Community deleted.";
+        if (p.Contains("/ownership-transfers", StringComparison.Ordinal)) return p.EndsWith("/accept", StringComparison.Ordinal) ? "Community ownership transferred." : p.EndsWith("/cancel", StringComparison.Ordinal) ? "Ownership transfer cancelled." : "Ownership transfer proposed.";
+        if (p.EndsWith("/logo", StringComparison.Ordinal)) return request.Method == "DELETE" ? "Community logo removed." : "Community logo updated.";
         if (p.Contains("/currency/icon", StringComparison.Ordinal)) return request.Method == "DELETE" ? "Currency icon reset." : "Currency icon updated.";
         if (p.EndsWith("/currency", StringComparison.Ordinal)) return "Currency settings saved.";
         if (p.Contains("/item-definitions", StringComparison.Ordinal)) return "Potion recipe saved.";
         if (p.Contains("/letters", StringComparison.Ordinal)) return request.Method == "POST" ? "Written item created in your inventory." : "Written item saved.";
         if (p.EndsWith("/inventory/potions", StringComparison.Ordinal)) return "Potions crafted and added to your inventory.";
         if (p.EndsWith("/inventory", StringComparison.Ordinal)) return "Items added to your inventory.";
-        if (p == "api/v1/groups/join") return "You joined the group.";
-        if (p == "api/v1/groups") return "Group created.";
+        if (p == "api/v2/communities/join") return "You joined the community.";
+        if (p == "api/v2/communities") return "Community created.";
         if (p.Contains("/trades", StringComparison.Ordinal))
         {
             if (p.EndsWith("/trades", StringComparison.Ordinal)) return "Trade request sent. Waiting for the other player to accept.";

@@ -9,8 +9,8 @@ tests. In-game behavior requires human tests in FFXIV.
 | Features | Required evidence |
 | --- | --- |
 | F01 login | Verified ID/key resolves the existing character; wrong ownership, callback replay, expiry, refresh/logout; paid rename/transfer checks waived and no separate simulated-rename gate (A16) |
-| F02 groups | 3/6 caps under concurrency; invites expire/revoke; leave/remove/restore; accepted transfer; deletion |
-| F03 switching | Correct group/character always shown; dropdown outside tabs; pending trade reconciled before switching; refresh preserves drafts and displays stale/error state |
+| F02 communities | 3/6 caps under concurrency; invites expire/revoke; leave/remove/restore; accepted transfer; deletion |
+| F03 switching | Correct community/character always shown; dropdown outside tabs; pending trade reconciled before switching; refresh preserves drafts and displays stale/error state |
 | F04 permissions | Separate General Moderation, Manage Gameplay Permissions and announcement grants; no delegated moderator escalation; revoke in open dialog; owner transfer updates authority |
 | F05 currency | Issue/remove history; insufficient/reserved/overflow denied; exchanges conserve supply; authorized PNG/JPEG/WebP icon upload <=128x128, isolation/replace/remove/restart |
 | F06 categories | Seed/add/rename/retire; old item remains readable; category never grants creation privilege |
@@ -37,8 +37,8 @@ Live paid rename/transfer checks are waived by A16 and recorded as skipped for
 cost; no separate simulated-rename/transfer gate is required. Other live
 login/provider checks remain required.
 
-1. Substitute a group B holding/definition/member/currency/trade/category ID into
-   every applicable group A endpoint; deny without mutation or private-data leak.
+1. Substitute a community B holding/definition/member/currency/trade/category ID into
+   every applicable community A endpoint; deny without mutation or private-data leak.
 2. Send 20 parallel production requests with only enough budget for five copies;
    exactly allowed spending succeeds, no negative quota, no partial output.
 3. Repeat a command with the same key/payload; original operation/result returned.
@@ -76,8 +76,8 @@ permissions, offline mode, and readable failure messages with a request ID.
 
 ## Capacity and operating checks
 
-Provisional R14 target: 50 connected clients across five groups, ten simultaneous
-trades, inventories up to 10,000 holdings/group. Initial acceptance target: p95
+Provisional R14 target: 50 connected clients across five communities, ten simultaneous
+trades, inventories up to 10,000 holdings/community. Initial acceptance target: p95
 ordinary API responses under 500 ms in same-region synthetic load (excluding
 external authentication); no unbounded memory growth or invariant violation during
 a one-hour mixed workload. Real player latency is separately observed; synthetic
@@ -89,7 +89,7 @@ service while trades are open. Alerts/reporting and budget settings must be exer
 
 ## 1.0 release gate
 
-- All features above pass; no critical duplication, cross-group, auth or data-loss bug.
+- All features above pass; no critical duplication, cross-community, auth or data-loss bug.
 - XIVAuth and current Dalamud/channel/context integrations demonstrated end to end.
 - Fresh clone builds with documented toolchain; clean install and update by new tester.
 - [Version matrix](../engineering/versions.md) gates passed: exact tool/package/image

@@ -15,15 +15,15 @@ public sealed partial class FoundationTests
         using var f = Factory(); await Migrate(f); using var c = f.CreateClient(); await Login(c, "500"); var g = await Create(c);
         const string message = "drinks a potion <3";
         var recipe = await Recipe(c, g, message: message);
-        var produced = await Command<ProductionResult>(c, HttpMethod.Post, $"/api/v1/groups/{g.Id}/inventory/potions", new PotionCreate(recipe.Id, recipe.Revision, 2));
-        var details = await c.GetFromJsonAsync<HoldingDetails>($"/api/v1/groups/{g.Id}/inventory/{produced.Holding.Id}", TestContext.Current.CancellationToken);
+        var produced = await Command<ProductionResult>(c, HttpMethod.Post, $"/api/v2/communities/{g.Id}/inventory/potions", new PotionCreate(recipe.Id, recipe.Revision, 2));
+        var details = await c.GetFromJsonAsync<HoldingDetails>($"/api/v2/communities/{g.Id}/inventory/{produced.Holding.Id}", TestContext.Current.CancellationToken);
         Assert.Equal(message, details!.Definition!.Potion.UseMessage);
-        var used = await Command<ConsumptionResult>(c, HttpMethod.Post, $"/api/v1/groups/{g.Id}/inventory/{produced.Holding.Id}/use", new ConsumptionRequest(produced.Holding.Version, true, "say"));
+        var used = await Command<ConsumptionResult>(c, HttpMethod.Post, $"/api/v2/communities/{g.Id}/inventory/{produced.Holding.Id}/use", new ConsumptionRequest(produced.Holding.Version, true, "say"));
         Assert.Equal(message, used.Message); Assert.Equal(1, used.Holding.Quantity);
-        using var request = Request(HttpMethod.Patch, $"/api/v1/groups/{g.Id}/item-definitions/{recipe.Id}", new DefinitionWrite("potion", recipe.Name, recipe.CategoryId, recipe.Description, true, new(1, "drinks <3 <t>")), etag: $"\"definition:{recipe.Id:N}:{recipe.Revision}\"");
+        using var request = Request(HttpMethod.Patch, $"/api/v2/communities/{g.Id}/item-definitions/{recipe.Id}", new DefinitionWrite("potion", recipe.Name, recipe.CategoryId, recipe.Description, true, new(1, "drinks <3 <t>")), etag: $"\"definition:{recipe.Id:N}:{recipe.Revision}\"");
         using var rejected = await c.SendAsync(request, TestContext.Current.CancellationToken); Assert.Equal(HttpStatusCode.UnprocessableEntity, rejected.StatusCode);
         var error = await rejected.Content.ReadAsStringAsync(TestContext.Current.CancellationToken); Assert.Contains("invalid_message", error); Assert.Contains("placeholders", error);
-        var retained = await c.GetFromJsonAsync<Definition>($"/api/v1/groups/{g.Id}/item-definitions/{recipe.Id}", TestContext.Current.CancellationToken); Assert.Equal(recipe.Revision, retained!.Revision); Assert.Equal(message, retained.Potion.UseMessage);
+        var retained = await c.GetFromJsonAsync<Definition>($"/api/v2/communities/{g.Id}/item-definitions/{recipe.Id}", TestContext.Current.CancellationToken); Assert.Equal(recipe.Revision, retained!.Revision); Assert.Equal(message, retained.Potion.UseMessage);
     }
 
     [Fact]
@@ -33,14 +33,14 @@ public sealed partial class FoundationTests
             ["ServicePolicy:DefinitionNameTextElements"] = "8", ["ServicePolicy:DefinitionDescriptionTextElements"] = "12", ["ServicePolicy:ChatMessageTextElements"] = "10"
         })));
         await Migrate(f); using var c = f.CreateClient(); await Login(c, "501"); var g = await Create(c);
-        var capabilities = await c.GetFromJsonAsync<CapabilitiesResponse>("/api/v1/capabilities", TestContext.Current.CancellationToken);
+        var capabilities = await c.GetFromJsonAsync<CapabilitiesResponse>("/api/v2/capabilities", TestContext.Current.CancellationToken);
         Assert.Equal(8, capabilities!.Limits.DefinitionNameTextElements); Assert.Equal(12, capabilities.Limits.DefinitionDescriptionTextElements); Assert.Equal(10, capabilities.Limits.ChatMessageTextElements);
-        var cats = await c.GetFromJsonAsync<CategoryPage>($"/api/v1/groups/{g.Id}/categories", TestContext.Current.CancellationToken); var category = cats!.Items.Single(x => x.AllowedTypeIds.Contains("potion")).Id;
+        var cats = await c.GetFromJsonAsync<CategoryPage>($"/api/v2/communities/{g.Id}/categories", TestContext.Current.CancellationToken); var category = cats!.Items.Single(x => x.AllowedTypeIds.Contains("potion")).Id;
         var valid = new DefinitionWrite("potion", "Healing", category, "Modest.", true, new(1, "uses <3"));
-        await Command<Definition>(c, HttpMethod.Post, $"/api/v1/groups/{g.Id}/item-definitions", valid);
+        await Command<Definition>(c, HttpMethod.Post, $"/api/v2/communities/{g.Id}/item-definitions", valid);
         foreach (var (body, field) in new[] { (valid with { Name = "Too long name" }, "Potion name"), (valid with { Description = new string('a', 13) }, "Potion description") })
         {
-            using var request = Request(HttpMethod.Post, $"/api/v1/groups/{g.Id}/item-definitions", body); using var response = await c.SendAsync(request, TestContext.Current.CancellationToken);
+            using var request = Request(HttpMethod.Post, $"/api/v2/communities/{g.Id}/item-definitions", body); using var response = await c.SendAsync(request, TestContext.Current.CancellationToken);
             Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode); Assert.Contains(field, await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
         }
     }

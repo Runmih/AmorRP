@@ -27,11 +27,11 @@ This is the **first M5 test checkpoint**, not the finished milestone or an appro
 - Written bodies have a scrollable read-only view. Editing checks title/body limits,
   stale revisions and trade reservations. New form drafts survive unrelated reads
   and late responses; completed removal/discard clears its confirmation.
-- Settings → **General** contains only Show quick launcher. Join, Create group and
-  Leave sit beside the group selector; hover boxes and the Compact view button are removed.
+- Settings → **General** contains only Show quick launcher. Join, Create community and
+  Leave sit beside the community selector; hover boxes and the Compact view button are removed.
   Support remains [GitHub Issues](https://github.com/Runmih/AmorRP/issues).
 
-The accepted main navigation, shared group selector, separate trade window,
+The accepted main navigation, shared community selector, separate trade window,
 two-stage approval/cancel-on-edit, saved login and explicit previewed Use actions
 remain the baseline. The 0.0.6.1 correction removes all chat permission prompts.
 
@@ -73,9 +73,9 @@ list or hop-count setting is required. See [operations](operations.md).
    **20261015232913_GroupAnnouncements**, after M4 DoubleTradeConfirmation.
    The login migrations cancel old in-flight login attempts lacking pairing/origin data and
    preserve saved sessions and RP assets. Update the plugin to 0.0.6.6 as part
-   of the same rollout; see the security-correction checklist below. The group-budget
+   of the same rollout; see the security-correction checklist below. The community-budget
    migration records each original creator without deleting test or member data.
-4. Check `/health/ready` is `ok` and `/api/v1/capabilities` reports
+4. Check `/health/ready` is `ok` and `/api/v2/capabilities` reports
    server **0.0.6.12** and minimum client **0.0.6.6**. New recipe-name/description limits default to 80/300
    text elements. The message default remains 50 text elements / 200 UTF-8 bytes.
 
@@ -90,7 +90,7 @@ The following is the manual developer/recovery method.
 
 Disable Amor RP before replacing files. Extract the complete inner **latest.zip**
 into the same developer-plugin folder, then enable it. Preserve the separate
-Dalamud plugin configuration so saved login, group and pins survive.
+Dalamud plugin configuration so saved login, community and pins survive.
 
 Keep **AmorRP.Core.dll**, **AmorRP.Contracts.dll**, the DPAPI DLL, manifest, deps and
 license notices beside **AmorRP.dll**. Core is now shipped for shared pure text rules;
@@ -102,7 +102,7 @@ address is fixed to `https://amorrp-server.onrender.com/`, with no input or M1 t
 
 ## Focused live test
 
-Use the existing test group/characters and small quantities. Existing allowances
+Use the existing test community/characters and small quantities. Existing allowances
 are preserved; do not reset data just to create more test items.
 
 1. **Recipe feedback:** owner opens Crafting → Potion recipes → New recipe. Try
@@ -136,7 +136,7 @@ are preserved; do not reset data just to create more test items.
 7. **Short trade regression:** both offer small amounts/items, enter `04`, accept
    then confirm the final popup. Amount is 4 and exchange occurs once. In another
    trade edit after one acceptance: the entire trade cancels and reservations clear.
-8. **Startup/support:** reload once, verify retained login/group/pins and that no
+8. **Startup/support:** reload once, verify retained login/community/pins and that no
    chat permission window appears. If signed out, the idle screen has only the
    login button; clicking it opens XIVAuth. After verification, copy the browser-only
    pairing code into the plugin and press Finish login.
@@ -182,7 +182,7 @@ deployment, schema migration or XIVAuth registration is required for this patch.
 M1 tooling and the chat permission window/checkbox are removed from the plugin.
 Configuration version 4 drops the editable backend field; it does not relabel,
 clear or forward protected saved sessions or pending commands. Same-origin saved
-login/group/pins remain intact. Credentials for old localhost/other origins are
+login/community/pins remain intact. Credentials for old localhost/other origins are
 retained under those origins and are never sent to the release server.
 
 The idle signed-out view has one Log in with XIVAuth button. During login, Cancel
@@ -220,10 +220,10 @@ and absence of a failure timer. A published Linux binary served the exact suppli
 image, embedded HTML, safe headers and conditional image-cache response. Actual
 system-browser tab closure remains browser-dependent; it is never required for login.
 
-## Plugin 0.0.6.2 — group-only header and supplied logo
+## Plugin 0.0.6.2 — community-only header and supplied logo
 
 Update through the custom testing repository. The top of the main and compact
-windows shows only the group dropdown. Character/currency summaries, connection
+windows shows only the community dropdown. Character/currency summaries, connection
 buttons, timestamps and routine sync/Ready messages no longer occupy the header.
 Settings → Connection retains manual refresh and troubleshooting status.
 
@@ -234,20 +234,20 @@ Same-key retries and receipt checking still protect unresolved writes.
 
 The installer uses the supplied full logo, resized and padded to a transparent
 512 × 512 PNG. It is bundled as icon.png and published at its content-hashed URL.
-The original logo is retained in Assets/Branding. It does not replace group coins.
+The original logo is retained in Assets/Branding. It does not replace community coins.
 
-No server update or migration is required for this plugin patch. Check the group
+No server update or migration is required for this plugin patch. Check the community
 dropdown and absence of idle clutter, Settings → Connection, the installer icon
 and one ordinary action's feedback. Actual Dalamud rendering remains a live check.
 
-## Plugin 0.0.6.3 — Join and Create group windows
+## Plugin 0.0.6.3 — Join and Create community windows
 
-The shared group dropdown now has **Join** and **Create group** buttons beside it.
+The shared community dropdown now has **Join** and **Create community** buttons beside it.
 They open separate windows containing the corresponding forms, with feedback and
 recovery controls. The old Settings forms are removed; membership/leave controls
 remain there. Form drafts survive ordinary refresh and reopening. Successful
-submission closes/resets its form and selects the joined/created group. Character
-changes or sign-out close/reset both forms. Existing group quotas and permissions
+submission closes/resets its form and selects the joined/created community. Character
+changes or sign-out close/reset both forms. Existing community quotas and permissions
 still apply.
 
 Update through the same custom repository. No server update or migration is needed.
@@ -266,7 +266,7 @@ navigation section, including connection controls, history and devices.
 
 Update through the same repository. The small launcher appears while a character
 is loaded. The book opens the main window; exchange arrows open trading. Only
-icons are shown. A red badge marks pending incoming requests across joined groups;
+icons are shown. A red badge marks pending incoming requests across joined communities;
 new requests do **not** open the trade window automatically. Requests are checked
 roughly every 15 seconds, including with the main window closed. The badge clears
 when requests are accepted, cancelled, expired or no longer accessible.
@@ -279,12 +279,12 @@ Focused live checks: open each destination with its icon; move the launcher and
 check retained position/visibility after reload. With the main window closed,
 receive a request from a second tester and wait for the red badge. It must leave
 the trade window closed. Click the trade icon, then respond or cancel and verify
-the badge clears after the next read. Repeat in another joined group: clicking
-its badge selects that group safely, without accepting automatically or interrupting
+the badge clears after the next read. Repeat in another joined community: clicking
+its badge selects that community safely, without accepting automatically or interrupting
 an existing trade. An expired request must stop showing even without a fresh read.
 Signing out or switching character must not carry another character's badge.
 
-The three added helper checks cover cross-group recipient/membership boundaries,
+The three added helper checks cover cross-community recipient/membership boundaries,
 late replies after acceptance/cancellation, expiry and identity changes. No tests
 try to duplicate ImGui drawing. No server deployment, migration or extra image is
 required; the existing API/schema, server compatibility and secure login remain.
@@ -299,7 +299,7 @@ Focused live checks:
 1. Settings shows only General and its Show quick launcher checkbox. There is no
    Connection, Login & devices, History or Support & test build tab, and no Compact
    view button in the vertical navigation. `/amorrp compact` remains available.
-2. Header order is group selector, Join, Create group, Leave. As a nonowner, leave
+2. Header order is community selector, Join, Create community, Leave. As a nonowner, leave
    and confirm the membership disappears. An owner cannot leave before transferring
    ownership; active trades must end first. Ownership offers remain on Home.
 3. Hover former result text, field notes, inventory rows and launcher icons: no
@@ -308,14 +308,14 @@ Focused live checks:
    10 seconds, or on reopening the main/trade window. An old cancelled/completed
    trade must not reappear on the next poll. An uncertain saved operation must
    retain receipt/retry controls until resolved; do not create a new retry key.
-5. Use another character’s in-game Amor RP Trade context action with a shared group
+5. Use another character’s in-game Amor RP Trade context action with a shared community
    selected. The member dropdown selects that verified character automatically,
    including when they are beyond the first roster page. Invite is still explicit.
-   There is no Find in shared group button. For a character outside this group,
-   show feedback and leave Invite disabled; switch to a shared group to retry.
-6. Change character/group or choose a different dropdown member while a lookup is
+   There is no Find in shared community button. For a character outside this community,
+   show feedback and leave Invite disabled; switch to a shared community to retry.
+6. Change character/community or choose a different dropdown member while a lookup is
    running. Its late reply must not replace the newly selected target or cross
-   the current group/character context. Incoming requests still show a badge only.
+   the current community/character context. Incoming requests still show a badge only.
 
 Automated verification for this presentation patch: API 15 Release build, existing
 65 helper tests, documentation/API parity, and actual package/publication checks.
@@ -339,10 +339,10 @@ Deployment:
    service retain `AMORRP_MIGRATE_ON_START=true`, blank Pre-Deploy/Docker Command,
    and let the startup wrapper apply `20261015180055_LoginBrowserPairing`.
    No paid command or new provider application is needed.
-3. Verify `/health/ready` and `/api/v1/capabilities`: server 0.0.6.2, minimum client
+3. Verify `/health/ready` and `/api/v2/capabilities`: server 0.0.6.2, minimum client
    0.0.6.6. Complete the rollout to all instances; an old server remains vulnerable.
 4. Migration cancels only old in-flight login attempts. Existing saved sessions,
-   groups, inventories and currency remain. Start a new login if one was open
+   communities, inventories and currency remain. Start a new login if one was open
    during deployment. Keep the security-fixed server; do not roll back to the
    vulnerable binary as an authentication recovery step.
 5. For a test character/device without a saved login: approve XIVAuth, copy the
@@ -406,10 +406,10 @@ needed to run these tests or continue the security review.
 
 ## Security correction 4 — server 0.0.6.6, plugin stays 0.0.6.6
 
-Group history formerly allowed retained dormant/blocked membership rows and could
+Community history formerly allowed retained dormant/blocked membership rows and could
 reveal later moderation reasons. The server now requires active membership and
-a non-deleted group before history/cursor access, returning 404 after voluntary
-leave, owner removal, block or group deletion. Unblocking alone does not restore
+a non-deleted community before history/cursor access, returning 404 after voluntary
+leave, owner removal, block or community deletion. Unblocking alone does not restore
 access. Active personal history and active-owner audit retain their existing
 scopes. An active rejoin restores personal history access.
 
@@ -422,8 +422,8 @@ older server. No live restart is needed for these tests or continued review.
 
 ## Security correction 5 — server 0.0.6.7, plugin stays 0.0.6.6
 
-Trade list and single-trade reads previously kept the group write lock while
-loading every response field, delaying unrelated group mutations. Expiry now
+Trade list and single-trade reads previously kept the community write lock while
+loading every response field, delaying unrelated community mutations. Expiry now
 runs and commits in a short locked transaction; response assembly runs afterward
 in a fresh read-only PostgreSQL repeatable-read snapshot, without that advisory
 lock. Expiry-tracked EF entities are cleared before snapshot queries, and the
@@ -449,8 +449,8 @@ is added. No live restart is needed to continue the security review.
 The original TradingBeta SQL broadened all letter-accepting categories, including
 owner letter-only policies. Its name-based Correspondence rename was unsafe too:
 M3 stored no reliable seed identity. The corrected historical migration preserves
-all existing names, allowed types, versions and retired flags. New groups still
-receive Books defaults; M3 groups retain their legacy category policy until an
+all existing names, allowed types, versions and retired flags. New communities still
+receive Books defaults; M3 communities retain their legacy category policy until an
 owner explicitly opts in through the category API. The earlier upgrade tests now
 check preservation instead of expecting silent default renaming/broadening.
 
@@ -469,7 +469,7 @@ existing production category policies remain an explicit owner-review task.
 ## Security correction 7 — server 0.0.6.9, plugin stays 0.0.6.6
 
 All three lower-priority findings are valid. The server now enforces a retained
-creation budget (30 groups per original creator, including deleted/transferred
+creation budget (30 communities per original creator, including deleted/transferred
 rows), serves readiness from one background probe per process, and rejects duplicate
 first/final approvals with new operation keys. Original same-key retries remain safe.
 
@@ -501,7 +501,7 @@ through the same custom repository; InternalName and feed URL stay unchanged.
   self-grants. Currency/items/membership tools remain collapsed and authorized.
 - Select your own character: edit multiline text, check the 300-character counter,
   save, switch away/back and verify another member sees it. Empty clears it.
-  Another group has its own description. `<3` and ordinary Unicode are allowed.
+  Another community has its own description. `<3` and ordinary Unicode are allowed.
 - Ordinary members cannot see permission controls or edit another description.
   The owner cannot overwrite someone else's text. Validate rejected over-limit
   input; a concurrent edit preserves your draft and offers reload instead of
@@ -550,7 +550,7 @@ cases and one contract-boundary case passed (186 total). The matching server has
 no pending model changes; the published Linux binary and startup/readiness smoke
 use the disposable local database. Actual game UI acceptance remains a live check.
 
-## Group Home candidate — plugin 0.0.6.9 / server 0.0.6.12
+## Community Home candidate — plugin 0.0.6.9 / server 0.0.6.12
 
 Deploy server **0.0.6.12** with migration **20261015232913_GroupAnnouncements**
 before testing, then update through the same plugin feed. Existing data/grants are
@@ -559,7 +559,7 @@ perform this update. The feature is a private candidate requiring live UI review
 
 - Members → Manage membership: independently grant General Moderation, Manage
   Gameplay Permissions and Create Announcements. Currency/removal authorizations
-  are grouped here too. A gameplay manager sees Trading/Craft Potions controls,
+  are communityed here too. A gameplay manager sees Trading/Craft Potions controls,
   can grant/revoke those, and cannot alter moderator actions. General Moderation
   alone cannot grant crafting. Owner always retains authority.
 - Crafting → Info explains access. Without Craft Potions the Potions tab is hidden;
@@ -567,14 +567,14 @@ perform this update. The feature is a private candidate requiring live UI review
   Potion recipes but not potion crafting. Grant access and allow the minute refresh.
 - Home: owner/General Moderation edits description and currency name directly;
   ordinary members see text. Background refresh must preserve an unfinished draft.
-  Concurrent saved edits show reload; group name/icon/policy remain owner-controlled.
+  Concurrent saved edits show reload; community name/icon/policy remain owner-controlled.
 - Announcements: post six messages and verify only the newest five titles remain.
   Open a title to see the full message; check red Home and launcher-main pings from
   a second character. Only opening each message clears its unread flag. Own posts
-  start read. Restart/relog and verify unread state survives. Check an unread group
-  can be reached via launcher/group dropdown without interrupting a running trade.
+  start read. Restart/relog and verify unread state survives. Check an unread community
+  can be reached via launcher/community dropdown without interrupting a running trade.
   Main-window closure must not stop notification polling (up to 30 seconds delay).
-- Group Settings has Currency, Invitations and Delete Group tabs. Currency retains
+- Community Settings has Currency, Invitations and Delete Community tabs. Currency retains
   existing PNG/JPG/WebP upload rules. The old combined names section is gone.
 - Weekly Policy has Potions and Books tabs. With active/scheduled settings different,
   verify initial inputs equal active values. Schedule one type and confirm the
@@ -583,7 +583,7 @@ perform this update. The feature is a private candidate requiring live UI review
 Automated coverage checks independent grants/escalation/revocation, current/legacy
 migration preservation, concurrent bounded retention, receipt content, individual
 read state across restart, no read-audit growth/ETag changes, and former-member/
-cross-group access. Actual layout, popup behavior and badges need an in-game check.
+cross-community access. Actual layout, popup behavior and badges need an in-game check.
 
 Local Home-candidate verification: 122 server/PostgreSQL cases, 67 plugin/helper
 cases and one contract-boundary case passed (190 total). Documentation validates
@@ -607,7 +607,7 @@ Use the existing Dalamud repository URL and normal plugin update flow.
   Books have a fixed type family, no category dropdown, and type/sort controls.
   Switching tabs clears an incompatible category/type selection; filters use
   stable type IDs, so Book/Letter/Note cannot select a different type accidentally.
-- Writing contents (create, edit and read), group and character descriptions,
+- Writing contents (create, edit and read), community and character descriptions,
   potion descriptions and announcement messages wrap at the field width. Long
   words wrap too. Visual wrapping does not add saved newlines or spend the text
   limit. Explicit Enter/newlines remain part of the text.
@@ -615,7 +615,7 @@ Use the existing Dalamud repository URL and normal plugin update flow.
 Focused in-game check: paste a long paragraph, a long unbroken word, emoji and
 several real line breaks. Resize while editing, move the caret across visual line
 breaks, replace a selection, Backspace/Delete at a wrap, copy/paste and undo/redo.
-Save/reopen and confirm only intentional newlines persist. Repeat in group and
+Save/reopen and confirm only intentional newlines persist. Repeat in community and
 character descriptions. Check the same inventory structure with both empty and
 populated Books/Consumables tabs, category-dependent types in All, and potion
 use from the details pane. The local 75 helper cases include eight wrapping
@@ -623,14 +623,14 @@ cases for original-text preservation, Unicode, edits/caret mapping and resizing;
 Release build/package and documentation checks pass. Game rendering remains a
 live acceptance check.
 
-## Trade requests and launcher group selection — plugin 0.0.6.11
+## Trade requests and launcher community selection — plugin 0.0.6.11
 
 Plugin-only update; server stays **0.0.6.12**. No new migration, server deployment,
 configuration or data wipe is required. Keep the existing Dalamud feed URL.
 
-- The trade window always names the selected group at the top; the final exchange
-  review names the group too. While idle/waiting, it has Inbound and Outbound tabs.
-- Inbound lists incoming requests from joined groups with sender, group, remaining
+- The trade window always names the selected community at the top; the final exchange
+  review names the community too. While idle/waiting, it has Inbound and Outbound tabs.
+- Inbound lists incoming requests from joined communities with sender, community, remaining
   time and Accept. No request opens a window automatically. The empty state explains
   right-click → Amor RP: Trade; the launcher retains its red incoming-request badge.
 - Outbound explains the context menu when no target is selected. Context-menu or
@@ -642,24 +642,24 @@ configuration or data wipe is required. Keep the existing Dalamud feed URL.
 - Closing the window leaves unanswered invitations pending until cancelled/expired.
   Closing an accepted exchange still cancels it. An acceptance that completes after
   local closure is cancelled; a preparation read cannot submit acceptance after close.
-- The quick launcher has a group dropdown beside its two icon buttons. It uses the
+- The quick launcher has a community dropdown beside its two icon buttons. It uses the
   same saved selection and pending-action guards as the main header. Incoming requests
-  do not pin the current group. Sent requests and accepted exchanges must end before
-  switching; attempting a switch opens the trade with its cancel control. Joined-group
+  do not pin the current community. Sent requests and accepted exchanges must end before
+  switching; attempting a switch opens the trade with its cancel control. Joined-community
   menu entries mark incoming requests and unread announcements.
 
 Focused live check with two characters: open trade empty, send via the context menu,
 verify Outbound waiting text/countdown, then recipient red badge → Inbound → Accept.
-Both windows should show only the exchange layout and correct group. Complete one
+Both windows should show only the exchange layout and correct community. Complete one
 trade and cancel another; request tabs should return afterward. Close/reopen a pending
 invitation without losing it, and close during acceptance to check cancellation.
-With two shared groups, change launcher selection with the main window closed,
+With two shared communities, change launcher selection with the main window closed,
 check the main/trade headers agree, and accept an incoming request for the other
-joined group. Verify sent requests/accepted exchanges cannot silently switch groups.
+joined community. Verify sent requests/accepted exchanges cannot silently switch communities.
 The 75 existing helper cases, Release/package and documentation checks pass; actual
 in-game tab, timer, dropdown and close/accept interaction remain live acceptance.
 
-## Home overview and group logos — plugin 0.0.6.12 / server 0.0.6.13
+## Home overview and community logos — plugin 0.0.6.12 / server 0.0.6.13
 
 Deploy **server 0.0.6.13** with migration **20261016140911_GroupLogos** before
 using logo uploads, then update through the same plugin feed. Keep the free-Render
@@ -669,9 +669,9 @@ host or data wipe is required. Earlier plugin clients remain compatible.
 - Home has a darker profile card with logo/name/description, then announcements
   on the left and personal resources on the right. Narrow windows stack these
   sections. Long read-only descriptions use Read more / Show less.
-- Owners edit group name and description directly in input fields; Save profile
+- Owners edit community name and description directly in input fields; Save profile
   appears for an edited draft. General Moderation retains description/currency-name
-  editing only; group renaming and logos stay owner-only. Drafts survive background
+  editing only; community renaming and logos stay owner-only. Drafts survive background
   refresh; concurrent changes require Reload. Currency name remains editable in
   the resources card for authorized members.
 - The owner clicks the logo/placeholder to select PNG, JPG or WebP. Selection uploads
@@ -680,23 +680,23 @@ host or data wipe is required. Earlier plugin clients remain compatible.
   their proportions. Sources are at most 2 MiB (operator-configurable lower), 2048px
   per side; stored images are at most 512x512, 1 MiB, static normalized PNG. Animated,
   oversized and malformed images are rejected. Logo replacement never changes the
-  currency icon, balances or group identity. Other members see updates on refresh.
+  currency icon, balances or community identity. Other members see updates on refresh.
 - Owner and Create Announcements holders have Title, Message and Publish above
   the announcement list. Members see only clickable titles/dates and unread pings.
   Five-entry retention and full-message popup remain. Successful Publish clears
   the submitted draft; subsequent edits are preserved. No separate composer popup.
 - Your resources shows available currency, reserved amount when nonzero, writing
   allowance and (only with Craft Potions access) potion points/reset. Existing
-  weekly policy/group settings remain collapsed below the overview for owners.
+  weekly policy/community settings remain collapsed below the overview for owners.
 
-Live acceptance: upload a rectangular logo and check proportions, switch groups
+Live acceptance: upload a rectangular logo and check proportions, switch communities
 and characters to check isolation, replace/remove it and verify the currency icon
 is unchanged. Cancel the file picker, try a too-large/animated image, and confirm
 clear feedback. Edit name/description, refresh while typing, then save/reopen.
 Publish a title/message, open it from a second character and verify badges and
 five-entry retention. Resize for both side-by-side and stacked layout. Check an
-ordinary member cannot edit another group's profile/logo, and General Moderation
-still cannot rename the group or change its logo.
+ordinary member cannot edit another community's profile/logo, and General Moderation
+still cannot rename the community or change its logo.
 
 Local overview verification: **127 server/PostgreSQL + 77 helper + 1 contract =
 205 cases passed**. Documentation validates 102 operations, 133 schemas and 17
@@ -717,6 +717,6 @@ ServicePolicy__LetterBodyTextElements to at most 500 (or remove the overrides).
 - Wait 20 seconds to check expiry. Hover a details button, hold it, or keep its
   popup open: the countdown pauses. Close/leave it and check the timer resumes.
   Reopening clears ordinary results. Unresolved action recovery remains available.
-- Paste over 300 characters in group/character/potion descriptions and over 500
+- Paste over 300 characters in community/character/potion descriptions and over 500
   into book, letter and note contents. The draft accepts only what fits, including
   selection replacement and Unicode text. Recipe cost reads Potion points per unit.

@@ -13,18 +13,18 @@ the reasoning; live acceptance is still pending.
 
 | Feedback | Planned behavior | Milestone |
 | --- | --- | --- |
-| Group selector outside tabs | One persistent dropdown above the tab bar, visible from every tab, listing active memberships only; save selection per backend/verified character and clear old-group private views on switch | M3 |
+| Community selector outside tabs | One persistent dropdown above the tab bar, visible from every tab, listing active memberships only; save selection per backend/verified character and clear old-community private views on switch | M3 |
 | Refresh and stale data | Keep a global Refresh data button beside the selector; show last successful update and stale/offline state; refresh after committed changes. Add a 60-second background read refresh while an authenticated product window is visible, skipping pending commands and preserving local drafts/selection | M3 baseline; verify load/reconnect behavior by M5 |
 | Remove/block does nothing and no history appears | Fix removal interaction first; dedicated mandatory reason, clear confirmation and validation, persistent rejection/result feedback; prove server removal, access loss and one committed history event through the actual plugin | First M3 fix and acceptance blocker |
 | Image currency symbol | Replace the text-symbol editor with owner upload/preview for static PNG, JPEG/JPG or WebP, both dimensions at most 128 pixels. Persist via the backend and render for members; bundled default icon when absent | M3; required by 1.0 |
 | Left character remains dormant in owner roster | Retain dormant membership/assets internally. Default to active roster for everyone, including owner; add owner-only Show inactive members for dormant/blocked recovery. Ordinary members never see inactive rows | M3 |
 | Join code stays after success | Clear the entered join code and reset visibility acceptance after confirmed success, including a confirmed same-key replay. Retain entered data after rejection or unresolved outcome | M3 |
-| Group-creation form stays after success | Reset only the creation draft to current server defaults after confirmed creation. Keep owner edit drafts separate; retain draft on failure/unknown outcome. Select the new group | M3 |
+| Community-creation form stays after success | Reset only the creation draft to current server defaults after confirmed creation. Keep owner edit drafts separate; retain draft on failure/unknown outcome. Select the new community | M3 |
 
-The existing M2 plugin already has a global **Refresh groups** button and reloads
+The existing M2 plugin already has a global **Refresh communities** button and reloads
 its views after successful commands. The feedback is about discoverability,
 background freshness and preserving visible command feedback across these reloads.
-The new label describes all refreshed data, not only the group list.
+The new label describes all refreshed data, not only the community list.
 
 ## Removal investigation
 
@@ -34,9 +34,9 @@ Source inspection identified two concrete problems in the current UI:
   that field, whose input currently sits beside the currency adjustment controls.
   The server requires a nonempty removal reason and returns 422 `invalid_request`
   for an empty/whitespace value. A stale member ETag can separately yield 412.
-- `GroupsPanel.Collect` sets the rejection message, then schedules a refresh for
-  most 4xx command failures. `Refresh` immediately changes status to Loading groups
-  and ultimately Groups refreshed. The failure therefore disappears from view.
+- `CommunitiesPanel.Collect` sets the rejection message, then schedules a refresh for
+  most 4xx command failures. `Refresh` immediately changes status to Loading communities
+  and ultimately Communities refreshed. The failure therefore disappears from view.
 
 This explains a plausible observed failure, but the live request/response from
 this report was not captured. Do not claim the exact rejection is confirmed.
@@ -51,7 +51,7 @@ and operation key; never show tokens, invitation codes, private content or raw
 response/request bodies. Version rejection requires review after refreshing, with
 no automatic reissue under a new key. Retain unresolved command keys for recovery.
 
-Only a committed removal records `member.remove` in authoritative group history.
+Only a committed removal records `member.remove` in authoritative community history.
 Validation/authorization failures must not create a successful kick event. Show
 failed attempts as client diagnostic outcomes; do not conflate them with history.
 
@@ -71,15 +71,15 @@ it is not just a different text widget. Keep the implementation narrowly scoped.
 - Normalize accepted images to static PNG and strip metadata. Use a maintained,
   deployment-compatible decoder with appropriate distribution licensing; verify
   Linux Render and Windows plugin compatibility during M3 implementation.
-- Store the small normalized binary in PostgreSQL with an opaque asset ID, group
+- Store the small normalized binary in PostgreSQL with an opaque asset ID, community
   scope and content hash. Render's ephemeral filesystem is not durable storage.
   Currency references the asset; replacing/removing an icon never changes its
   currency ID, balances or ledger. Add a migration and retain M2 data.
-- Read requires current active group membership; upload/removal requires current
+- Read requires current active community membership; upload/removal requires current
   ownership, version precondition, idempotency and an audit receipt. Deliver only
   from the configured backend; never put bearer credentials in image URLs.
 - Implemented routes in OpenAPI: GET/PUT/DELETE
-  `/api/v1/groups/{groupId}/currency/icon`. GET returns normalized `image/png`;
+  `/api/v2/communities/{communityId}/currency/icon`. GET returns normalized `image/png`;
   mutations return the updated currency and operation receipt. No general image
   hosting, item images, letter attachments or public media directory is included.
 - Use a bundled default coin icon until configured. Textual `symbol` and
@@ -87,7 +87,7 @@ it is not just a different text widget. Keep the implementation narrowly scoped.
   the release UI offers image selection. Add an optional icon asset reference to
   currency responses without reinterpreting stable currency identifiers.
 - Load asynchronously, bound the texture cache, release textures on replacement,
-  access loss and unload. Scope caches to backend/character/group/asset version.
+  access loss and unload. Scope caches to backend/character/community/asset version.
   Asset infrastructure may be reused for future item icons without accepting them
   as part of this milestone.
 
@@ -95,12 +95,12 @@ it is not just a different text widget. Keep the implementation narrowly scoped.
 
 1. Resolve removal and persistent error feedback. Exercise a blank reason and a
    successful reasoned kick in the plugin; capture safe rejection details if the
-   server still refuses. Confirm removed member loses group access and the owner
+   server still refuses. Confirm removed member loses community access and the owner
    sees one history entry. Cover stale-version rejection and same-key recovery.
-2. Implement shared group dropdown, active-only roster/inactive-owner view, global
+2. Implement shared community dropdown, active-only roster/inactive-owner view, global
    refresh, 60-second read refresh and success-only form resets. Avoid overwriting
    policy/edit/letter drafts, resetting chat consent or changing a pending action's
-   group/character when read data updates. Do not reload the whole plugin to sync.
+   community/character when read data updates. Do not reload the whole plugin to sync.
 3. Implement currency icon upload/storage/rendering and its bounded API. Check real
    valid formats, oversize/malformed/animated rejection, owner/member isolation,
    replace/remove/restart and safe texture disposal. No tests that merely mirror UI.

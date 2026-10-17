@@ -2,7 +2,7 @@ namespace AmorRP.Server.Infrastructure.Persistence;
 
 public sealed class TradeLineRow
 {
-    public Guid GroupId { get; set; }
+    public Guid CommunityId { get; set; }
     public Guid TradeId { get; set; }
     public Guid CharacterId { get; set; }
     public Guid HoldingId { get; set; }

@@ -18,7 +18,7 @@ public sealed class Plugin : IDalamudPlugin
     private readonly MainWindow mainWindow;
     private readonly AmorRP.Plugin.Features.Inventory.CompactWindow compactWindow;
     private readonly AmorRP.Plugin.Features.Trading.TradeWindow tradeWindow;
-    private readonly AmorRP.Plugin.Features.Groups.GroupFormWindow joinGroupWindow, createGroupWindow;
+    private readonly AmorRP.Plugin.Features.Communities.CommunityFormWindow joinCommunityWindow, createCommunityWindow;
     private readonly CharacterContext context;
 
     public Plugin(IDalamudPluginInterface pluginInterface, ICommandManager commands, IPlayerState playerState,
@@ -32,22 +32,22 @@ public sealed class Plugin : IDalamudPlugin
         compactWindow = new(mainWindow.DrawCompact);
         tradeWindow = new(mainWindow.DrawTrade, mainWindow.TradeOpened, mainWindow.TradeClosed);
         mainWindow.OpenTrade = () => tradeWindow.IsOpen = true;
-        joinGroupWindow = new("Amor RP — Join group###AmorRPJoinGroup", mainWindow.DrawJoinGroup, () => mainWindow.CanDrawGroupForms, new(520, 360), mainWindow.ClearFeedback);
-        createGroupWindow = new("Amor RP — Create group###AmorRPCreateGroup", mainWindow.DrawCreateGroup, () => mainWindow.CanDrawGroupForms, new(560, 660), mainWindow.ClearFeedback);
-        mainWindow.OpenJoinGroup = () => joinGroupWindow.IsOpen = true;
-        mainWindow.OpenCreateGroup = () => createGroupWindow.IsOpen = true;
-        mainWindow.CloseJoinGroup = () => joinGroupWindow.IsOpen = false;
-        mainWindow.CloseCreateGroup = () => createGroupWindow.IsOpen = false;
+        joinCommunityWindow = new("Amor RP — Join community###AmorRPJoinCommunity", mainWindow.DrawJoinCommunity, () => mainWindow.CanDrawCommunityForms, new(520, 360), mainWindow.ClearFeedback);
+        createCommunityWindow = new("Amor RP — Create community###AmorRPCreateCommunity", mainWindow.DrawCreateCommunity, () => mainWindow.CanDrawCommunityForms, new(560, 660), mainWindow.ClearFeedback);
+        mainWindow.OpenJoinCommunity = () => joinCommunityWindow.IsOpen = true;
+        mainWindow.OpenCreateCommunity = () => createCommunityWindow.IsOpen = true;
+        mainWindow.CloseJoinCommunity = () => joinCommunityWindow.IsOpen = false;
+        mainWindow.CloseCreateCommunity = () => createCommunityWindow.IsOpen = false;
         launcherWindow = new(mainWindow.OpenMainFromLauncher, mainWindow.OpenTradeFromLauncher,
-            () => mainWindow.PendingTradeRequests, () => mainWindow.UnreadAnnouncements, () => playerState.IsLoaded, mainWindow.DrawLauncherGroupSelector)
+            () => mainWindow.PendingTradeRequests, () => mainWindow.UnreadAnnouncements, () => playerState.IsLoaded, mainWindow.DrawLauncherCommunitySelector)
             { IsOpen = configuration.ShowLauncher };
         mainWindow.SetLauncherVisible = visible => launcherWindow.IsOpen = visible;
         context = new(contextMenu, mainWindow.SelectTarget);
         windows.AddWindow(mainWindow);
         windows.AddWindow(compactWindow);
         windows.AddWindow(tradeWindow);
-        windows.AddWindow(joinGroupWindow);
-        windows.AddWindow(createGroupWindow);
+        windows.AddWindow(joinCommunityWindow);
+        windows.AddWindow(createCommunityWindow);
         windows.AddWindow(launcherWindow);
         commands.AddHandler(Command, new CommandInfo(OnCommand) { HelpMessage = "/amorrp → Main Menu" });
         pluginInterface.UiBuilder.Draw += Draw;

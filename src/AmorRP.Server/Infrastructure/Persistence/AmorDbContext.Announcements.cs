@@ -8,9 +8,9 @@ public sealed partial class AmorDbContext
     {
         model.Entity<AnnouncementRow>(e =>
         {
-            e.ToTable("announcements"); e.HasKey(x => new { x.GroupId, x.Id });
-            e.HasIndex(x => new { x.GroupId, x.Sequence }).IsUnique();
-            e.HasOne<GroupRow>().WithMany().HasForeignKey(x => x.GroupId).OnDelete(DeleteBehavior.Restrict);
+            e.ToTable("announcements"); e.HasKey(x => new { x.CommunityId, x.Id });
+            e.HasIndex(x => new { x.CommunityId, x.Sequence }).IsUnique();
+            e.HasOne<CommunityRow>().WithMany().HasForeignKey(x => x.CommunityId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne<CharacterRow>().WithMany().HasForeignKey(x => x.AuthorCharacterId).OnDelete(DeleteBehavior.Restrict);
         });
     }

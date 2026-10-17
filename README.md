@@ -2,7 +2,7 @@
 
 Amor RP is a Dalamud plugin for Final Fantasy XIV, with the goal of bringing roleplay venues and communities together.
 
-Create and join RP groups, manage fictional currency and inventories, craft and use potions, write books, letters and notes, and trade items and currency with other group members.
+Create and join RP communities, organise groups within them, manage fictional currency and inventories, craft and use potions, write books, letters and notes, and trade items and currency with other community members.
 
 ## Installation
 

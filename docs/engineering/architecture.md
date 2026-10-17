@@ -28,7 +28,7 @@ message broker, generic workflow engine, or Redis dependency in 1.0.
 | --- | --- | --- |
 | Plugin | UI, local settings/drafts, networking, character context, chat adapter | Authoritative balances/permissions or provider secrets |
 | Contracts | Versioned requests, responses, stable IDs/error/event types | EF entities, Dalamud APIs, provider implementation |
-| Core | Group rules, quotas, inventory behavior, trade transitions, use cases | ImGui, HTTP-specific handling, game memory access |
+| Core | Community rules, quotas, inventory behavior, trade transitions, use cases | ImGui, HTTP-specific handling, game memory access |
 | Server | Endpoint authorization, validation, EF/Npgsql persistence, XIVAuth adapter, hosting | Business rules duplicated in controllers |
 
 Dependency direction: Plugin -> Contracts + Core (pure text rules);
@@ -43,7 +43,7 @@ currency ledger, history, reservations, operation identity, and change-event row
 together. Emit notifications only after commit. Server restart may lose connections
 but never committed trades or reservations. Query results recover missed events.
 
-Use concurrency tokens for resource updates; group/character policy locks and
+Use concurrency tokens for resource updates; community/character policy locks and
 deterministic resource-lock ordering for trade and quota commands. Multi-resource
 checks cannot be implemented as independent read/update requests. Database
 constraints backstop application checks. Do not claim exactly-once network delivery;
@@ -61,8 +61,8 @@ expiry and stale reservations even when that task has not run.
 | --- | --- |
 | Active backend URL | Plugin setting; trusted HTTPS default plus deliberate custom endpoint selection |
 | Database/provider credentials, callback URLs, keys | Server secret/environment configuration |
-| Owned/joined group maxima (3/6) | Validated server policy, advertised by capabilities endpoint |
-| Default letters/week (5), initial potion points (0) | Server defaults copied into group policies |
+| Owned/joined community maxima (3/6) | Validated server policy, advertised by capabilities endpoint |
+| Default letters/week (5), initial potion points (0) | Server defaults copied into community policies |
 | Current/next weekly allowances | Versioned owner policy in database |
 | Potion cost/content/category | Owner-defined immutable revision |
 | Type IDs and supported behavior | Explicit code registry and contracts |
@@ -71,7 +71,7 @@ expiry and stale reservations even when that task has not run.
 | Trade/session/event/idempotency expiry | Named server options, documented defaults |
 | Icons, UI labels, localization | Bundled asset/label catalog; no arbitrary script loading |
 
-Configurable does not mean arbitrary: group owner limits cannot exceed service
+Configurable does not mean arbitrary: community owner limits cannot exceed service
 ceilings, type behavior is tested code, and clients must handle unsupported types
 with a read-only fallback. Protocol enums for fixed state machines are appropriate;
 item types/capability identifiers should be extensible strings. Do not store enum
@@ -99,12 +99,12 @@ the build spike, not scattered through feature code.
 ## M4 implementation map
 
 Database feature services own atomic rules beside their EF transactions; pure text
-and group-cap rules remain in Core. TradeService splits command/query orchestration
+and community-cap rules remain in Core. TradeService splits command/query orchestration
 from offer/exchange accounting; TradeReservations is shared with membership and
 expiry handling. TradeExpiryWorker provides bounded cleanup, and command/read
 paths also enforce expiry. No process-local trading state or external broker exists.
 
-Plugin GroupsPanel owns selected verified context. NavigationScreens defines the
+Plugin CommunitiesPanel owns selected verified context. NavigationScreens defines the
 vertical/horizontal shell; individual *Screens files own workflows. QuietUpdates
 has a separate background read lane. TradeScreens owns server state, queued trade
 changes and an independent polling lane. TradeWindowScreens draws the two-column

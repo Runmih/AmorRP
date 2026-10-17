@@ -27,7 +27,7 @@ public sealed class BackendProbe : IDisposable
             var health = await live.Content.ReadFromJsonAsync<HealthResponse>(cancellationToken);
             if (health?.Status != "ok")
                 return new("Server returned an unexpected health response.", false);
-            using var discovery = await client.GetAsync(new Uri(origin, "api/v1/capabilities"), cancellationToken);
+            using var discovery = await client.GetAsync(new Uri(origin, "api/v2/capabilities"), cancellationToken);
             if (!discovery.IsSuccessStatusCode)
                 return new("Server discovery failed. Check the address and M0 setup guide.", false);
             var capabilities = await discovery.Content.ReadFromJsonAsync<CapabilitiesResponse>(cancellationToken);

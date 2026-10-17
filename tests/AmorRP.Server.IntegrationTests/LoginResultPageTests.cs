@@ -16,7 +16,7 @@ public sealed partial class FoundationTests
     public async Task Browser_confirmation_keeps_secrets_out_and_plugin_can_still_exchange_after_replay_is_rejected()
     {
         using var factory = Factory(); await Migrate(factory); using var client = factory.CreateClient();
-        using var start = Request(HttpMethod.Post, "/api/v1/auth/login-attempts", new LoginStart("Test character", "35", "Zalera", null));
+        using var start = Request(HttpMethod.Post, "/api/v2/auth/login-attempts", new LoginStart("Test character", "35", "Zalera", null));
         start.Headers.Add("X-Login-Request-Credential", SecretVault.NewSecret());
         using var started = await client.SendAsync(start, TestContext.Current.CancellationToken);
         var attempt = (await started.Content.ReadFromJsonAsync<CommandResult<LoginAttemptCreated>>(TestContext.Current.CancellationToken))!.Result;
@@ -45,7 +45,7 @@ public sealed partial class FoundationTests
         await CheckBrowserPage(repeated, "false");
         Assert.DoesNotContain("setInterval", html); // Pairing secret must not vanish on a timer.
         Assert.Contains("Never send them the code", html);
-        using var exchange = Request(HttpMethod.Post, $"/api/v1/auth/login-attempts/{attempt.AttemptId}/exchange", new LoginExchangeRequest(PairingCodeFromPage(html)));
+        using var exchange = Request(HttpMethod.Post, $"/api/v2/auth/login-attempts/{attempt.AttemptId}/exchange", new LoginExchangeRequest(PairingCodeFromPage(html)));
         exchange.Headers.Add("X-Login-Attempt-Credential", attempt.AttemptCredential);
         using var exchanged = await client.SendAsync(exchange, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.OK, exchanged.StatusCode);
@@ -60,7 +60,7 @@ public sealed partial class FoundationTests
         Assert.Equal(HttpStatusCode.BadRequest, invalid.StatusCode);
         Assert.DoesNotContain("untrusted", await CheckBrowserPage(invalid, "false"));
 
-        using var start = Request(HttpMethod.Post, "/api/v1/auth/login-attempts", new LoginStart("Test character", "35", "Zalera", null));
+        using var start = Request(HttpMethod.Post, "/api/v2/auth/login-attempts", new LoginStart("Test character", "35", "Zalera", null));
         start.Headers.Add("X-Login-Request-Credential", SecretVault.NewSecret());
         using var started = await client.SendAsync(start, TestContext.Current.CancellationToken);
         var attempt = (await started.Content.ReadFromJsonAsync<CommandResult<LoginAttemptCreated>>(TestContext.Current.CancellationToken))!.Result;
@@ -68,7 +68,7 @@ public sealed partial class FoundationTests
         using var denied = await client.GetAsync("/auth/xivauth/callback?state=" + state + "&error=access_denied&error_description=untrusted", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.OK, denied.StatusCode);
         Assert.DoesNotContain("untrusted", await CheckBrowserPage(denied, "false"));
-        using var status = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/auth/login-attempts/{attempt.AttemptId}");
+        using var status = new HttpRequestMessage(HttpMethod.Get, $"/api/v2/auth/login-attempts/{attempt.AttemptId}");
         status.Headers.Add("X-Login-Attempt-Credential", attempt.AttemptCredential);
         using var statusResponse = await client.SendAsync(status, TestContext.Current.CancellationToken);
         Assert.Equal("failed", (await statusResponse.Content.ReadFromJsonAsync<LoginAttemptStatus>(TestContext.Current.CancellationToken))!.Status);

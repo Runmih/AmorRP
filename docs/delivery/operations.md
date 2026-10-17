@@ -50,7 +50,7 @@ alerts/build limits, and assign a human owner for charges. See [sources](../sour
 3. Additive schema before code requiring it; preserve compatibility with deployed
    clients and previous server binary. Defer destructive cleanup to later release.
 4. Deploy, verify readiness/database/version endpoint and authentication callback.
-5. Smoke-test login, production, use and a two-character trade in test group.
+5. Smoke-test login, production, use and a two-character trade in test community.
 6. Watch error rate, latency, active reservations, memory, storage and auth failures.
    Roll back code only if schema remains compatible; otherwise restore/forward-fix.
 
@@ -73,7 +73,7 @@ can undo completed RP trades; communicate the recovery point and invalidate sess
 to prevent stale command replay. Never silently claim that every later trade survived.
 
 Incident steps: enter maintenance, preserve relevant redacted diagnostics, revoke
-compromised sessions/keys as appropriate, determine affected groups, backup current
+compromised sessions/keys as appropriate, determine affected communities, backup current
 state, restore/repair in isolation, verify accounting/reservations, publish clear
 status to affected users, then reopen mutations. No ad-hoc balance edits without
 an audited correction operation.
@@ -99,7 +99,7 @@ text must be human-written. A working custom-distributed 1.0 is not automaticall
 an approved official plugin. No external maintainer contact is sent by this task.
 
 Before testers: publish operator/support contact, data/privacy notice, retention,
-export/deletion route, known limits, outage and maintenance notices. Groups are
+export/deletion route, known limits, outage and maintenance notices. Communities are
 closed but do not constitute encrypted private messaging. Owner moderation governs
 alt usage and member trading. Assign responsibility for service bills and updates.
 
@@ -258,9 +258,9 @@ is needed to test or continue review; the fix takes effect only after deployment
 
 ## History authorization correction — server 0.0.6.6
 
-Group history/audit now require active membership in a non-deleted group; audit
+Community history/audit now require active membership in a non-deleted community; audit
 also requires ownership. Membership/asset retention does not authorize ongoing
-reads. Departure/removal/block/group deletion returns 404 even with an earlier
+reads. Departure/removal/block/community deletion returns 404 even with an earlier
 cursor; unblocking without rejoining leaves access revoked. Active rejoin restores
 normal personal-history scope. Former members recover only their authorized
 operation metadata/terminal trade outcomes through the existing separate routes,
@@ -269,11 +269,11 @@ without later moderation reasons or private resource replay.
 No additional migration, plugin package, secret or Render setting is required.
 Retain the previous review migrations. Roll out this server build with the review
 batch; no live restart is required for local tests or further review. Existing
-own receipt recovery after deletion is covered separately from group history.
+own receipt recovery after deletion is covered separately from community history.
 
 ## Trade read lock correction — server 0.0.6.7
 
-Trade GETs now hold the group advisory lock only for expiry/save/commit. A fresh
+Trade GETs now hold the community advisory lock only for expiry/save/commit. A fresh
 read-only repeatable-read transaction assembles the page or single response after
 the lock is released. Projection uses four batched lookups, so query count no
 longer grows with each trade/item. Snapshot state stays consistent across concurrent
@@ -281,7 +281,7 @@ edits; revision checks on mutations remain authoritative. Invalid read requests
 can still commit overdue expiry and release reservations before returning an error.
 
 No schema/migration, plugin package, dependency or configuration change is added.
-Existing expiry/command writers keep their transaction/group-lock rules. This
+Existing expiry/command writers keep their transaction/community-lock rules. This
 fix does not remove the lock required for expiry itself, nor promise unrestricted
 page/line limits or eliminate ordinary database contention. Bounded reads still
 consume database/memory resources. Deploy the server correction with the review
@@ -293,8 +293,8 @@ The original TradingBeta migration renamed matching Correspondence categories an
 added book/note to every category permitting letter, including custom/retired
 categories. The corrected historical migration preserves **all existing names,
 allowed-type arrays, versions and retired flags**. M3 did not record which rows
-were untouched seeds, so a name-based exception is unsafe. Newly created groups
-still seed Books (book/letter/note); legacy groups explicitly opt in using owner
+were untouched seeds, so a name-based exception is unsafe. Newly created communities
+still seed Books (book/letter/note); legacy communities explicitly opt in using owner
 category edits. Existing letters/assets/quotas survive the upgrade.
 
 **Already applied migrations do not rerun. Deploying 0.0.6.8 does not restore an
@@ -320,8 +320,8 @@ choices are included. This is a review list, not an automatic affected-row detec
 it does not recover original policy or detect every historical rename. It reads
 no letter bodies, login grants or tokens and performs no production changes.
 
-For a confirmed active-category correction, use the **group owner's authenticated
-API session**: GET /api/v1/groups/{groupId}/categories/{categoryId}, review the
+For a confirmed active-category correction, use the **community owner's authenticated
+API session**: GET /api/v2/communities/{communityId}/categories/{categoryId}, review the
 current name/types and ETag, then PATCH the same route with `CategoryEdit`
 (`name`, `allowedTypeIds`), that If-Match and a fresh UUIDv7 Idempotency-Key. Preserve
 any intended types/name. Nonowners cannot change policy. The current simplified
@@ -340,7 +340,7 @@ that those production policies have already been reviewed or repaired.
 
 The next combined deployment must apply
 `20261015201132_RetainedGroupCreationBudget`. It adds indexed
-`groups.CreatedByCharacterId`, recovered from the earliest surviving `group.create`
+`communities.CreatedByCharacterId`, recovered from the earliest surviving `community.create`
 receipt actor, or current owner if no matching evidence exists. Ownership,
 membership, balances, items and receipts are preserved. Update every server
 instance with the matching binary; older writers do not populate this column.
@@ -350,14 +350,14 @@ Optional validated settings have usable defaults:
 
 | Environment setting | Default | Range / meaning |
 | --- | --- | --- |
-| `ServicePolicy__MaxRetainedCreatedGroupsPerCharacter` | 30 | 1–10000; must be at least `OwnedGroups` |
+| `ServicePolicy__MaxRetainedCreatedCommunitiesPerCharacter` | 30 | 1–10000; must be at least `OwnedCommunities` |
 | `HealthPolicy__ReadinessRefreshSeconds` | 5 | 1–60 seconds after the previous probe finishes |
 
-Retained creation accounting includes soft-deleted and transferred groups and
+Retained creation accounting includes soft-deleted and transferred communities and
 remains with their original creator. It is independent of the three active-owned /
 six active-joined slots. At capacity, creation returns 409
-`group_retention_limit_reached`. Deleting frees an active slot, not retained storage;
-accepting a transferred group does not consume a retained creation slot. Only an
+`community_retention_limit_reached`. Deleting frees an active slot, not retained storage;
+accepting a transferred community does not consume a retained creation slot. Only an
 eligible physical purge under the retention policy frees retained capacity. There
 is no automatic purge or reset endpoint in this change. Do not delete creator
 receipts, reset EF migration history or alter ownership to bypass the control.
@@ -397,7 +397,7 @@ Disabling trading cancels trades/releases reservations but preserves ownership
 proposals. Existing capability requests without tradingAllowed preserve the
 current trading setting. No production data wipe/deployment was performed here.
 
-## Group Home deployment — server 0.0.6.12
+## Community Home deployment — server 0.0.6.12
 
 Apply **20261015232913_GroupAnnouncements** through the existing startup migration
 wrapper, then update plugin 0.0.6.9. New table/FKs and empty read markers preserve
@@ -405,12 +405,12 @@ existing assets, character identity, member descriptions and grants. No new Rend
 variables, provider scopes or paid pre-deploy feature is needed. Readiness must
 confirm the matching migration set. This task performs no production deploy/wipe.
 
-The live announcement table holds only five messages per group. Create/prune is
+The live announcement table holds only five messages per community. Create/prune is
 transactional and ordered by a server counter. Old message content is absent from
 operation receipts/summaries; usual backup/WAL/export retention still applies and
 must not be represented as immediate forensic erasure. Read markers stay at five
 UUIDs per membership without per-click audit rows. Include announcement author/
-group references in future physical purge/export procedures.
+community references in future physical purge/export procedures.
 
 Notification polls use normal caller budgets, two reads per 30 seconds per client
 (unread counts plus selected list). No persistent connections or extra paid service
@@ -421,8 +421,8 @@ explicitly in Members; no previous General Moderation/crafting authority is infe
 
 Deploy main and apply 20261016140911_GroupLogos with the existing
 startup wrapper, then update plugin 0.0.6.12. No data wipe, paid Render pre-deploy
-command or new external service is needed. MaxGroupLogoBytes defaults to 2097152
+command or new external service is needed. MaxCommunityLogoBytes defaults to 2097152
 (maximum 2MiB); optional ServicePolicy setting can lower it and is advertised in
 capabilities. Existing currency media/policies/grants and all identities persist.
-Logo edits are owner-only; group.moderate remains description/currency-name only.
+Logo edits are owner-only; community.moderate remains description/currency-name only.
 Take the normal migration backup; do not run Down as an update step.

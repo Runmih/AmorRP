@@ -7,7 +7,7 @@ namespace AmorRP.Plugin.Tests;
 public sealed class FoundationRecoveryTests
 {
     private static readonly Uri Origin = new("https://server.example/");
-    private static readonly CommandRequest Use = new("POST", "api/v1/groups/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/inventory/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb/use", "{\"expectedHoldingVersion\":1,\"chatConsent\":true,\"destination\":\"say\"}", null);
+    private static readonly CommandRequest Use = new("POST", "api/v2/communities/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/inventory/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb/use", "{\"expectedHoldingVersion\":1,\"chatConsent\":true,\"destination\":\"say\"}", null);
     [Fact]
     public async Task Lost_response_then_permission_rejection_retains_an_uncertain_outcome_and_same_key()
     {

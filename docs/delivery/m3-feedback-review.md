@@ -30,7 +30,7 @@ are no longer open blockers. The interface is not accepted as the final layout.
 
 ## Potion-production investigation
 
-Owner authority is implicit in both `GroupAccess.Action` and the plugin's owner
+Owner authority is implicit in both `CommunityAccess.Action` and the plugin's owner
 check. Owners do not grant themselves capabilities. They still spend their own
 weekly allowance. An authorized member may create copies, not edit recipe
 definitions. A usable enabled recipe and enough current-period points are also
@@ -48,12 +48,12 @@ bypass authorization/weekly accounting to make the button work.
 Latest reported messages: the owner saw "The owner has not enabled a potion
 recipe yet"; the member saw "The owner must authorize potion creation for this
 character." After discovering the rejected recipe, the maintainer still reports
-no member access. The member's message is a local gate on the cached group's
+no member access. The member's message is a local gate on the cached community's
 `MyCapabilities`, not a server response to a production request. Check the owner's
 authoritative **Permissions:** text after saving, Refresh data and reselecting the
 member; do not use the checkbox as evidence of a persisted grant because its draft
 is intentionally preserved across refresh. Record any save rejection separately.
-If the persisted grant is present, compare the member's fresh same-group data and
+If the persisted grant is present, compare the member's fresh same-community data and
 refresh outcome; if absent, investigate the actual authorization save. No root
 cause or corrective build is claimed from source inspection alone.
 
@@ -129,7 +129,7 @@ The current display is rejected as a final interface, not merely awaiting cosmet
 styling. Agree on navigation and user workflows before rebuilding it or adding
 trading. The proposed first stage of M4 separates everyday inventory/currency/use
 from owner/delegated administration, makes member actions understandable, and moves
-login/device settings out of group history. History must identify actors and
+login/device settings out of community history. History must identify actors and
 affected characters by readable name/home world, alongside stable IDs and useful
 action/quantity details; it must not expose private letter bodies or secrets.
 Item removal needs selectable rows, a selected-item summary and a single clear

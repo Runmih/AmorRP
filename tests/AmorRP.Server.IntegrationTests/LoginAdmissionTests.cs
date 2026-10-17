@@ -169,7 +169,7 @@ public sealed partial class FoundationTests
 
     private async Task CancelAdmissionLogin(HttpClient client, LoginAttemptCreated attempt)
     {
-        using var request = Request(HttpMethod.Delete, $"/api/v1/auth/login-attempts/{attempt.AttemptId}");
+        using var request = Request(HttpMethod.Delete, $"/api/v2/auth/login-attempts/{attempt.AttemptId}");
         request.Headers.Add("X-Login-Attempt-Credential", attempt.AttemptCredential);
         using var response = await client.SendAsync(request, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -200,7 +200,7 @@ public sealed partial class FoundationTests
 
     private async Task<HttpResponseMessage> StartAdmissionLogin(HttpClient client, Guid? key = null, string? credential = null)
     {
-        using var request = Request(HttpMethod.Post, "/api/v1/auth/login-attempts", new LoginStart("Person", "35", "Zalera"), key);
+        using var request = Request(HttpMethod.Post, "/api/v2/auth/login-attempts", new LoginStart("Person", "35", "Zalera"), key);
         request.Headers.Add("X-Login-Request-Credential", credential ?? SecretVault.NewSecret());
         return await client.SendAsync(request, TestContext.Current.CancellationToken);
     }

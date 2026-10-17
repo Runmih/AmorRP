@@ -17,7 +17,7 @@ public sealed class CommandStore(AmorDbContext db, SecretVault vault, TimeProvid
     {
         var text = context.Request.Headers["Idempotency-Key"].ToString();
         ApiFault.Require(Guid.TryParse(text, out var key) && key.Version == 7, 400, "invalid_operation_key", "A UUIDv7 Idempotency-Key is required.");
-        var hash = SecretVault.Hash(context.Request.Method + " " + context.Request.Path + "\n" + context.Request.Headers.IfMatch + "\n" + JsonSerializer.Serialize(body, Json));
+        var hash = SecretVault.Hash(context.Request.Method + " " + context.Request.Path + "\n" + context.Request.Headers.IfMatch + "\n" + AmorRP.Server.Infrastructure.Compatibility.LegacyApi.BodyJson(context, body));
         var prior = await db.Operations.SingleOrDefaultAsync(x => x.Scope == scope && x.Key == key, ct);
         if (prior != null)
         {
@@ -32,16 +32,21 @@ public sealed class CommandStore(AmorDbContext db, SecretVault vault, TimeProvid
             409, "operation_replay_expired", "Operation key is outside its submission window.");
         return null;
     }
-    public IResult Replay(OperationRow row) => Results.Content(vault.Unprotect(row.ProtectedResponse, "operation:" + row.Id), "application/json", statusCode: row.ResponseStatus);
-    public OperationRow New(HttpContext context, string scope, object? body, Guid? actor, Guid? group, string kind) => new()
+    public IResult Replay(OperationRow row) => Results.Content(ReplayJson(row), "application/json", statusCode: row.ResponseStatus);
+    private string ReplayJson(OperationRow row)
+    {
+        var json = vault.Unprotect(row.ProtectedResponse, "operation:" + row.Id);
+        return json.Contains("\"groupId\"", StringComparison.Ordinal) ? AmorRP.Contracts.Common.LegacyCommunityJson.ToCurrent(json) : json;
+    }
+    public OperationRow New(HttpContext context, string scope, object? body, Guid? actor, Guid? community, string kind) => new()
     {
         Scope = scope, Key = Guid.Parse(context.Request.Headers["Idempotency-Key"].ToString()),
-        RequestHash = SecretVault.Hash(context.Request.Method + " " + context.Request.Path + "\n" + context.Request.Headers.IfMatch + "\n" + JsonSerializer.Serialize(body, Json)),
-        ActorCharacterId = actor, GroupId = group, Kind = kind, Summary = kind, OccurredAt = time.GetUtcNow()
+        RequestHash = SecretVault.Hash(context.Request.Method + " " + context.Request.Path + "\n" + context.Request.Headers.IfMatch + "\n" + AmorRP.Server.Infrastructure.Compatibility.LegacyApi.BodyJson(context, body)),
+        ActorCharacterId = actor, CommunityId = community, Kind = kind, Summary = kind, OccurredAt = time.GetUtcNow()
     };
     public async Task<IResult> SaveAsync(HttpContext context, OperationRow operation, object response, CancellationToken ct)
     {
-        if (operation.Kind is "announcement.create" or "group.create" or "invitation.create" or "ownership.propose" or "login.start" or "category.create" or "definition.create" or "potion.create" or "letter.create") operation.ResponseStatus = 201;
+        if (operation.Kind is "group.create" or "announcement.create" or "community.create" or "invitation.create" or "ownership.propose" or "login.start" or "category.create" or "definition.create" or "potion.create" or "letter.create") operation.ResponseStatus = 201;
         var json = JsonSerializer.Serialize(response, Json);
         operation.ProtectedResponse = vault.Protect(json, "operation:" + operation.Id);
         operation.ETag = context.Response.Headers.ETag;
@@ -53,7 +58,7 @@ public sealed class CommandStore(AmorDbContext db, SecretVault vault, TimeProvid
     {
         var requested = context.Request.Headers.IfMatch.ToString();
         ApiFault.Require(requested.Length > 0, 428, "precondition_required", "Refresh the resource and supply its ETag.");
-        ApiFault.Require(requested == etag, 412, "version_mismatch", "Resource changed. Refresh before editing.");
+        ApiFault.Require((AmorRP.Server.Infrastructure.Compatibility.LegacyApi.IsLegacy(context) ? AmorRP.Contracts.Common.LegacyCommunityJson.ETag(requested, legacy: false) : requested) == etag, 412, "version_mismatch", "Resource changed. Refresh before editing.");
     }
     public static string ETag(string kind, Guid id, int version) => $"\"{kind}:{id:N}:{version}\"";
 }

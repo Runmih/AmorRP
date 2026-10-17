@@ -3,8 +3,8 @@
     "Author": "Runmih",
     "Name": "Amor RP",
     "InternalName": "AmorRP",
-    "AssemblyVersion": "0.0.6.16",
-    "Description": "Amor RP brings roleplay venues and communities together with group inventories, fictional currency, potion crafting, books, letters, notes, and trading.\n\n/amorrp \u2192 Main Menu",
+    "AssemblyVersion": "0.0.6.17",
+    "Description": "Amor RP brings roleplay venues and communities together with community inventories, fictional currency, potion crafting, books, letters, notes, and trading.\n\n/amorrp \u2192 Main Menu",
     "ApplicableVersion": "any",
     "RepoUrl": "https://github.com/Runmih/AmorRP",
     "Tags": [
@@ -19,11 +19,11 @@
     "IconUrl": "https://raw.githubusercontent.com/Runmih/AmorRP/main/images/f6e82fdb8ed2ed3cc35f46e022f59d61ededbb55dc4bcce5aaf723dcb4054d9a.png",
     "Punchline": "Bringing FFXIV roleplay venues and communities together.",
     "AcceptsFeedback": true,
-    "DownloadLinkInstall": "https://raw.githubusercontent.com/Runmih/AmorRP/main/packages/AmorRP-0.0.6.16.zip",
-    "DownloadLinkUpdate": "https://raw.githubusercontent.com/Runmih/AmorRP/main/packages/AmorRP-0.0.6.16.zip",
-    "DownloadLinkTesting": "https://raw.githubusercontent.com/Runmih/AmorRP/main/packages/AmorRP-0.0.6.16.zip",
-    "LastUpdate": 1792200251,
+    "DownloadLinkInstall": "https://raw.githubusercontent.com/Runmih/AmorRP/main/packages/AmorRP-0.0.6.17.zip",
+    "DownloadLinkUpdate": "https://raw.githubusercontent.com/Runmih/AmorRP/main/packages/AmorRP-0.0.6.17.zip",
+    "DownloadLinkTesting": "https://raw.githubusercontent.com/Runmih/AmorRP/main/packages/AmorRP-0.0.6.17.zip",
     "IsHide": false,
-    "IsTestingExclusive": false
+    "IsTestingExclusive": false,
+    "LastUpdate": 1792200324
   }
 ]

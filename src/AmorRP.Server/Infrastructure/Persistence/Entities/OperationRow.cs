@@ -7,7 +7,7 @@ public sealed class OperationRow
     public Guid Key { get; set; }
     public string RequestHash { get; set; } = "";
     public Guid? ActorCharacterId { get; set; }
-    public Guid? GroupId { get; set; }
+    public Guid? CommunityId { get; set; }
     public Guid? SubjectCharacterId { get; set; }
     public Guid? TradeId { get; set; }
     public string Kind { get; set; } = "";

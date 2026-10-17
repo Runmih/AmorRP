@@ -16,13 +16,13 @@ invent additional milestone gates.
 ## Navigation
 
 The correction is authoritative: **vertical main navigation, horizontal subtabs**.
-Inventory is selected by default. The group selector stays outside section content,
+Inventory is selected by default. The community selector stays outside section content,
 with verified character and currency balance always visible. Keep the compact
 consumables window as a separate RP-friendly view.
 
 | Main section (vertical) | Content and horizontal subtabs |
 | --- | --- |
-| Home | Group profile: name, description, currency identity and group information. Owner edit/invitation actions sit beside the relevant content. |
+| Home | Community profile: name, description, currency identity and community information. Owner edit/invitation actions sit beside the relevant content. |
 | Inventory (default) | All, Consumables, Books. Stable list and selected-item details/actions. Books distinguishes book, letter and note. |
 | Crafting | Potions and Books. Copy creation and written-item creation are separate from browsing inventory. Owner recipe create/edit buttons live in the potion recipe area. |
 | Members (proposed supporting section) | Roster with authorized actions on the selected member: adjust currency, manage inventory, permissions, Remove, Block and Unblock. |
@@ -35,7 +35,7 @@ and reservations beside available actions. The server rechecks authority even wh
 the interface previously showed a button. No Owner-only main tab.
 
 ```text
-Amor RP       [Group v]    Character @ Home World       [coin] Balance    [Sync]
+Amor RP       [Community v]    Character @ Home World       [coin] Balance    [Sync]
 ┌─────────────┬──────────────────────────────────────────────────────────────┐
 │ Home        │ Inventory                                                    │
 │ Inventory ● │ [All] [Consumables] [Books]                                  │
@@ -57,7 +57,7 @@ its mod-sync/presence features or copy branding/assets. Pair icons with clear te
 ## Stable updates
 
 M3's shared work flag disables the whole product during requests, every mutation
-asks for a full group refresh, and accepting inventory data clears the member's
+asks for a full community refresh, and accepting inventory data clears the member's
 inventory inspector. These contribute to the reported jarring behavior; the report
 does not establish that the plugin actually unloads/reloads itself.
 
@@ -66,15 +66,15 @@ does not establish that the plugin actually unloads/reloads itself.
 - Preserve selected item/member/recipe, open panels, scroll, filters and drafts.
   Never silently adopt a new edit version for an old draft.
 - Apply authoritative mutation responses to affected data, then refresh that data
-  quietly. Clicking an action must not restart all group/device/catalog requests.
+  quietly. Clicking an action must not restart all community/device/catalog requests.
 - Disable the affected write action while pending. Unresolved mutations retain
   their original recovery key; don't optimistically assume success.
-- Keep quiet 60-second inventory/group refresh while relevant views are visible.
+- Keep quiet 60-second inventory/community refresh while relevant views are visible.
   Trade updates may be more frequent but update only trade data, not the whole view.
   Bound requests, avoid overlap and back off on failure.
 - Preserve action feedback beside its action; background sync never overwrites it.
   A small status indicator communicates freshness/offline state.
-- Clear private data immediately on character/backend/group/access changes; reject
+- Clear private data immediately on character/backend/community/access changes; reject
   late responses from an old scope and reconcile versions for overlapping reads.
 - Give simultaneously drawn widgets distinct stable IDs, including nested forms.
 
@@ -101,7 +101,7 @@ IDs underneath; no names as ownership keys, private bodies or authentication sec
 2. Consolidate ordinary membership and inventory/balance operations, separate
    blocking, and preserve authorization/retry/version behavior. Document compatibility
    during transition; update OpenAPI and endpoint catalog with the implementation.
-3. Implement persistent same-group trading: invitation, offers, reservations,
+3. Implement persistent same-community trading: invitation, offers, reservations,
    revision-specific confirmations, atomic completion, cancellation/expiry and
    restart/unknown-outcome recovery. Removal/restriction cancel affected trades.
 4. Integrate character-context initiation and two-column trade review. No public
@@ -118,7 +118,7 @@ IDs underneath; no names as ownership keys, private bodies or authentication sec
   do not expose another context's private data.
 - Leave/removal permits invited rejoining; block prevents it; unblock doesn't
   restore membership. Item removal does not refund creation allowance.
-- Context-menu trading is same-group only. Both players confirm the same offer
+- Context-menu trading is same-community only. Both players confirm the same offer
   revision at both stages; editing after either acceptance cancels the deal.
 - Reservations prevent double spending/use/discard/edit. Currency supply and item
   ownership remain consistent after exchange/cancellation.

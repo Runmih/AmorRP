@@ -242,12 +242,12 @@ icon. It remains compatible with server 0.0.6.0/0.0.6.1 and minimum client
 0.0.6.0. The ZIP includes a validated square PNG; IconUrl identifies those bytes
 by SHA-256. Dependencies, API, schema and saved settings do not change.
 
-Plugin **0.0.6.3** adds independent Join/Create group windows and header entry
+Plugin **0.0.6.3** adds independent Join/Create community windows and header entry
 buttons. It retains API v1, the schema, saved settings and existing server
 0.0.6.0/0.0.6.1 compatibility. No new dependency or migration.
 
 Plugin **0.0.6.4** adds the two-icon launcher and badge-only incoming-trade
-notifications across joined groups, using existing authenticated trade reads.
+notifications across joined communities, using existing authenticated trade reads.
 Configuration.ShowLauncher defaults true for existing users; version 4 and
 protected credentials/commands stay compatible. API, schema, dependencies, server
 0.0.6.0/0.0.6.1 compatibility and minimum-client requirements do not change.
@@ -285,11 +285,11 @@ purpose-derived HMACs and expiry cleanup support fair admission across restarts
 and instances. No endpoint, dependency or plugin change; minimum/plugin **0.0.6.6**.
 
 Server **0.0.6.6** fixes finding 4 by requiring active membership in a non-deleted
-group for history feeds. Personal operation metadata recovery remains separate
+community for history feeds. Personal operation metadata recovery remains separate
 and actor/participant-scoped. No schema, endpoint, dependency, Render setting or
 plugin package change; plugin/minimum remain **0.0.6.6**. Previous migrations apply.
 
-Server **0.0.6.7** fixes finding 5 by releasing the group write lock after expiry,
+Server **0.0.6.7** fixes finding 5 by releasing the community write lock after expiry,
 then building trade GET responses in a fresh read-only repeatable-read snapshot.
 Page projection uses four set-based lookups, shared with locked command responses.
 No schema, endpoint, dependency, configuration or plugin package change; minimum
@@ -297,7 +297,7 @@ and plugin remain **0.0.6.6**. Prior review migrations remain required.
 
 Server **0.0.6.8** removes unsafe category name/type rewrites from the historical
 TradingBeta migration. Existing categories are preserved on future upgrades;
-new groups still seed Books. Already-applied databases do not rerun the migration
+new communities still seed Books. Already-applied databases do not rerun the migration
 and require owner review/explicit repair where needed; a read-only report is
 included. No new migration ID, schema, endpoint, dependency or plugin package;
 plugin/minimum remain **0.0.6.6**. This does not claim production data was repaired.
@@ -306,7 +306,7 @@ plugin/minimum remain **0.0.6.6**. This does not claim production data was repai
 
 Server **0.0.6.9**, plugin/minimum client **0.0.6.6**, API v1 and toolchain pins
 unchanged. Adds migration **20261015201132_RetainedGroupCreationBudget** for immutable
-original-creator accounting (30 retained groups by default). Readiness now uses one
+original-creator accounting (30 retained communities by default). Readiness now uses one
 background probe per process; both trade approval stages reject duplicate new-key
 consent while preserving same-key receipt recovery. No plugin/feed promotion or
 new dependency is needed. Existing data is preserved; see operations for backfill,
@@ -332,7 +332,7 @@ No schema/migration or dependency changes. Minimum client remains **0.0.6.6**;
 older capability bodies leave trading unchanged. New permission UI requires the
 new server. Feed URL and plugin identity remain unchanged.
 
-## Group Home candidate — plugin 0.0.6.9 / server 0.0.6.12
+## Community Home candidate — plugin 0.0.6.9 / server 0.0.6.12
 
 New migration **20261015232913_GroupAnnouncements**. Adds five announcement routes
 and eight schemas, now 99 API operations / 132 schemas. General Moderation,
@@ -353,26 +353,26 @@ existing helper test project; actual Dalamud keyboard/layout acceptance is live.
 ## Trade request layout — plugin 0.0.6.11
 
 Plugin-only Inbound/Outbound request tabs, active-exchange-only layout, explicit
-group header and shared quick-launcher group selector. Server stays **0.0.6.12**,
+community header and shared quick-launcher community selector. Server stays **0.0.6.12**,
 minimum client **0.0.6.6**, API v1 and all dependency pins unchanged. No new server
 deploy/migration. Pending invitations survive closing; accepted exchanges retain
 close-to-cancel and authoritative revision/final-confirmation safeguards.
 
 ## Home overview/logos — plugin 0.0.6.12 / server 0.0.6.13
 
-Matching server and GroupLogos migration precede logo testing. API v1 and minimum
-client 0.0.6.6 remain; optional Group logo fields and bootstrap limits are additive.
+Matching server and CommunityLogos migration precede logo testing. API v1 and minimum
+client 0.0.6.6 remain; optional Community logo fields and bootstrap limits are additive.
 No toolchain/dependency changes. SkiaSharp normalizes bounded static images;
 Dalamud's existing file dialog/texture services provide client selection/display.
 
 ## Footer and text limits — plugin 0.0.6.13 / server 0.0.6.14
 
-Main, trade and group forms show action feedback in a footer with at most three
+Main, trade and community forms show action feedback in a footer with at most three
 recent results. Each keeps its own diagnostic details, expires after 20 seconds,
 and pauses while its details button is hovered/held or its popup is open. Reopening
 clears ordinary feedback; unresolved commands retain receipt recovery controls.
 
-Group, character and potion descriptions accept 300 Unicode text elements. All
+Community, character and potion descriptions accept 300 Unicode text elements. All
 Books contents (book, letter, note) accept 500. Typing and paste are bounded in
 the plugin; API validation independently rejects larger writes. Existing stored
 text remains readable and is not silently rewritten during upgrade. No migration.

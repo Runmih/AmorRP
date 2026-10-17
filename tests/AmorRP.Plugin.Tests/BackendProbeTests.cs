@@ -18,7 +18,7 @@ public sealed class BackendProbeTests
         using var handler = new StubHandler(request => request.RequestUri!.AbsolutePath switch
         {
             "/health/live" => Json(200, "{\"status\":\"ok\"}"),
-            "/api/v1/capabilities" => Json(200, $$"""{"apiVersion":"{{api}}","minimumClientVersion":"{{minimum}}","serverVersion":"0.0.6.0"}"""),
+            "/api/v2/capabilities" => Json(200, $$"""{"apiVersion":"{{api}}","minimumClientVersion":"{{minimum}}","serverVersion":"0.0.6.0"}"""),
             "/health/ready" => Json(readyStatus, readyStatus == 200 ? "{\"status\":\"ok\"}" : "{\"status\":\"unavailable\"}"),
             _ => throw new InvalidOperationException("Unexpected request")
         });
@@ -50,7 +50,7 @@ public sealed class BackendProbeTests
     {
         var readinessRequests = 0;
         using var handler = new StubHandler(request => {
-            if (request.RequestUri!.AbsolutePath == "/api/v1/capabilities")
+            if (request.RequestUri!.AbsolutePath == "/api/v2/capabilities")
                 return Json(200, $$"""{"apiVersion":"1","minimumClientVersion":"0.0.5","serverVersion":"{{serverVersion}}","maintenance":false}""");
             if (request.RequestUri.AbsolutePath == "/health/ready") readinessRequests++;
             return Json(200, "{\"status\":\"ok\"}");

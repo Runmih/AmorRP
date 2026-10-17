@@ -23,14 +23,14 @@ public sealed class IdentityProbeTests
     {
         using var factory = Factory(false);
         using var client = factory.CreateClient();
-        using var response = await client.PostAsJsonAsync("/api/v1/feasibility/login-attempts", Selected, TestContext.Current.CancellationToken);
+        using var response = await client.PostAsJsonAsync("/api/v2/feasibility/login-attempts", Selected, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
         Assert.Equal("no-store", response.Headers.CacheControl?.ToString());
         var problem = await response.Content.ReadFromJsonAsync<JsonElement>(TestContext.Current.CancellationToken);
         Assert.Equal("service_unavailable", problem.GetProperty("code").GetString());
         Assert.False(string.IsNullOrEmpty(problem.GetProperty("requestId").GetString()));
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/health/live", TestContext.Current.CancellationToken)).StatusCode);
-        Assert.Equal(HttpStatusCode.ServiceUnavailable, (await client.PostAsJsonAsync("/api/v1/auth/login-attempts", new AmorRP.Contracts.Auth.LoginStart("Ada Example", "35", "Raiden"), TestContext.Current.CancellationToken)).StatusCode);
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, (await client.PostAsJsonAsync("/api/v2/auth/login-attempts", new AmorRP.Contracts.Auth.LoginStart("Ada Example", "35", "Raiden"), TestContext.Current.CancellationToken)).StatusCode);
     }
 
     [Fact]
@@ -40,7 +40,7 @@ public sealed class IdentityProbeTests
         using var client = factory.CreateClient();
         foreach (var key in new[] { "not-a-uuid", "ffffffff-ffff-7fff-bfff-ffffffffffff", Guid.CreateVersion7(DateTimeOffset.UtcNow.AddHours(-1)).ToString() })
         {
-            using var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/feasibility/login-attempts");
+            using var request = new HttpRequestMessage(HttpMethod.Post, "/api/v2/feasibility/login-attempts");
             request.Content = JsonContent.Create(Selected);
             request.Headers.Add("Idempotency-Key", key);
             request.Headers.Add("X-Login-Request-Credential", IdentityProbeStore.Secret());
@@ -54,7 +54,7 @@ public sealed class IdentityProbeTests
     {
         using var factory = Factory(true);
         using var client = factory.CreateClient();
-        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/feasibility/login-attempts");
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/v2/feasibility/login-attempts");
         request.Content = JsonContent.Create(Selected);
         request.Headers.Add("Idempotency-Key", Guid.CreateVersion7().ToString());
         request.Headers.Add("X-Login-Request-Credential", IdentityProbeStore.Secret());
@@ -66,17 +66,17 @@ public sealed class IdentityProbeTests
         Assert.Contains("no-referrer", callback.Headers.GetValues("Referrer-Policy"));
         Assert.DoesNotContain("ownership-binding", await callback.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
         client.DefaultRequestHeaders.Add("X-Login-Attempt-Credential", attempt.AttemptCredential);
-        var status = await client.GetStringAsync($"/api/v1/feasibility/login-attempts/{attempt.AttemptId}", TestContext.Current.CancellationToken);
+        var status = await client.GetStringAsync($"/api/v2/feasibility/login-attempts/{attempt.AttemptId}", TestContext.Current.CancellationToken);
         Assert.Contains("verified", status);
         Assert.DoesNotContain("accessToken", status);
         client.DefaultRequestHeaders.Add("Idempotency-Key", Guid.CreateVersion7().ToString());
-        using var exchange = await client.PostAsync($"/api/v1/feasibility/login-attempts/{attempt.AttemptId}/exchange", null, TestContext.Current.CancellationToken);
+        using var exchange = await client.PostAsync($"/api/v2/feasibility/login-attempts/{attempt.AttemptId}/exchange", null, TestContext.Current.CancellationToken);
         var session = (await exchange.Content.ReadFromJsonAsync<IdentityProbeSession>(TestContext.Current.CancellationToken))!;
         client.DefaultRequestHeaders.Authorization = new("Bearer", session.AccessToken);
-        Assert.Equal(Character, await client.GetFromJsonAsync<VerifiedCharacter>("/api/v1/feasibility/identity", TestContext.Current.CancellationToken));
-        using var logout = await client.DeleteAsync("/api/v1/feasibility/session", TestContext.Current.CancellationToken);
+        Assert.Equal(Character, await client.GetFromJsonAsync<VerifiedCharacter>("/api/v2/feasibility/identity", TestContext.Current.CancellationToken));
+        using var logout = await client.DeleteAsync("/api/v2/feasibility/session", TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.NoContent, logout.StatusCode);
-        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/v1/feasibility/identity", TestContext.Current.CancellationToken)).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/v2/feasibility/identity", TestContext.Current.CancellationToken)).StatusCode);
     }
 
     [Fact]

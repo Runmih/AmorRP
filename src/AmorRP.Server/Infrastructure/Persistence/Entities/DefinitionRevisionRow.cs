@@ -2,7 +2,7 @@ namespace AmorRP.Server.Infrastructure.Persistence;
 
 public sealed class DefinitionRevisionRow
 {
-    public Guid GroupId { get; set; }
+    public Guid CommunityId { get; set; }
     public Guid DefinitionId { get; set; }
     public int Revision { get; set; }
     public int TypeDataVersion { get; set; } = 1;

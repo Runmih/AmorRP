@@ -35,14 +35,14 @@ to verify, not a claim of a captured rejection.
   status/code/request ID/original action key. Read refresh does not overwrite this
   result. A timed-out/uncertain save retains the original action for reconciliation.
 - **Create items → Create potion copies → Check my potion permission with server**
-  reads the selected group's current permission directly with the member's session,
+  reads the selected community's current permission directly with the member's session,
   then requests normal inventory refresh. This avoids requiring every ancillary
-  group read to succeed before seeing the current permission.
+  community read to succeed before seeing the current permission.
 - Owners see that access is automatic; missing recipes point to the owner editor.
   Insufficient points and invalid quantities explain why creation is disabled.
 
 This uses existing server-authorized reads/writes; no client-side bypass or role
-grant is introduced. Group/character/backend changes clear these diagnostic views.
+grant is introduced. Community/character/backend changes clear these diagnostic views.
 `<3` support and recipe-message validation feedback remain M5, as requested.
 Books/subtype classification, CRUD consolidation and structural interface work
 remain in the [feedback plan](m3-feedback-review.md); this patch does not implement
@@ -59,14 +59,14 @@ window heading. Keep existing login/backend configuration and all adjacent DLLs.
 
 ## Focused live test
 
-1. Owner: select the group, open **Members & currency**, select the affected
+1. Owner: select the community, open **Members & currency**, select the affected
    active member, and click **Reload saved permissions from server**.
 2. Check **Create potion copies**, then **Save authorizations**. Expect
    **Saved by server… Potion creation: Allowed** beside the controls. Expand
    **Authorization troubleshooting** to see its committed operation ID.
 3. Click Reload again. The saved potion permission must still be **Allowed**.
    If it is not, report the inline save/check result and safe troubleshooting text.
-4. Member: select the same group, open **Create items → Create potion copies**, and
+4. Member: select the same community, open **Create items → Create potion copies**, and
    click **Check my potion permission with server**. Expect **allowed**. No logout
    or new XIVAuth login should be necessary for a capability change.
 5. With an enabled recipe and enough current-week points, create one potion. If
@@ -74,13 +74,13 @@ window heading. Keep existing login/backend configuration and all adjacent DLLs.
    are independent prerequisites.
 
 If the owner reports Allowed and the member reports Not authorized, report both
-character/home-world labels, group name, installed plugin version, timestamps and
+character/home-world labels, community name, installed plugin version, timestamps and
 safe results. Do not include tokens, invitation codes or private letter bodies.
 
 ## Verification
 
 The new PostgreSQL integration scenario exercises stale-grant rejection with no
-success history, reload/save, visibility through both member group-read routes
+success history, reload/save, visibility through both member community-read routes
 without relogin, actual potion creation, and same-key replay with one audit event.
 The Windows plugin workflow builds and validates the actual API-15 ZIP. CI results
 must be checked for the shipped commit; the live checks above remain required.

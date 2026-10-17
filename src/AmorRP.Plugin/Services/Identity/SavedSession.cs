@@ -2,7 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using AmorRP.Contracts.Auth;
-using AmorRP.Contracts.Groups;
+using AmorRP.Contracts.Communities;
 using AmorRP.Contracts.Currency;
 using AmorRP.Contracts.History;
 using AmorRP.Contracts.Common;
@@ -19,7 +19,9 @@ public sealed class SavedSession
     public string HomeWorldName { get; set; } = "";
     public string ProtectedTokens { get; set; } = "";
     public Guid? PendingRefreshKey { get; set; }
-    public Guid? SelectedGroupId { get; set; }
+    [System.Text.Json.Serialization.JsonPropertyName("selectedGroupId")]
+    [Newtonsoft.Json.JsonProperty("SelectedGroupId")]
+    public Guid? SelectedCommunityId { get; set; }
     public static string Protect(SessionTokens tokens) => Convert.ToBase64String(ProtectedData.Protect(
         JsonSerializer.SerializeToUtf8Bytes(tokens), Encoding.UTF8.GetBytes("AmorRP.session.v1"), DataProtectionScope.CurrentUser));
     public SessionTokens Read() => JsonSerializer.Deserialize<SessionTokens>(ProtectedData.Unprotect(

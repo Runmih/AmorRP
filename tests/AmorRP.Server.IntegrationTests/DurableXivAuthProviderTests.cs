@@ -34,7 +34,7 @@ public sealed class DurableXivAuthProviderTests
                 var form = await request.Content!.ReadAsStringAsync(ct); Assert.Contains("grant_type=refresh_token", form); Assert.Contains("refresh_token=old-refresh", form); Assert.Contains("client_secret=server-secret", form);
                 return Json("""{"access_token":"provider-access","refresh_token":"rotated-refresh","token_type":"Bearer","scope":"refresh character"}""");
             }
-            Assert.Equal("/api/v1/characters/123456", request.RequestUri.AbsolutePath); Assert.Equal("", request.RequestUri.Query);
+            Assert.Equal("/api/v2/characters/123456", request.RequestUri.AbsolutePath); Assert.Equal("", request.RequestUri.Query);
             Assert.Equal("provider-access", request.Headers.Authorization?.Parameter);
             return Json("""{"name":"Test Person","home_world":"Zalera","lodestone_id":123456,"persistent_key":"verified-key","verified_at":"2026-10-01T00:00:00Z"}""");
         }

@@ -1,9 +1,9 @@
 # Security and privacy model
 
 This is a design requirement, not an assertion that the prototype is secure.
-Threats include modified clients, stolen sessions, cross-group ID substitution,
+Threats include modified clients, stolen sessions, cross-community ID substitution,
 concurrent duplication, stale trade confirmations, resource exhaustion, and malicious
-item text. Group owners intentionally control their fictional economy and alt use.
+item text. Community owners intentionally control their fictional economy and alt use.
 
 ## Trust boundaries
 
@@ -11,7 +11,7 @@ item text. Group owners intentionally control their fictional economy and alt us
   claims, quota estimates and item IDs are hints until server validation.
 - XIVAuth provides authenticated, verified character identity. The integration
   must validate credentials/claims; receiving an identifier alone is insufficient.
-- Group ownership grants explicit administrative power, not unrestricted backend
+- Community ownership grants explicit administrative power, not unrestricted backend
   execution or automatic access to private letter bodies.
 - PostgreSQL and server secret configuration are privileged. Game chat is an
   external side effect with no distributed transaction or reliable receipt API.
@@ -26,15 +26,15 @@ item text. Group owners intentionally control their fictional economy and alt us
 | OAuth login interception / shared-link session theft | Exact registered redirects, one-use expiring state, PKCE, attempt credential plus browser-only pairing code | Separate-client shared-link approval cannot redeem; code binding, lockout and replay tests |
 | Secret exposure | Provider secret only server-side; redact headers, callbacks, token bodies; OS-protected plugin credential storage | Scan logs/config/package; no credentials in docs/source |
 | Session theft | Short-lived opaque access tokens; rotating refresh family; hashes at rest; revoke/logout | Expiry/reuse/revocation tests; sockets terminated |
-| Cross-group access | Membership checks plus composite group-scoped constraints for every nested ID | Substitute every resource ID from another group |
+| Cross-community access | Membership checks plus composite community-scoped constraints for every nested ID | Substitute every resource ID from another community |
 | Escalation | Owner-only moderator grants/policies/categories; scoped gameplay delegation; per-command current authority | Gameplay managers can change only Trading/Craft Potions; recipe definition and moderator grants require separate authority |
 | Duplication | Transactional accounting, locking, checked arithmetic, durable idempotency | Concurrent creates/consumes/confirms preserve totals |
 | Trade race | Revision-specific confirmations; persistent reservations; restrictions serialize with commit | Stale confirmation and restriction/completion races |
 | Invalid quantities | Positive bounded quantities, whole monetary strings, overflow checks | Negative/zero/overflow/malformed values rejected |
 | Text/command abuse | Plain text; safe unformatted rendering; reject control/line-break/chat command payloads | Unicode/percent/slash/payload/overlong test corpus |
-| Discovery/privacy | Only consented own-group rosters; no arbitrary character existence lookup | Nonmember and global lookup probes fail |
+| Discovery/privacy | Only consented own-community rosters; no arbitrary character existence lookup | Nonmember and global lookup probes fail |
 | Abuse/exhaustion | Bounded request size, pagination, search length, inventory ceilings, quotas, auth/rate limits | Flood/malformed payload tests with safe failures |
-| Unauthorized events | Auth header; group+recipient filtering; periodic session/membership revalidation | Unsubscribe/close on revoke/remove; no private letter payloads |
+| Unauthorized events | Auth header; community+recipient filtering; periodic session/membership revalidation | Unsubscribe/close on revoke/remove; no private letter payloads |
 | Data loss | Paid persistent database, off-provider export, tested restore, migration review | Recovery drill and restart-in-mid-trade tests |
 | Dependency compromise | Pinned toolchain/packages, reviewed updates, CI scanning, immutable release artifacts | Reproducible build and source provenance |
 
@@ -63,39 +63,39 @@ Native plugin auth uses bearer headers; browser callback uses OAuth state checks
 | JSON body | 64 KiB; export responses streamed separately |
 | Page size | Default 50; maximum 100 |
 | Search term | 100 text elements |
-| Group/category/item names | 80 text elements |
+| Community/category/item names | 80 text elements |
 | Descriptions/reasons | 2,000 / 500 text elements |
 | Letter title/body | 80 / 5,000 text elements |
 | Potion use message | 50 text elements plus tested game byte cap |
-| Holdings / group definitions / categories | 10,000 per character-group / 1,000 per group / 100 per group |
+| Holdings / community definitions / categories | 10,000 per character-community / 1,000 per community / 100 per community |
 | Potion quantity per request | 1,000; also bounded by budget/holding ceiling |
 | Trade lines | 50 per side |
 | Login admission (implemented in server 0.0.6.5) | 5 unfinished attempts/network; 10 new starts/rolling minute/network; 256 unfinished globally |
 | Character requests | 120 reads + 30 mutations/minute; bounded event connections |
 
 These are named server options with discoverable public limits. Owner limits
-cannot exceed service ceilings. Mutation quotas and group accounting are enforced
-durably even if a single-instance ingress rate limiter restarts. Group admission
+cannot exceed service ceilings. Mutation quotas and community accounting are enforced
+durably even if a single-instance ingress rate limiter restarts. Community admission
 limits and creation quotas are separate from HTTP abuse limits. Increasing ceilings
 requires capacity verification, not an unreviewed owner setting.
 
 ## Data policy
 
-Collect verified identity fields needed for group matching, own-group membership,
+Collect verified identity fields needed for community matching, own-community membership,
 assets, and necessary operation metadata. No nonessential analytics in 1.0. Explain
-character visibility to group members during join; owner sees required administrative
+character visibility to community members during join; owner sees required administrative
 summaries. Letter bodies are private to holder; author attribution remains visible
 on the item. Plaintext on-screen privacy is not end-to-end encryption: database
 operators can access stored content and the privacy notice must say so.
 
 Provisional retention: login attempts 10 minutes; events 24 hours; response replay
-7 days; personal/administrative audit 365 days; deleted-group private content purged
+7 days; personal/administrative audit 365 days; deleted-community private content purged
 after 30 days; backups follow operator's defined recovery schedule. Rate-limit
 metadata must have a short bounded lifetime. Redact item bodies, invitation secrets,
 tokens and authentication identifiers from routine logs. Keep correlation/request IDs.
 
 Exports/deletion requests are character-authenticated, with operator resolution in
-1.0 rather than a sprawling self-service privacy system. Resolve group ownership
+1.0 rather than a sprawling self-service privacy system. Resolve community ownership
 before deletion. Audit identity can be tombstoned; deletion must also address
 backup expiry and other holders' received letters. Confirm exact policy before beta.
 
@@ -114,8 +114,8 @@ Disabling TLS verification or granting all capabilities for debugging is prohibi
 
 Durable product sessions are separate from M1 probe credentials. Current owner,
 active membership and individual grants are checked from PostgreSQL on each
-command. Nonmember group/foreign member/foreign invitation requests return 404;
-a known member without the action gets 403. Character/group DB advisory locks
+command. Nonmember community/foreign member/foreign invitation requests return 404;
+a known member without the action gets 403. Character/community DB advisory locks
 serialize caps, membership/ownership changes, invite use and currency writes
 across server instances. Checked Int64 changes and ledger records are atomic.
 
@@ -150,7 +150,7 @@ most 128x128, with a recommended advertised 256 KiB encoded-file cap and a separ
 bounded multipart body allowance. Reject animations, malformed files, SVG, external
 URLs and decoder resource excess. Normalize to PNG and strip metadata using a
 maintained decoder with reviewed licensing/deployment compatibility. Persist
-normalized bytes in group-scoped PostgreSQL assets, with no public media directory.
+normalized bytes in community-scoped PostgreSQL assets, with no public media directory.
 Serve from the configured backend with header authentication; private caches are
 bounded and cleared on access loss/unload. PostgreSQL tests verify isolation, valid formats, malformed/oversize rejection,
 removal and restart persistence. Published-server HTTP checks also cover APNG and
@@ -160,7 +160,7 @@ live rendering remains in the M3 checklist.
 M3 also separates persistent safe command-result feedback from read-refresh status.
 Expose sanitized status/code/request ID and operation key for troubleshooting;
 never display raw payloads, secrets or private content. A rejected removal produces
-no successful group-history event. Do not weaken authorization/version checks to
+no successful community-history event. Do not weaken authorization/version checks to
 make a failing interaction appear successful.
 
 Client retry handling preserves a pending mutation when a transport/gateway
@@ -170,7 +170,7 @@ Safe status/code/request IDs remain available without exposing raw payloads.
 
 ## M4 implemented trade controls
 
-Session actor and same-group participant/holding/currency checks are mandatory.
+Session actor and same-community participant/holding/currency checks are mandatory.
 Participant-only trade queries return sealed writing summaries and original potion
 previews; owner authority does not reveal a member's written body. Terminal trade
 and metadata receipt recovery is participant-scoped even after removal. By-key
@@ -178,7 +178,7 @@ operation lookup remains actor-scoped. Trade requests reject unknown properties,
 repeated lines, invalid decimal amounts, stale revisions and unsupported quantities.
 
 A unique participant-slot key prevents concurrent invitations from bypassing the
-one-trade limit. Group-wide PostgreSQL advisory locks serialize reservation, use,
+one-trade limit. Community-wide PostgreSQL advisory locks serialize reservation, use,
 discard, administrative reduction, currency adjustment, expiry, restriction and
 completion. Checked int64/int32 arithmetic, net capacity and DB nonnegative/reserved
 constraints guard balances/holdings. The atomic completion operation is durably
@@ -188,7 +188,7 @@ indefinite reservations from repeated edits.
 
 Effective M4 defaults (capabilities/validated ServicePolicy): 20 offer lines per
 side, 100 copies per creation, 10-minute trade lifetime, 10,000 holdings per
-character/group. Earlier provisional recommendation tables are not runtime values.
+character/community. Earlier provisional recommendation tables are not runtime values.
 General ingress remains the current single-instance limiter; more granular abuse
 controls and production capacity remain M5 release work.
 
@@ -197,11 +197,11 @@ controls and production capacity remain M5 release work.
 The server stores one authoritative offer snapshot under its trade ID/revision.
 Each authenticated participant must first accept and then approve final review of
 that exact revision. Matching opaque client payloads are insufficient: the server
-validates ownership, currency, group membership, reservations and quantities.
+validates ownership, currency, community membership, reservations and quantities.
 Approval times may differ within the original fixed expiry (default ten minutes);
 there is no simultaneous-click requirement or extension on acceptance. An edit
 after either first approval cancels even when its expected revision is stale.
-Cancel likewise cannot be blocked by a stale revision. Group locking serializes
+Cancel likewise cannot be blocked by a stale revision. Community locking serializes
 an edit/cancel racing the last final approval: cancellation wins before completion,
 or the already approved exchange commits first and is immutable. The client never
 claims a cancellation succeeded before the server confirms it.
@@ -345,10 +345,10 @@ and blocking, even after a new owner moderation reason was recorded. Previously
 documented own-history-after-leaving access had no departure cutoff and therefore
 was not a safe historical-receipt boundary.
 
-Server 0.0.6.6 makes both history feeds use GroupAccess.RequireAsync: current active
-membership and a non-deleted group. Audit additionally requires ownership.
+Server 0.0.6.6 makes both history feeds use CommunityAccess.RequireAsync: current active
+membership and a non-deleted community. Audit additionally requires ownership.
 Authorization runs before parsing/using page cursors. Departure/removal/block,
-unblocking without rejoin and group deletion deny the feed with 404; stored rows
+unblocking without rejoin and community deletion deny the feed with 404; stored rows
 and previous cursor tokens do not grant continuing access. Active personal reads
 retain the actor/subject filter; owner audit remains available while authorized.
 
@@ -356,27 +356,27 @@ Recovery stays on existing operation endpoints, with actor/involved-trade-partic
 scope and metadata-only responses. Operation-key lookup is actor-scoped. They do
 not return moderation reasons or full history entries; being the subject of a
 later moderation action alone grants no receipt. Participant-scoped terminal trade
-recovery is unchanged. Group history is not a historical feed for former members.
+recovery is unchanged. Community history is not a historical feed for former members.
 Rejoining as an active member restores the existing personal history scope.
 
 No migration, plugin update or new Render setting is required. Tests cover the
 three original bypasses, earlier cursors, unblocking without active rejoin,
 retained own receipts by ID/key, rejection of later moderation receipts, active
-personal filtering/owner audit and deleted-group access. Saved data is preserved;
+personal filtering/owner audit and deleted-community access. Saved data is preserved;
 no live restart is needed to test or continue review. Deploy the server correction
 with the accumulated review batch.
 
-## Review finding 5: trade reads hold the group write lock — confirmed and corrected
+## Review finding 5: trade reads hold the community write lock — confirmed and corrected
 
-List and single-trade reads held an exclusive group advisory lock across response
+List and single-trade reads held an exclusive community advisory lock across response
 queries, including per-line lookups. A deterministic regression paused projection
-and used pg_try_advisory_xact_lock from another PostgreSQL connection: the group
+and used pg_try_advisory_xact_lock from another PostgreSQL connection: the community
 lock was unavailable on both routes before correction.
 
-Server 0.0.6.7 commits expiry under the group lock, disposes that transaction and
+Server 0.0.6.7 commits expiry under the community lock, disposes that transaction and
 clears the change tracker before beginning a separate read-only repeatable-read
 transaction. Page selection and all response fields share that MVCC snapshot;
-normal group writes/expiry work do not wait for an advisory lock held by response
+normal community writes/expiry work do not wait for an advisory lock held by response
 projection. The read transaction commits before serializing/sending the response.
 This avoids mixing a trade revision from before an edit with lines from after it.
 A response may still represent an earlier revision; command-side current-state,
@@ -408,7 +408,7 @@ to a familiar name would still be unsafe for owner-created lookalikes.
 
 Server 0.0.6.8 removes both data rewrites from the historical migration and
 preserves all existing category names/type arrays/versions/retired flags. Fresh
-groups still seed Books defaults. Adding a subtype to the schema does not itself
+communities still seed Books defaults. Adding a subtype to the schema does not itself
 authorize creation in an existing category; that requires an explicit owner edit.
 Tests cover custom letter-only, mixed potion/letter, retired, Correspondence/Books
 lookalikes and unchanged potion policies, plus original letters/holdings/usage.
@@ -419,7 +419,7 @@ migration effects from later owner choices. No automatic policy rollback is
 performed. A read-only operator report and owner-authorized API repair procedure
 are documented in [operations](../delivery/operations.md). Existing installations
 need owner review using original choices/backups/retained operation evidence.
-Tests verify new group defaults, owner-only repair, denied future book/note
+Tests verify new community defaults, owner-only repair, denied future book/note
 creation after narrowing and retained existing written bodies/IDs. No production
 policies were inspected or repaired by the build agent; do not label that task
 complete merely because source was deployed.
@@ -430,16 +430,16 @@ All three review findings reproduced: repeated create/delete freed active slots
 while retaining rows; 32 readiness requests triggered 32 database probes; repeated
 first/final approvals with new operation keys recorded redundant consent.
 
-Group creation now serializes an additional retained-record budget on the existing
-character lock. `ServicePolicy:MaxRetainedCreatedGroupsPerCharacter` defaults to 30,
-including active, deleted and transferred groups originally created by that
+Community creation now serializes an additional retained-record budget on the existing
+character lock. `ServicePolicy:MaxRetainedCreatedCommunitiesPerCharacter` defaults to 30,
+including active, deleted and transferred communities originally created by that
 character. Transfer does not move this accounting. The immutable creator is set
-by the server, indexed and backfilled from the earliest recorded `group.create`
+by the server, indexed and backfilled from the earliest recorded `community.create`
 actor, falling back to the current owner when no such evidence survives. This
 fallback only affects resource accounting, never current ownership or permissions.
 The migration preserves records. At capacity creation returns 409
-`group_retention_limit_reached`; active ownership/membership allowances remain 3/6.
-This bounds retained groups per verified character, not total service storage or
+`community_retention_limit_reached`; active ownership/membership allowances remain 3/6.
+This bounds retained communities per verified character, not total service storage or
 activity across independent characters. Operator retention/purge and upstream
 abuse controls remain necessary; do not remove audit evidence merely to free slots.
 
@@ -465,7 +465,7 @@ and readiness transitions for unavailable/incompatible databases.
 ## Member description boundary — server 0.0.6.10
 
 The new description PATCH requires an authenticated active membership in a live
-group and exact self character ID. Ownership does not permit impersonating another
+community and exact self character ID. Ownership does not permit impersonating another
 character's profile. Existing roster/member visibility rules govern reads.
 Validation permits at most 300 Unicode text elements, ordinary line breaks and
 empty text, rejecting hidden/control characters. Server request-byte caps still
@@ -479,9 +479,9 @@ Member result under existing storage/retention rules.
 Recipe mutations replace the owner-only check with current owner OR explicit
 `items.potion.define` authorization before operation replay. An ordinary crafter
 cannot define recipes; a definition-only moderator cannot craft copies or change
-categories, group policy, membership or grants. Only the owner grants this action.
+categories, community policy, membership or grants. Only the owner grants this action.
 The Moderator permissions UI section is organizational, not a role system. Recipe
-validation, group scoping, immutable revisions and retirement remain unchanged.
+validation, community scoping, immutable revisions and retirement remain unchanged.
 
 The optional positive trading permission is saved atomically with gameplay grants
 under existing locks/ETag/idempotency. Turning it off cancels open trades and
@@ -492,7 +492,7 @@ trades. Omission preserves existing trading behavior for older clients.
 Membership removal/block/unblock/ownership-proposal buttons require Shift in the
 UI and show a short tooltip even when disabled. This reduces accidental clicks;
 it is not an authorization mechanism. Existing owner protection, server authority,
-required moderation reasons and group boundaries continue to apply.
+required moderation reasons and community boundaries continue to apply.
 
 The new optional trading field is omitted when null during serialization, preserving
 the canonical capability-only body used by pre-upgrade operation receipts. An
@@ -501,8 +501,8 @@ changing the trading flag under that same key is rejected as a different request
 
 ## Scoped moderation and announcements — server 0.0.6.12
 
-`group.moderate` permits description/currency-name edits only. Server comparisons
-protect group name and legacy currency symbol for nonowners. It grants no gameplay
+`community.moderate` permits description/currency-name edits only. Server comparisons
+protect community name and legacy currency symbol for nonowners. It grants no gameplay
 authority. `members.gameplay.manage` separately allows Trading and items.potion.create
 changes through the existing owner/grant endpoint; a nonowner's proposed capability
 set must preserve all other current actions. This blocks granting/removing moderator,
@@ -513,7 +513,7 @@ separate announcements.manage action, checked before command replay.
 
 Announcement title/body are bounded, validated plain text and rendered as literal
 text (including title hash characters), never game chat, HTML or format templates.
-Group locks serialize create/prune: only the newest five live rows survive, ordered
+Community locks serialize create/prune: only the newest five live rows survive, ordered
 by a server counter. Read tracking stores at most five UUIDs per membership, with
 no audit/operation record per read. It does not churn the member permission ETag.
 Create receipts contain only an operation ID, so pruning does not leave message
@@ -521,19 +521,19 @@ bodies/titles in response replay or audit summaries. This is live-table retentio
 not a claim that backups, logs of operator exports, or previously viewed copies
 are erased. Existing backup/purge policies remain applicable.
 
-The authenticated unread endpoint uses two set queries for active joined groups;
+The authenticated unread endpoint uses two set queries for active joined communities;
 the client polls once per 30 seconds (selected list plus counts), including with
 the main window closed. Responses are no-store. Notifications preserve UI drafts,
-reject results from old character/group scopes, and invalidate stale polls after
+reject results from old character/community scopes, and invalidate stale polls after
 read acknowledgements. Badge counts reflect unread retained messages, not every
 historical post. Transient poll failure keeps the last known badge state and backs
 off. These requests consume ordinary caller-partitioned API budgets.
 
-## Group logos — server 0.0.6.13
+## Community logos — server 0.0.6.13
 
-GET/PUT/DELETE /api/v1/groups/{groupId}/logo use bearer sessions and active group
+GET/PUT/DELETE /api/v2/communities/{communityId}/logo use bearer sessions and active community
 membership. Writes are owner-only, checked before hostile-media parsing and again
-under the character/group advisory lock; General Moderation grants no logo access.
+under the character/community advisory lock; General Moderation grants no logo access.
 Current ownership is checked before receipt replay. UUIDv7 keys, original-byte
 fingerprints and independent logo If-Match prevent duplicate/stale replacements.
 
@@ -543,5 +543,5 @@ within 512px, metadata-free PNG <=1MiB. Currency keeps its stricter existing lim
 Multipart allowance is raised only on this authorized upload route; JSON limits
 remain. No arbitrary remote URL fetch, public asset directory or credential URL.
 Read responses are no-store/nosniff; clients stream within image byte budgets.
-Purpose-specific DB checks, group-scoped FKs/queries and atomic old-byte cleanup
+Purpose-specific DB checks, community-scoped FKs/queries and atomic old-byte cleanup
 keep logos separate from currency icons and cap current media storage.

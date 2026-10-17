@@ -1,5 +1,5 @@
 using AmorRP.Contracts.Auth;
-using AmorRP.Contracts.Groups;
+using AmorRP.Contracts.Communities;
 using AmorRP.Contracts.Currency;
 using AmorRP.Contracts.History;
 using AmorRP.Contracts.Common;

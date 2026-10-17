@@ -6,7 +6,7 @@ Rules below combine agreed scope and recommendations from the
 ## Identity and isolation
 
 Inventory ownership, capability grants, quota usage, and trade restrictions belong
-to a verified **character within a group**. Different characters can receive
+to a verified **character within a community**. Different characters can receive
 independent budgets, even when controlled by the same person. Do not correlate
 alts or silently share their quotas.
 
@@ -22,26 +22,26 @@ while a stale provider profile or fresh verification is resolved; never create a
 new inventory merely because the old name/world no longer matches.
 
 Every item, definition, category, currency record, reservation, and operation has
-a group ID. A command specifies its group; the server checks each referenced
+a community ID. A command specifies its community; the server checks each referenced
 resource belongs to it. Switching the display does not migrate assets.
 
-## Groups and membership
+## Communities and membership
 
 - Limits: three owned and six active memberships, owned included. Pending invitations
   and dormant memberships do not consume a slot. Recommended scope: per character.
-- Owner creation atomically creates group, owner membership, currency and policies.
+- Owner creation atomically creates community, owner membership, currency and policies.
   M3 adds the default categories when the inventory feature becomes available. Admission and ownership-transfer limits use database locking.
 - Only the owner issues permanent, revocable nine-character invitations with unlimited uses. Joining requires explicit
-  acceptance of group visibility/data rules; possession of a code is not membership.
+  acceptance of community visibility/data rules; possession of a code is not membership.
 - Intended behavior (A20): voluntary leave and owner removal deactivate membership
   without blocking invited rejoining. Blocking is separate and prevents rejoining
-  until unblocked. Rejoin requires a valid invitation and available group slot;
+  until unblocked. Rejoin requires a valid invitation and available community slot;
   unblocking alone does not restore membership. M4 implements separate deletion
   and blocking. The deprecated M3 removal route retains remove-and-block semantics
   for old clients; the M4 interface uses the separate operations.
 - Leave/removal cancels open trades, revokes effective grants, and makes inventory
-  and group-history feeds inaccessible. Retained membership/asset rows do not
-  authorize reads. Rejoin uses the same character/group identity and quota history.
+  and community-history feeds inaccessible. Retained membership/asset rows do not
+  authorize reads. Rejoin uses the same character/community identity and quota history.
   Owner must grant creation/currency/removal permissions again after rejoin.
 - Default member roster shows active members only; owner may explicitly show
   dormant/blocked recovery rows. Retain assets and quota history internally.
@@ -50,11 +50,11 @@ resource belongs to it. Switching the display does not migrate assets.
 - Ownership transfer: current owner proposes an active member; recipient accepts;
   transaction checks limits and switches authority. Former owner remains an ordinary
   member. No owner can remove themselves or leave without transfer/deletion.
-- Delete group: owner confirms its exact name; cancel trades and invitations; make
+- Delete community: owner confirms its exact name; cancel trades and invitations; make
   it read-only/inaccessible to members. Purge only through the documented retention
   workflow. API retries cannot create a second deletion.
   Personal operation receipts and terminal trade outcomes remain available for
-  reconciliation within retention; this does not restore inventory/group-history
+  reconciliation within retention; this does not restore inventory/community-history
   access. Operation metadata receipts are actor/participant-scoped and do not
   reveal later moderation reasons.
 
@@ -63,7 +63,7 @@ resource belongs to it. Switching the display does not migrate assets.
 | Action | Owner | Authorized member | Ordinary member |
 | --- | --- | --- | --- |
 | Membership, policies, ownership, categories, moderator grants | Yes | No | No |
-| Group description / currency name | Yes | `group.moderate` | No |
+| Community description / currency name | Yes | `community.moderate` | No |
 | Grant Trading / Craft Potions | Yes | `members.gameplay.manage` | No |
 | Create announcements | Yes | `announcements.manage` | No |
 | Define/revise/retire potion recipes | Yes | `items.potion.define` | No |
@@ -76,18 +76,18 @@ resource belongs to it. Switching the display does not migrate assets.
 
 Owner authority is derived from current ownership, not a role grant. Revocation is
 effective on the next command; never trust long-lived token permission claims.
-No capability holder may grant permissions or change group policy. Own-item
+No capability holder may grant permissions or change community policy. Own-item
 discard is separate from removing another member's holdings. Other inventory
 inspection is limited to summaries required for authorized removal; letter text
 is visible only to its current holder.
 
 ## Currency
 
-One group-owned currency definition in 1.0: name, custom image icon, stable currency
+One community-owned currency definition in 1.0: name, custom image icon, stable currency
 ID. Owner may upload static PNG, JPEG/JPG or WebP, at most 128 pixels on either
 axis; default coin icon is bundled. Changing/removing an icon preserves currency
 identity and balances. M2's text symbol remains legacy compatibility data.
-The server validates/normalizes images and enforces upload/group/owner limits;
+The server validates/normalizes images and enforces upload/community/owner limits;
 see the [M3 feedback plan](../delivery/m2-feedback-m3-plan.md).
 Balances and amounts are nonnegative signed-64-bit whole units internally, checked
 for overflow. Wire amounts are decimal strings to preserve precision in future
@@ -107,7 +107,7 @@ categories remain readable on old holdings, and cannot be selected for new conte
 
 Owner or authorized recipe editor potion definition fields: name, category, description, plain-text use message,
 positive integer creation cost, enabled state. Update creates an immutable revision.
-Copies reference that revision. Same group/character/definition revision stacks;
+Copies reference that revision. Same community/character/definition revision stacks;
 different revisions remain distinguishable. Definition retirement blocks production,
 but does not delete existing copies or prevent their consumption/trading.
 
@@ -121,10 +121,10 @@ their own allowance. There is no bypass or arbitrary item-grant endpoint in 1.0.
 
 - Recommended boundary: Monday 00:00 UTC through the following Monday, exclusive.
   Server time determines period; interface shows reset in local time.
-- Owner sets a group-wide potion points limit and letter count limit. Each character
-  has independent `(group, character, quotaKind, period)` usage.
-- Group creation explicitly sets the first period's limits. The UI warns before
-  creating a group with zero points because later changes start next period.
+- Owner sets a community-wide potion points limit and letter count limit. Each character
+  has independent `(community, character, quotaKind, period)` usage.
+- Community creation explicitly sets the first period's limits. The UI warns before
+  creating a community with zero points because later changes start next period.
 - Defaults: zero potion points until configured; five letters/week. Zero disables
   that creation path. Unused allowance does not roll over.
 - Weekly policy edits apply next period; show current and scheduled limits. On
@@ -149,7 +149,7 @@ No attachments, formatting commands, remote content, or cloned-letter endpoint.
 
 Only the author while holding the letter may edit it, before first completed trade.
 Offering it reserves it and blocks edits. Completed trade permanently locks contents;
-returning it to the author does not unlock it. Readers see author, group, title,
+returning it to the author does not unlock it. Readers see author, community, title,
 body, and locked state. Drafts are local; creating the persistent item spends quota.
 
 ## Consumption and chat
@@ -169,7 +169,7 @@ and unsupported game payloads. 1.0 has literal text, with no template substituti
 Channel prefix and game-supplied character prefix are outside the authored limit.
 Test byte-length/game encoding separately; the character limit alone is insufficient.
 
-Show exact message, channel, quantity cost, group, and character before the Use action.
+Show exact message, channel, quantity cost, community, and character before the Use action.
 The server commits consumption and returns operation ID plus immutable message.
 Only that user action may attempt chat; server events never trigger chat.
 
@@ -182,10 +182,10 @@ if unavailable, show failure without silently switching channel.
 
 ## Trading
 
-Both parties must be active, unrestricted members of the same group. Initiation is
-through the character context menu or group-member inventory flow; recipient accepts
+Both parties must be active, unrestricted members of the same community. Initiation is
+through the character context menu or community-member inventory flow; recipient accepts
 before assets may be offered. No global lookup or plugin-user presence probing.
-Recommended: one open trade/character/group and ten-minute expiry after initiation,
+Recommended: one open trade/character/community and ten-minute expiry after initiation,
 with the actual expiry shown. Offline recipient gets a pending invitation on next
 sync if it has not expired. Assets are not offered until acceptance.
 
@@ -209,7 +209,7 @@ the entire exchange. Empty trades are rejected; one-sided gifts are allowed.
 Cancellation/expiry releases reservations transactionally. Owner restriction/removal
 must serialize with completion: either completion occurred first or cancellation
 prevents it. Client disconnect alone is not cancellation; recover by GET trade.
-Switching groups closes that client's unfinished trade via cancellation before the
+Switching communities closes that client's unfinished trade via cancellation before the
 UI switch; ambiguous cancellation must be reconciled. Completed trades cannot be
 undone through cancel. Reservations and confirmations persist across server restart.
 
@@ -217,14 +217,14 @@ undone through cancel. Reservations and confirmations persist across server rest
 
 Books is the seeded writing category. `book`, `letter` and `note` are explicit
 plain-text subtypes, all spending the existing per-character `letters` allowance.
-No subtype circumvents that weekly limit. New groups receive the Books default.
+No subtype circumvents that weekly limit. New communities receive the Books default.
 Existing category names, allowed types, IDs and versions are preserved during
 upgrade, including legacy Correspondence rows; owners explicitly opt in to new
 types or rename them through the owner category API. All written types have
 immutable author identity, private held bodies and permanent editing lock after
 first trade. Rich books/chapters remain future features.
 
-Trading permits one active invited/open/confirming trade per character **per group**.
+Trading permits one active invited/open/confirming trade per character **per community**.
 Both participants must be active and unrestricted for initiation, acceptance,
 offer changes and confirmation. Offers reserve owned assets; both confirmations
 refer to one saved revision. Edits are allowed before acceptance; any edit after
@@ -235,7 +235,7 @@ result so full-inventory swaps remain possible. No creation allowance is refunde
 or charged by transfer/cancellation.
 
 Trade rows, participant slots, item previews and reservations live in PostgreSQL.
-Removal, blocking, trade restriction or group deletion cancels affected trades
+Removal, blocking, trade restriction or community deletion cancels affected trades
 under the same database lock as completion. Expiry is fixed from invitation
 creation (default ten minutes, discoverable policy) and never extended by edits.
 Participant reads reconcile expiry; a bounded server sweep runs every 30 seconds.
@@ -245,10 +245,10 @@ available after removal without granting access to another inventory or text bod
 ## Retained resources and consent audit
 
 Alongside the 3-owned/6-joined active slots, server 0.0.6.9 enforces an operator
-retained-record budget of 30 groups per original creating character by default.
+retained-record budget of 30 communities per original creating character by default.
 Deleted and transferred creations count until eligible physical purge. Transfer
 never moves this resource accounting to its recipient. This prevents repeated
-create/delete cycles retaining unlimited groups; separate characters remain
+create/delete cycles retaining unlimited communities; separate characters remain
 independent. The service returns a clear capacity error, not a data reset.
 
 Each participant can record each trade approval stage once for a revision. A new
@@ -257,10 +257,10 @@ recovers its receipt. Existing two-stage confirmation and cancellation rules app
 
 ## Member profiles
 
-Each character has a separate optional description within each joined group.
+Each character has a separate optional description within each joined community.
 Only that active character can edit it, including when another member is owner.
 The description is plain text, permits ordinary line breaks, and is limited to
-300 Unicode text elements; it can be cleared. Group members can read visible
+300 Unicode text elements; it can be cleared. Community members can read visible
 member profiles. Leave/rejoin preserves the text under existing retention rules.
 Members show name/description/trade; the owner sees individual permission controls
 below. Additional authorized administration is collapsed. Main navigation keeps
@@ -277,7 +277,7 @@ Gameplay Permissions uses a positive Trading checkbox (enabled by default), Craf
 Potions, Manage currency and item-removal authorizations. Trading needs no reason.
 Manage membership contains a Moderator permissions section for Potion Creation
 (define recipes), separate from the permission to craft copies. This authorizes
-defining, revising and retiring recipes, not group policy/category management.
+defining, revising and retiring recipes, not community policy/category management.
 The two save buttons preserve the other section's saved permissions and do not
 silently commit its unsaved checkbox draft. Owners retain automatic authority.
 
@@ -287,7 +287,7 @@ explains this even while disabled. Required moderation reasons remain in place.
 
 ## Home, crafting guidance and announcements
 
-General Moderation enables direct group-description and currency-name editing on
+General Moderation enables direct community-description and currency-name editing on
 Home. Others see ordinary text. It does not grant any gameplay permissions.
 Manage Gameplay Permissions is a separate owner-granted moderator action for
 Trading and Craft Potions. Currency management, item removal, recipe definition,
@@ -303,33 +303,43 @@ active member under their allowance. Potions is hidden when Craft Potions is abs
 Home shows up to five clickable announcement titles, newest first; opening a title
 shows the full plain-text message. Only owner or Create Announcements holders can
 post. Older messages are deleted as new ones exceed five. Server-persisted unread
-state is independent for each character/group. Opening a message marks only it
+state is independent for each character/community. Opening a message marks only it
 read, not the entire list. The Home icon and main launcher button show red pings
-while unread retained messages remain across joined groups. The launcher focuses
-an unread group's Home when switching is allowed; it does not open on arrival or
-interrupt a trade. Group selection marks groups with unread announcements.
+while unread retained messages remain across joined communities. The launcher focuses
+an unread community's Home when switching is allowed; it does not open on arrival or
+interrupt a trade. Community selection marks communities with unread announcements.
 
-Owner Group Settings contains Currency (icon), Invitations and Delete Group tabs.
+Owner Community Settings contains Currency (icon), Invitations and Delete Community tabs.
 Home no longer has the combined names section or weekly allowance header. Weekly
 Policy has Potions and Books subtabs, initially populated from active settings.
 Each save schedules that feature for the next reset and preserves the other
 feature's currently scheduled value. Unsaved inputs survive background refresh;
 concurrent policy changes require reload instead of silent overwrite.
 
-### Group profile overview and logo
+### Community profile overview and logo
 
-The owner may rename the group and choose/replace/remove its logo by clicking the
+The owner may rename the community and choose/replace/remove its logo by clicking the
 profile image/placeholder. General Moderation continues to edit description and
-currency name, not group name/logo. Ordinary members see read-only profile text.
-Logo and currency icon are separate group assets. Publishing announcements remains
+currency name, not community name/logo. Ordinary members see read-only profile text.
+Logo and currency icon are separate community assets. Publishing announcements remains
 owner or Create Announcements authorization; inline Title/Message/Publish preserves
 the five-message limit, full-message reader and per-character unread state.
 
 ### Current text limits
 
-Group descriptions, character descriptions and potion descriptions are limited to
+Community descriptions, character descriptions and potion descriptions are limited to
 300 Unicode text elements each. Contents for all Books types (book, letter and
 note) are limited to 500; titles retain their existing limit. Inputs stop accepting
 excess text, including pasted text; server validation independently rejects excess
 writes. Existing longer saved text is preserved for reading and must be shortened
 when edited. Announcements retain their separate 120/5000 title/body limits.
+
+
+## Groups within communities (testing)
+
+Community owners may grant Create Groups (`groups.create`) and Manage Groups
+(`groups.manage`) independently. The latter covers profiles and logos throughout
+the community; neither grant permits changing moderator permissions. Any active
+community member may read group profiles. Groups have independent names, descriptions
+(up to 300 characters) and logos, with no fixed organisation type. They currently
+share the community economy rather than receiving separate currency/inventories.
