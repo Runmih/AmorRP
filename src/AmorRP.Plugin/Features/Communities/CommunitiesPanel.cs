@@ -281,7 +281,9 @@ public sealed partial class CommunitiesPanel(IPlayerState player, Configuration 
     }
     private void CollectSync()
     {
-        if (syncWork is not { IsCompleted: true }) return;
+        // Renewal may invalidate the token used by this read. Let its result
+        // advance the generation before interpreting an old response or error.
+        if (syncWork is not { IsCompleted: true } || SessionRenewalInProgress) return;
         var finished = syncWork; syncWork = null;
         if (syncView != viewGeneration || syncData != dataGeneration) { _ = finished.Exception; refreshNeeded = true; return; }
         if (finished.IsCompletedSuccessfully) { connectionError = connectionDiagnostic = ""; syncFailures = 0; finished.Result(); }
