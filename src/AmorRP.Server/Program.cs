@@ -102,7 +102,6 @@ if (migrate)
     return;
 }
 
-app.UseMiddleware<AmorRP.Server.Infrastructure.Compatibility.LegacyApiMiddleware>();
 app.UseExceptionHandler();
 app.Use(async (context, next) => {
     try { await next(context); }
@@ -110,13 +109,15 @@ app.Use(async (context, next) => {
         context.Response.Headers.CacheControl = "no-store";
         if (fault.Status == 429) context.Response.Headers.RetryAfter = "60";
         await Results.Problem(statusCode: fault.Status, title: fault.Message,
-            extensions: new Dictionary<string, object?> { ["code"] = fault.Code, ["requestId"] = context.TraceIdentifier }).ExecuteAsync(context);
+            extensions: new Dictionary<string, object?> { ["code"] = LegacyApi.IsLegacy(context) ? fault.Code.Replace("community", "group", StringComparison.Ordinal) : fault.Code, ["requestId"] = context.TraceIdentifier }).ExecuteAsync(context);
     }
 });
 app.UseStatusCodePages();
 app.UseForwardedHeaders();
 app.UseMiddleware<RenderClientIpMiddleware>();
 app.UseRateLimiter();
+// Reject abusive callers before reading or adapting legacy JSON bodies.
+app.UseMiddleware<LegacyApiMiddleware>();
 app.MapHealthEndpoints();
 app.MapCapabilitiesEndpoints();
 app.MapFeasibilityEndpoints();
