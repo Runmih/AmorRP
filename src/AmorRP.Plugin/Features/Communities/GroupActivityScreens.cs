@@ -21,8 +21,8 @@ public sealed partial class CommunitiesPanel
     private FavoriteEvents favoriteEvents = new([]);
     private GroupPrivate? groupPrivate;
     private Guid? privateRequestedFor, eventEditId, announcementOpen;
-    private int groupJoinMode, eventEditVersion;
-    private string groupPasswordDraft = "", groupJoinPassword = "", noticeSearch = "";
+    private int eventEditVersion;
+    private string groupJoinPassword = "", noticeSearch = "";
     private string noticeTitle = "", noticeMessage = "", noticeReward = "";
     private Guid? noticeDraftFor;
     private int noticeDraftVersion;
