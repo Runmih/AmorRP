@@ -15,6 +15,7 @@ public sealed partial class CommunitiesPanel
         memberSelection = row.Character.Id; memberDraftEtag = row.Etag;
         ResetMemberDescription(row);
         LoadPersonalNote(row);
+        grantCooking = row.Capabilities.Contains("items.cooking.create"); grantCookingDefinitions = row.Capabilities.Contains("items.cooking.define");
         grantGroupCreation = row.Capabilities.Contains("groups.create"); grantGroupManagement = row.Capabilities.Contains("groups.manage");
         grantGeneralModeration = row.Capabilities.Contains("community.moderate"); grantAnnouncements = row.Capabilities.Contains("announcements.manage"); grantGameplayPermissions = row.Capabilities.Contains("members.gameplay.manage");
         grantCoins = row.Capabilities.Contains("currency.manage"); grantPotions = row.Capabilities.Contains("items.potion.create"); grantRemoval = row.Capabilities.Contains("inventory.remove"); tradingAllowed = !row.TradingRestricted; grantDefinitions = row.Capabilities.Contains("items.potion.define");
@@ -78,13 +79,15 @@ public sealed partial class CommunitiesPanel
         ImGui.Separator(); ImGui.TextUnformatted("Permissions");
         DrawPermissionConflict(target);
         ImGui.Checkbox("Trading", ref tradingAllowed);
-        ImGui.Checkbox("Craft Potions", ref grantPotions);
+        ImGui.Checkbox("Craft Alchemy Items", ref grantPotions);
+        ImGui.Checkbox("Craft Cooking Items", ref grantCooking);
         ImGui.BeginDisabled(memberDraftEtag != target.Etag);
         if (ActionButton("Save permissions"))
         {
             // Preserve moderator grants; this form only changes gameplay actions.
-            var actions = target.Capabilities.Where(x => x != "items.potion.create").ToList();
+            var actions = target.Capabilities.Where(x => x is not ("items.potion.create" or "items.cooking.create")).ToList();
             if (grantPotions) actions.Add("items.potion.create");
+            if (grantCooking) actions.Add("items.cooking.create");
             SaveMemberPermissions(target, new MemberCapabilities(actions.ToArray(), tradingAllowed));
         }
         ImGui.EndDisabled(); DrawAuthorizationFeedback(target);
@@ -111,14 +114,16 @@ public sealed partial class CommunitiesPanel
             ImGui.Checkbox("Create Announcements", ref grantAnnouncements);
             ImGui.Checkbox("Create Groups", ref grantGroupCreation);
             ImGui.Checkbox("Manage Groups", ref grantGroupManagement);
-            ImGui.Checkbox("Potion Creation (define recipes)", ref grantDefinitions);
+            ImGui.Checkbox("Create Alchemy Recipes", ref grantDefinitions);
+            ImGui.Checkbox("Create Cooking Recipes", ref grantCookingDefinitions);
+            ImGui.TextDisabled("Manage Groups allows deletion only; private group contents stay private.");
             ImGui.Checkbox("Manage currency", ref grantCoins);
             ImGui.Checkbox("Remove other members' items", ref grantRemoval);
             ImGui.BeginDisabled(memberDraftEtag != target.Etag);
             if (ActionButton("Save moderator permissions"))
             {
                 // Do not silently save or discard an unfinished gameplay draft.
-                var actions = target.Capabilities.Where(x => x is not ("currency.manage" or "inventory.remove" or "items.potion.define" or "community.moderate" or "announcements.manage" or "members.gameplay.manage" or "groups.create" or "groups.manage")).ToList();
+                var actions = target.Capabilities.Where(x => x is not ("currency.manage" or "inventory.remove" or "items.potion.define" or "community.moderate" or "announcements.manage" or "members.gameplay.manage" or "groups.create" or "groups.manage" or "items.cooking.define")).ToList();
                 if (grantGroupCreation) actions.Add("groups.create");
                 if (grantGroupManagement) actions.Add("groups.manage");
                 if (grantGeneralModeration) actions.Add("community.moderate");
@@ -127,6 +132,7 @@ public sealed partial class CommunitiesPanel
                 if (grantCoins) actions.Add("currency.manage");
                 if (grantRemoval) actions.Add("inventory.remove");
                 if (grantDefinitions) actions.Add("items.potion.define");
+                if (grantCookingDefinitions) actions.Add("items.cooking.define");
                 SaveMemberPermissions(target, new MemberCapabilities(actions.ToArray()));
             }
             ImGui.EndDisabled();

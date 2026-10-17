@@ -50,17 +50,19 @@ public sealed partial class CommunitiesPanel
         FieldLabel("Description"); WrappedInput("##NewCommunityDescription", ref description, 8192, new(-1, 85), maximumCharacters: CommunityEdit.MaximumDescriptionCharacters);
         FieldLabel("Currency name"); LimitedInput("##NewCurrencyName", ref currencyName, 80, countCodeUnits: true);
         Wrapped("A default coin icon is used until you upload a custom icon in the community profile.");
-        FieldLabel("Initial potion points / character / week"); initialAllowancesEdited |= ImGui.InputInt("##InitialPotionPoints", ref initialPoints);
+        FieldLabel("Initial Alchemy points / character / week"); initialAllowancesEdited |= ImGui.InputInt("##InitialPotionPoints", ref initialPoints);
+        FieldLabel("Initial Cooking points / character / week"); initialAllowancesEdited |= ImGui.InputInt("##InitialCookingPoints", ref initialCooking);
         FieldLabel("Initial written items / character / week"); initialAllowancesEdited |= ImGui.InputInt("##InitialWrittenItems", ref initialLetters);
         Wrapped("These limits establish your first week's policy. Later policy edits start next Monday.");
-        if (initialPoints == 0) Wrapped("Zero potion points means no potion production in the first week.");
-        if (ActionButton("Create community")) Mutate("POST", "api/v2/communities", new CommunityCreate(name, description, currencyName, symbol, initialPoints, initialLetters));
+        if (initialPoints == 0) Wrapped("Zero Alchemy points means no Alchemy crafting in the first week.");
+        if (ActionButton("Create community")) Mutate("POST", "api/v2/communities", new CommunityCreate(name, description, currencyName, symbol, initialPoints, initialLetters, initialCooking));
     }
 
     private void ResetCommunityForms()
     {
         invitationCode = ""; visibilityAccepted = false;
         name = description = ""; currencyName = "Coins"; symbol = "C";
+        initialCooking = 0;
         initialPoints = serviceLimits?.DefaultPotionPoints ?? 0;
         initialLetters = serviceLimits?.DefaultLettersPerWeek ?? 5;
         initialAllowancesEdited = false;

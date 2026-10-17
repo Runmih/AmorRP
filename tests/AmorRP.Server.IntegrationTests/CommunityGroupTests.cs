@@ -18,7 +18,7 @@ namespace AmorRP.Server.IntegrationTests;
 public sealed partial class FoundationTests
 {
     [Fact]
-    public async Task Community_owner_delegates_group_creation_and_management_separately_without_privilege_escalation()
+    public async Task Community_delegation_controls_creation_and_deletion_without_overriding_group_ownership()
     {
         using var f = Factory(); await Migrate(f); using var owner = f.CreateClient(); await Login(owner, "910"); var community = await Create(owner);
         using var member = f.CreateClient(); var identity = await Login(member, "911"); await Join(member, await Invite(owner, community));
@@ -28,8 +28,10 @@ public sealed partial class FoundationTests
         var current = await GrantHome(owner, community, identity.Character.Id, "groups.create");
         var created = await Command<GroupProfile>(member, HttpMethod.Post, root, body);
         Assert.Equal(community.Id, created.CommunityId); Assert.Equal(body.Description, created.Description);
-        using (var request = Request(HttpMethod.Patch, root + "/" + created.Id, body with { Description = "Not authorized to edit yet" }, etag: created.Etag))
-        using (var denied = await member.SendAsync(request, TestContext.Current.CancellationToken)) Assert.Equal(HttpStatusCode.Forbidden, denied.StatusCode);
+        Assert.Equal(identity.Character.Id, created.OwnerCharacterId);
+        // Creation grants ownership; community moderation does not grant editing.
+        using (var request = Request(HttpMethod.Patch, root + "/" + created.Id, body, etag: created.Etag))
+        using (var denied = await owner.SendAsync(request, TestContext.Current.CancellationToken)) Assert.Equal(HttpStatusCode.Forbidden, denied.StatusCode);
         // Managing gameplay permissions must not allow self-granting moderator rights.
         current = await GrantHome(owner, community, identity.Character.Id, "members.gameplay.manage");
         using (var request = Request(HttpMethod.Put, $"/api/v2/communities/{community.Id}/members/{identity.Character.Id}/capabilities", new MemberCapabilities(["members.gameplay.manage", "groups.manage"]), etag: current.Etag))
@@ -41,7 +43,8 @@ public sealed partial class FoundationTests
         using (var request = Request(HttpMethod.Patch, root + "/" + created.Id, body, etag: created.Etag))
         using (var stale = await member.SendAsync(request, TestContext.Current.CancellationToken)) Assert.Equal(HttpStatusCode.PreconditionFailed, stale.StatusCode);
         await GrantHome(owner, community, identity.Character.Id);
-        using (var request = Request(HttpMethod.Delete, root + "/" + created.Id, etag: edited.Etag))
+        // Revoking community Create Groups never removes ownership of an existing group.
+        using (var request = Request(HttpMethod.Post, root, body))
         using (var denied = await member.SendAsync(request, TestContext.Current.CancellationToken)) Assert.Equal(HttpStatusCode.Forbidden, denied.StatusCode);
         var visible = (await member.GetFromJsonAsync<GroupPage>(root, TestContext.Current.CancellationToken))!; Assert.Single(visible.Items);
         await Command<GroupProfile>(owner, HttpMethod.Delete, root + "/" + created.Id, etag: edited.Etag);

@@ -11,5 +11,8 @@ public sealed class GroupRow
     public Guid? LogoAssetId { get; set; }
     public int LogoVersion { get; set; } = 1;
     public int Version { get; set; } = 1;
+    public Guid OwnerCharacterId { get; set; }
+    public string JoinMode { get; set; } = "open";
+    public string? PasswordHash { get; set; }
     public bool Deleted { get; set; }
 }

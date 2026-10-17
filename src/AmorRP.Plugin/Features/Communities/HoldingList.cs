@@ -7,7 +7,7 @@ public sealed partial class CommunitiesPanel
 {
     private static void DrawItemTypeIcon(string type)
     {
-        var icon = type switch { "potion" => FontAwesomeIcon.Flask, "book" => FontAwesomeIcon.Book, "letter" => FontAwesomeIcon.Envelope, _ => FontAwesomeIcon.StickyNote };
+        var icon = type switch { "potion" or "poison" or "explosive" or "drug" or "medicine" => FontAwesomeIcon.Flask, "meal" or "drink" or "dessert" => FontAwesomeIcon.Utensils, "book" => FontAwesomeIcon.Book, "letter" => FontAwesomeIcon.Envelope, _ => FontAwesomeIcon.StickyNote };
         ImGui.PushFont(UiBuilder.IconFont); ImGui.TextUnformatted(icon.ToIconString()); ImGui.PopFont();
     }
     private static void DrawHoldingRows(string id, Holding[] items, Guid? selected, Action<Holding> select)

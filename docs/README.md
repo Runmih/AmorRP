@@ -63,3 +63,5 @@ boundary exists. Generated endpoint tables must match OpenAPI.
 - **Operation ID:** durable identifier for a completed inventory/currency mutation.
 
 Carried feedback and implementation record: [M2 feedback/M3 plan](delivery/m2-feedback-m3-plan.md). M3 is accepted; M4 is the current live-test build.
+
+Current beta release: [0.0.6.18 — crafting, groups and events](delivery/release-0.0.6.18.md).

@@ -19,7 +19,8 @@ public sealed class CatalogService(AmorDbContext db, SessionAccess sessions, Com
         rev.Revision, rev.TypeDataVersion, rev.Name, rev.CategoryId, rev.Description, rev.Enabled, row.Retired, new(rev.CreationCost, rev.UseMessage));
     public static void Seed(AmorDbContext db, Guid communityId)
     {
-        db.Categories.AddRange(new CategoryRow { CommunityId = communityId, Name = "Consumables", AllowedTypeIds = ["potion"] },
+        db.Categories.AddRange(new CategoryRow { CommunityId = communityId, Name = "Alchemy", AllowedTypeIds = CraftingTypes.Alchemy },
+            new CategoryRow { CommunityId = communityId, Name = "Cooking", AllowedTypeIds = CraftingTypes.Cooking },
             new CategoryRow { CommunityId = communityId, Name = "Books", AllowedTypeIds = ["book", "letter", "note"] });
     }
     public async Task<CategoryRow> RequireCategoryAsync(Guid communityId, Guid id, string type, CancellationToken ct)
@@ -54,7 +55,7 @@ public sealed class CatalogService(AmorDbContext db, SessionAccess sessions, Com
         if (id.HasValue) CommandStore.Match(h, CommandStore.ETag("category", row!.Id, row.Version));
         if (body != null)
         {
-            ApiFault.Text(body.Name, 80); ApiFault.Require(body.AllowedTypeIds is { Length: > 0 and <= 4 } && body.AllowedTypeIds.All(x => x is "potion" or "letter" or "book" or "note") && body.AllowedTypeIds.Distinct().Count() == body.AllowedTypeIds.Length, 422, "invalid_request", "Select supported item types.");
+            ApiFault.Text(body.Name, 80); ApiFault.Require(body.AllowedTypeIds is { Length: > 0 and <= 11 } && body.AllowedTypeIds.All(x => CraftingTypes.All.Contains(x)) && body.AllowedTypeIds.Distinct().Count() == body.AllowedTypeIds.Length, 422, "invalid_request", "Select supported item types.");
             ApiFault.Require(!row!.Retired, 409, "category_retired", "Retired categories cannot be edited.");
             row.Name = body.Name.Trim(); row.AllowedTypeIds = body.AllowedTypeIds;
         }
@@ -87,25 +88,27 @@ public sealed class CatalogService(AmorDbContext db, SessionAccess sessions, Com
     {
         var actor = (await sessions.GetAsync(h, ct)).CharacterId; await using var tx = await db.Database.BeginTransactionAsync(ct);
         await CommandStore.LockAsync(db, ["character:" + actor, "community:" + communityId], ct);
-        var (community, member) = await communities.RequireAsync(communityId, actor, ct); CommunityAccess.Action(community, member, "items.potion.define");
-        var scope = "character:" + actor; var replay = await commands.ReplayAsync(h, scope, body, ct); if (replay != null) return commands.Replay(replay);
-        ApiFault.Require(id.HasValue || await db.Definitions.CountAsync(x => x.CommunityId == communityId, ct) < policy.Value.MaxDefinitionsPerCommunity, 409, "catalog_full", "Definition limit reached.");
+        var (community, member) = await communities.RequireAsync(communityId, actor, ct);
         var row = id.HasValue ? await db.Definitions.SingleOrDefaultAsync(x => x.CommunityId == communityId && x.Id == id, ct) : new DefinitionRow { CommunityId = communityId };
         ApiFault.Require(row != null, 404, "not_found", "Definition not found.");
+        CommunityAccess.Action(community, member, CraftingTypes.RecipePermission(id.HasValue ? row!.TypeId : body?.TypeId ?? "potion"));
+        var scope = "character:" + actor; var replay = await commands.ReplayAsync(h, scope, body, ct); if (replay != null) return commands.Replay(replay);
+        ApiFault.Require(id.HasValue || await db.Definitions.CountAsync(x => x.CommunityId == communityId, ct) < policy.Value.MaxDefinitionsPerCommunity, 409, "catalog_full", "Definition limit reached.");
         if (id.HasValue) CommandStore.Match(h, CommandStore.ETag("definition", row!.Id, row.Revision));
         ApiFault.Require(!row!.Retired, 409, "definition_retired", "Definition is retired.");
         DefinitionRevisionRow rev;
         if (body != null)
         {
-            ApiFault.Require(body.TypeId == "potion" && body.Potion != null && body.Potion.CreationCost > 0 && body.Potion.CreationCost <= policy.Value.MaxWeeklyPotionPoints, 422, "invalid_request", "Specify a potion and a positive supported creation cost.");
+            ApiFault.Require(CraftingTypes.IsConsumable(body.TypeId) && (!id.HasValue || row!.TypeId == body.TypeId) && body.Potion != null && body.Potion.CreationCost > 0 && body.Potion.CreationCost <= policy.Value.MaxWeeklyPotionPoints, 422, "invalid_request", "Choose an Alchemy or Cooking item type and a positive supported point cost.");
             var nameError = AmorRP.Core.Items.PlainText.Error(body.Name, policy.Value.DefinitionNameTextElements);
             var descriptionError = AmorRP.Core.Items.PlainText.Error(body.Description, policy.Value.DefinitionDescriptionTextElements, multiline: true, required: false);
-            ApiFault.Require(nameError == null && descriptionError == null, 422, "invalid_request", nameError != null ? "Potion name: " + nameError : "Potion description: " + descriptionError);
+            ApiFault.Require(nameError == null && descriptionError == null, 422, "invalid_request", nameError != null ? "Item name: " + nameError : "Item description: " + descriptionError);
             var messageError = AmorRP.Core.Items.LiteralChatText.Error(body.Potion!.UseMessage, policy.Value.ChatMessageTextElements);
             ApiFault.Require(messageError == null, 422, "invalid_message", messageError ?? "Invalid potion message.");
-            await RequireCategoryAsync(communityId, body.CategoryId, "potion", ct);
+            await RequireCategoryAsync(communityId, body.CategoryId, body.TypeId, ct);
+            row.TypeId = body.TypeId;
             if (id.HasValue) row.Revision++;
-            rev = new() { CommunityId = communityId, DefinitionId = row.Id, Revision = row.Revision, Name = body.Name.Trim(), CategoryId = body.CategoryId, Description = body.Description, Enabled = body.Enabled, CreationCost = body.Potion.CreationCost, UseMessage = body.Potion.UseMessage };
+            rev = new() { CommunityId = communityId, DefinitionId = row.Id, Revision = row.Revision, Name = body.Name.Trim(), CategoryId = body.CategoryId, Description = body.Description ?? "", Enabled = body.Enabled, CreationCost = body.Potion.CreationCost, UseMessage = body.Potion.UseMessage };
             db.DefinitionRevisions.Add(rev); if (!id.HasValue) db.Definitions.Add(row);
         }
         else

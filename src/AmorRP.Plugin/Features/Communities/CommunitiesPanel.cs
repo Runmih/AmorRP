@@ -25,7 +25,7 @@ public sealed partial class CommunitiesPanel(IPlayerState player, Configuration 
     private long viewGeneration, dataGeneration;
     private long syncView, syncData;
     private readonly Queue<(Func<CancellationToken, Task<Action>> Run, string Message)> reads = new();
-    private enum MainSection { Home, Inventory, Crafting, Groups, Members, Settings }
+    private enum MainSection { Home, Inventory, Crafting, Groups, Noticeboard, Members, Settings }
     private MainSection mainSection = MainSection.Inventory;
     private bool WriteBlocked => !serviceCompatible || currentCommand != null || configuration.PendingCommands.Any(x => x.Origin == origin?.AbsoluteUri && x.CharacterId == session?.Character.Id);
     private bool ActionButton(string label, bool mutation = true)
@@ -63,15 +63,15 @@ public sealed partial class CommunitiesPanel(IPlayerState player, Configuration 
     private bool visibilityAccepted;
     private string createdCode = "";
     private string name = "", description = "", currencyName = "Coins", symbol = "C";
-    private int initialPoints, initialLetters = 5;
+    private int initialPoints, initialCooking, initialLetters = 5;
     private Guid? memberSelection;
-    private bool grantCoins, grantPotions, grantRemoval, grantDefinitions, grantGeneralModeration, grantAnnouncements, grantGameplayPermissions, grantGroupCreation, grantGroupManagement;
+    private bool grantCoins, grantPotions, grantRemoval, grantDefinitions, grantGeneralModeration, grantAnnouncements, grantGameplayPermissions, grantGroupCreation, grantGroupManagement, grantCooking, grantCookingDefinitions;
     private bool tradingAllowed = true;
     private string reason = "", delta = "";
     private Balance? selectedMemberBalance;
     private Guid? balanceFor;
     private string deleteConfirmation = "";
-    private int nextPoints, nextLetters;
+    private int nextPoints, nextLetters, nextCooking;
 
     public void Draw(string backendUrl, bool compactMode = false)
     {
@@ -127,6 +127,7 @@ public sealed partial class CommunitiesPanel(IPlayerState player, Configuration 
             case MainSection.Inventory: DrawInventoryTabs(); break;
             case MainSection.Crafting: DrawCraftingTabs(); break;
             case MainSection.Groups: DrawCommunityGroups(); break;
+            case MainSection.Noticeboard: DrawNoticeboard(); break;
             case MainSection.Members: DrawMembers(); break;
             case MainSection.Settings: DrawSettings(); break;
         }
@@ -226,13 +227,15 @@ public sealed partial class CommunitiesPanel(IPlayerState player, Configuration 
         Collect(); CollectSync(); PumpForeground();
         if (session != null && work == null && saved != null && session.AccessExpiresAt < DateTimeOffset.UtcNow.AddMinutes(5) && DateTimeOffset.UtcNow >= nextRenewAttempt) Resume(saved);
         if (refreshNeeded && work == null && syncWork == null && session != null && session.AccessExpiresAt > DateTimeOffset.UtcNow) { refreshNeeded = false; Refresh(); }
-        PumpContextTargetResolution(); TickTradeInbox(); TickTrades(); TickAnnouncements();
+        PumpContextTargetResolution(); TickTradeInbox(); TickTrades(); TickAnnouncements(); TickFavoriteEvents();
     }
     private bool Owner => community != null && session?.Character.Id == community.OwnerCharacterId;
     private bool CanManageGameplay => Owner || community?.MyCapabilities.Contains("members.gameplay.manage") == true;
     private bool CanGeneralModerate => Owner || community?.MyCapabilities.Contains("community.moderate") == true;
     private bool CanAnnounce => Owner || community?.MyCapabilities.Contains("announcements.manage") == true;
     private bool CanCraftPotions => Owner || community?.MyCapabilities.Contains("items.potion.create") == true;
+    private bool CanCraftCooking => Owner || community?.MyCapabilities.Contains("items.cooking.create") == true;
+    private bool CanDefineCooking => Owner || community?.MyCapabilities.Contains("items.cooking.define") == true;
     private bool CanDefinePotions => Owner || community?.MyCapabilities.Contains("items.potion.define") == true;
     private bool CanCoins => Owner || community?.MyCapabilities.Contains("currency.manage") == true;
     private void Resume(SavedSession entry)
@@ -385,7 +388,7 @@ public sealed partial class CommunitiesPanel(IPlayerState player, Configuration 
         nextRefresh = DateTimeOffset.UtcNow.AddMinutes(1);
         StartSync(async ct => {
             var capability = await client.GetAsync<CapabilitiesResponse>(uri, "api/v2/capabilities", token, ct);
-            if (capability.ApiVersion != "2" || !Version.TryParse(capability.ServerVersion, out var serverVersion) || serverVersion < new Version(0, 0, 6, 17)
+            if (capability.ApiVersion != "2" || !Version.TryParse(capability.ServerVersion, out var serverVersion) || serverVersion < new Version(0, 0, 6, 18)
                 || !Version.TryParse(capability.MinimumClientVersion, out var minimumClient) || minimumClient > typeof(CommunitiesPanel).Assembly.GetName().Version)
                 throw new InvalidOperationException("Amor RP needs an update. Check for a plugin update; the server may also need updating.");
             if (capability.Maintenance) throw new InvalidOperationException(capability.Message);
@@ -429,6 +432,8 @@ public sealed partial class CommunitiesPanel(IPlayerState player, Configuration 
                     catch (FoundationApiException e) when (e.Status == System.Net.HttpStatusCode.NotFound) { }
                 }
             }
+            var groupHub = active == null ? new AmorRP.Contracts.Groups.GroupHub([], []) : await client.GetAsync<AmorRP.Contracts.Groups.GroupHub>(uri, $"api/v2/communities/{active.Id}/group-hub", token, ct);
+            var favorites = await client.GetAsync<AmorRP.Contracts.Groups.FavoriteEvents>(uri, "api/v2/me/favorite-group-events", token, ct);
             var nestedGroups = active == null ? [] : await LoadCommunityGroupsAsync(uri, token, active.Id, ct);
             var inventoryState = active == null ? null : await LoadInventoryAsync(uri, token, active.Id, ct);
             byte[]? iconBytes = null;
@@ -450,7 +455,7 @@ public sealed partial class CommunitiesPanel(IPlayerState player, Configuration 
                 if (!members.Concat(memberSearchResults).Any(x => x.Character.Id == memberSelection)) memberSelection = null;
                 if (!(active?.OwnerCharacterId == actorId || active?.MyCapabilities.Contains("inventory.remove") == true)) { memberHoldings = []; memberInventoryFor = null; memberHoldingSelection = null; }
                 if (inspectorState != null && memberInventoryFor == inspector) { memberHoldings = inspectorState.Items; memberHoldingCursor = inspectorState.NextCursor; }
-                AcceptInventoryState(inventoryState); AcceptCommunityGroups(nestedGroups);
+                AcceptInventoryState(inventoryState); AcceptCommunityGroups(nestedGroups); hub = groupHub; favoriteEvents = favorites;
                 if (active != null) icons.Update(uri.AbsoluteUri + actorId + active.Id + active.Currency.IconAssetId, iconBytes, active.Currency.IconAssetId != null);
                 if (active != null) logos.Update(uri.AbsoluteUri + actorId + active.Id + active.LogoAssetId, logoBytes, active.LogoAssetId != null);
                 lastRefresh = DateTimeOffset.UtcNow; nextRefresh = lastRefresh.AddMinutes(1); status = "Data refreshed.";

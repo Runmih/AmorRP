@@ -21,6 +21,8 @@ public sealed class CommunityRow
     public int CurrencyVersion { get; set; } = 1;
     public int PolicyVersion { get; set; } = 1;
     public int CurrentPotionPoints { get; set; }
+    public int CurrentCookingPoints { get; set; }
+    public int NextCookingPoints { get; set; }
     public int CurrentLetters { get; set; }
     public int NextPotionPoints { get; set; }
     public int NextLetters { get; set; }

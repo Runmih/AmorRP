@@ -52,6 +52,7 @@ builder.Services.AddHostedService<LoginOriginCleanupWorker>();
 builder.Services.AddScoped<CommunityAccess>();
 builder.Services.AddScoped<CommunityService>();
 builder.Services.AddScoped<GroupService>();
+builder.Services.AddScoped<GroupActivityService>();
 builder.Services.AddScoped<AnnouncementService>();
 builder.Services.AddScoped<CurrencyService>();
 builder.Services.AddScoped<CatalogService>();

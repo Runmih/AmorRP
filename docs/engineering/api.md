@@ -658,10 +658,30 @@ in nondeleted communities. Removed/blocked/outsider callers cannot read or mark 
 | GET | `/api/v2/communities/{communityId}/groups` | Active community member |
 | POST | `/api/v2/communities/{communityId}/groups` | Owner or Create Groups |
 | GET | `/api/v2/communities/{communityId}/groups/{groupId}` | Active community member |
-| PATCH | `/api/v2/communities/{communityId}/groups/{groupId}` | Owner or Manage Groups |
+| PATCH | `/api/v2/communities/{communityId}/groups/{groupId}` | Group owner only |
 | DELETE | `/api/v2/communities/{communityId}/groups/{groupId}` | Owner or Manage Groups |
 | GET | `/api/v2/communities/{communityId}/groups/{groupId}/logo` | Active community member |
-| PUT | `/api/v2/communities/{communityId}/groups/{groupId}/logo` | Owner or Manage Groups |
-| DELETE | `/api/v2/communities/{communityId}/groups/{groupId}/logo` | Owner or Manage Groups |
+| PUT | `/api/v2/communities/{communityId}/groups/{groupId}/logo` | Group owner only |
+| DELETE | `/api/v2/communities/{communityId}/groups/{groupId}/logo` | Group owner only |
 
 API v1 keeps the stable `/groups` routes and legacy field/ETag names through an adapter. New child group endpoints are available only in API v2.
+
+## Group membership, noticeboard and events
+
+| Method | Route | Authorization |
+| --- | --- | --- |
+| GET | `/api/v2/communities/{communityId}/group-hub` | Active community member |
+| GET | `/api/v2/me/favorite-group-events` | Current verified session; active community memberships |
+| GET | `/api/v2/communities/{communityId}/groups/{groupId}/private` | Active community and group member; no moderator bypass |
+| POST | `/api/v2/communities/{communityId}/groups/{groupId}/join` | Active community member; open group or correct password |
+| DELETE | `/api/v2/communities/{communityId}/groups/{groupId}/membership` | Current group member; group owner cannot leave |
+| PUT | `/api/v2/communities/{communityId}/groups/{groupId}/favorite` | Active community member |
+| DELETE | `/api/v2/communities/{communityId}/groups/{groupId}/favorite` | Active community member |
+| PUT | `/api/v2/communities/{communityId}/groups/{groupId}/notice` | Group owner only |
+| DELETE | `/api/v2/communities/{communityId}/groups/{groupId}/notice` | Group owner only |
+| POST | `/api/v2/communities/{communityId}/groups/{groupId}/events` | Group owner only |
+| PUT | `/api/v2/communities/{communityId}/groups/{groupId}/events/{eventId}` | Group owner only |
+| DELETE | `/api/v2/communities/{communityId}/groups/{groupId}/events/{eventId}` | Group owner only |
+| POST | `/api/v2/communities/{communityId}/groups/{groupId}/announcements` | Group owner only |
+
+Private group reads require group membership even for community owners. Manage Groups permits deletion only. Notices and events are community-visible. One notice per group; group announcements retain the latest five. Group passwords are hashed, never returned. Event timestamps are UTC; titles allow 40 characters and descriptions 100. Rewards are descriptive text, with no transfer or escrow.

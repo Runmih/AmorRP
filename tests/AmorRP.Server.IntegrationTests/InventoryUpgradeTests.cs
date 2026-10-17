@@ -48,7 +48,7 @@ public sealed partial class FoundationTests
         await db.Database.MigrateAsync(ct);
         Assert.Equal(currency, (await db.Communities.SingleAsync(ct)).CurrencyId);
         Assert.Equal(12345, (await db.Memberships.SingleAsync(ct)).Owned);
-        Assert.Equal(new[] { "Consumables", "Correspondence" }, await db.Categories.OrderBy(x => x.Name).Select(x => x.Name).ToArrayAsync(ct));
+        Assert.Equal(new[] { "Alchemy", "Consumables", "Cooking", "Correspondence" }, await db.Categories.OrderBy(x => x.Name).Select(x => x.Name).ToArrayAsync(ct));
         Assert.Empty(await db.Database.GetPendingMigrationsAsync(ct));
     }
     [Fact]
@@ -70,7 +70,7 @@ public sealed partial class FoundationTests
         await db.Database.MigrateAsync(ct);
         var document = await db.Letters.SingleAsync(ct); Assert.Equal(letter, document.Id); Assert.Equal("letter", document.TypeId); Assert.Equal("Original private text", document.Body); Assert.Equal(2, document.Version);
         var item = await db.Holdings.SingleAsync(ct); Assert.Equal(holding, item.Id); Assert.Equal(actor, item.CharacterId); Assert.Equal(letter, item.LetterId);
-        var retained = await db.Categories.SingleAsync(ct); Assert.Equal(category, retained.Id); Assert.Equal("Correspondence", retained.Name);
+        var retained = await db.Categories.SingleAsync(x => x.Id == category, ct); Assert.Equal(category, retained.Id); Assert.Equal("Correspondence", retained.Name);
         Assert.Equal(new[] { "letter" }, retained.AllowedTypeIds); Assert.Equal(1, retained.Version);
         Assert.Equal(3, (await db.Quotas.SingleAsync(ct)).Used); Assert.Equal(456, (await db.Memberships.SingleAsync(ct)).Owned); Assert.Equal(currency, (await db.Communities.SingleAsync(ct)).CurrencyId);
     }

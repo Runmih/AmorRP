@@ -82,8 +82,8 @@ public sealed class BootstrapTests : IAsyncLifetime
         var result = await client.GetFromJsonAsync<CapabilitiesResponse>("/api/v2/capabilities", TestContext.Current.CancellationToken);
         Assert.NotNull(result);
         Assert.Equal("2", result.ApiVersion);
-        Assert.Equal(new[] { "potion", "letter", "book", "note" }, result.SupportedTypes.Select(x => x.Id));
-        Assert.Equal(new[] { "currency.manage", "items.potion.create", "inventory.remove", "items.potion.define", "community.moderate", "announcements.manage", "members.gameplay.manage", "groups.create", "groups.manage" }, result.GrantableCapabilities);
+        Assert.Equal(new[] { "potion", "poison", "explosive", "drug", "medicine", "meal", "drink", "dessert", "book", "letter", "note" }, result.SupportedTypes.Select(x => x.Id));
+        Assert.Equal(new[] { "currency.manage", "items.potion.create", "inventory.remove", "items.potion.define", "items.cooking.create", "items.cooking.define", "community.moderate", "announcements.manage", "members.gameplay.manage", "groups.create", "groups.manage" }, result.GrantableCapabilities);
         Assert.Equal(new[] { "emote", "say", "party", "linkshell", "crossworld-linkshell" }, result.ChatDestinationKinds);
         Assert.Equal(3, result.Limits.OwnedCommunities);
         Assert.Equal(6, result.Limits.JoinedCommunities);

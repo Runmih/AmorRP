@@ -15,6 +15,7 @@ public sealed class Plugin : IDalamudPlugin
     private readonly WindowSystem windows = new("AmorRP");
     private readonly Configuration configuration;
     private readonly LauncherWindow launcherWindow;
+    private readonly FavoriteEventsWindow favoriteEventsWindow;
     private readonly MainWindow mainWindow;
     private readonly AmorRP.Plugin.Features.Inventory.CompactWindow compactWindow;
     private readonly AmorRP.Plugin.Features.Trading.TradeWindow tradeWindow;
@@ -43,6 +44,9 @@ public sealed class Plugin : IDalamudPlugin
             { IsOpen = configuration.ShowLauncher };
         mainWindow.SetLauncherVisible = visible => launcherWindow.IsOpen = visible;
         context = new(contextMenu, mainWindow.SelectTarget);
+        favoriteEventsWindow = new(mainWindow.DrawFavoriteEvents, () => playerState.IsLoaded, () => { configuration.ShowFavoriteEvents = false; pluginInterface.SavePluginConfig(configuration); }) { IsOpen = configuration.ShowFavoriteEvents };
+        mainWindow.SetFavoriteEventsVisible = visible => favoriteEventsWindow.IsOpen = visible;
+        windows.AddWindow(favoriteEventsWindow);
         windows.AddWindow(mainWindow);
         windows.AddWindow(compactWindow);
         windows.AddWindow(tradeWindow);

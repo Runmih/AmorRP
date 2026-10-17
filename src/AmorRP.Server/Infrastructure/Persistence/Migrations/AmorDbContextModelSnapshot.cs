@@ -155,6 +155,9 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                     b.Property<int>("CurrencyVersion")
                         .HasColumnType("integer");
 
+                    b.Property<int>("CurrentCookingPoints")
+                        .HasColumnType("integer");
+
                     b.Property<int>("CurrentLetters")
                         .HasColumnType("integer");
 
@@ -187,6 +190,9 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(80)
                         .HasColumnType("character varying(80)");
+
+                    b.Property<int>("NextCookingPoints")
+                        .HasColumnType("integer");
 
                     b.Property<int>("NextLetters")
                         .HasColumnType("integer");
@@ -293,6 +299,141 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                     b.ToTable("item_definitions", (string)null);
                 });
 
+            modelBuilder.Entity("AmorRP.Server.Infrastructure.Persistence.GroupAnnouncementRow", b =>
+                {
+                    b.Property<Guid>("CommunityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("GroupId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("PublishedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("CommunityId", "Id");
+
+                    b.HasIndex("CommunityId", "GroupId", "PublishedAt");
+
+                    b.ToTable("group_announcements", (string)null);
+                });
+
+            modelBuilder.Entity("AmorRP.Server.Infrastructure.Persistence.GroupEventRow", b =>
+                {
+                    b.Property<Guid>("CommunityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("EndsAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("GroupId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Location")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("StartsAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("integer");
+
+                    b.HasKey("CommunityId", "Id");
+
+                    b.HasIndex("CommunityId", "GroupId", "EndsAt");
+
+                    b.ToTable("group_events", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_group_event_range", "\"EndsAt\" > \"StartsAt\"");
+                        });
+                });
+
+            modelBuilder.Entity("AmorRP.Server.Infrastructure.Persistence.GroupFavoriteRow", b =>
+                {
+                    b.Property<Guid>("CommunityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("GroupId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CharacterId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("CommunityId", "GroupId", "CharacterId");
+
+                    b.HasIndex("CommunityId", "CharacterId");
+
+                    b.ToTable("group_favorites", (string)null);
+                });
+
+            modelBuilder.Entity("AmorRP.Server.Infrastructure.Persistence.GroupMembershipRow", b =>
+                {
+                    b.Property<Guid>("CommunityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("GroupId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CharacterId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("CommunityId", "GroupId", "CharacterId");
+
+                    b.HasIndex("CommunityId", "CharacterId");
+
+                    b.ToTable("group_memberships", (string)null);
+                });
+
+            modelBuilder.Entity("AmorRP.Server.Infrastructure.Persistence.GroupNoticeRow", b =>
+                {
+                    b.Property<Guid>("CommunityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("GroupId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Reward")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("integer");
+
+                    b.HasKey("CommunityId", "GroupId");
+
+                    b.ToTable("group_notices", (string)null);
+                });
+
             modelBuilder.Entity("AmorRP.Server.Infrastructure.Persistence.GroupRow", b =>
                 {
                     b.Property<Guid>("CommunityId")
@@ -308,6 +449,10 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("JoinMode")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<Guid?>("LogoAssetId")
                         .HasColumnType("uuid");
 
@@ -319,12 +464,20 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                         .HasMaxLength(80)
                         .HasColumnType("character varying(80)");
 
+                    b.Property<Guid>("OwnerCharacterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PasswordHash")
+                        .HasColumnType("text");
+
                     b.Property<int>("Version")
                         .HasColumnType("integer");
 
                     b.HasKey("CommunityId", "Id");
 
                     b.HasIndex("CommunityId", "LogoAssetId");
+
+                    b.HasIndex("OwnerCharacterId", "Deleted");
 
                     b.ToTable("groups", (string)null);
                 });
@@ -385,7 +538,7 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
 
                     b.ToTable("holdings", null, t =>
                         {
-                            t.HasCheckConstraint("ck_holding_payload", "(\"TypeId\" = 'potion' AND \"DefinitionId\" IS NOT NULL AND \"DefinitionRevision\" IS NOT NULL AND \"LetterId\" IS NULL) OR (\"TypeId\" IN ('letter','book','note') AND \"LetterId\" IS NOT NULL AND \"DefinitionId\" IS NULL AND \"DefinitionRevision\" IS NULL AND \"Quantity\" <= 1)");
+                            t.HasCheckConstraint("ck_holding_payload", "(\"TypeId\" IN ('potion','poison','explosive','drug','medicine','meal','drink','dessert') AND \"DefinitionId\" IS NOT NULL AND \"DefinitionRevision\" IS NOT NULL AND \"LetterId\" IS NULL) OR (\"TypeId\" IN ('letter','book','note') AND \"LetterId\" IS NOT NULL AND \"DefinitionId\" IS NULL AND \"DefinitionRevision\" IS NULL AND \"Quantity\" <= 1)");
 
                             t.HasCheckConstraint("ck_holding_quantity", "\"Quantity\" >= 0 AND \"Reserved\" >= 0 AND \"Reserved\" <= \"Quantity\"");
                         });
@@ -1077,11 +1230,74 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("AmorRP.Server.Infrastructure.Persistence.GroupAnnouncementRow", b =>
+                {
+                    b.HasOne("AmorRP.Server.Infrastructure.Persistence.GroupRow", null)
+                        .WithMany()
+                        .HasForeignKey("CommunityId", "GroupId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AmorRP.Server.Infrastructure.Persistence.GroupEventRow", b =>
+                {
+                    b.HasOne("AmorRP.Server.Infrastructure.Persistence.GroupRow", null)
+                        .WithMany()
+                        .HasForeignKey("CommunityId", "GroupId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AmorRP.Server.Infrastructure.Persistence.GroupFavoriteRow", b =>
+                {
+                    b.HasOne("AmorRP.Server.Infrastructure.Persistence.MembershipRow", null)
+                        .WithMany()
+                        .HasForeignKey("CommunityId", "CharacterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AmorRP.Server.Infrastructure.Persistence.GroupRow", null)
+                        .WithMany()
+                        .HasForeignKey("CommunityId", "GroupId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AmorRP.Server.Infrastructure.Persistence.GroupMembershipRow", b =>
+                {
+                    b.HasOne("AmorRP.Server.Infrastructure.Persistence.MembershipRow", null)
+                        .WithMany()
+                        .HasForeignKey("CommunityId", "CharacterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AmorRP.Server.Infrastructure.Persistence.GroupRow", null)
+                        .WithMany()
+                        .HasForeignKey("CommunityId", "GroupId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AmorRP.Server.Infrastructure.Persistence.GroupNoticeRow", b =>
+                {
+                    b.HasOne("AmorRP.Server.Infrastructure.Persistence.GroupRow", null)
+                        .WithMany()
+                        .HasForeignKey("CommunityId", "GroupId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("AmorRP.Server.Infrastructure.Persistence.GroupRow", b =>
                 {
                     b.HasOne("AmorRP.Server.Infrastructure.Persistence.CommunityRow", null)
                         .WithMany()
                         .HasForeignKey("CommunityId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AmorRP.Server.Infrastructure.Persistence.CharacterRow", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerCharacterId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 

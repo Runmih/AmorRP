@@ -44,6 +44,7 @@ public sealed partial class CommunitiesPanel
     {
         members = members.Select(x => x.Character.Id == current.Character.Id ? current : x).ToArray();
         memberDraftEtag = current.Etag;
+        grantCooking = current.Capabilities.Contains("items.cooking.create"); grantCookingDefinitions = current.Capabilities.Contains("items.cooking.define");
         grantCoins = current.Capabilities.Contains("currency.manage");
         grantPotions = current.Capabilities.Contains("items.potion.create");
         grantRemoval = current.Capabilities.Contains("inventory.remove");

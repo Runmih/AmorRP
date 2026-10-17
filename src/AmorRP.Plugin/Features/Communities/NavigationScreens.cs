@@ -28,14 +28,16 @@ public sealed partial class CommunitiesPanel
         if (ImGui.BeginTabItem("Info"))
         {
             Wrapped("Crafting creates RP items for the selected community.");
-            Wrapped("Potions require the Craft Potions permission. Ask the owner or a moderator with Manage Gameplay Permissions for access. Each potion spends your character's weekly potion points.");
+            Wrapped("Alchemy and Cooking turn recipes into usable RP items. Ask the owner or a moderator with Manage Gameplay Permissions for crafting access. Each craft spends your character’s weekly points for that craft.");
             Wrapped("Books, letters and notes are available to all community members within your weekly writing limit. Each book, letter or note counts as one item.");
-            Wrapped("Potion recipes define item descriptions, messages and costs. Editing recipes requires the separate Potion Creation moderation permission.");
+            Wrapped("Alchemy and Cooking recipes define item descriptions, use messages and point costs. Defining recipes requires the corresponding separate moderation permission.");
             ImGui.EndTabItem();
         }
-        if (CanCraftPotions && ImGui.BeginTabItem("Potions")) { DrawQuota("potion_points"); DrawPotionCreation(); ImGui.EndTabItem(); }
-        if (CanDefinePotions && ImGui.BeginTabItem("Potion recipes")) { DrawCatalogEditor(); ImGui.EndTabItem(); }
-        if (ImGui.BeginTabItem("Books")) { DrawQuota("letters"); DrawLetterCreation(); ImGui.EndTabItem(); }
+        if (CanCraftPotions && ImGui.BeginTabItem("Alchemy")) { SetCraftMode(false); DrawQuota("potion_points"); DrawPotionCreation(); ImGui.EndTabItem(); }
+        if (CanDefinePotions && ImGui.BeginTabItem("Alchemy recipes")) { SetCraftMode(false); DrawCatalogEditor(); ImGui.EndTabItem(); }
+        if (CanCraftCooking && ImGui.BeginTabItem("Cooking")) { SetCraftMode(true); DrawQuota("cooking_points"); DrawPotionCreation(); ImGui.EndTabItem(); }
+        if (CanDefineCooking && ImGui.BeginTabItem("Cooking recipes")) { SetCraftMode(true); DrawCatalogEditor(); ImGui.EndTabItem(); }
+        if (ImGui.BeginTabItem("Writing")) { DrawQuota("letters"); DrawLetterCreation(); ImGui.EndTabItem(); }
         ImGui.EndTabBar();
     }
     private void DrawSettings()
@@ -45,6 +47,8 @@ public sealed partial class CommunitiesPanel
         {
             var show = configuration.ShowLauncher;
             if (ImGui.Checkbox("Show quick launcher", ref show)) { configuration.ShowLauncher = show; save(); SetLauncherVisible?.Invoke(show); }
+            var events = configuration.ShowFavoriteEvents;
+            if (ImGui.Checkbox("Show favorite group events", ref events)) { configuration.ShowFavoriteEvents = events; save(); SetFavoriteEventsVisible?.Invoke(events); }
             ImGui.EndTabItem();
         }
         ImGui.EndTabBar();

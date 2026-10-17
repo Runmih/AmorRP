@@ -38,6 +38,7 @@ public sealed partial class CommunitiesPanel
         if (request.Method == "POST" && request.Path == "api/v2/communities")
         {
             name = description = ""; currencyName = "Coins"; symbol = "C";
+            initialCooking = 0;
             initialPoints = serviceLimits?.DefaultPotionPoints ?? 0; initialLetters = serviceLimits?.DefaultLettersPerWeek ?? 5;
             initialAllowancesEdited = false;
             CloseCreateCommunity?.Invoke();

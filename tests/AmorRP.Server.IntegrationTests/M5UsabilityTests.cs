@@ -38,7 +38,7 @@ public sealed partial class FoundationTests
         var cats = await c.GetFromJsonAsync<CategoryPage>($"/api/v2/communities/{g.Id}/categories", TestContext.Current.CancellationToken); var category = cats!.Items.Single(x => x.AllowedTypeIds.Contains("potion")).Id;
         var valid = new DefinitionWrite("potion", "Healing", category, "Modest.", true, new(1, "uses <3"));
         await Command<Definition>(c, HttpMethod.Post, $"/api/v2/communities/{g.Id}/item-definitions", valid);
-        foreach (var (body, field) in new[] { (valid with { Name = "Too long name" }, "Potion name"), (valid with { Description = new string('a', 13) }, "Potion description") })
+        foreach (var (body, field) in new[] { (valid with { Name = "Too long name" }, "Item name"), (valid with { Description = new string('a', 13) }, "Item description") })
         {
             using var request = Request(HttpMethod.Post, $"/api/v2/communities/{g.Id}/item-definitions", body); using var response = await c.SendAsync(request, TestContext.Current.CancellationToken);
             Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode); Assert.Contains(field, await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));

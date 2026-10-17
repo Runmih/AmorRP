@@ -53,7 +53,7 @@ public sealed partial class CommunitiesPanel
         while (rows.Count < requestedCount && pageHoldings.NextCursor != null)
         { var next = await client.GetAsync<HoldingPage>(uri, prefix + "inventory?" + query + "&cursor=" + Uri.EscapeDataString(pageHoldings.NextCursor), token, ct); rows.AddRange(next.Items); pageHoldings = next; }
         pageHoldings = pageHoldings with { Items = rows.ToArray() };
-        var potions = await client.GetAsync<HoldingPage>(uri, prefix + "inventory?typeId=potion&sort=name", token, ct);
+        var potions = await client.GetAsync<HoldingPage>(uri, prefix + "inventory?typeIds=potion,poison,explosive,drug,medicine,meal,drink,dessert&sort=name", token, ct);
         var allowance = await client.GetAsync<Quotas>(uri, prefix + "quotas", token, ct);
         HoldingDetails? selectedDetails = null;
         if (requestedSelection.HasValue)
@@ -67,12 +67,12 @@ public sealed partial class CommunitiesPanel
     {
         if (state == null) { ClearInventoryViews(); return; }
         var filterId = filterCategory > 0 && filterCategory <= categories.Length ? (Guid?)categories[filterCategory - 1].Id : null;
-        var currentRecipes = definitions.Where(x => !x.Retired && x.Enabled).ToArray();
+        var currentRecipes = definitions.Where(x => !x.Retired && x.Enabled && RecipeTypes.Contains(x.TypeId)).ToArray();
         var recipeId = recipeChoice < currentRecipes.Length ? (Guid?)currentRecipes[recipeChoice].Id : null;
         categories = state.Categories; definitions = state.Definitions; holdings = state.Holdings.Items; holdingCursor = state.Holdings.NextCursor;
         compact = state.Compact.Items; compactCursor = state.Compact.NextCursor; quotas = state.Quotas;
         filterCategory = filterId.HasValue ? Array.FindIndex(categories, x => x.Id == filterId) + 1 : 0;
-        if (recipeId.HasValue) recipeChoice = Math.Max(0, Array.FindIndex(definitions.Where(x => !x.Retired && x.Enabled).ToArray(), x => x.Id == recipeId));
+        if (recipeId.HasValue) recipeChoice = Math.Max(0, Array.FindIndex(definitions.Where(x => !x.Retired && x.Enabled && RecipeTypes.Contains(x.TypeId)).ToArray(), x => x.Id == recipeId));
         if (state.Details?.Holding.Id == holdingSelection) details = state.Details;
         else if (holdingSelection.HasValue && !holdings.Any(x => x.Id == holdingSelection)) { details = null; holdingSelection = null; }
 
@@ -92,12 +92,12 @@ public sealed partial class CommunitiesPanel
     {
         var quota = quotas?.Items.FirstOrDefault(x => x.Kind == kind);
         if (quota == null) return;
-        Wrapped(kind == "potion_points" ? $"Weekly potion points: {quota.Remaining} of {quota.Limit} remaining" : $"You can create {quota.Remaining} more written items this week.");
+        Wrapped(kind == "potion_points" ? $"Weekly Alchemy points: {quota.Remaining} of {quota.Limit} remaining" : kind == "cooking_points" ? $"Weekly Cooking points: {quota.Remaining} of {quota.Limit} remaining" : $"You can create {quota.Remaining} more written items this week.");
         Wrapped($"Next reset: {quota.ResetAt.LocalDateTime:g} (your local time)");
     }
     // One type registry feeds both the fixed category tabs and All's dependent
     // type choices. Add future types to their family here.
-    private static readonly (string Id, int Tab)[] inventoryTypes = [("potion", 1), ("book", 2), ("letter", 2), ("note", 2)];
+    private static readonly (string Id, int Tab)[] inventoryTypes = AmorRP.Core.Items.CraftingTypes.Consumables.Select(x => (Id: x, Tab: 1)).Concat(AmorRP.Core.Items.CraftingTypes.Writing.Select(x => (Id: x, Tab: 2))).ToArray();
     private string[] InventoryTypes()
     {
         var allowed = inventoryTab == 0 && filterCategory > 0 && filterCategory <= categories.Length ? categories[filterCategory - 1].AllowedTypeIds : null;
@@ -157,7 +157,7 @@ public sealed partial class CommunitiesPanel
     {
         var cursor = small ? compactCursor : holdingCursor;
         if (cursor == null || !ActionButton(small ? "More consumables" : "More inventory items", mutation: false)) return;
-        var path = $"api/v2/communities/{community!.Id}/inventory?" + (small ? "typeId=potion&sort=name" : InventoryQuery()) + "&cursor=" + Uri.EscapeDataString(cursor);
+        var path = $"api/v2/communities/{community!.Id}/inventory?" + (small ? "typeIds=potion,poison,explosive,drug,medicine,meal,drink,dessert&sort=name" : InventoryQuery()) + "&cursor=" + Uri.EscapeDataString(cursor);
         var token = session!.AccessToken; var query = InventoryQuery();
         Start(async ct => { var page = await client.GetAsync<HoldingPage>(origin!, path, token, ct); return () => {
             if (!small && query != InventoryQuery()) return;
@@ -245,7 +245,7 @@ public sealed partial class CommunitiesPanel
         var submitted = !recovering && !response.Replayed && CanPost(result.Message, destination);
         if (submitted) lastPost = DateTimeOffset.UtcNow;
         actionResult = submitted && GameChatSender.Send(result.Message, destination, ChatLimit)
-            ? "Potion consumed. Message submitted to the chosen game channel; delivery is not confirmed."
-            : "Potion consumed. Chat was not submitted by this response. Review the outcome before a manual resend.";
+            ? "Item consumed. Message submitted to the chosen game channel; delivery is not confirmed."
+            : "Item consumed. Chat was not submitted by this response. Review the outcome before a manual resend.";
     }
 }

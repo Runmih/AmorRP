@@ -89,7 +89,7 @@ public sealed partial class CommunitiesPanel
     }
     private void ApplyHomeSuccess(CommandRequest request, string json)
     {
-        if (request.Method == "POST" && request.Path.EndsWith("/announcements", StringComparison.Ordinal))
+        if (request.Method == "POST" && request.Path == $"api/v2/communities/{community?.Id}/announcements")
         {
             var submitted = JsonSerializer.Deserialize<AnnouncementCreate>(request.Json!, FoundationClient.Json)!;
             if (announcementTitle == submitted.Title && announcementBody == submitted.Body) announcementTitle = announcementBody = "";

@@ -36,7 +36,7 @@ public sealed partial class AmorDbContext
         m.Entity<HoldingRow>(e => {
             e.ToTable("holdings", t => {
                 t.HasCheckConstraint("ck_holding_quantity", "\"Quantity\" >= 0 AND \"Reserved\" >= 0 AND \"Reserved\" <= \"Quantity\"");
-                t.HasCheckConstraint("ck_holding_payload", "(\"TypeId\" = 'potion' AND \"DefinitionId\" IS NOT NULL AND \"DefinitionRevision\" IS NOT NULL AND \"LetterId\" IS NULL) OR (\"TypeId\" IN ('letter','book','note') AND \"LetterId\" IS NOT NULL AND \"DefinitionId\" IS NULL AND \"DefinitionRevision\" IS NULL AND \"Quantity\" <= 1)");
+                t.HasCheckConstraint("ck_holding_payload", "(\"TypeId\" IN ('potion','poison','explosive','drug','medicine','meal','drink','dessert') AND \"DefinitionId\" IS NOT NULL AND \"DefinitionRevision\" IS NOT NULL AND \"LetterId\" IS NULL) OR (\"TypeId\" IN ('letter','book','note') AND \"LetterId\" IS NOT NULL AND \"DefinitionId\" IS NULL AND \"DefinitionRevision\" IS NULL AND \"Quantity\" <= 1)");
             });
             e.HasKey(x => new { x.CommunityId, x.Id });
             e.HasIndex(x => new { x.CommunityId, x.CharacterId, x.DefinitionId, x.DefinitionRevision }).IsUnique();

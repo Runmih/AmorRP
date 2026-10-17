@@ -37,6 +37,7 @@ public sealed partial class CommunityService(AmorDbContext db, SessionAccess ses
     {
         ApiFault.Text(body.Name, 80); ValidateDescription(body.Description); ApiFault.Text(body.CurrencyName, 80); ApiFault.Text(body.CurrencySymbol, 16, false);
         ValidatePolicy(body.WeeklyPotionPoints, body.WeeklyLetters);
+        ApiFault.Require(body.WeeklyCookingPoints >= 0 && body.WeeklyCookingPoints <= policy.Value.MaxWeeklyPotionPoints, 422, "invalid_policy", "Cooking points exceed the supported range.");
         var session = await sessions.GetAsync(http, ct);
         await using var tx = await db.Database.BeginTransactionAsync(ct);
         await CommandStore.LockAsync(db, ["character:" + session.CharacterId], ct);
@@ -54,6 +55,7 @@ public sealed partial class CommunityService(AmorDbContext db, SessionAccess ses
             CreatedByCharacterId = session.CharacterId,
             CurrencyName = body.CurrencyName.Trim(), CurrencySymbol = body.CurrencySymbol, PolicyPeriod = CommunityAccess.Period(time.GetUtcNow()),
             CurrentPotionPoints = body.WeeklyPotionPoints, NextPotionPoints = body.WeeklyPotionPoints,
+            CurrentCookingPoints = body.WeeklyCookingPoints, NextCookingPoints = body.WeeklyCookingPoints,
             CurrentLetters = body.WeeklyLetters, NextLetters = body.WeeklyLetters };
         var member = new MembershipRow { CommunityId = community.Id, CharacterId = session.CharacterId };
         db.Communities.Add(community); AmorRP.Server.Features.Catalog.CatalogService.Seed(db, community.Id); db.Memberships.Add(member);
@@ -127,7 +129,8 @@ public sealed partial class CommunityService(AmorDbContext db, SessionAccess ses
                 payload = await access.ViewAsync(community, member, time.GetUtcNow(), ct); http.Response.Headers.ETag = CommandStore.ETag("community", community.Id, community.Version); break;
             case PolicyEdit edit:
                 CommandStore.Match(http, CommandStore.ETag("policy", community.Id, community.PolicyVersion)); ValidatePolicy(edit.PotionPoints, edit.Letters);
-                CommunityAccess.PromotePolicy(community, time.GetUtcNow()); community.NextPotionPoints = edit.PotionPoints; community.NextLetters = edit.Letters; community.PolicyVersion++;
+                ApiFault.Require(edit.CookingPoints >= 0 && edit.CookingPoints <= policy.Value.MaxWeeklyPotionPoints, 422, "invalid_policy", "Cooking points exceed the supported range.");
+                CommunityAccess.PromotePolicy(community, time.GetUtcNow()); community.NextCookingPoints = edit.CookingPoints; community.NextPotionPoints = edit.PotionPoints; community.NextLetters = edit.Letters; community.PolicyVersion++;
                 payload = CommunityAccess.Policies(community, time.GetUtcNow()); http.Response.Headers.ETag = CommandStore.ETag("policy", community.Id, community.PolicyVersion); break;
             case CurrencyEdit edit:
                 ApiFault.Require(community.OwnerCharacterId == session.CharacterId || edit.Symbol == community.CurrencySymbol, 403, "owner_required", "General Moderation permits changing the currency name only.");

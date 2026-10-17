@@ -20,6 +20,7 @@ public sealed partial class CommunitiesPanel
     private string requestedGroupLogo = "";
     private readonly CommunityImageCache groupLogos = new(textures, "group logo");
     private bool CanCreateGroups => Owner || community?.MyCapabilities.Contains("groups.create") == true;
+    private bool OwnSelectedGroup => SelectedGroup?.OwnerCharacterId == session?.Character.Id;
     private bool CanManageGroups => Owner || community?.MyCapabilities.Contains("groups.manage") == true;
     private GroupProfile? SelectedGroup => communityGroups.FirstOrDefault(x => x.Id == selectedGroupId);
     private async Task<GroupProfile[]> LoadCommunityGroupsAsync(Uri uri, string token, Guid communityId, CancellationToken ct)
@@ -41,14 +42,16 @@ public sealed partial class CommunitiesPanel
     private void ResetGroupDraft(GroupProfile row)
     {
         groupNameDraft = savedGroupName = row.Name; groupDescriptionDraft = savedGroupDescription = row.Description; groupDraftEtag = row.Etag;
+        groupJoinMode = Array.IndexOf(new[] { "open", "closed", "password" }, row.JoinMode); groupPasswordDraft = "";
     }
     private void SelectGroup(GroupProfile row)
     {
-        selectedGroupId = row.Id; creatingGroup = false; ResetGroupDraft(row);
+        groupPrivate = null; privateRequestedFor = null; selectedGroupId = row.Id; creatingGroup = false; noticeDraftFor = null; NewGroupEvent(); groupAnnouncementTitle = groupAnnouncementMessage = ""; ResetGroupDraft(row);
         groupLogos.Clear(); requestedGroupLogo = "";
     }
     private void ClearNestedGroups()
     {
+        groupPrivate = null; privateRequestedFor = null; hub = new([], []); favoriteEvents = new([]); groupJoinPassword = groupPasswordDraft = ""; groupJoinMode = 0; noticeDraftFor = null;
         communityGroups = []; selectedGroupId = null; creatingGroup = false;
         groupNameDraft = groupDescriptionDraft = savedGroupName = savedGroupDescription = requestedGroupLogo = "";
         groupDraftEtag = null; groupLogos.Clear();
@@ -60,6 +63,7 @@ public sealed partial class CommunitiesPanel
         Wrapped("Groups within " + community.Name);
         if (CanCreateGroups && ImGui.Button("New group"))
         {
+            groupJoinMode = 0; groupPasswordDraft = "";
             creatingGroup = true; selectedGroupId = null; groupNameDraft = groupDescriptionDraft = savedGroupName = savedGroupDescription = ""; groupDraftEtag = null;
             groupLogos.Clear(); requestedGroupLogo = "";
         }
@@ -76,11 +80,13 @@ public sealed partial class CommunitiesPanel
         if (creatingGroup || current != null)
         {
             if (current != null) DrawNestedGroupLogo(current);
-            if (creatingGroup ? CanCreateGroups : CanManageGroups)
+            if (creatingGroup ? CanCreateGroups : OwnSelectedGroup)
             {
                 FieldLabel("Group name"); LimitedInput("##NestedGroupName", ref groupNameDraft, 80, countCodeUnits: true);
                 FieldLabel("Description"); WrappedInput("##NestedGroupDescription", ref groupDescriptionDraft, 8192, new(-1, ImGui.GetTextLineHeightWithSpacing() * 5), maximumCharacters: 300);
                 ImGui.TextDisabled($"{PlainText.Characters(groupDescriptionDraft)}/300");
+                FieldLabel("Joining"); ImGui.Combo("##GroupJoinMode", ref groupJoinMode, new[] { "Open", "Closed", "Password protected" }, 3);
+                if (groupJoinMode == 2) { FieldLabel(current?.JoinMode == "password" ? "New password (leave blank to keep current)" : "Password"); ImGui.InputText("##GroupPassword", ref groupPasswordDraft, 65, ImGuiInputTextFlags.Password); }
                 var error = PlainText.Error(groupNameDraft, 80, required: true) ?? PlainText.Error(groupDescriptionDraft, 300, multiline: true, required: false);
                 var conflict = current != null && groupDraftEtag != current.Etag;
                 if (error != null) Wrapped(error);
@@ -89,17 +95,13 @@ public sealed partial class CommunitiesPanel
                     Wrapped("This group changed elsewhere. Reload its profile before saving.");
                     if (ImGui.Button("Reload group")) ResetGroupDraft(current!);
                 }
-                var dirty = creatingGroup || current?.Name != groupNameDraft || current?.Description != groupDescriptionDraft;
+                var dirty = creatingGroup || current?.Name != groupNameDraft || current?.Description != groupDescriptionDraft || current?.JoinMode != new[] { "open", "closed", "password" }[groupJoinMode] || groupPasswordDraft.Length > 0;
                 ImGui.BeginDisabled(error != null || conflict || !dirty);
                 if (ActionButton(creatingGroup ? "Create group" : "Save group"))
-                    Mutate(creatingGroup ? "POST" : "PATCH", $"api/v2/communities/{community.Id}/groups" + (creatingGroup ? "" : "/" + current!.Id), new GroupWrite(groupNameDraft, groupDescriptionDraft), groupDraftEtag);
+                    Mutate(creatingGroup ? "POST" : "PATCH", $"api/v2/communities/{community.Id}/groups" + (creatingGroup ? "" : "/" + current!.Id), new GroupWrite(groupNameDraft, groupDescriptionDraft, new[] { "open", "closed", "password" }[groupJoinMode], groupPasswordDraft.Length > 0 ? groupPasswordDraft : null), groupDraftEtag);
                 ImGui.EndDisabled();
                 if (creatingGroup) { if (ImGui.Button("Cancel")) { creatingGroup = false; if (communityGroups.FirstOrDefault() is { } first) SelectGroup(first); } }
-                else if (current != null)
-                {
-                    ImGui.Separator();
-                    if (ShiftMemberButton("Delete group")) Mutate("DELETE", $"api/v2/communities/{community.Id}/groups/{current.Id}", null, current.Etag);
-                }
+
             }
             else
             {
@@ -107,7 +109,18 @@ public sealed partial class CommunitiesPanel
                 Wrapped(current.Description.Length == 0 ? "No group description yet." : current.Description);
             }
         }
-        else Wrapped(CanCreateGroups ? "Select a group, or choose New group to create one." : "Select a group to read its profile.");
+        if (current != null)
+        {
+            ImGui.Separator();
+            if (ActionButton(current.IsFavorite ? "Unfavorite group" : "Favorite group")) Mutate(current.IsFavorite ? "DELETE" : "PUT", GroupPath(current) + "/favorite", null);
+            DrawGroupSections(current);
+            if (OwnSelectedGroup || CanManageGroups)
+            {
+                ImGui.Separator();
+                if (ShiftMemberButton("Delete group")) Mutate("DELETE", GroupPath(current), null, current.Etag);
+            }
+        }
+        else if (!creatingGroup) Wrapped(CanCreateGroups ? "Select a group, or choose New group to create one." : "Select a group to read its profile.");
         ImGui.PopItemWidth(); ImGui.EndChild(); ImGui.EndTable();
     }
     private void DrawNestedGroupLogo(GroupProfile current)
@@ -127,11 +140,11 @@ public sealed partial class CommunitiesPanel
             }
         }
         var size = new Vector2(ImGui.GetFontSize() * 7); var position = ImGui.GetCursorScreenPos();
-        ImGui.BeginDisabled(!CanManageGroups || WriteBlocked);
-        var clicked = groupLogos.HasImage ? ImGui.InvisibleButton("##NestedGroupLogo", size) : ImGui.Button(CanManageGroups ? "Add logo" : "Group logo", size);
+        ImGui.BeginDisabled(!OwnSelectedGroup || WriteBlocked);
+        var clicked = groupLogos.HasImage ? ImGui.InvisibleButton("##NestedGroupLogo", size) : ImGui.Button(OwnSelectedGroup ? "Add logo" : "Group logo", size);
         if (groupLogos.HasImage) groupLogos.DrawInBox(position, size);
         ImGui.EndDisabled();
-        if (CanManageGroups && ImGui.BeginPopupContextItem("NestedGroupLogoActions"))
+        if (OwnSelectedGroup && ImGui.BeginPopupContextItem("NestedGroupLogoActions"))
         {
             ImGui.BeginDisabled(WriteBlocked || current.LogoAssetId == null);
             if (ImGui.MenuItem("Remove logo")) Mutate("DELETE", $"api/v2/communities/{communityId}/groups/{current.Id}/logo", null, ETag("group-logo", current.Id, current.LogoVersion));
@@ -141,23 +154,30 @@ public sealed partial class CommunitiesPanel
         if (!clicked) return;
         var actor = session.Character.Id; var selected = current.Id; var etag = ETag("group-logo", current.Id, current.LogoVersion);
         files.OpenFileDialog("Group logo", ".png,.jpg,.jpeg,.webp", (ok, path) => {
-            if (!ok || community?.Id != communityId || session?.Character.Id != actor || selectedGroupId != selected || !CanManageGroups || WriteBlocked) return;
+            if (!ok || community?.Id != communityId || session?.Character.Id != actor || selectedGroupId != selected || !OwnSelectedGroup || WriteBlocked) return;
             Start(async ct => {
                 await using var file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 8192, useAsync: true);
                 var maximum = serviceLimits?.MaxCommunityLogoBytes ?? 2097152;
                 if (file.Length <= 0 || file.Length > maximum) throw new InvalidOperationException("Choose a PNG, JPG or WebP smaller than 2 MiB.");
                 var bytes = new byte[(int)file.Length]; await file.ReadExactlyAsync(bytes, ct);
-                return () => { if (community?.Id == communityId && selectedGroupId == selected && CanManageGroups) QueueUpload($"api/v2/communities/{communityId}/groups/{selected}/logo", etag, bytes); };
+                return () => { if (community?.Id == communityId && selectedGroupId == selected && OwnSelectedGroup) QueueUpload($"api/v2/communities/{communityId}/groups/{selected}/logo", etag, bytes); };
             }, "Reading group logo…");
         });
     }
     private void ApplyNestedGroupSuccess(CommandRequest request, string json)
     {
         if (!request.Path.Contains("/groups", StringComparison.Ordinal)) return;
+        var tail = request.Path.Split('/');
+        if (tail.Length > 6 && !request.Path.EndsWith("/logo", StringComparison.Ordinal))
+        { groupPrivate = null; privateRequestedFor = null; groupJoinPassword = "";
+            if (request.Path.EndsWith("/notice", StringComparison.Ordinal)) noticeDraftFor = null;
+            if (request.Path.Contains("/events", StringComparison.Ordinal)) NewGroupEvent();
+            if (request.Path.EndsWith("/announcements", StringComparison.Ordinal)) groupAnnouncementTitle = groupAnnouncementMessage = "";
+            refreshNeeded = true; return; }
         var row = JsonSerializer.Deserialize<CommandResult<GroupProfile>>(json, FoundationClient.Json)!.Result;
         var deleted = request.Method == "DELETE" && !request.Path.EndsWith("/logo", StringComparison.Ordinal);
         communityGroups = communityGroups.Where(x => x.Id != row.Id).Concat(deleted ? [] : new[] { row }).ToArray();
         if (deleted) { selectedGroupId = null; if (communityGroups.FirstOrDefault() is { } next) SelectGroup(next); }
-        else { selectedGroupId = row.Id; creatingGroup = false; if (request.Path.EndsWith("/logo", StringComparison.Ordinal)) groupDraftEtag = row.Etag; else ResetGroupDraft(row); }
+        else { groupPrivate = null; privateRequestedFor = null; selectedGroupId = row.Id; creatingGroup = false; if (request.Path.EndsWith("/logo", StringComparison.Ordinal)) groupDraftEtag = row.Etag; else ResetGroupDraft(row); }
     }
 }

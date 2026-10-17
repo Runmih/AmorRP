@@ -22,9 +22,12 @@ public sealed partial class AmorDbContext(DbContextOptions<AmorDbContext> option
         modelBuilder.Entity<GroupRow>(e => {
             e.ToTable("groups"); e.HasKey(x => new { x.CommunityId, x.Id });
             e.Property(x => x.Name).HasMaxLength(80); e.Property(x => x.Description).HasColumnType("text");
+            e.HasIndex(x => new { x.OwnerCharacterId, x.Deleted });
+            e.HasOne<CharacterRow>().WithMany().HasForeignKey(x => x.OwnerCharacterId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne<CommunityRow>().WithMany().HasForeignKey(x => x.CommunityId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne<MediaAssetRow>().WithMany().HasForeignKey(x => new { x.CommunityId, x.LogoAssetId }).OnDelete(DeleteBehavior.Restrict);
         });
+        ConfigureGroupActivity(modelBuilder);
         ConfigureAnnouncements(modelBuilder);
         ConfigureInventory(modelBuilder);
         ConfigureTrading(modelBuilder);

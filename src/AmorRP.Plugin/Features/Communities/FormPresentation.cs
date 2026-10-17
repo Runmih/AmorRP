@@ -38,5 +38,5 @@ public sealed partial class CommunitiesPanel
         ImGui.TextWrapped(error ?? hint);
         ImGui.PopStyleColor(); ImGui.EndChild();
     }
-    private static string TypeName(string type) => type switch { "potion" => "Potion", "letter" => "Letter", "book" => "Book", "note" => "Note", _ => type };
+    private static string TypeName(string type) => type switch { "potion" => "Potion", "poison" => "Poison", "explosive" => "Explosive", "drug" => "Drugs", "medicine" => "Medicine", "meal" => "Meal", "drink" => "Drink", "dessert" => "Dessert", "letter" => "Letter", "book" => "Book", "note" => "Note", _ => type };
 }

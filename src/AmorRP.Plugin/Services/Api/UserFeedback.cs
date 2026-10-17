@@ -5,6 +5,12 @@ public static class UserFeedback
 {
     public static string Error(HttpStatusCode status, string code, string serverMessage) => code switch
     {
+        "group_owner_required" => "Only this group’s owner can edit its contents.",
+        "group_membership_required" => "Join this group to read its members and announcements.",
+        "group_closed" => "This group is closed to new members.",
+        "group_password_invalid" => "That group password is incorrect. Check it and try again.",
+        "owned_groups_limit" => "You already own 3 groups. Delete one before creating another.",
+        "invalid_event_range" => "Check the event dates and Server Time. The end must be after the start.",
         "authentication_required" or "refresh_reused" or "refresh_superseded" => "Your login has expired. Sign in again to continue.",
         "capability_required" or "owner_required" => "You do not have permission for this action. Ask your community owner for access.",
         "membership_inactive" or "membership_blocked" => "You no longer have access to this community. Contact its owner if you need help.",
@@ -46,6 +52,12 @@ public static class UserFeedback
         var p = request.Path;
         if (p.Contains("/groups", StringComparison.Ordinal))
         {
+            if (p.EndsWith("/join", StringComparison.Ordinal)) return "Joined group.";
+            if (p.EndsWith("/membership", StringComparison.Ordinal)) return "Left group.";
+            if (p.EndsWith("/favorite", StringComparison.Ordinal)) return request.Method == "DELETE" ? "Group removed from favorites." : "Group added to favorites.";
+            if (p.EndsWith("/notice", StringComparison.Ordinal)) return request.Method == "DELETE" ? "Notice removed." : "Notice published.";
+            if (p.EndsWith("/announcements", StringComparison.Ordinal)) return "Group announcement published.";
+            if (p.Contains("/events", StringComparison.Ordinal)) return request.Method == "DELETE" ? "Event cancelled." : "Event saved.";
             if (p.EndsWith("/logo", StringComparison.Ordinal)) return request.Method == "DELETE" ? "Group logo removed." : "Group logo updated.";
             return request.Method == "DELETE" ? "Group deleted." : request.Method == "POST" ? "Group created." : "Group profile saved.";
         }

@@ -35,7 +35,8 @@ public sealed partial class FoundationTests
         foreach (var category in categories) await LegacyInsert(db, category, ct); db.ChangeTracker.Clear();
         await db.Database.MigrateAsync(ct);
         var upgraded = await db.Categories.ToDictionaryAsync(x => x.Id, ct);
-        Assert.Equal(categories.Length, upgraded.Count);
+        Assert.Equal(categories.Length + 2, upgraded.Count);
+        Assert.Single(upgraded.Values, x => x.Name == "Alchemy"); Assert.Single(upgraded.Values, x => x.Name == "Cooking");
         foreach (var before in categories)
         {
             var after = upgraded[before.Id];

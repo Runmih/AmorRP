@@ -6507,7 +6507,7 @@ paths:
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
-      x-authorization-policy: Community owner or groups.manage
+      x-authorization-policy: Group owner only
       x-implementation-status: implemented
       requestBody:
         required: true
@@ -6571,7 +6571,7 @@ paths:
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
-      x-authorization-policy: Community owner or groups.manage
+      x-authorization-policy: Group owner or community Manage Groups (deletion only)
       x-implementation-status: implemented
   /api/v2/communities/{communityId}/groups/{groupId}/logo:
     get:
@@ -6680,7 +6680,7 @@ paths:
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
-      x-authorization-policy: Community owner or groups.manage
+      x-authorization-policy: Group owner only
       x-implementation-status: implemented
       requestBody:
         required: true
@@ -6750,8 +6750,759 @@ paths:
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
-      x-authorization-policy: Community owner or groups.manage
+      x-authorization-policy: Group owner only
       x-implementation-status: implemented
+  /api/v2/communities/{communityId}/group-hub:
+    get:
+      operationId: readGroupHub
+      tags:
+      - Community Groups
+      summary: readGroupHub
+      security:
+      - Session: []
+      parameters:
+      - name: communityId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupHub'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Active community member
+      x-implementation-status: implemented
+  /api/v2/me/favorite-group-events:
+    get:
+      operationId: favoriteGroupEvents
+      tags:
+      - Community Groups
+      summary: favoriteGroupEvents
+      security:
+      - Session: []
+      parameters: []
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FavoriteEvents'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Current verified session; active community memberships
+      x-implementation-status: implemented
+  /api/v2/communities/{communityId}/groups/{groupId}/private:
+    get:
+      operationId: readPrivateGroup
+      tags:
+      - Community Groups
+      summary: readPrivateGroup
+      security:
+      - Session: []
+      parameters:
+      - name: communityId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: groupId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupPrivate'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Active community and group member; no moderator bypass
+      x-implementation-status: implemented
+  /api/v2/communities/{communityId}/groups/{groupId}/join:
+    post:
+      operationId: joinGroup
+      tags:
+      - Community Groups
+      summary: joinGroup
+      security:
+      - Session: []
+      parameters:
+      - name: communityId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: groupId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Receipt'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Active community member; open group or correct password
+      x-implementation-status: implemented
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GroupJoin'
+  /api/v2/communities/{communityId}/groups/{groupId}/membership:
+    delete:
+      operationId: leaveGroup
+      tags:
+      - Community Groups
+      summary: leaveGroup
+      security:
+      - Session: []
+      parameters:
+      - name: communityId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: groupId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Receipt'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Current group member; group owner cannot leave
+      x-implementation-status: implemented
+  /api/v2/communities/{communityId}/groups/{groupId}/favorite:
+    put:
+      operationId: favoriteGroup
+      tags:
+      - Community Groups
+      summary: favoriteGroup
+      security:
+      - Session: []
+      parameters:
+      - name: communityId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: groupId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Receipt'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Active community member
+      x-implementation-status: implemented
+    delete:
+      operationId: unfavoriteGroup
+      tags:
+      - Community Groups
+      summary: unfavoriteGroup
+      security:
+      - Session: []
+      parameters:
+      - name: communityId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: groupId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Receipt'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Active community member
+      x-implementation-status: implemented
+  /api/v2/communities/{communityId}/groups/{groupId}/notice:
+    put:
+      operationId: saveGroupNotice
+      tags:
+      - Community Groups
+      summary: saveGroupNotice
+      security:
+      - Session: []
+      parameters:
+      - name: communityId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: groupId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: If-Match
+        in: header
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Receipt'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Group owner only
+      x-implementation-status: implemented
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NoticeWrite'
+    delete:
+      operationId: removeGroupNotice
+      tags:
+      - Community Groups
+      summary: removeGroupNotice
+      security:
+      - Session: []
+      parameters:
+      - name: communityId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: groupId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: If-Match
+        in: header
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Receipt'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Group owner only
+      x-implementation-status: implemented
+  /api/v2/communities/{communityId}/groups/{groupId}/events:
+    post:
+      operationId: createGroupEvent
+      tags:
+      - Community Groups
+      summary: createGroupEvent
+      security:
+      - Session: []
+      parameters:
+      - name: communityId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: groupId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Receipt'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Group owner only
+      x-implementation-status: implemented
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventWrite'
+  /api/v2/communities/{communityId}/groups/{groupId}/events/{eventId}:
+    put:
+      operationId: editGroupEvent
+      tags:
+      - Community Groups
+      summary: editGroupEvent
+      security:
+      - Session: []
+      parameters:
+      - name: communityId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: groupId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: eventId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: If-Match
+        in: header
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Receipt'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Group owner only
+      x-implementation-status: implemented
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventWrite'
+    delete:
+      operationId: cancelGroupEvent
+      tags:
+      - Community Groups
+      summary: cancelGroupEvent
+      security:
+      - Session: []
+      parameters:
+      - name: communityId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: groupId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: eventId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: If-Match
+        in: header
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Receipt'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Group owner only
+      x-implementation-status: implemented
+  /api/v2/communities/{communityId}/groups/{groupId}/announcements:
+    post:
+      operationId: postGroupAnnouncement
+      tags:
+      - Community Groups
+      summary: postGroupAnnouncement
+      security:
+      - Session: []
+      parameters:
+      - name: communityId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: groupId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Receipt'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Group owner only
+      x-implementation-status: implemented
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GroupAnnouncementWrite'
 components:
   securitySchemes:
     Session:
@@ -7316,6 +8067,10 @@ components:
           format: int32
           minimum: 0
           default: 5
+        weeklyCookingPoints:
+          type: integer
+          minimum: 0
+          maximum: 1000000
       required:
       - name
       - description
@@ -7367,6 +8122,10 @@ components:
           type: integer
           format: int32
           minimum: 0
+        cookingPoints:
+          type: integer
+          minimum: 0
+          maximum: 1000000
       required:
       - potionPoints
       - letters
@@ -7401,6 +8160,10 @@ components:
           type: integer
           format: int32
           minimum: 0
+        cookingPoints:
+          type: integer
+          minimum: 0
+          maximum: 1000000
       required:
       - potionPoints
       - letters
@@ -7603,6 +8366,15 @@ components:
         communityId: *id002
         typeId:
           type: string
+          enum:
+          - potion
+          - poison
+          - explosive
+          - drug
+          - medicine
+          - meal
+          - drink
+          - dessert
         revision: *id012
         typeDataVersion: *id012
         name: *id011
@@ -7646,7 +8418,15 @@ components:
       properties:
         typeId:
           type: string
-          description: Only potion supported for definitions in 1.0.
+          enum:
+          - potion
+          - poison
+          - explosive
+          - drug
+          - medicine
+          - meal
+          - drink
+          - dessert
         name: *id011
         categoryId: *id002
         description:
@@ -7671,6 +8451,18 @@ components:
         characterId: *id002
         typeId:
           type: string
+          enum:
+          - potion
+          - poison
+          - explosive
+          - drug
+          - medicine
+          - meal
+          - drink
+          - dessert
+          - book
+          - letter
+          - note
         name: *id011
         categoryId: *id002
         quantity:
@@ -7764,7 +8556,7 @@ components:
       properties:
         kind:
           type: string
-          description: potion_points or letters; extensible identifier.
+          description: potion_points (Alchemy), cooking_points, or letters (Writing); extensible identifier.
         periodStart: *id013
         resetAt: *id013
         limit:
@@ -9054,6 +9846,19 @@ components:
           type: integer
         etag:
           type: string
+        joinMode:
+          type: string
+          enum:
+          - open
+          - closed
+          - password
+        ownerCharacterId: &id019
+          type: string
+          format: uuid
+        isMember:
+          type: boolean
+        isFavorite:
+          type: boolean
       required:
       - id
       - communityId
@@ -9074,6 +9879,17 @@ components:
         description:
           type: string
           maxLength: 300
+        joinMode:
+          type: string
+          enum:
+          - open
+          - closed
+          - password
+        password:
+          type: string
+          maxLength: 64
+          nullable: true
+          writeOnly: true
       required:
       - name
       - description
@@ -9100,5 +9916,192 @@ components:
       required:
       - operationId
       - result
+    GroupJoin:
+      type: object
+      properties:
+        password:
+          type: string
+          maxLength: 64
+          nullable: true
+          writeOnly: true
+    NoticeWrite:
+      type: object
+      required:
+      - title
+      - message
+      - reward
+      properties:
+        title:
+          type: string
+          maxLength: 40
+        message:
+          type: string
+          maxLength: 300
+        reward:
+          type: string
+          maxLength: 100
+    GroupNotice:
+      type: object
+      required:
+      - groupId
+      - groupName
+      - title
+      - message
+      - reward
+      - version
+      properties:
+        groupId: *id019
+        groupName:
+          type: string
+          maxLength: 80
+        title:
+          type: string
+          maxLength: 40
+        message:
+          type: string
+          maxLength: 300
+        reward:
+          type: string
+          maxLength: 100
+        version:
+          type: integer
+    EventWrite:
+      type: object
+      required:
+      - title
+      - description
+      - location
+      - startsAt
+      - endsAt
+      properties:
+        title: &id020
+          type: string
+          maxLength: 40
+        description: &id021
+          type: string
+          maxLength: 100
+        location: &id022
+          type: string
+          maxLength: 100
+        startsAt: &id023
+          type: string
+          format: date-time
+        endsAt: &id024
+          type: string
+          format: date-time
+    GroupEvent:
+      type: object
+      required:
+      - id
+      - communityId
+      - groupId
+      - groupName
+      - title
+      - description
+      - location
+      - startsAt
+      - endsAt
+      - version
+      properties:
+        id: *id019
+        communityId: *id019
+        groupId: *id019
+        groupName:
+          type: string
+          maxLength: 80
+        title: *id020
+        description: *id021
+        location: *id022
+        startsAt: *id023
+        endsAt: *id024
+        version:
+          type: integer
+    GroupAnnouncementWrite:
+      type: object
+      required:
+      - title
+      - message
+      properties:
+        title:
+          type: string
+          maxLength: 120
+        message:
+          type: string
+          maxLength: 5000
+    GroupAnnouncement:
+      type: object
+      required:
+      - id
+      - title
+      - message
+      - publishedAt
+      properties:
+        id: *id019
+        title:
+          type: string
+          maxLength: 120
+        message:
+          type: string
+          maxLength: 5000
+        publishedAt:
+          type: string
+          format: date-time
+    GroupMember:
+      type: object
+      required:
+      - characterId
+      - name
+      - world
+      - isOwner
+      properties:
+        characterId: *id019
+        name:
+          type: string
+          maxLength: 80
+        world:
+          type: string
+          maxLength: 80
+        isOwner:
+          type: boolean
+    GroupPrivate:
+      type: object
+      required:
+      - members
+      - announcements
+      properties:
+        members:
+          type: array
+          items:
+            $ref: '#/components/schemas/GroupMember'
+        announcements:
+          type: array
+          items:
+            $ref: '#/components/schemas/GroupAnnouncement'
+        nextCursor:
+          type: string
+          nullable: true
+    GroupHub:
+      type: object
+      required:
+      - notices
+      - events
+      properties:
+        notices:
+          type: array
+          items:
+            $ref: '#/components/schemas/GroupNotice'
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/GroupEvent'
+    FavoriteEvents:
+      type: object
+      required:
+      - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/GroupEvent'
 x-status: planned
 x-defaults-reviewed: '2026-10-06'

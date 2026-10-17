@@ -23,6 +23,7 @@ public sealed class MainWindow : Window, IDisposable
         communities.OpenCreateCommunity = () => OpenCreateCommunity?.Invoke();
         communities.CloseJoinCommunity = () => CloseJoinCommunity?.Invoke();
         communities.CloseCreateCommunity = () => CloseCreateCommunity?.Invoke();
+        communities.SetFavoriteEventsVisible = visible => SetFavoriteEventsVisible?.Invoke(visible);
         communities.SetLauncherVisible = visible => SetLauncherVisible?.Invoke(visible);
     }
 
@@ -32,6 +33,8 @@ public sealed class MainWindow : Window, IDisposable
     public void OpenMainFromLauncher() { communities.FocusUnreadAnnouncements(); IsOpen = true; }
     public void DrawLauncherCommunitySelector() => communities.DrawLauncherCommunitySelector();
     public void OpenTradeFromLauncher() => communities.OpenTradeFromLauncher();
+    public void DrawFavoriteEvents() => communities.DrawFavoriteEvents();
+    public Action<bool>? SetFavoriteEventsVisible { get; set; }
     public Action<bool>? SetLauncherVisible { get; set; }
     public Action? OpenTrade { get; set; }
     public void DrawTrade() => communities.DrawTradeWindow();
