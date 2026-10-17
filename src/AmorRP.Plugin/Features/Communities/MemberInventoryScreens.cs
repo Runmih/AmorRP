@@ -21,6 +21,7 @@ public sealed partial class CommunitiesPanel
     private void DrawMemberInventory(Member target)
     {
         if (!(Owner || community!.MyCapabilities.Contains("inventory.remove"))) return;
+        if (inspectorRefresh.Error != null) DrawRefreshState(inspectorRefresh, "Member items");
         if (memberInventoryRequestedFor != target.Character.Id) LoadMemberInventory(target);
         Wrapped("Item summaries only. Written contents stay private to the holder.");
         if (ActionButton("Refresh item summaries", mutation: false)) LoadMemberInventory(target);

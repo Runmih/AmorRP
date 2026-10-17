@@ -8,6 +8,7 @@
     <Compile Include="../../src/AmorRP.Plugin/Services/Api/*.cs" Link="Services/Api/%(Filename)%(Extension)" />
     <Compile Include="../../src/AmorRP.Plugin/Services/Game/ChatCommand.cs" Link="Services/Game/ChatCommand.cs" />
     <Compile Include="../../src/AmorRP.Plugin/Features/Communities/GroupProfileDraft.cs" Link="Features/Communities/GroupProfileDraft.cs" />
+    <Compile Include="../../src/AmorRP.Plugin/Features/Communities/FavoriteEventSchedule.cs" Link="Features/Communities/FavoriteEventSchedule.cs" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit.v3" />
     <PackageReference Include="xunit.runner.visualstudio" PrivateAssets="all" />

@@ -45,13 +45,14 @@ public sealed partial class CommunitiesPanel
     }
     private void ClearNestedGroups()
     {
-        groupPrivate = null; privateRequestedFor = null; hub = new([], []); favoriteEvents = new([]); groupJoinPassword = ""; noticeDraftFor = null;
+        groupPrivate = null; privateRequestedFor = null; hub = new([], []); groupJoinPassword = ""; noticeDraftFor = null;
         communityGroups = []; selectedGroupId = null; creatingGroup = false;
         groupDraft.Clear(); requestedGroupLogo = ""; groupLogos.Clear();
     }
     private void DrawCommunityGroups()
     {
         if (community == null) { Wrapped("Choose a community first to see its groups."); return; }
+        DrawRefreshState(groupsRefresh, "Groups");
         groupLogos.Draw();
         Wrapped("Groups within " + community.Name);
         if (CanCreateGroups && ImGui.Button("New group"))

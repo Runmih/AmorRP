@@ -21,6 +21,7 @@ public sealed partial class CommunitiesPanel
     }
     private void ClearCommunityViews()
     {
+        ResetCommunityRefreshes();
         ClearNestedGroups();
         viewGeneration++; reads.Clear(); ClearTradeViews();
         icons.Clear(); logos.Clear(); community = null; members = []; policies = null; transfer = null; invitations = [];

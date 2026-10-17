@@ -39,9 +39,8 @@ public sealed partial class CommunitiesPanel
         if (inventoryTab == 0 && filterCategory > 0 && filterCategory <= categories.Length) args.Add("categoryId=" + categories[filterCategory - 1].Id);
         return string.Join("&", args);
     }
-    private async Task<InventoryState> LoadInventoryAsync(Uri uri, string token, Guid id, CancellationToken ct)
+    private async Task<InventoryState> LoadInventoryAsync(Uri uri, string token, Guid id, string query, Guid? requestedSelection, int requestedCount, CancellationToken ct)
     {
-        var query = InventoryQuery(); var requestedSelection = holdingSelection; var requestedCount = holdings.Length;
         var prefix = $"api/v2/communities/{id}/";
         var cats = new List<Category>(); string? cursor = null;
         do { var page = await client.GetAsync<CategoryPage>(uri, prefix + "categories" + (cursor == null ? "" : "?cursor=" + Uri.EscapeDataString(cursor)), token, ct); cats.AddRange(page.Items); cursor = page.NextCursor; } while (cursor != null);
@@ -118,6 +117,8 @@ public sealed partial class CommunitiesPanel
     private void DrawInventory()
     {
         if (community == null) { Wrapped("Join or create a community first."); return; }
+        DrawRefreshState(inventoryRefresh, "Inventory");
+        if (!inventoryRefresh.HasLoaded && holdings.Length == 0) return;
         if (loadedInventoryTab != inventoryTab) { loadedInventoryTab = inventoryTab; filterType = ""; filterCategory = 0; ApplyInventoryFilters(); }
         ImGui.SetNextItemWidth(Math.Max(140, ImGui.GetContentRegionAvail().X - 85));
         var enter = ImGui.InputTextWithHint("##InventorySearch", "Search inventory…", ref search, 400, ImGuiInputTextFlags.EnterReturnsTrue);

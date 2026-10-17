@@ -6,19 +6,7 @@ namespace AmorRP.Plugin.Features.Communities;
 
 public sealed partial class CommunitiesPanel
 {
-    private DateTimeOffset nextFavoriteRead;
-    private void TickFavoriteEvents()
-    {
-        if (session == null || origin == null || !configuration.ShowFavoriteEvents || DateTimeOffset.UtcNow < nextFavoriteRead) return;
-        nextFavoriteRead = DateTimeOffset.UtcNow.AddSeconds(30);
-        var uri = origin; var token = session.AccessToken;
-        Start(async ct => {
-            var rows = await client.GetAsync<FavoriteEvents>(uri, "api/v2/me/favorite-group-events", token, ct);
-            return () => favoriteEvents = rows;
-        }, "Refreshing favorite events…");
-    }
     private GroupHub hub = new([], []);
-    private FavoriteEvents favoriteEvents = new([]);
     private GroupPrivate? groupPrivate;
     private Guid? privateRequestedFor, eventEditId, announcementOpen;
     private int eventEditVersion;
@@ -28,7 +16,6 @@ public sealed partial class CommunitiesPanel
     private int noticeDraftVersion;
     private string eventTitle = "", eventDescription = "", eventLocation = "", eventStart = "", eventEnd = "";
     private string groupAnnouncementTitle = "", groupAnnouncementMessage = "";
-    public Action<bool>? SetFavoriteEventsVisible { get; set; }
     private string GroupPath(AmorRP.Contracts.Groups.Group group) => $"api/v2/communities/{group.CommunityId}/groups/{group.Id}";
     private void LoadGroupPrivate(AmorRP.Contracts.Groups.Group group, bool force = false, bool more = false)
     {
@@ -107,6 +94,7 @@ public sealed partial class CommunitiesPanel
     private void DrawNoticeboard()
     {
         if (community == null) { Wrapped("Choose a community to read its noticeboard."); return; }
+        DrawRefreshState(hubRefresh, "Noticeboard");
         Wrapped("Community requests and offered rewards · one notice per group");
         LimitedInput("Filter notices", ref noticeSearch, 100);
         foreach (var item in hub.Notices.Where(x => (x.Title + " " + x.Message + " " + x.GroupName + " " + x.Reward).Contains(noticeSearch, StringComparison.OrdinalIgnoreCase)))
@@ -121,6 +109,8 @@ public sealed partial class CommunitiesPanel
     }
     private void DrawNoticeEditor(AmorRP.Contracts.Groups.Group group)
     {
+        DrawRefreshState(hubRefresh, "Notice");
+        if (!hubRefresh.HasLoaded) return;
         var current = hub.Notices.FirstOrDefault(x => x.GroupId == group.Id);
         if (noticeDraftFor != group.Id)
         { noticeDraftFor = group.Id; noticeTitle = current?.Title ?? ""; noticeMessage = current?.Message ?? ""; noticeReward = current?.Reward ?? ""; noticeDraftVersion = current?.Version ?? 0; }
@@ -140,6 +130,7 @@ public sealed partial class CommunitiesPanel
     { eventEditId = null; eventEditVersion = 0; eventTitle = eventDescription = eventLocation = ""; eventStart = DateTimeOffset.UtcNow.AddHours(1).ToString("yyyy-MM-dd HH:mm"); eventEnd = DateTimeOffset.UtcNow.AddHours(2).ToString("yyyy-MM-dd HH:mm"); }
     private void DrawGroupEvents(AmorRP.Contracts.Groups.Group group)
     {
+        DrawRefreshState(hubRefresh, "Group events");
         foreach (var item in hub.Events.Where(x => x.GroupId == group.Id))
         {
             ImGui.PushID(item.Id.ToString()); DrawEvent(item);
@@ -171,12 +162,5 @@ public sealed partial class CommunitiesPanel
         ImGui.Separator(); Wrapped(item.GroupName + " · " + item.Title);
         Wrapped($"{item.StartsAt:yyyy-MM-dd HH:mm} → {item.EndsAt:yyyy-MM-dd HH:mm} ST / UTC");
         Wrapped(item.Location); if (item.Description.Length > 0) Wrapped(item.Description);
-    }
-    public void DrawFavoriteEvents()
-    {
-        if (session == null) { Wrapped("Sign in to Amor RP to see your favorite groups' events."); return; }
-        Wrapped("Favorite group events · Server Time / UTC");
-        foreach (var item in favoriteEvents.Items.Where(x => x.EndsAt > DateTimeOffset.UtcNow)) DrawEvent(item);
-        if (!favoriteEvents.Items.Any(x => x.EndsAt > DateTimeOffset.UtcNow)) Wrapped("No upcoming events. Favorite a group from the Groups tab to follow its events here.");
     }
 }

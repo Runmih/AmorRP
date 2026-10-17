@@ -12,6 +12,7 @@ public sealed partial class CommunitiesPanel
     private void SelectMember(Member row)
     {
         if (!members.Any(x => x.Character.Id == row.Character.Id)) members = [..members, row];
+        inspectorRefresh.Reset();
         memberSelection = row.Character.Id; memberDraftEtag = row.Etag;
         ResetMemberDescription(row);
         LoadPersonalNote(row);
@@ -26,7 +27,8 @@ public sealed partial class CommunitiesPanel
     private void DrawMembers()
     {
         if (community == null) { Wrapped("Join or create a community first."); return; }
-        if (Owner && ImGui.Checkbox("Show inactive members", ref showInactive)) { members = []; memberSelection = null; ClearMemberSearch(); refreshNeeded = true; }
+        DrawRefreshState(rosterRefresh, "Members");
+        if (Owner && ImGui.Checkbox("Show inactive members", ref showInactive)) { members = []; memberSelection = null; ClearMemberSearch(); rosterRefresh.Invalidate(); refreshNeeded = true; }
         var narrow = ImGui.GetContentRegionAvail().X < ImGui.CalcTextSize("Character description and private notes").X * 1.7f;
         if (!ImGui.BeginTable("MemberLayout", narrow ? 1 : 2, ImGuiTableFlags.Resizable | ImGuiTableFlags.BordersInnerV)) return;
         ImGui.TableSetupColumn("Members", ImGuiTableColumnFlags.WidthStretch, .38f); if (!narrow) ImGui.TableSetupColumn("Details", ImGuiTableColumnFlags.WidthStretch, .62f);

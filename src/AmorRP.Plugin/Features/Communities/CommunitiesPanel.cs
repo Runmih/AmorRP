@@ -28,6 +28,7 @@ public sealed partial class CommunitiesPanel(IPlayerState player, Configuration 
     private enum MainSection { Home, Inventory, Crafting, Groups, Noticeboard, Members, Settings }
     private MainSection mainSection = MainSection.Inventory;
     private bool WriteBlocked => !serviceCompatible || currentCommand != null || configuration.PendingCommands.Any(x => x.Origin == origin?.AbsoluteUri && x.CharacterId == session?.Character.Id);
+    private bool SessionRenewalInProgress => session != null && saved?.PendingRefreshKey != null && work != null;
     private bool ActionButton(string label, bool mutation = true)
     {
         ImGui.BeginDisabled(mutation && WriteBlocked); var clicked = ImGui.Button(label); ImGui.EndDisabled(); return clicked;
@@ -80,7 +81,6 @@ public sealed partial class CommunitiesPanel(IPlayerState player, Configuration 
         var localName = player.IsLoaded ? player.CharacterName : "";
         var localWorld = player.IsLoaded && world.IsValid ? world.Value.Name.ToString() : "";
         Collect(); CollectSync();
-        if (syncWork == null && affectedRefresh != null && session != null) RefreshAffected(affectedRefresh);
         PumpForeground();
         var busy = work != null;
         if (!busy && session != null && session.AccessExpiresAt < DateTimeOffset.UtcNow.AddMinutes(5) && saved != null && DateTimeOffset.UtcNow >= nextRenewAttempt) Resume(saved);
@@ -227,7 +227,9 @@ public sealed partial class CommunitiesPanel(IPlayerState player, Configuration 
         Collect(); CollectSync(); PumpForeground();
         if (session != null && work == null && saved != null && session.AccessExpiresAt < DateTimeOffset.UtcNow.AddMinutes(5) && DateTimeOffset.UtcNow >= nextRenewAttempt) Resume(saved);
         if (refreshNeeded && work == null && syncWork == null && session != null && session.AccessExpiresAt > DateTimeOffset.UtcNow) { refreshNeeded = false; Refresh(); }
-        PumpContextTargetResolution(); TickTradeInbox(); TickTrades(); TickAnnouncements(); TickFavoriteEvents();
+        if (session != null && work == null && syncWork == null && !WriteBlocked && DateTimeOffset.UtcNow >= nextRefresh) Refresh();
+        TickFeatureRefreshes(); TickFavoriteEvents();
+        PumpContextTargetResolution(); TickTradeInbox(); TickTrades(); TickAnnouncements();
     }
     private bool Owner => community != null && session?.Character.Id == community.OwnerCharacterId;
     private bool CanManageGameplay => Owner || community?.MyCapabilities.Contains("members.gameplay.manage") == true;
@@ -250,6 +252,7 @@ public sealed partial class CommunitiesPanel(IPlayerState player, Configuration 
     }
     private void Accept(SessionTokens tokens)
     {
+        dataGeneration++;
         session = tokens; loginFeedback = loginDiagnostic = ""; ResetLogin();
         saved = configuration.SavedSessions.SingleOrDefault(x => x.Origin == origin!.AbsoluteUri && x.CharacterId == tokens.Character.Id);
         if (saved == null) { saved = new SavedSession { Origin = origin!.AbsoluteUri, CharacterId = tokens.Character.Id }; configuration.SavedSessions.Add(saved); }
@@ -280,7 +283,7 @@ public sealed partial class CommunitiesPanel(IPlayerState player, Configuration 
     {
         if (syncWork is not { IsCompleted: true }) return;
         var finished = syncWork; syncWork = null;
-        if (syncView != viewGeneration || syncData != dataGeneration) { _ = finished.Exception; refreshNeeded = affectedRefresh == null; if (affectedRefresh != null) RefreshAffected(affectedRefresh); return; }
+        if (syncView != viewGeneration || syncData != dataGeneration) { _ = finished.Exception; refreshNeeded = true; return; }
         if (finished.IsCompletedSuccessfully) { connectionError = connectionDiagnostic = ""; syncFailures = 0; finished.Result(); }
         else
         {
@@ -384,7 +387,7 @@ public sealed partial class CommunitiesPanel(IPlayerState player, Configuration 
     private void Refresh()
     {
         var uri = origin!; var token = session!.AccessToken; var selectedId = selected;
-        var actorId = session.Character.Id; var includeInactive = showInactive; var selectedMemberId = memberSelection; var rosterCount = members.Length; var inspector = memberInventoryFor; var inspectorCount = memberHoldings.Length;
+        var refreshFeatures = DateTimeOffset.UtcNow >= nextRefresh;
         nextRefresh = DateTimeOffset.UtcNow.AddMinutes(1);
         StartSync(async ct => {
             var capability = await client.GetAsync<CapabilitiesResponse>(uri, "api/v2/capabilities", token, ct);
@@ -392,78 +395,27 @@ public sealed partial class CommunitiesPanel(IPlayerState player, Configuration 
                 || !Version.TryParse(capability.MinimumClientVersion, out var minimumClient) || minimumClient > typeof(CommunitiesPanel).Assembly.GetName().Version)
                 throw new InvalidOperationException("Amor RP needs an update. Check for a plugin update; the server may also need updating.");
             if (capability.Maintenance) throw new InvalidOperationException(capability.Message);
-            var communityList = new List<Community>(); string? communityCursor = null;
-            do { var page = await client.GetAsync<CommunityPage>(uri, "api/v2/communities" + (communityCursor == null ? "" : "?cursor=" + Uri.EscapeDataString(communityCursor)), token, ct); communityList.AddRange(page.Items); communityCursor = page.NextCursor; } while (communityCursor != null);
-            var list = new CommunityPage(communityList.ToArray(), null, "read", null);
-            var active = list.Items.FirstOrDefault(x => x.Id == selectedId) ?? list.Items.FirstOrDefault();
-            MemberPage? roster = null; InvitationPage? invites = null; CommunityPolicies? limits = null; OwnershipTransfer? proposal = null;
-            HoldingPage? inspectorState = null;
-            if (active != null)
+            var list = new List<Community>(); string? cursor = null;
+            do
             {
-                var isOwner = active.OwnerCharacterId == actorId;
-                roster = await client.GetAsync<MemberPage>(uri, $"api/v2/communities/{active.Id}/members" + (isOwner && includeInactive ? "?includeDormant=true" : ""), token, ct);
-                var allMembers = roster.Items.ToList();
-                while (roster.NextCursor != null && allMembers.Count < rosterCount)
-                { var page = await client.GetAsync<MemberPage>(uri, $"api/v2/communities/{active.Id}/members?cursor=" + Uri.EscapeDataString(roster.NextCursor) + (isOwner && includeInactive ? "&includeDormant=true" : ""), token, ct); allMembers.AddRange(page.Items); roster = page; }
-                roster = roster with { Items = allMembers.ToArray() };
-                if (inspector.HasValue && (isOwner || active.MyCapabilities.Contains("inventory.remove")))
-                {
-                    try {
-                        var path = $"api/v2/communities/{active.Id}/members/{inspector}/holdings";
-                        inspectorState = await client.GetAsync<HoldingPage>(uri, path, token, ct);
-                        var rows = inspectorState.Items.ToList();
-                        while (inspectorState.NextCursor != null && rows.Count < inspectorCount)
-                        { var page = await client.GetAsync<HoldingPage>(uri, path + "?cursor=" + Uri.EscapeDataString(inspectorState.NextCursor), token, ct); rows.AddRange(page.Items); inspectorState = page; }
-                        inspectorState = inspectorState with { Items = rows.ToArray() };
-                    } catch (FoundationApiException ex) when (ex.Status is System.Net.HttpStatusCode.NotFound or System.Net.HttpStatusCode.Forbidden) { inspectorState = new([], null, "0"); }
-                }
-                if (selectedMemberId.HasValue && !roster.Items.Any(x => x.Character.Id == selectedMemberId))
-                {
-                    try {
-                        var current = await client.GetAsync<Member>(uri, $"api/v2/communities/{active.Id}/members/{selectedMemberId}", token, ct);
-                        if (current.Status == "active" || (isOwner && includeInactive)) roster = roster with { Items = [..roster.Items, current] };
-                    } catch (FoundationApiException e) when (e.Status == System.Net.HttpStatusCode.NotFound) { }
-                }
-                limits = await client.GetAsync<CommunityPolicies>(uri, $"api/v2/communities/{active.Id}/policies", token, ct);
-                if (isOwner) invites = await client.GetAsync<InvitationPage>(uri, $"api/v2/communities/{active.Id}/invitations", token, ct);
-                if (active.PendingOwnershipTransferId.HasValue && (isOwner || roster.Items.Any(x => x.Character.Id == actorId)))
-                {
-                    try { proposal = await client.GetAsync<OwnershipTransfer>(uri, $"api/v2/communities/{active.Id}/ownership-transfers/{active.PendingOwnershipTransferId}", token, ct); }
-                    catch (FoundationApiException e) when (e.Status == System.Net.HttpStatusCode.NotFound) { }
-                }
-            }
-            var groupHub = active == null ? new AmorRP.Contracts.Groups.GroupHub([], []) : await client.GetAsync<AmorRP.Contracts.Groups.GroupHub>(uri, $"api/v2/communities/{active.Id}/group-hub", token, ct);
-            var favorites = await client.GetAsync<AmorRP.Contracts.Groups.FavoriteEvents>(uri, "api/v2/me/favorite-group-events", token, ct);
-            var nestedGroups = active == null ? [] : await LoadCommunityGroupsAsync(uri, token, active.Id, ct);
-            var inventoryState = active == null ? null : await LoadInventoryAsync(uri, token, active.Id, ct);
-            byte[]? iconBytes = null;
-            if (active?.Currency.IconAssetId != null && !icons.Matches(uri.AbsoluteUri + actorId + active.Id + active.Currency.IconAssetId))
-                iconBytes = await client.GetIconAsync(uri, $"api/v2/communities/{active.Id}/currency/icon", token, ct);
-            byte[]? logoBytes = null;
-            if (active?.LogoAssetId != null && !logos.Matches(uri.AbsoluteUri + actorId + active.Id + active.LogoAssetId))
-                logoBytes = await client.GetImageAsync(uri, $"api/v2/communities/{active.Id}/logo", token, 1048576, ct);
+                var page = await client.GetAsync<CommunityPage>(uri, "api/v2/communities" + (cursor == null ? "" : "?cursor=" + Uri.EscapeDataString(cursor)), token, ct);
+                list.AddRange(page.Items); cursor = page.NextCursor;
+            } while (cursor != null);
+            var active = list.FirstOrDefault(x => x.Id == selectedId) ?? list.FirstOrDefault();
             return () => {
                 var changedCommunity = community?.Id != active?.Id;
                 serviceCompatible = true; serviceLimits = capability.Limits;
                 if (lastRefresh == default && !initialAllowancesEdited) { initialPoints = capability.Limits.DefaultPotionPoints; initialLetters = capability.Limits.DefaultLettersPerWeek; }
                 if (changedCommunity) { ClearCommunityViews(); ClearMemberSearch(); }
-                communities = list.Items; community = active; selected = active?.Id; members = roster?.Items ?? []; invitations = invites?.Items ?? [];
-                membersCursor = roster?.NextCursor; invitationsCursor = invites?.NextCursor;
-                policies = limits; transfer = proposal;
+                communities = list.ToArray(); community = active; selected = active?.Id;
                 if (saved != null) { saved.SelectedCommunityId = selected; save(); }
-                if (limits != null && (changedCommunity || !policyDraftLoaded)) LoadActivePolicy(limits);
-                if (!members.Concat(memberSearchResults).Any(x => x.Character.Id == memberSelection)) memberSelection = null;
-                if (!(active?.OwnerCharacterId == actorId || active?.MyCapabilities.Contains("inventory.remove") == true)) { memberHoldings = []; memberInventoryFor = null; memberHoldingSelection = null; }
-                if (inspectorState != null && memberInventoryFor == inspector) { memberHoldings = inspectorState.Items; memberHoldingCursor = inspectorState.NextCursor; }
-                AcceptInventoryState(inventoryState); AcceptCommunityGroups(nestedGroups); hub = groupHub; favoriteEvents = favorites;
-                if (active != null) icons.Update(uri.AbsoluteUri + actorId + active.Id + active.Currency.IconAssetId, iconBytes, active.Currency.IconAssetId != null);
-                if (active != null) logos.Update(uri.AbsoluteUri + actorId + active.Id + active.LogoAssetId, logoBytes, active.LogoAssetId != null);
+                if (changedCommunity || refreshFeatures) RefreshCommunityFeatures();
                 lastRefresh = DateTimeOffset.UtcNow; nextRefresh = lastRefresh.AddMinutes(1); status = "Data refreshed.";
             };
         });
     }
     private void ForgetCurrent()
-    { ClearAnnouncementNotifications(); ClearWork(); if (saved != null) configuration.SavedSessions.Remove(saved); save(); session = null; saved = null; community = null; communities = []; members = []; ClearCommunityViews(); }
+    { ClearFavoriteEvents(); ClearAnnouncementNotifications(); ClearWork(); if (saved != null) configuration.SavedSessions.Remove(saved); save(); session = null; saved = null; community = null; communities = []; members = []; ClearCommunityViews(); }
     private void ClearWork()
     {
         if (pendingAuthorizationRead.HasValue) { authorizationResult = "Permission check cancelled. Reload saved permissions to try again."; pendingAuthorizationRead = null; }
@@ -475,7 +427,7 @@ public sealed partial class CommunitiesPanel(IPlayerState player, Configuration 
         work = null; currentCommand = null;
     }
     private void Clear()
-    { ClearMemberSearch(); personalNote = savedPersonalNote = noteKey = ""; ClearAnnouncementNotifications(); ClearTradeInbox(); ResetCommunityForms(); ResetLogin(); loginFeedback = loginDiagnostic = ""; syncFailures = 0; scope = ""; serviceCompatible = false; affectedRefresh = null; ClearWork(); origin = null; session = null; saved = null; selected = null; community = null; communities = []; members = []; invitations = []; transfer = null; refreshNeeded = false; createdCode = ""; contextTarget = null; contextLookup = null; ClearTransientFeedback(); connectionError = connectionDiagnostic = ""; lastRefresh = default; nextRefresh = default; ClearCommunityViews(); }
+    { ClearFavoriteEvents(); ClearMemberSearch(); personalNote = savedPersonalNote = noteKey = ""; ClearAnnouncementNotifications(); ClearTradeInbox(); ResetCommunityForms(); ResetLogin(); loginFeedback = loginDiagnostic = ""; syncFailures = 0; scope = ""; serviceCompatible = false; ClearWork(); origin = null; session = null; saved = null; selected = null; community = null; communities = []; members = []; invitations = []; transfer = null; refreshNeeded = false; createdCode = ""; contextTarget = null; contextLookup = null; ClearTransientFeedback(); connectionError = connectionDiagnostic = ""; lastRefresh = default; nextRefresh = default; ClearCommunityViews(); }
     private static void Wrapped(string message) { ImGui.PushTextWrapPos(); ImGui.TextUnformatted(message); ImGui.PopTextWrapPos(); }
-    public void Dispose() { ClearMemberSearch(); personalNote = savedPersonalNote = noteKey = ""; ClearAnnouncementNotifications(); ClearTradeInbox(); ClearWork(); lifetime.Dispose(); icons.Dispose(); logos.Dispose(); groupLogos.Dispose(); client.Dispose(); }
+    public void Dispose() { ResetCommunityRefreshes(); ClearFavoriteEvents(); ClearMemberSearch(); personalNote = savedPersonalNote = noteKey = ""; ClearAnnouncementNotifications(); ClearTradeInbox(); ClearWork(); lifetime.Dispose(); icons.Dispose(); logos.Dispose(); groupLogos.Dispose(); client.Dispose(); }
 }

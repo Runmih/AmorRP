@@ -24,6 +24,8 @@ public sealed partial class CommunitiesPanel
     private void DrawCraftingTabs()
     {
         if (community == null) { Wrapped("Use Join or Create community above to get started."); return; }
+        DrawRefreshState(inventoryRefresh, "Crafting");
+        if (!inventoryRefresh.HasLoaded && definitions.Length == 0) return;
         if (!ImGui.BeginTabBar("CraftingSubtabs")) return;
         if (ImGui.BeginTabItem("Info"))
         {
@@ -48,7 +50,8 @@ public sealed partial class CommunitiesPanel
             var show = configuration.ShowLauncher;
             if (ImGui.Checkbox("Show quick launcher", ref show)) { configuration.ShowLauncher = show; save(); SetLauncherVisible?.Invoke(show); }
             var events = configuration.ShowFavoriteEvents;
-            if (ImGui.Checkbox("Show favorite group events", ref events)) { configuration.ShowFavoriteEvents = events; save(); SetFavoriteEventsVisible?.Invoke(events); }
+            if (ImGui.Checkbox("Show favorite events HUD", ref events)) { configuration.ShowFavoriteEvents = events; save(); SetFavoriteEventsVisible?.Invoke(events); }
+            ImGui.TextWrapped("The HUD shows favorite groups' events for the next five days. Drag its header to move it; click an event for details.");
             ImGui.EndTabItem();
         }
         ImGui.EndTabBar();

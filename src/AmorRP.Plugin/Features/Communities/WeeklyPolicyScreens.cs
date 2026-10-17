@@ -26,7 +26,9 @@ public sealed partial class CommunitiesPanel
     }
     private void DrawWeeklyPolicy()
     {
-        if (policies == null || !ImGui.CollapsingHeader("Weekly Policy")) return;
+        if (!ImGui.CollapsingHeader("Weekly Policy")) return;
+        DrawRefreshState(policyRefresh, "Weekly policy");
+        if (policies == null) return;
         if (!policyDraftLoaded) LoadActivePolicy(policies);
         if (activePolicyPoints != policies.Current.PotionPoints && !policyPointsDirty) nextPoints = policies.Current.PotionPoints;
         if (activePolicyLetters != policies.Current.Letters && !policyLettersDirty) nextLetters = policies.Current.Letters;

@@ -98,6 +98,23 @@ the build spike, not scattered through feature code.
 
 ## M4 implementation map
 
+### Current plugin refresh composition (0.0.6.20)
+
+The core refresh loads capabilities and the character's community list. Secondary
+features use separate `BackgroundRefresh<T>` instances, so an events, image or
+inventory error does not discard successful reads in other features. The component
+owns request completion, retry timing and cancellation; its feature applies results
+on the UI thread. Scope resets cancel old requests, and generation checks reject
+reads superseded by mutations or token rotation. Error state is displayed in the
+affected section. The existing trade and announcement pollers remain separate.
+
+Favorite events have a dedicated 30-second read and a HUD widget that remains
+visible while the main menu is closed. It displays ongoing events and starts within
+a rolling five-day UTC window. Community switches preserve this character-wide
+data; logout and character switches clear it. Settings controls visibility.
+
+### Earlier implementation
+
 Database feature services own atomic rules beside their EF transactions; pure text
 and community-cap rules remain in Core. TradeService splits command/query orchestration
 from offer/exchange accounting; TradeReservations is shared with membership and

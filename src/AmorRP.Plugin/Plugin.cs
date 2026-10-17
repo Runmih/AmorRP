@@ -44,7 +44,7 @@ public sealed class Plugin : IDalamudPlugin
             { IsOpen = configuration.ShowLauncher };
         mainWindow.SetLauncherVisible = visible => launcherWindow.IsOpen = visible;
         context = new(contextMenu, mainWindow.SelectTarget);
-        favoriteEventsWindow = new(mainWindow.DrawFavoriteEvents, () => playerState.IsLoaded, () => { configuration.ShowFavoriteEvents = false; pluginInterface.SavePluginConfig(configuration); }) { IsOpen = configuration.ShowFavoriteEvents };
+        favoriteEventsWindow = new(mainWindow.DrawFavoriteEvents, () => playerState.IsLoaded) { IsOpen = configuration.ShowFavoriteEvents };
         mainWindow.SetFavoriteEventsVisible = visible => favoriteEventsWindow.IsOpen = visible;
         windows.AddWindow(favoriteEventsWindow);
         windows.AddWindow(mainWindow);

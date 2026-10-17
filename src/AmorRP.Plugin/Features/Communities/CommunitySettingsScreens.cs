@@ -8,7 +8,7 @@ public sealed partial class CommunitiesPanel
     {
         if (!Owner || community == null || !ImGui.CollapsingHeader("Community Settings")) return;
         if (!ImGui.BeginTabBar("CommunitySettingsTabs")) return;
-        if (ImGui.BeginTabItem("Currency")) { DrawCurrencyIconEditor(); ImGui.EndTabItem(); }
+        if (ImGui.BeginTabItem("Currency")) { DrawRefreshState(iconRefresh, "Currency icon"); DrawCurrencyIconEditor(); ImGui.EndTabItem(); }
         if (ImGui.BeginTabItem("Invitations")) { DrawInvitations(); ImGui.EndTabItem(); }
         if (ImGui.BeginTabItem("Delete Community"))
         {
@@ -27,6 +27,7 @@ public sealed partial class CommunitiesPanel
     }
     private void DrawInvitations()
     {
+        DrawRefreshState(invitationRefresh, "Invitations");
         Wrapped("Invitation codes stay valid until you delete them. Share them only with people you want to join.");
         if (ActionButton("Create invitation")) Mutate("POST", $"api/v2/communities/{community!.Id}/invitations", new InvitationCreate());
         if (createdCode.Length > 0) { FieldLabel("New invitation code"); ImGui.InputText("##CreatedInvite", ref createdCode, 100, ImGuiInputTextFlags.ReadOnly); if (ImGui.Button("Copy code")) { ImGui.SetClipboardText(createdCode); actionResult = "Invitation code copied."; } }

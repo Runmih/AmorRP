@@ -13,6 +13,7 @@ public sealed partial class CommunitiesPanel
     private static void EndHomeCard() { ImGui.EndChild(); ImGui.PopStyleVar(); ImGui.PopStyleColor(); }
     private void DrawHomeOverview()
     {
+        if (logoRefresh.Error != null) DrawRefreshState(logoRefresh, "Community logo");
         DrawHomeProfile(); ImGui.Spacing();
         var lines = ImGui.GetTextLineHeightWithSpacing();
         var announcementHeight = Math.Max(160, (CanAnnounce ? lines * 7 + ImGui.GetFrameHeightWithSpacing() * 3 : 0) + Math.Max(1, announcements.Length) * lines * 2.4f + 65);

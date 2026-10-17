@@ -2,7 +2,7 @@
 
 Specification date: 2026-10-06. Target: Amor RP 1.0.
 
-Latest plugin patch: [0.0.6.19 — preserve unfinished group settings](delivery/release-0.0.6.19.md).
+Latest plugin patch: [0.0.6.20 — favorite events HUD and independent refreshes](delivery/release-0.0.6.20.md).
 It works with server 0.0.6.18 and needs no server redeployment.
 
 M4 implements authentication, communities, currency/icons, potions, Books writing,
