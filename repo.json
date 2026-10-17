@@ -21,11 +21,9 @@
     "AcceptsFeedback": true,
     "DownloadLinkInstall": "https://raw.githubusercontent.com/Runmih/AmorRP/main/packages/AmorRP-0.0.6.16.zip",
     "DownloadLinkUpdate": "https://raw.githubusercontent.com/Runmih/AmorRP/main/packages/AmorRP-0.0.6.16.zip",
-    "DownloadLinkTesting": "https://raw.githubusercontent.com/Runmih/AmorRP/main/packages/AmorRP-0.0.6.17.zip",
-    "LastUpdate": 1792198537,
+    "DownloadLinkTesting": "https://raw.githubusercontent.com/Runmih/AmorRP/main/packages/AmorRP-0.0.6.16.zip",
+    "LastUpdate": 1792200251,
     "IsHide": false,
-    "IsTestingExclusive": false,
-    "TestingAssemblyVersion": "0.0.6.17",
-    "TestingDalamudApiLevel": 15
+    "IsTestingExclusive": false
   }
 ]
