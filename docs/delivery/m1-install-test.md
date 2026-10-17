@@ -17,11 +17,11 @@ remain those in the [version matrix](../engineering/versions.md).
 - A real chat test with message preview, 50 text-element/200-byte bounds and one
   permission question at plugin startup. Emote, Say, Party, eight Linkshell slots and eight Cross-world
   Linkshell slots are explicitly selectable. Permission remains active across
-  sends, message/destination changes and character/group/backend switches. It is
+  sends, message/destination changes and character/community/backend switches. It is
   adjustable in settings and is asked again at the next plugin startup. No consumption, automatic fallback or automatic repost occurs.
 
 These are isolated feasibility spikes. They do not implement the durable
-`/api/v1/auth/*` contract or authorize future product routes. No new DB migration
+`/api/v2/auth/*` contract or authorize future product routes. No new DB migration
 is required. Attempts expire after ten minutes; expired attempt replay records
 are retained another ten. Storage caps are 256 attempts and 256 sessions;
 all probe routes share a limit of 180 requests/minute. Use one server instance.
@@ -91,7 +91,7 @@ tiers; review their prices and approve them yourself before creating resources.
    Migrations must finish before `/health/ready` can pass. Start is the Docker
    entrypoint; Render's `PORT` is honored. No database port needs public exposure.
 4. Deploy with `XivAuth__Enabled=false`. Check the public HTTPS `/health/live`,
-   `/health/ready` and `/api/v1/capabilities`. The version should be `0.0.2`.
+   `/health/ready` and `/api/v2/capabilities`. The version should be `0.0.2`.
 5. Copy the actual public service origin, such as `https://your-service.onrender.com`.
    The exact callback will be that origin plus `/auth/xivauth/feasibility-callback`.
 

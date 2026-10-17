@@ -4,7 +4,7 @@
 
 M0 replaced the sample/SDK 11 source, goat asset, obsolete relay/backend scaffolds
 and IDE artifacts with four application projects under `src/`. Contracts currently
-has `Common/` DTOs; Core has `Groups/` capacity policy. Server has `Health/` and
+has `Common/` DTOs; Core has `Communities/` capacity policy. Server has `Health/` and
 `Capabilities/` endpoints, persistence/migrations and options. Plugin has
 `Diagnostics/` and pure HTTP helpers, with complete lifecycle unsubscription.
 Three test projects exist: Contracts, Plugin and Server.IntegrationTests.
@@ -21,10 +21,10 @@ M2 adds implemented feature folders:
 
 ```text
 src/AmorRP.Contracts/
-  Auth/ Groups/ Currency/ History/ Common/      # wire records, no EF/game dependencies
+  Auth/ Communities/ Currency/ History/ Common/      # wire records, no EF/game dependencies
 src/AmorRP.Server/
   Features/Authentication/                      # persistent login/session/provider adapter
-  Features/Groups/                             # access + GroupService, membership/invite/owner partials
+  Features/Communities/                             # access + CommunityService, membership/invite/owner partials
   Features/Currency/                           # balance queries and transactional adjustment
   Features/History/                            # personal/owner logs and own receipt recovery
   Infrastructure/Persistence/Entities/         # one file per stored entity
@@ -33,16 +33,16 @@ src/AmorRP.Server/
   Infrastructure/Security/                    # safe faults and versioned secret vault
   Options/SessionPolicyOptions.cs             # validated lifecycle limits
 src/AmorRP.Plugin/
-  Features/Groups/GroupsPanel.cs                # async login/state orchestration
-  Features/Groups/GroupScreens.cs               # group/profile/history screens
-  Features/Groups/MemberScreens.cs              # roster and contextual member actions
+  Features/Communities/CommunitiesPanel.cs                # async login/state orchestration
+  Features/Communities/CommunityScreens.cs               # community/profile/history screens
+  Features/Communities/MemberScreens.cs              # roster and contextual member actions
   Services/Api/FoundationClient.cs              # product HTTP, same-key retries, safe errors
   Services/Identity/SavedSession.cs             # DPAPI credentials and unresolved command save
 ```
 
 The provider's durable adapter remains next to its authentication feature in M2;
 M1's adapter stays in Feasibility. M3 implements inventory/catalog/media folders below.
-GroupService's partial files keep the shared transaction/access boundary while
+CommunityService's partial files keep the shared transaction/access boundary while
 separating memberships, invitations and ownership for navigation. Persistence
 entities never leave Server; transport DTOs stay in Contracts. The plugin also
 uses pure Core text rules in the M5 checkpoint.
@@ -75,10 +75,10 @@ Amor-RP/
 │   └── release.yml
 ├── src/
 │   ├── AmorRP.Contracts/
-│   │   ├── Auth/ Groups/ Inventory/ Currency/ Trades/ Events/
+│   │   ├── Auth/ Communities/ Inventory/ Currency/ Trades/ Events/
 │   │   └── Common/                    # IDs, pagination, ProblemDetails
 │   ├── AmorRP.Core/
-│   │   ├── Groups/                    # policies and membership use cases
+│   │   ├── Communities/                    # policies and membership use cases
 │   │   ├── Inventory/
 │   │   │   ├── Types/Potions/
 │   │   │   ├── Types/Letters/
@@ -89,7 +89,7 @@ Amor-RP/
 │   ├── AmorRP.Server/
 │   │   ├── Program.cs                 # composition only
 │   │   ├── Features/
-│   │   │   ├── Auth/ Groups/ Categories/ Definitions/
+│   │   │   ├── Auth/ Communities/ Categories/ Definitions/
 │   │   │   ├── Inventory/ Currency/ Trades/ History/
 │   │   │   └── Account/ Events/ Health/ Capabilities/
 │   │   ├── Infrastructure/
@@ -102,7 +102,7 @@ Amor-RP/
 │   └── AmorRP.Plugin/
 │       ├── Plugin.cs                  # services/lifecycle registration only
 │       ├── Features/
-│       │   ├── Auth/ Groups/ Inventory/ Consumables/ Letters/
+│       │   ├── Auth/ Communities/ Inventory/ Consumables/ Letters/
 │       │   ├── Creation/ Trading/ Administration/ History/
 │       │   └── Settings/ Diagnostics/
 │       ├── Services/
@@ -187,15 +187,15 @@ commands/UI/context subscriptions on disposal; no sample behavior needs preservi
 | Private letter read/edit rules | `Server/Features/Inventory/InventoryService.Letters.cs` |
 | Currency upload/normalize/authenticated read | `Server/Features/Media/` |
 | Composite keys/constraints and migration | `Server/Infrastructure/Persistence/InventoryModel.cs`, entity files and PlayableInventory migration |
-| Shared async product state | `Plugin/Features/Groups/GroupsPanel.cs` |
-| Group forms/removal/icon editor | `Plugin/Features/Groups/GroupScreens.cs`, `GroupInteractionState.cs` |
-| Inventory, potion, letter and catalog screens | Named `*Screens.cs` files in `Plugin/Features/Groups/`; they share the selected verified group state |
+| Shared async product state | `Plugin/Features/Communities/CommunitiesPanel.cs` |
+| Community forms/removal/icon editor | `Plugin/Features/Communities/CommunityScreens.cs`, `CommunityInteractionState.cs` |
+| Inventory, potion, letter and catalog screens | Named `*Screens.cs` files in `Plugin/Features/Communities/`; they share the selected verified community state |
 | Separate small window | `Plugin/Features/Inventory/CompactWindow.cs` |
-| Bounded authorized texture lifecycle | `Plugin/Services/Media/GroupImageCache.cs` |
+| Bounded authorized texture lifecycle | `Plugin/Services/Media/CommunityImageCache.cs` |
 | Real DB accounting/privacy/upgrade checks | `tests/AmorRP.Server.IntegrationTests/InventoryTests.cs`, `InventoryUpgradeTests.cs`; same partial foundation fixture |
 
-Shared UI partials stay beside group state so they cannot silently select another
-character/group; type-specific potion and letter files remain easy to locate.
+Shared UI partials stay beside community state so they cannot silently select another
+character/community; type-specific potion and letter files remain easy to locate.
 M4 trading is implemented in the map below. Future item types require their own
 behavior/contracts/renderer and deliberate schema migration, preserving stable IDs.
 
@@ -209,11 +209,11 @@ behavior/contracts/renderer and deliberate schema migration, preserving stable I
 | Offer reservations and atomic net exchange | `TradeService.Offers.cs` |
 | Shared cancellation/expiry release | `TradeReservations.cs`, `TradeExpiryWorker.cs` |
 | DB entities/constraints | `Infrastructure/Persistence/Entities/TradeRow.cs`, `TradeSlotRow.cs`, `TradeLineRow.cs`, `TradingModel.cs` |
-| Unified membership deletion / separate block | `Features/Groups/GroupService.Memberships.cs`, `GroupEndpoints.cs` |
+| Unified membership deletion / separate block | `Features/Communities/CommunityService.Memberships.cs`, `CommunityEndpoints.cs` |
 | Canonical quantity reduction/deletion | `Features/Inventory/InventoryService.cs`, `InventoryEndpoints.cs`; `Contracts/Inventory/HoldingChange.cs` |
 | Books subtype compatibility | Existing `Letter` contract/entity/service files plus TypeId; `CatalogService.Seed` |
-| Vertical main / horizontal subtab navigation | `src/AmorRP.Plugin/Features/Groups/NavigationScreens.cs` |
-| Quiet affected-data reads | `QuietUpdates.cs`, GroupsPanel's separate foreground/background lanes |
+| Vertical main / horizontal subtab navigation | `src/AmorRP.Plugin/Features/Communities/NavigationScreens.cs` |
+| Quiet affected-data reads | `QuietUpdates.cs`, CommunitiesPanel's separate foreground/background lanes |
 | Trade commands / polling / conflict handling | `TradeScreens.cs` |
 | Separate trade layout / final popup | `TradeWindowScreens.cs`, `src/AmorRP.Plugin/Features/Trading/TradeWindow.cs` |
 | Local draft preservation / wire currency normalization | `src/AmorRP.Plugin/Services/Api/TradeDraft.cs`, `src/AmorRP.Contracts/Currency/WholeUnits.cs` |
@@ -223,11 +223,11 @@ behavior/contracts/renderer and deliberate schema migration, preserving stable I
 | Upgrade and live testing | `docs/delivery/m4-install-test.md` |
 
 Legacy filenames/fields containing Letter intentionally preserve existing wire/data
-compatibility while TypeId distinguishes book/letter/note. Group UI partials share
+compatibility while TypeId distinguishes book/letter/note. Community UI partials share
 one selected context; there is no separate hidden owner application. Do not create
 empty future folders or put credentials, DB contents or build artifacts in Git.
 
-`Plugin/Features/Groups/StatusScreens.cs` owns the group-only header, optional
+`Plugin/Features/Communities/StatusScreens.cs` owns the community-only header, optional
 feedback footer, Settings connection tools and receipt controls. Plugin 0.0.6.2
 removes the earlier multirow header and empty idle feedback.
 
@@ -237,9 +237,9 @@ removes the earlier multirow header and empty idle feedback.
 | --- | --- |
 | Shared text bounds and literal chat checks | `src/AmorRP.Core/Items/PlainText.cs`, `LiteralChatText.cs`, with compatibility helpers in `ItemText.cs` |
 | Client prefix construction / game posting | `Plugin/Services/Game/ChatCommand.cs`, `GameChatSender.cs` |
-| Stable validation hints / support view | `Plugin/Features/Groups/FormPresentation.cs` |
+| Stable validation hints / support view | `Plugin/Features/Communities/FormPresentation.cs` |
 | Reusable summary table | `HoldingList.cs` in the same feature |
-| Member roster and contextual actions | `MemberScreens.cs`; group/profile/history remain in `GroupScreens.cs` |
+| Member roster and contextual actions | `MemberScreens.cs`; community/profile/history remain in `CommunityScreens.cs` |
 | Selected member item removal | `MemberInventoryScreens.cs` |
 | Recipe list/editor and production | `CatalogScreens.cs`, `PotionScreens.cs` |
 | Written forms and reader | `LetterScreens.cs` |
@@ -252,7 +252,7 @@ or duplicate client/server message validator. No empty future feature directorie
 were added.
 
 Plugin 0.0.6.1 removes `Features/Diagnostics/` and the M1 `IdentityProbeClient`.
-`Features/Shell/MainWindow.cs` owns only product windows; login stays in GroupsPanel.
+`Features/Shell/MainWindow.cs` owns only product windows; login stays in CommunitiesPanel.
 `Services/Api/XivAuthAuthorization.cs` retains the shared trusted-browser URL check;
 `ProductServer.cs` owns the release origin in one place. Configuration no longer
 contains a backend input setting. Server feasibility routes/tests remain unchanged
@@ -277,23 +277,23 @@ the full-logo square icon and its regeneration instructions. Package validation
 checks the bundled icon dimensions and content-hashed feed URL; publication
 copies those exact image bytes to the distribution branch's `images/` directory.
 
-Group entry forms live in `Plugin/Features/Groups/GroupFormScreens.cs`.
-`GroupFormWindow.cs` provides independently registered Join/Create windows;
+Community entry forms live in `Plugin/Features/Communities/CommunityFormScreens.cs`.
+`CommunityFormWindow.cs` provides independently registered Join/Create windows;
 `Plugin.cs` owns their WindowSystem lifecycle and MainWindow bridges the verified
-GroupsPanel context. GroupInteractionState closes the matching window only after
+CommunitiesPanel context. CommunityInteractionState closes the matching window only after
 confirmed success or receipt recovery. No duplicate forms remain in Settings.
 
 The two-icon launcher is `Plugin/Features/Shell/LauncherWindow.cs`; Plugin owns
-its registration and visibility. `Features/Groups/TradeInboxScreens.cs` runs
-bounded cross-group reads and routes deliberate opening through the existing
-trade window. `Services/Api/TradeInbox.cs` holds character/group-bound notification
+its registration and visibility. `Features/Communities/TradeInboxScreens.cs` runs
+bounded cross-community reads and routes deliberate opening through the existing
+trade window. `Services/Api/TradeInbox.cs` holds character/community-bound notification
 state without game/UI dependencies. TradeInboxTests checks scope changes and
 resolved/expired requests. No additional window content or icon image is needed
 for the red badge.
 
-`Features/Groups/TransientFeedback.cs` owns ordinary action/trade result expiration
+`Features/Communities/TransientFeedback.cs` owns ordinary action/trade result expiration
 and reopen cleanup, preserving durable unresolved-command recovery. TradeScreens
-pumps automatic, group-scoped context-target resolution; settings navigation has
+pumps automatic, community-scoped context-target resolution; settings navigation has
 only the quick-launcher option. Ownership offers live with the Home profile.
 
 Authentication/LoginPairingCode.cs generates and verifies browser-only one-time
@@ -315,9 +315,9 @@ purpose-specific keyed origin fingerprints. LoginAdmissionTests.cs covers capaci
 replays, concurrency/restarts, expiry, key rotation, cleanup and schema upgrades.
 
 Features/History/HistoryEndpoints.cs contains HistoryService and route mapping.
-Group-history reads use the shared active-membership/deleted-group guard; separate
+Community-history reads use the shared active-membership/deleted-community guard; separate
 operation receipt reads keep their actor/participant authorization. HistoryAccessTests.cs
-covers inactive membership, moderation privacy, old cursors, deleted groups and
+covers inactive membership, moderation privacy, old cursors, deleted communities and
 retained metadata recovery.
 
 Features/Trading/TradeService.cs separates the short locked expiry transaction
@@ -349,17 +349,17 @@ plugin feature or parallel backend structure.
 
 ## Member profiles
 
-`src/AmorRP.Server/Features/Groups/GroupService.Profiles.cs` owns self-only description
+`src/AmorRP.Server/Features/Communities/CommunityService.Profiles.cs` owns self-only description
 writes; membership reads include the text. The matching `MemberDescriptions`
-migration adds one membership field. `src/AmorRP.Contracts/Groups/MemberDescriptionEdit.cs`
+migration adds one membership field. `src/AmorRP.Contracts/Communities/MemberDescriptionEdit.cs`
 contains the request and shared text limit. The plugin editor is isolated in
-`src/AmorRP.Plugin/Features/Groups/MemberDescriptionScreens.cs`; `MemberScreens.cs`
+`src/AmorRP.Plugin/Features/Communities/MemberDescriptionScreens.cs`; `MemberScreens.cs`
 arranges profile and permission sections. Server regressions live in
 `tests/AmorRP.Server.IntegrationTests/MemberProfileTests.cs`.
 
 ## Member balance and permissions
 
-`src/AmorRP.Plugin/Features/Groups/MemberCurrencyScreens.cs` isolates selection-bound
+`src/AmorRP.Plugin/Features/Communities/MemberCurrencyScreens.cs` isolates selection-bound
 balance reads and the labeled vertical currency controls. MemberScreens contains
 gameplay/moderator forms and Shift-button tooltips. CatalogService checks the
 separate recipe-definition capability; MemberCapabilities carries the optional
@@ -367,15 +367,15 @@ positive trading flag for one atomic save. Permission regressions are in
 `tests/AmorRP.Server.IntegrationTests/MemberPermissionTests.cs`. No new backend
 folder or parallel permission system is introduced.
 
-## Group Home and announcements
+## Community Home and announcements
 
 Contracts/Announcements contains create/read/list/unread DTOs and shared limits.
 Server/Features/Announcements contains authenticated endpoints and bounded message/
-read-state service. Persistence/Entities/AnnouncementRow and the GroupAnnouncements
-migration store group-scoped posts and per-member read IDs. General/profile and
-scoped grant checks remain in existing GroupService code.
+read-state service. Persistence/Entities/AnnouncementRow and the CommunityAnnouncements
+migration store community-scoped posts and per-member read IDs. General/profile and
+scoped grant checks remain in existing CommunityService code.
 
-Plugin/Features/Groups separates HomeProfileScreens, GroupSettingsScreens,
+Plugin/Features/Communities separates HomeProfileScreens, CommunitySettingsScreens,
 WeeklyPolicyScreens and AnnouncementScreens. Shell/NotificationBadge is shared
 by the Home navigation and two-button launcher. Announcement polling uses its own
 scope-checked task and never replaces forms or creates a full window reload.
@@ -388,31 +388,31 @@ Plugin/Services/Ui/WrappedTextEditor.cs is the shared API 15 multiline editor.
 WrappedTextProjection.cs separates visual wrapping from persisted text and maps
 caret/selection/edit offsets (including Unicode and literal newlines). Projection
 tests are linked into AmorRP.Plugin.Tests without native game dependencies.
-Groups/FormPresentation.cs owns the shared editor instance; inventory/context
+Communities/FormPresentation.cs owns the shared editor instance; inventory/context
 cleanup clears retained editing state. InventoryScreens.cs owns the shared
 list/details view, fixed type-family registry and category → type → sort controls.
 The registry is the single extension point for later inventory subtypes.
 
 ## Trade request navigation and launcher selection
 
-Groups/TradeWindowScreens.cs draws the Inbound/Outbound request list and the
+Communities/TradeWindowScreens.cs draws the Inbound/Outbound request list and the
 separate accepted-exchange layout. TradeScreens.cs owns selected request direction
-and close/accept pumping; TradeInboxScreens.cs keeps cross-group request delivery
-badge-only. Groups/StatusScreens.cs exposes one group selector for both the main
+and close/accept pumping; TradeInboxScreens.cs keeps cross-community request delivery
+badge-only. Communities/StatusScreens.cs exposes one community selector for both the main
 header and Shell/LauncherWindow.cs, bridged by MainWindow/Plugin. Selection uses
-the existing SwitchGroup lifecycle; incoming invitations do not pin a group, while
+the existing SwitchCommunity lifecycle; incoming invitations do not pin a community, while
 sent requests and accepted exchanges retain cancellation-before-switch behavior.
 
 ## Home overview and logos
 
-Plugin/Features/Groups/HomeOverviewScreens.cs owns responsive cards, logo picker
+Plugin/Features/Communities/HomeOverviewScreens.cs owns responsive cards, logo picker
 and display. HomeProfileScreens.cs owns inline profile/currency drafts and saves;
 AnnouncementScreens.cs owns inline publishing and the full-message reader.
-Plugin/Services/Media/GroupImageCache.cs is the shared scoped currency/logo texture
+Plugin/Services/Media/CommunityImageCache.cs is the shared scoped currency/logo texture
 lifecycle. FoundationClient.GetImageAsync enforces streaming byte budgets.
 
-Server/Features/Media/GroupLogoService.cs owns authenticated logo read/replace/remove.
+Server/Features/Media/CommunityLogoService.cs owns authenticated logo read/replace/remove.
 StaticImageUpload.cs shares strict static decoding/normalization with CurrencyIconService.
-GroupLogos migration adds purpose-specific media bounds and logo FK/version.
-GroupLogoTests covers persistence, authority, input bounds, cleanup and upgrades;
-GroupImageDownloadTests covers declared/chunked response limits.
+CommunityLogos migration adds purpose-specific media bounds and logo FK/version.
+CommunityLogoTests covers persistence, authority, input bounds, cleanup and upgrades;
+CommunityImageDownloadTests covers declared/chunked response limits.

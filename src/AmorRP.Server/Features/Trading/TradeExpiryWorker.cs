@@ -15,13 +15,13 @@ public sealed class TradeExpiryWorker(IServiceScopeFactory scopes, TimeProvider 
                 var db = scope.ServiceProvider.GetRequiredService<AmorDbContext>();
                 var reservations = scope.ServiceProvider.GetRequiredService<TradeReservations>();
                 var now = time.GetUtcNow();
-                var groups = await db.Trades.Where(x => (x.State == "invited" || x.State == "open" || x.State == "confirming") && x.ExpiresAt <= now)
-                    .Select(x => x.GroupId).Distinct().Take(100).ToArrayAsync(stoppingToken);
-                foreach (var group in groups)
+                var communities = await db.Trades.Where(x => (x.State == "invited" || x.State == "open" || x.State == "confirming") && x.ExpiresAt <= now)
+                    .Select(x => x.CommunityId).Distinct().Take(100).ToArrayAsync(stoppingToken);
+                foreach (var community in communities)
                 {
                     await using var tx = await db.Database.BeginTransactionAsync(stoppingToken);
-                    await CommandStore.LockAsync(db, ["group:" + group], stoppingToken);
-                    await reservations.ExpireAsync(group, stoppingToken); await db.SaveChangesAsync(stoppingToken); await tx.CommitAsync(stoppingToken);
+                    await CommandStore.LockAsync(db, ["community:" + community], stoppingToken);
+                    await reservations.ExpireAsync(community, stoppingToken); await db.SaveChangesAsync(stoppingToken); await tx.CommitAsync(stoppingToken);
                     db.ChangeTracker.Clear();
                 }
             }

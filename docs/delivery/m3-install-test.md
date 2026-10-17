@@ -2,13 +2,13 @@
 
 M3 is a testable inventory alpha, not 1.0. Plugin **0.0.4.0**, server **0.0.4**,
 Dalamud API **15**, API **v1**. Use branch `m3-inventory`. Existing M2 identities,
-saved device sessions, groups and balances are preserved; do not wipe the database
+saved device sessions, communities and balances are preserved; do not wipe the database
 or regenerate the encryption key. This build includes the M2 member-removal fix;
 it still requires the in-game check below before acceptance.
 
 ## Included
 
-- A shared group dropdown above the tabs; active members by default and owner-only
+- A shared community dropdown above the tabs; active members by default and owner-only
   **Show inactive members** for retained dormant/blocked memberships.
 - **Refresh data**, last-update/stale feedback and a 60-second read refresh while
   either product window is visible. Refresh preserves policy, recipe and letter
@@ -16,12 +16,12 @@ it still requires the in-game check below before acceptance.
 - Member removal has a dedicated required reason and confirmation. Action results
   survive refresh; **Action troubleshooting** shows safe HTTP status, error code,
   request ID and operation key. Rejected kicks do not create a success history event.
-- Successful joins clear the invitation/visibility fields; successful group
+- Successful joins clear the invitation/visibility fields; successful community
   creation resets its own form. Failed or unknown outcomes retain input.
 - Owner currency-icon upload for static PNG, JPG/JPEG and WebP, max 128x128 and
   256 KiB encoded by default. Server validates/normalizes to PNG and stores it in
   PostgreSQL; a bundled coin icon is used when absent. Icon edits preserve balances.
-- Default Consumables/Correspondence categories for old and new groups; owner
+- Default Consumables/Correspondence categories for old and new communities; owner
   category creation/rename/retirement and immutable potion recipe revisions.
 - Authorized potion creation spends the creator's independent weekly points;
   ordinary characters may create letters within their own allowance. Owners also
@@ -29,7 +29,7 @@ it still requires the in-game check below before acceptance.
 - Searchable, paginated inventory with type/category/sort controls; private letter
   reading and eligible editing; quantity-confirmed discard and authorized removal
   through holding summaries that exclude letter bodies.
-- Compact consumables, per-group/character pins, exact message/destination preview,
+- Compact consumables, per-community/character pins, exact message/destination preview,
   local party/linkshell membership checks before and after consumption, deliberate
   use of one potion, and explicit manual message resend after review.
   Replayed/recovered consumption never automatically posts chat.
@@ -67,7 +67,7 @@ plugin distribution are later gates. The old M1 tools remain diagnostic only.
    `SecretVault` keys. M3 adds no authentication setup. Its additive migration
    creates categories, revisions, holdings, letters, usage snapshots and media;
    existing currency IDs, balances, memberships and sessions remain intact.
-3. Check `/health/ready` and `/api/v1/capabilities`: server/minimum client `0.0.4`,
+3. Check `/health/ready` and `/api/v2/capabilities`: server/minimum client `0.0.4`,
    supported types `potion` and `letter`. Do not mix an M3 plugin with an M2 server.
    If a restore is needed, restore the backup and matching M2 server together;
    rolling back only the binary leaves an incompatible newer database.
@@ -92,11 +92,11 @@ The icon dimension ceiling for this release is 128 and is advertised in capabili
    resume on the same Windows user; a new device still needs its own initial login.
    Answer the startup chat question once and use **Check connection**.
 5. Open **Open compact consumables**, or `/amorrp compact`, to toggle the small
-   window. It shares login, selected group and inventory state with the main window.
+   window. It shares login, selected community and inventory state with the main window.
 
-If no groups appear, confirm the server is M3, login matches the current character,
+If no communities appear, confirm the server is M3, login matches the current character,
 and there is no unresolved saved action. Use Refresh data before reloading the
-plugin. Changing character/group/backend clears old private views.
+plugin. Changing character/community/backend clears old private views.
 
 ## Focused in-game acceptance
 
@@ -109,7 +109,7 @@ out of bug reports. No paid rename or world-transfer test is required.
 1. Owner selects a member. Leave **Member removal reason** empty: removal must be
    disabled. Enter a reason and check the block confirmation, then remove.
 2. Confirm the active roster hides that member, **History & devices** has exactly
-   one removal entry, and the removed character loses group/inventory access after
+   one removal entry, and the removed character loses community/inventory access after
    its next refresh. Its assets remain retained internally.
 3. Owner enables Show inactive members: the blocked row appears. Restore eligibility
    with a reason; rejoin using an invitation, then reauthorize potion creation as
@@ -121,12 +121,12 @@ out of bug reports. No paid rename or world-transfer test is required.
 
 ### Navigation, refresh and forms
 
-- Switch groups from every tab and the compact window; verify group/character and
+- Switch communities from every tab and the compact window; verify community/character and
   currency always match. Old letter details must disappear on a switch.
 - Confirm dormant members are hidden until the owner opts in. Ordinary members
   should never see inactive rows.
 - Join successfully: entered code/visibility reset. Create successfully: its draft
-  returns to defaults and the new group is selected. On rejection inputs remain.
+  returns to defaults and the new community is selected. On rejection inputs remain.
 - Leave a policy/recipe/letter draft open while another character changes inventory;
   manual refresh and the next minute update read data without erasing the draft.
   Hidden windows stop polling. Sign-out or switching never reasks startup consent.
@@ -140,9 +140,9 @@ images must fail clearly; ordinary members cannot change icons.
 
 ### Inventory play session
 
-1. For immediate testing, create a group with **12 initial potion points** and
-   **5 letters**. Existing group policy edits apply next Monday, so a zero-point
-   group cannot gain an immediate allowance through editing its current policy.
+1. For immediate testing, create a community with **12 initial potion points** and
+   **5 letters**. Existing community policy edits apply next Monday, so a zero-point
+   community cannot gain an immediate allowance through editing its current policy.
 2. Owner defines a potion at difficulty **3**, with a short literal use message.
    Authorize each member for potion creation. Each character should independently
    be able to create four copies; a fifth exceeds that character's 12 points.
@@ -203,7 +203,7 @@ OpenAPI/documentation validation are required before packaging. A server depende
 scan reported no known vulnerable packages in the current NuGet feed. This record
 is not in-game acceptance or hosted CI/container evidence.
 
-Published Linux x64 native smoke checks also passed: real HTTP group/recipe/
+Published Linux x64 native smoke checks also passed: real HTTP community/recipe/
 production/use/replay, authenticated normalized PNG, a valid upload larger than
 the JSON body ceiling, APNG rejection and encoded-size rejection. The disposable
 smoke database/process were removed afterwards. Docker build was attempted but

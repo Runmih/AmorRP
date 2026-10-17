@@ -36,7 +36,7 @@ public sealed class LoginStartTests
         public int Requests { get; private set; }
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
         {
-            Requests++; Assert.Equal(HttpMethod.Post, request.Method); Assert.Equal("/api/v1/auth/login-attempts", request.RequestUri!.AbsolutePath);
+            Requests++; Assert.Equal(HttpMethod.Post, request.Method); Assert.Equal("/api/v2/auth/login-attempts", request.RequestUri!.AbsolutePath);
             Assert.Null(request.Headers.Authorization); Assert.True(request.Headers.Contains("Idempotency-Key")); Assert.True(request.Headers.Contains("X-Login-Request-Credential"));
             var json = await request.Content!.ReadAsStringAsync(ct); Assert.DoesNotContain("refreshToken", json); Assert.DoesNotContain("accessToken", json);
             var attempt = new LoginAttemptCreated(Guid.NewGuid(), authorizationUrl, new string('a', 43), DateTimeOffset.UtcNow.AddMinutes(5), 3, pairing);

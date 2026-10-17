@@ -2,7 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using AmorRP.Contracts.Auth;
-using AmorRP.Contracts.Groups;
+using AmorRP.Contracts.Communities;
 using AmorRP.Contracts.Currency;
 using AmorRP.Contracts.History;
 using AmorRP.Contracts.Common;
@@ -48,9 +48,9 @@ public sealed class DurableXivAuthProvider(HttpClient client, IOptions<XivAuthOp
             || scopes == null || !scopes.SequenceEqual(new[] { "character", "refresh" })
             || !token.TryGetProperty("refresh_token", out var refresh) || string.IsNullOrWhiteSpace(refresh.GetString())) return null;
         var url = id == null
-            ? QueryHelpers.AddQueryString(XivAuthProvider.Origin + "api/v1/characters", new Dictionary<string, string?> {
+            ? QueryHelpers.AddQueryString(XivAuthProvider.Origin + "api/v2/characters", new Dictionary<string, string?> {
                 ["name"] = selected!.DisplayName, ["home_world"] = selected.HomeWorldName })
-            : XivAuthProvider.Origin + "api/v1/characters/" + Uri.EscapeDataString(id);
+            : XivAuthProvider.Origin + "api/v2/characters/" + Uri.EscapeDataString(id);
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token.GetProperty("access_token").GetString());
         using var response = await client.SendAsync(request, ct);

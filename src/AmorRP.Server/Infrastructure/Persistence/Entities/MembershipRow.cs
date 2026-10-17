@@ -2,7 +2,7 @@ namespace AmorRP.Server.Infrastructure.Persistence;
 
 public sealed class MembershipRow
 {
-    public Guid GroupId { get; set; }
+    public Guid CommunityId { get; set; }
     public Guid CharacterId { get; set; }
     public string Status { get; set; } = "active";
     public Guid[] ReadAnnouncementIds { get; set; } = [];

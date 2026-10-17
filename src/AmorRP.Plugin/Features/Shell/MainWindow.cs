@@ -9,45 +9,45 @@ namespace AmorRP.Plugin.Features.Shell;
 
 public sealed class MainWindow : Window, IDisposable
 {
-    private readonly AmorRP.Plugin.Features.Groups.GroupsPanel groups;
+    private readonly AmorRP.Plugin.Features.Communities.CommunitiesPanel communities;
 
     public MainWindow(IPlayerState playerState, IPartyList party, Configuration configuration, Action save, ITextureProvider textures)
         : base("Amor RP###AmorRPMain")
     {
-        groups = new(playerState, configuration, save, party, textures);
+        communities = new(playerState, configuration, save, party, textures);
         Size = new Vector2(960, 680);
         SizeCondition = ImGuiCond.FirstUseEver;
-        groups.OpenMainWindow = () => IsOpen = true;
-        groups.OpenTradeWindow = () => OpenTrade?.Invoke();
-        groups.OpenJoinGroup = () => OpenJoinGroup?.Invoke();
-        groups.OpenCreateGroup = () => OpenCreateGroup?.Invoke();
-        groups.CloseJoinGroup = () => CloseJoinGroup?.Invoke();
-        groups.CloseCreateGroup = () => CloseCreateGroup?.Invoke();
-        groups.SetLauncherVisible = visible => SetLauncherVisible?.Invoke(visible);
+        communities.OpenMainWindow = () => IsOpen = true;
+        communities.OpenTradeWindow = () => OpenTrade?.Invoke();
+        communities.OpenJoinCommunity = () => OpenJoinCommunity?.Invoke();
+        communities.OpenCreateCommunity = () => OpenCreateCommunity?.Invoke();
+        communities.CloseJoinCommunity = () => CloseJoinCommunity?.Invoke();
+        communities.CloseCreateCommunity = () => CloseCreateCommunity?.Invoke();
+        communities.SetLauncherVisible = visible => SetLauncherVisible?.Invoke(visible);
     }
 
-    public void Tick() { groups.EnsureScope(ProductServer.Origin); groups.Tick(); }
-    public int PendingTradeRequests => groups.PendingTradeRequests;
-    public int UnreadAnnouncements => groups.UnreadAnnouncements;
-    public void OpenMainFromLauncher() { groups.FocusUnreadAnnouncements(); IsOpen = true; }
-    public void DrawLauncherGroupSelector() => groups.DrawLauncherGroupSelector();
-    public void OpenTradeFromLauncher() => groups.OpenTradeFromLauncher();
+    public void Tick() { communities.EnsureScope(ProductServer.Origin); communities.Tick(); }
+    public int PendingTradeRequests => communities.PendingTradeRequests;
+    public int UnreadAnnouncements => communities.UnreadAnnouncements;
+    public void OpenMainFromLauncher() { communities.FocusUnreadAnnouncements(); IsOpen = true; }
+    public void DrawLauncherCommunitySelector() => communities.DrawLauncherCommunitySelector();
+    public void OpenTradeFromLauncher() => communities.OpenTradeFromLauncher();
     public Action<bool>? SetLauncherVisible { get; set; }
     public Action? OpenTrade { get; set; }
-    public void DrawTrade() => groups.DrawTradeWindow();
-    public void TradeOpened() => groups.TradeWindowOpened();
-    public void TradeClosed() => groups.TradeWindowClosed();
-    public Action? OpenJoinGroup { get; set; }
-    public Action? OpenCreateGroup { get; set; }
-    public Action? CloseJoinGroup { get; set; }
-    public Action? CloseCreateGroup { get; set; }
-    public bool CanDrawGroupForms => groups.CanDrawGroupForms;
-    public void DrawJoinGroup() => groups.DrawJoinGroup();
-    public void DrawCreateGroup() => groups.DrawCreateGroup();
-    public void DrawCompact() => groups.Draw(ProductServer.Origin, compactMode: true);
-    public override void Draw() => groups.Draw(ProductServer.Origin);
-    public void ClearFeedback() => groups.WindowOpened();
+    public void DrawTrade() => communities.DrawTradeWindow();
+    public void TradeOpened() => communities.TradeWindowOpened();
+    public void TradeClosed() => communities.TradeWindowClosed();
+    public Action? OpenJoinCommunity { get; set; }
+    public Action? OpenCreateCommunity { get; set; }
+    public Action? CloseJoinCommunity { get; set; }
+    public Action? CloseCreateCommunity { get; set; }
+    public bool CanDrawCommunityForms => communities.CanDrawCommunityForms;
+    public void DrawJoinCommunity() => communities.DrawJoinCommunity();
+    public void DrawCreateCommunity() => communities.DrawCreateCommunity();
+    public void DrawCompact() => communities.Draw(ProductServer.Origin, compactMode: true);
+    public override void Draw() => communities.Draw(ProductServer.Origin);
+    public void ClearFeedback() => communities.WindowOpened();
     public override void OnOpen() => ClearFeedback();
-    public void SelectTarget(CharacterTarget target) => groups.SelectTradeTarget(target);
-    public void Dispose() => groups.Dispose();
+    public void SelectTarget(CharacterTarget target) => communities.SelectTradeTarget(target);
+    public void Dispose() => communities.Dispose();
 }

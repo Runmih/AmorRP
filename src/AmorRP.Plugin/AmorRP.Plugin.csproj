@@ -2,9 +2,9 @@
   <PropertyGroup>
     <AssemblyName>AmorRP</AssemblyName>
     <RootNamespace>AmorRP.Plugin</RootNamespace>
-    <Version>0.0.6.16</Version>
+    <Version>0.0.6.17</Version>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <Description>Bringing FFXIV roleplay venues and communities together with RP groups, inventories, currency, crafting and trading.</Description>
+    <Description>Bringing FFXIV roleplay venues and communities together with RP communities, inventories, currency, crafting and trading.</Description>
     <PackageProjectUrl>https://github.com/Runmih/AmorRP</PackageProjectUrl>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
   </PropertyGroup>

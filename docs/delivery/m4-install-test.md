@@ -36,12 +36,12 @@ all environment variables. A new database/login/app is not needed.
    healthy service. The new migration creates trades/slots/offer lines, preserves
    asset/character/category IDs and old content/usage. Server 0.0.6.8 corrects its
    original category rewrite: legacy names/allowed types remain unchanged; owners
-   explicitly opt in to new writing types. New groups seed Books. Existing letters
+   explicitly opt in to new writing types. New communities seed Books. Existing letters
    default to `letter`.
    DoubleTradeConfirmation adds final approvals and the confirming state. Existing
    pending first approvals reset and their revision advances; their offers,
    reservations and expiry remain. Terminal trades and assets are unchanged.
-5. Open your existing `/health/ready` and `/api/v1/capabilities`. Readiness should
+5. Open your existing `/health/ready` and `/api/v2/capabilities`. Readiness should
    be `ok`; serverVersion/minimumClientVersion should be **0.0.5.2**, and supported
    types should include potion, letter, book and note.
 
@@ -73,10 +73,10 @@ downgrade once new trade/writing data exists.
    Keep the accompanying AmorRP.Contracts DLL, DPAPI DLL and manifest/notices.
 3. In Dalamud's developer-plugin settings, use the existing path to **AmorRP.dll**.
    Reload/enable the plugin. Verify **0.0.5.2** and Dalamud **API 15**.
-4. Open `/amorrp`. Saved login, selected group and pins should remain. Answer the
+4. Open `/amorrp`. Saved login, selected community and pins should remain. Answer the
    chat-consent question once for this startup; it is not repeated per potion use.
 5. Inventory opens by default. Use **Settings → General** for server connection
-   checks and group creation/join/leave. Use **Home** for the group profile and its
+   checks and community creation/join/leave. Use **Home** for the community profile and its
    owner controls. Authentication/devices and History are Settings subtabs.
 
 `/amorrp compact` opens the separate consumables window. Old M3 layout tabs should
@@ -84,7 +84,7 @@ be gone; if they remain, the old DLL is still loaded.
 
 ## Focused two-character test
 
-Use the existing owner and member, in the same test group. Keep test amounts small.
+Use the existing owner and member, in the same test community. Keep test amounts small.
 No paid name-change test or repeated full M3 checklist is required.
 
 1. **Layout/stability:** verify vertical Home/Inventory/Crafting/Members/Trades/
@@ -97,10 +97,10 @@ No paid name-change test or repeated full M3 checklist is required.
    Letter and Note, sharing the same weekly writing allowance. Existing letters
    remain readable. Use a potion and verify the chosen channel once.
 3. **Invitation:** right-click the other player and choose **Amor RP: Trade**.
-   Select the shared group, resolve the character against its verified roster,
+   Select the shared community, resolve the character against its verified roster,
    review the target, then Invite. On the recipient, expect a pending invitation
-   and a separate trade window to open. Accept it. A character outside this group cannot
-   receive that group's assets.
+   and a separate trade window to open. Accept it. A character outside this community cannot
+   receive that community's assets.
 4. **Offer layout/normalization:** your inventory is on the left; your offer is
    top-right and the other player's is below. Right arrows add the chosen quantity;
    left arrows remove it. Enter **04** currency and leave the field: it should show
@@ -121,8 +121,8 @@ No paid name-change test or repeated full M3 checklist is required.
    editing after its first trade. Settings → History identifies actor/affected
    player names/worlds and the item/currency summary without written bodies.
 7. **Cancel/switch:** start another trade and reserve an item. Cancel; availability
-   returns without refunding creation allowance. Start again and try a group
-   switch; explicitly cancel/reconcile the trade before the new group's view opens.
+   returns without refunding creation allowance. Start again and try a community
+   switch; explicitly cancel/reconcile the trade before the new community's view opens.
 8. **Recovery:** leave one trade open with an offer and reload one plugin or have
    the installation agent restart the test server. Reopen Trades: same trade,
    revision and reservations should remain. Cancel, or let its displayed expiry
@@ -205,7 +205,7 @@ in-flight commands incorrectly displayed the unresolved-outcome warning, and
 conditional Cancel waiting/feedback controls increased the height above the form.
 This was layout movement, not evidence of an actual plugin unload/reload.
 
-Plugin **0.0.5.1** puts the group/status controls and action feedback in fixed-height
+Plugin **0.0.5.1** puts the community/status controls and action feedback in fixed-height
 regions. Cancel waiting keeps its reserved place; diagnostics open in a popup.
 Normal running/queued writes show Saving action; recovery controls appear only
 when the saved command is no longer running and still lacks a confirmed outcome.

@@ -4,7 +4,7 @@ using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text.Json;
 using AmorRP.Contracts.Auth;
-using AmorRP.Contracts.Groups;
+using AmorRP.Contracts.Communities;
 using AmorRP.Contracts.Currency;
 using AmorRP.Contracts.History;
 using AmorRP.Contracts.Common;
@@ -37,8 +37,8 @@ public sealed class FoundationClient : IDisposable
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, new Uri(origin, path)); request.Headers.Authorization = new("Bearer", token);
         using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct); await CheckAsync(response, ct);
-        if (response.Content.Headers.ContentType?.MediaType != "image/png") throw new InvalidOperationException("Invalid group image response.");
-        if (response.Content.Headers.ContentLength > maxBytes) throw new InvalidOperationException("Group image exceeds its storage limit.");
+        if (response.Content.Headers.ContentType?.MediaType != "image/png") throw new InvalidOperationException("Invalid community image response.");
+        if (response.Content.Headers.ContentLength > maxBytes) throw new InvalidOperationException("Community image exceeds its storage limit.");
         await using var stream = await response.Content.ReadAsStreamAsync(ct);
         using var memory = new MemoryStream(); var buffer = new byte[8192];
         while (true)
@@ -46,7 +46,7 @@ public sealed class FoundationClient : IDisposable
             var read = await stream.ReadAsync(buffer.AsMemory(0, Math.Min(buffer.Length, maxBytes + 1 - (int)memory.Length)), ct);
             if (read == 0) break;
             memory.Write(buffer, 0, read);
-            if (memory.Length > maxBytes) throw new InvalidOperationException("Group image exceeds its storage limit.");
+            if (memory.Length > maxBytes) throw new InvalidOperationException("Community image exceeds its storage limit.");
         }
         return memory.ToArray();
     }
@@ -64,14 +64,14 @@ public sealed class FoundationClient : IDisposable
                 file.Headers.ContentType = new("application/octet-stream"); multipart.Add(file, "file", "currency-icon"); request.Content = multipart;
             }
             else if (command.Json != null) request.Content = new StringContent(command.Json, System.Text.Encoding.UTF8, "application/json");
-            using var response = await http.SendAsync(request, ct); await CheckAsync(response, ct); return new CommandResponse(await response.Content.ReadAsStringAsync(ct), response.Headers.TryGetValues("Idempotency-Replayed", out var replay) && replay.Contains("true"));
+            using var response = await http.SendAsync(request, ct); await CheckAsync(response, ct); var json = await response.Content.ReadAsStringAsync(ct); return new CommandResponse(command.Path.StartsWith("api/v1/", StringComparison.Ordinal) ? LegacyCommunityJson.ToCurrent(json) : json, response.Headers.TryGetValues("Idempotency-Replayed", out var replay) && replay.Contains("true"));
         }, ct);
     }
     public async Task<LoginAttemptCreated> StartAsync(Uri origin, LoginStart selected, CancellationToken ct)
     {
         var key = Guid.CreateVersion7(); var secret = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)).TrimEnd('=').Replace('+','-').Replace('/','_');
         var response = await RetryAsync(async () => {
-            using var r = new HttpRequestMessage(HttpMethod.Post, new Uri(origin, "api/v1/auth/login-attempts"));
+            using var r = new HttpRequestMessage(HttpMethod.Post, new Uri(origin, "api/v2/auth/login-attempts"));
             r.Headers.Add("Idempotency-Key", key.ToString()); r.Headers.Add("X-Login-Request-Credential", secret); r.Content = JsonContent.Create(selected);
             return await SendAsync<CommandResult<LoginAttemptCreated>>(r, ct);
         }, ct);
@@ -84,7 +84,7 @@ public sealed class FoundationClient : IDisposable
         while (DateTimeOffset.UtcNow < attempt.ExpiresAt)
         {
             await Task.Delay(TimeSpan.FromSeconds(Math.Clamp(attempt.PollIntervalSeconds, 3, 10)), ct);
-            using var r = new HttpRequestMessage(HttpMethod.Get, new Uri(origin, $"api/v1/auth/login-attempts/{attempt.AttemptId}"));
+            using var r = new HttpRequestMessage(HttpMethod.Get, new Uri(origin, $"api/v2/auth/login-attempts/{attempt.AttemptId}"));
             r.Headers.Add("X-Login-Attempt-Credential", attempt.AttemptCredential);
             var state = await SendAsync<LoginAttemptStatus>(r, ct);
             if (state.Status == "pending") continue;
@@ -97,7 +97,7 @@ public sealed class FoundationClient : IDisposable
     {
         if (!attempt.PairingRequired || string.IsNullOrWhiteSpace(pairingCode)) throw new InvalidOperationException("Enter the pairing code from your browser.");
         return (await RetryAsync(async () => {
-            using var exchange = new HttpRequestMessage(HttpMethod.Post, new Uri(origin, $"api/v1/auth/login-attempts/{attempt.AttemptId}/exchange"));
+            using var exchange = new HttpRequestMessage(HttpMethod.Post, new Uri(origin, $"api/v2/auth/login-attempts/{attempt.AttemptId}/exchange"));
             exchange.Headers.Add("Idempotency-Key", key.ToString()); exchange.Headers.Add("X-Login-Attempt-Credential", attempt.AttemptCredential);
             exchange.Content = JsonContent.Create(new LoginExchangeRequest(pairingCode));
             return await SendAsync<CommandResult<SessionTokens>>(exchange, ct);
@@ -105,7 +105,7 @@ public sealed class FoundationClient : IDisposable
     }
     public async Task<SessionTokens> RenewAsync(Uri origin, SessionTokens tokens, Guid key, CancellationToken ct)
     {
-        var command = new CommandRequest("POST", "api/v1/auth/sessions/refresh", JsonSerializer.Serialize(new RefreshRequest(tokens.RefreshToken), Json), null);
+        var command = new CommandRequest("POST", "api/v2/auth/sessions/refresh", JsonSerializer.Serialize(new RefreshRequest(tokens.RefreshToken), Json), null);
         var response = await CommandAsync(origin, command, key, "", ct);
         return JsonSerializer.Deserialize<CommandResult<SessionTokens>>(response, Json)!.Result;
     }

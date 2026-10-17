@@ -18,7 +18,7 @@ public sealed partial class FoundationTests
             b.UseSetting("ServicePolicy:LoginRequestsPerMinute", "60");
         });
         await Migrate(factory);
-        var path = login ? "/auth/xivauth/callback?state=invalid" : "/api/v1/capabilities";
+        var path = login ? "/auth/xivauth/callback?state=invalid" : "/api/v2/capabilities";
         var normal = login ? StatusCodes.Status400BadRequest : StatusCodes.Status200OK;
         for (var i = 0; i < 60; i++) Assert.Equal(normal, (await NetworkRequest(factory.Server, path, "203.0.113.10")).Response.StatusCode);
         var limited = await NetworkRequest(factory.Server, path, "203.0.113.10");
@@ -41,9 +41,9 @@ public sealed partial class FoundationTests
         });
         await Migrate(factory);
         for (var i = 0; i < 60; i++)
-            Assert.Equal(200, (await NetworkRequest(factory.Server, "/api/v1/capabilities", "10.20.0.1", $"198.51.100.{i}, 203.0.113.10")).Response.StatusCode);
-        Assert.Equal(429, (await NetworkRequest(factory.Server, "/api/v1/capabilities", "10.20.0.1", "198.51.100.99, 203.0.113.10")).Response.StatusCode);
-        Assert.Equal(200, (await NetworkRequest(factory.Server, "/api/v1/capabilities", "10.20.0.1", "198.51.100.99, 203.0.113.11")).Response.StatusCode);
+            Assert.Equal(200, (await NetworkRequest(factory.Server, "/api/v2/capabilities", "10.20.0.1", $"198.51.100.{i}, 203.0.113.10")).Response.StatusCode);
+        Assert.Equal(429, (await NetworkRequest(factory.Server, "/api/v2/capabilities", "10.20.0.1", "198.51.100.99, 203.0.113.10")).Response.StatusCode);
+        Assert.Equal(200, (await NetworkRequest(factory.Server, "/api/v2/capabilities", "10.20.0.1", "198.51.100.99, 203.0.113.11")).Response.StatusCode);
     }
 
     [Theory]
@@ -59,9 +59,9 @@ public sealed partial class FoundationTests
         });
         await Migrate(factory);
         for (var i = 0; i < 60; i++)
-            Assert.Equal(200, (await NetworkRequest(factory.Server, "/api/v1/capabilities", original, $"198.51.100.{i}", "unverified-" + i)).Response.StatusCode);
-        Assert.Equal(429, (await NetworkRequest(factory.Server, "/api/v1/capabilities", alias, "198.51.100.99", "new-unverified")).Response.StatusCode);
-        Assert.Equal(200, (await NetworkRequest(factory.Server, "/api/v1/capabilities", other, "198.51.100.99")).Response.StatusCode);
+            Assert.Equal(200, (await NetworkRequest(factory.Server, "/api/v2/capabilities", original, $"198.51.100.{i}", "unverified-" + i)).Response.StatusCode);
+        Assert.Equal(429, (await NetworkRequest(factory.Server, "/api/v2/capabilities", alias, "198.51.100.99", "new-unverified")).Response.StatusCode);
+        Assert.Equal(200, (await NetworkRequest(factory.Server, "/api/v2/capabilities", other, "198.51.100.99")).Response.StatusCode);
     }
 
     [Theory]
@@ -86,7 +86,7 @@ public sealed partial class FoundationTests
             b.UseSetting("ServicePolicy:LoginRequestsPerMinute", "60");
         });
         await Migrate(factory);
-        var path = login ? "/auth/xivauth/callback?state=invalid" : "/api/v1/capabilities";
+        var path = login ? "/auth/xivauth/callback?state=invalid" : "/api/v2/capabilities";
         var normal = login ? 400 : 200;
         for (var i = 0; i < 60; i++)
             Assert.Equal(normal, (await NetworkRequest(factory.Server, path, $"10.20.0.{i + 1}",
@@ -110,10 +110,10 @@ public sealed partial class FoundationTests
     {
         using var factory = Factory().WithWebHostBuilder(b => b.UseSetting("RENDER", "true"));
         await Migrate(factory);
-        var response = await NetworkRequest(factory.Server, "/api/v1/capabilities", "10.20.0.1", "203.0.113.99", renderIp: renderIp);
+        var response = await NetworkRequest(factory.Server, "/api/v2/capabilities", "10.20.0.1", "203.0.113.99", renderIp: renderIp);
         Assert.Equal(503, response.Response.StatusCode);
         Assert.Equal("no-store", response.Response.Headers.CacheControl.ToString());
-        Assert.Equal(200, (await NetworkRequest(factory.Server, "/api/v1/capabilities", "10.20.0.1", renderIp: "203.0.113.10")).Response.StatusCode);
+        Assert.Equal(200, (await NetworkRequest(factory.Server, "/api/v2/capabilities", "10.20.0.1", renderIp: "203.0.113.10")).Response.StatusCode);
     }
 
     [Fact]
@@ -125,12 +125,12 @@ public sealed partial class FoundationTests
         });
         await Migrate(factory);
         for (var i = 0; i < 60; i++)
-            Assert.Equal(200, (await NetworkRequest(factory.Server, "/api/v1/capabilities", "10.20.0.1", renderIp: $"2001:db8:42:1::{i + 1:x}")).Response.StatusCode);
-        Assert.Equal(429, (await NetworkRequest(factory.Server, "/api/v1/capabilities", "10.20.0.1", renderIp: "2001:0db8:0042:0001:0000:0000:0000:0061")).Response.StatusCode);
-        Assert.Equal(200, (await NetworkRequest(factory.Server, "/api/v1/capabilities", "10.20.0.1", renderIp: "2001:db8:42:2::1")).Response.StatusCode);
+            Assert.Equal(200, (await NetworkRequest(factory.Server, "/api/v2/capabilities", "10.20.0.1", renderIp: $"2001:db8:42:1::{i + 1:x}")).Response.StatusCode);
+        Assert.Equal(429, (await NetworkRequest(factory.Server, "/api/v2/capabilities", "10.20.0.1", renderIp: "2001:0db8:0042:0001:0000:0000:0000:0061")).Response.StatusCode);
+        Assert.Equal(200, (await NetworkRequest(factory.Server, "/api/v2/capabilities", "10.20.0.1", renderIp: "2001:db8:42:2::1")).Response.StatusCode);
         var duplicate = await factory.Server.SendAsync(context =>
         {
-            context.Request.Method = "GET"; context.Request.Path = "/api/v1/capabilities";
+            context.Request.Method = "GET"; context.Request.Path = "/api/v2/capabilities";
             context.Request.Headers.Append("CF-Connecting-IP", "203.0.113.1");
             context.Request.Headers.Append("CF-Connecting-IP", "203.0.113.2");
         }, TestContext.Current.CancellationToken);
@@ -143,8 +143,8 @@ public sealed partial class FoundationTests
         using var factory = Factory().WithWebHostBuilder(b => b.UseSetting("ServicePolicy:ApiRequestsPerMinute", "60"));
         await Migrate(factory);
         for (var i = 0; i < 60; i++)
-            Assert.Equal(200, (await NetworkRequest(factory.Server, "/api/v1/capabilities", "203.0.113.10", renderIp: $"198.51.100.{i}")).Response.StatusCode);
-        Assert.Equal(429, (await NetworkRequest(factory.Server, "/api/v1/capabilities", "203.0.113.10", renderIp: "198.51.100.99")).Response.StatusCode);
+            Assert.Equal(200, (await NetworkRequest(factory.Server, "/api/v2/capabilities", "203.0.113.10", renderIp: $"198.51.100.{i}")).Response.StatusCode);
+        Assert.Equal(429, (await NetworkRequest(factory.Server, "/api/v2/capabilities", "203.0.113.10", renderIp: "198.51.100.99")).Response.StatusCode);
     }
 
     [Fact]

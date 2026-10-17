@@ -2,9 +2,8 @@ openapi: 3.0.3
 info:
   title: Amor RP proposed 1.0 API
   version: 1.0.0-draft
-  description: API v1 with per-operation status. M4 implements durable authentication, groups, currency/icons,
-    potion and Books inventory, weekly quotas, CRUD membership/removal and persistent trading. Events
-    and data lifecycle remain planned for M5.
+  description: API v2 uses communities for the shared economy and groups for profiles within a community. API v1 remains available
+    for stable client compatibility.
 servers:
 - url: https://api.example.invalid
   description: Placeholder; configure real trusted backend URL.
@@ -12,7 +11,7 @@ tags:
 - name: Service
 - name: Authentication
 - name: Character
-- name: Groups
+- name: Communities
 - name: Membership
 - name: Invitations
 - name: Ownership
@@ -25,6 +24,7 @@ tags:
 - name: Recovery
 - name: Data lifecycle
 - name: Events
+- name: Community Groups
 paths:
   /health/live:
     get:
@@ -53,7 +53,8 @@ paths:
       tags:
       - Service
       summary: Cached database and startup readiness; failure uses 503
-      description: One background probe per process, refreshed 5 seconds after completion by default. Initially unavailable; HTTP requests never initiate database probes. Responses use Cache-Control no-store.
+      description: One background probe per process, refreshed 5 seconds after completion by default. Initially unavailable;
+        HTTP requests never initiate database probes. Responses use Cache-Control no-store.
       security: []
       responses:
         '200':
@@ -75,7 +76,7 @@ paths:
                 $ref: '#/components/schemas/Health'
       x-authorization-policy: Public
       x-implementation-status: implemented
-  /api/v1/capabilities:
+  /api/v2/capabilities:
     get:
       operationId: getCapabilities
       tags:
@@ -120,7 +121,7 @@ paths:
           $ref: '#/components/responses/Problem'
       x-authorization-policy: Public
       x-implementation-status: implemented
-  /api/v1/auth/login-attempts:
+  /api/v2/auth/login-attempts:
     post:
       operationId: startLogin
       tags:
@@ -180,7 +181,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/LoginStart'
-  /api/v1/auth/login-attempts/{attemptId}:
+  /api/v2/auth/login-attempts/{attemptId}:
     get:
       operationId: getLoginStatus
       tags:
@@ -289,7 +290,7 @@ paths:
           type: string
           format: uuid
         description: UUIDv7. Same logical request retains key; see API guide for replay and age rules.
-  /api/v1/auth/login-attempts/{attemptId}/exchange:
+  /api/v2/auth/login-attempts/{attemptId}/exchange:
     post:
       operationId: exchangeLogin
       tags:
@@ -297,7 +298,8 @@ paths:
       summary: Pair verified browser approval and redeem once for session
       security:
       - LoginAttempt: []
-      description: Requires both the attempt credential and the one-time code displayed only on the verified browser page. Approval or polling alone cannot redeem. Five incorrect guesses by default permanently fail that attempt.
+      description: Requires both the attempt credential and the one-time code displayed only on the verified browser page.
+        Approval or polling alone cannot redeem. Five incorrect guesses by default permanently fail that attempt.
       requestBody:
         required: true
         content:
@@ -417,10 +419,10 @@ paths:
         required: false
         schema:
           type: string
-      description: Noncached HTML status only; no session tokens or provider errors rendered to browser.
-        Successful verification attempts tab closure after eight seconds with keep-open/manual-close
-        controls and a browser-blocked fallback. Failures stay open. Nonced same-origin assets only.
-        The page removes the OAuth query from its history entry. code or error follows actual provider contract.
+      description: Noncached HTML status only; no session tokens or provider errors rendered to browser. Successful verification
+        attempts tab closure after eight seconds with keep-open/manual-close controls and a browser-blocked fallback. Failures
+        stay open. Nonced same-origin assets only. The page removes the OAuth query from its history entry. code or error
+        follows actual provider contract.
   /auth/assets/login-background-{contentHash}.jpg:
     get:
       operationId: loginBackground
@@ -436,7 +438,7 @@ paths:
         required: true
         schema:
           type: string
-          pattern: '^[a-f0-9]{12}$'
+          pattern: ^[a-f0-9]{12}$
         description: First twelve hexadecimal characters of the bundled image SHA-256.
       responses:
         '200':
@@ -450,7 +452,7 @@ paths:
           description: Image unchanged for the supplied cache validator.
         '404':
           description: No bundled image matches this hash.
-  /api/v1/auth/sessions/refresh:
+  /api/v2/auth/sessions/refresh:
     post:
       operationId: refreshSession
       tags:
@@ -508,7 +510,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/RefreshRequest'
-  /api/v1/auth/sessions/current:
+  /api/v2/auth/sessions/current:
     delete:
       operationId: logout
       tags:
@@ -561,7 +563,7 @@ paths:
           type: string
           format: uuid
         description: UUIDv7. Same logical request retains key; see API guide for replay and age rules.
-  /api/v1/me:
+  /api/v2/me:
     get:
       operationId: getMe
       tags:
@@ -607,7 +609,7 @@ paths:
           $ref: '#/components/responses/Problem'
       x-authorization-policy: Session
       x-implementation-status: implemented
-  /api/v1/me/sessions:
+  /api/v2/me/sessions:
     get:
       operationId: listSessions
       tags:
@@ -663,7 +665,7 @@ paths:
           minimum: 1
           maximum: 100
           default: 50
-  /api/v1/me/sessions/{sessionId}:
+  /api/v2/me/sessions/{sessionId}:
     delete:
       operationId: revokeSession
       tags:
@@ -720,21 +722,21 @@ paths:
           type: string
           format: uuid
         description: UUIDv7. Same logical request retains key; see API guide for replay and age rules.
-  /api/v1/groups:
+  /api/v2/communities:
     get:
-      operationId: listGroups
+      operationId: listCommunities
       tags:
-      - Groups
-      summary: Current character active groups
+      - Communities
+      summary: Current character active communities
       security:
       - Session: []
       responses:
         '200':
-          description: Current character active groups
+          description: Current character active communities
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GroupPage'
+                $ref: '#/components/schemas/CommunityPage'
         '400':
           $ref: '#/components/responses/Problem'
         '401':
@@ -777,19 +779,19 @@ paths:
           maximum: 100
           default: 50
     post:
-      operationId: createGroup
+      operationId: createCommunity
       tags:
-      - Groups
-      summary: Create isolated group and defaults within caps
+      - Communities
+      summary: Create isolated community and defaults within caps
       security:
       - Session: []
       responses:
         '201':
-          description: Create isolated group and defaults within caps
+          description: Create isolated community and defaults within caps
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CreateGroupResult'
+                $ref: '#/components/schemas/CreateCommunityResult'
           headers:
             Idempotency-Replayed:
               schema: *id001
@@ -833,12 +835,12 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/GroupCreate'
-  /api/v1/groups/join:
+              $ref: '#/components/schemas/CommunityCreate'
+  /api/v2/communities/join:
     post:
-      operationId: joinGroup
+      operationId: joinCommunity
       tags:
-      - Groups
+      - Communities
       summary: Accept invitation within membership caps
       security:
       - Session: []
@@ -848,7 +850,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/JoinGroupResult'
+                $ref: '#/components/schemas/JoinCommunityResult'
           headers:
             Idempotency-Replayed:
               schema: *id001
@@ -892,22 +894,22 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/JoinGroup'
-  /api/v1/groups/{groupId}:
+              $ref: '#/components/schemas/JoinCommunity'
+  /api/v2/communities/{communityId}:
     get:
-      operationId: getGroup
+      operationId: getCommunity
       tags:
-      - Groups
-      summary: Group and own permissions/balance
+      - Communities
+      summary: Community and own permissions/balance
       security:
       - Session: []
       responses:
         '200':
-          description: Group and own permissions/balance
+          description: Community and own permissions/balance
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Group'
+                $ref: '#/components/schemas/Community'
           headers:
             ETag:
               schema:
@@ -940,24 +942,24 @@ paths:
       x-authorization-policy: Active member
       x-implementation-status: implemented
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: *id002
     patch:
-      operationId: editGroup
+      operationId: editCommunity
       tags:
-      - Groups
-      summary: Edit group name/description
+      - Communities
+      summary: Edit community name/description
       security:
       - Session: []
       responses:
         '200':
-          description: Edit group name/description
+          description: Edit community name/description
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/EditGroupResult'
+                $ref: '#/components/schemas/EditCommunityResult'
           headers:
             Idempotency-Replayed:
               schema: *id001
@@ -986,10 +988,10 @@ paths:
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
-      x-authorization-policy: Owner; group.moderate can change description only
+      x-authorization-policy: Owner; community.moderate can change description only
       x-implementation-status: implemented
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: *id002
@@ -1011,12 +1013,12 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/GroupEdit'
-  /api/v1/groups/{groupId}/leave:
+              $ref: '#/components/schemas/CommunityEdit'
+  /api/v2/communities/{communityId}/leave:
     post:
-      operationId: leaveGroup
+      operationId: leaveCommunity
       tags:
-      - Groups
+      - Communities
       summary: Leave; cancel trades and make holdings dormant
       security:
       - Session: []
@@ -1058,7 +1060,7 @@ paths:
       x-authorization-policy: Active member except owner
       x-implementation-status: implemented
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: *id002
@@ -1070,17 +1072,17 @@ paths:
           format: uuid
         description: UUIDv7. Same logical request retains key; see API guide for replay and age rules.
       deprecated: true
-  /api/v1/groups/{groupId}/deletion:
+  /api/v2/communities/{communityId}/deletion:
     post:
-      operationId: deleteGroup
+      operationId: deleteCommunity
       tags:
-      - Groups
-      summary: Soft delete group with exact-name confirmation
+      - Communities
+      summary: Soft delete community with exact-name confirmation
       security:
       - Session: []
       responses:
         '200':
-          description: Soft delete group with exact-name confirmation
+          description: Soft delete community with exact-name confirmation
           content:
             application/json:
               schema:
@@ -1116,7 +1118,7 @@ paths:
       x-authorization-policy: Owner
       x-implementation-status: implemented
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: *id002
@@ -1138,12 +1140,12 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/GroupDeletion'
-  /api/v1/groups/{groupId}/policies:
+              $ref: '#/components/schemas/CommunityDeletion'
+  /api/v2/communities/{communityId}/policies:
     get:
       operationId: getPolicies
       tags:
-      - Groups
+      - Communities
       summary: Current and next weekly policies
       security:
       - Session: []
@@ -1153,7 +1155,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GroupPolicies'
+                $ref: '#/components/schemas/CommunityPolicies'
           headers:
             ETag:
               schema:
@@ -1186,14 +1188,14 @@ paths:
       x-authorization-policy: Active member
       x-implementation-status: implemented
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: *id002
     put:
       operationId: editPolicies
       tags:
-      - Groups
+      - Communities
       summary: Schedule next-week limits
       security:
       - Session: []
@@ -1235,7 +1237,7 @@ paths:
       x-authorization-policy: Owner
       x-implementation-status: implemented
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: *id002
@@ -1258,17 +1260,17 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/PolicyEdit'
-  /api/v1/groups/{groupId}/members:
+  /api/v2/communities/{communityId}/members:
     get:
       operationId: listMembers
       tags:
       - Membership
-      summary: Consented own-group roster; owner may include dormant members
+      summary: Consented own-community roster; owner may include dormant members
       security:
       - Session: []
       responses:
         '200':
-          description: Consented own-group roster; owner may include dormant members
+          description: Consented own-community roster; owner may include dormant members
           content:
             application/json:
               schema:
@@ -1300,7 +1302,7 @@ paths:
       x-authorization-policy: Active member
       x-implementation-status: implemented
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: *id002
@@ -1329,8 +1331,9 @@ paths:
         schema:
           type: string
           maxLength: 200
-        description: Case-insensitive literal name or home-world substring, applied before pagination. Cursors are bound to the search.
-  /api/v1/groups/{groupId}/members/{characterId}/capabilities:
+        description: Case-insensitive literal name or home-world substring, applied before pagination. Cursors are bound to
+          the search.
+  /api/v2/communities/{communityId}/members/{characterId}/capabilities:
     put:
       operationId: setMemberCapabilities
       tags:
@@ -1376,7 +1379,7 @@ paths:
       x-authorization-policy: Owner; members.gameplay.manage can change Trading and items.potion.create only
       x-implementation-status: implemented
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: *id002
@@ -1403,7 +1406,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/MemberCapabilities'
-  /api/v1/groups/{groupId}/members/{characterId}/trade-restriction:
+  /api/v2/communities/{communityId}/members/{characterId}/trade-restriction:
     put:
       operationId: setTradeRestriction
       tags:
@@ -1449,7 +1452,7 @@ paths:
       x-authorization-policy: Owner; active nonowner
       x-implementation-status: implemented
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: *id002
@@ -1476,7 +1479,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/MemberRestriction'
-  /api/v1/groups/{groupId}/members/{characterId}/removal:
+  /api/v2/communities/{communityId}/members/{characterId}/removal:
     post:
       operationId: removeMember
       tags:
@@ -1522,7 +1525,7 @@ paths:
       x-authorization-policy: Owner; active nonowner
       x-implementation-status: implemented
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: *id002
@@ -1550,9 +1553,9 @@ paths:
             schema:
               $ref: '#/components/schemas/MemberRemoval'
       deprecated: true
-      description: 'M3 compatibility: deliberately retains remove-and-block behavior. M4 clients use DELETE
-        membership and separate PUT block.'
-  /api/v1/groups/{groupId}/members/{characterId}/restoration:
+      description: 'M3 compatibility: deliberately retains remove-and-block behavior. M4 clients use DELETE membership and
+        separate PUT block.'
+  /api/v2/communities/{communityId}/members/{characterId}/restoration:
     post:
       operationId: restoreMember
       tags:
@@ -1598,7 +1601,7 @@ paths:
       x-authorization-policy: Owner; blocked member
       x-implementation-status: implemented
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: *id002
@@ -1620,7 +1623,7 @@ paths:
           type: string
         description: ETag from the current resource GET.
       deprecated: true
-  /api/v1/groups/{groupId}/members/{characterId}/holdings:
+  /api/v2/communities/{communityId}/members/{characterId}/holdings:
     get:
       operationId: listAdministrativeHoldings
       tags:
@@ -1659,11 +1662,11 @@ paths:
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
-      x-authorization-policy: Self read, or inventory.remove for summaries; owner may inspect inactive
-        summaries; no private bodies
+      x-authorization-policy: Self read, or inventory.remove for summaries; owner may inspect inactive summaries; no private
+        bodies
       x-implementation-status: implemented
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: *id002
@@ -1691,7 +1694,7 @@ paths:
         schema:
           type: string
         description: Comma separated supported types; mutually exclusive with typeId. Books uses book,letter,note.
-  /api/v1/groups/{groupId}/members/{characterId}/balances:
+  /api/v2/communities/{communityId}/members/{characterId}/balances:
     get:
       operationId: listAdministrativeBalances
       tags:
@@ -1733,7 +1736,7 @@ paths:
       x-authorization-policy: Self read, or currency.manage for another active member
       x-implementation-status: implemented
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: *id002
@@ -1755,7 +1758,7 @@ paths:
           minimum: 1
           maximum: 100
           default: 50
-  /api/v1/groups/{groupId}/invitations:
+  /api/v2/communities/{communityId}/invitations:
     get:
       operationId: listInvitations
       tags:
@@ -1797,7 +1800,7 @@ paths:
       x-authorization-policy: Owner
       x-implementation-status: implemented
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: *id002
@@ -1860,7 +1863,7 @@ paths:
       x-authorization-policy: Owner
       x-implementation-status: implemented
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: *id002
@@ -1877,7 +1880,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/InvitationCreate'
-  /api/v1/groups/{groupId}/invitations/{invitationId}:
+  /api/v2/communities/{communityId}/invitations/{invitationId}:
     delete:
       operationId: revokeInvitation
       tags:
@@ -1923,7 +1926,7 @@ paths:
       x-authorization-policy: Owner
       x-implementation-status: implemented
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: *id002
@@ -1938,7 +1941,7 @@ paths:
           type: string
           format: uuid
         description: UUIDv7. Same logical request retains key; see API guide for replay and age rules.
-  /api/v1/groups/{groupId}/ownership-transfers:
+  /api/v2/communities/{communityId}/ownership-transfers:
     post:
       operationId: proposeOwnership
       tags:
@@ -1984,7 +1987,7 @@ paths:
       x-authorization-policy: Owner
       x-implementation-status: implemented
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: *id002
@@ -2001,7 +2004,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/OwnershipProposal'
-  /api/v1/groups/{groupId}/ownership-transfers/{transferId}:
+  /api/v2/communities/{communityId}/ownership-transfers/{transferId}:
     get:
       operationId: getOwnershipTransfer
       tags:
@@ -2048,7 +2051,7 @@ paths:
       x-authorization-policy: Current owner or proposed recipient
       x-implementation-status: implemented
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: *id002
@@ -2056,7 +2059,7 @@ paths:
         in: path
         required: true
         schema: *id002
-  /api/v1/groups/{groupId}/ownership-transfers/{transferId}/accept:
+  /api/v2/communities/{communityId}/ownership-transfers/{transferId}/accept:
     post:
       operationId: acceptOwnership
       tags:
@@ -2102,7 +2105,7 @@ paths:
       x-authorization-policy: Proposed recipient; active member
       x-implementation-status: implemented
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: *id002
@@ -2117,7 +2120,7 @@ paths:
           type: string
           format: uuid
         description: UUIDv7. Same logical request retains key; see API guide for replay and age rules.
-  /api/v1/groups/{groupId}/ownership-transfers/{transferId}/cancel:
+  /api/v2/communities/{communityId}/ownership-transfers/{transferId}/cancel:
     post:
       operationId: cancelOwnership
       tags:
@@ -2163,7 +2166,7 @@ paths:
       x-authorization-policy: Owner or proposed recipient
       x-implementation-status: implemented
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: *id002
@@ -2178,17 +2181,17 @@ paths:
           type: string
           format: uuid
         description: UUIDv7. Same logical request retains key; see API guide for replay and age rules.
-  /api/v1/groups/{groupId}/currency:
+  /api/v2/communities/{communityId}/currency:
     get:
       operationId: getCurrency
       tags:
       - Currency
-      summary: Group currency definition
+      summary: Community currency definition
       security:
       - Session: []
       responses:
         '200':
-          description: Group currency definition
+          description: Community currency definition
           content:
             application/json:
               schema:
@@ -2225,7 +2228,7 @@ paths:
       x-authorization-policy: Active member
       x-implementation-status: implemented
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: *id002
@@ -2271,10 +2274,10 @@ paths:
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
-      x-authorization-policy: Owner; group.moderate can change name only
+      x-authorization-policy: Owner; community.moderate can change name only
       x-implementation-status: implemented
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: *id002
@@ -2297,17 +2300,17 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CurrencyEdit'
-  /api/v1/groups/{groupId}/currency/icon:
+  /api/v2/communities/{communityId}/currency/icon:
     get:
       operationId: getCurrencyIcon
       tags:
       - Currency
-      summary: Read the group currency icon
+      summary: Read the community currency icon
       security:
       - Session: []
       responses:
         '200':
-          description: Read the group currency icon
+          description: Read the community currency icon
           content:
             image/png:
               schema:
@@ -2349,25 +2352,24 @@ paths:
       x-delivery-milestone: M3
       parameters:
       - &id003
-        name: groupId
+        name: communityId
         in: path
         required: true
         schema:
           type: string
           format: uuid
-      description: Normalized static PNG. Requires current membership; 404 when no custom icon or no access.
-        The plugin uses a bundled default icon when absent. Use Authorization headers, never credential-bearing
-        URLs or a public media directory.
+      description: Normalized static PNG. Requires current membership; 404 when no custom icon or no access. The plugin uses
+        a bundled default icon when absent. Use Authorization headers, never credential-bearing URLs or a public media directory.
     put:
       operationId: replaceCurrencyIcon
       tags:
       - Currency
-      summary: Upload or replace the group currency icon
+      summary: Upload or replace the community currency icon
       security:
       - Session: []
       responses:
         '200':
-          description: Upload or replace the group currency icon
+          description: Upload or replace the community currency icon
           content:
             application/json:
               schema:
@@ -2419,20 +2421,19 @@ paths:
         schema:
           type: string
           format: uuid
-        description: UUIDv7. Same logical request retains key; upload fingerprint includes validated file
-          content and If-Match, not the multipart boundary.
+        description: UUIDv7. Same logical request retains key; upload fingerprint includes validated file content and If-Match,
+          not the multipart boundary.
       - &id005
         name: If-Match
         in: header
         required: true
         schema:
           type: string
-        description: Current currency ETag from GET /api/v1/groups/{groupId}/currency.
-      description: Static PNG, JPEG/JPG or WebP only, verified by bounded decoding; both dimensions at
-        most 128 pixels. Reject animation, malformed images and external URLs. Recommended encoded-file
-        ceiling 256 KiB, configurable and advertised. Use a separately bounded multipart allowance rather
-        than the JSON limit. Normalize to metadata-free PNG, persist in PostgreSQL, update currency version
-        and audit atomically; currency ID and balances remain unchanged.
+        description: Current currency ETag from GET /api/v2/communities/{communityId}/currency.
+      description: Static PNG, JPEG/JPG or WebP only, verified by bounded decoding; both dimensions at most 128 pixels. Reject
+        animation, malformed images and external URLs. Recommended encoded-file ceiling 256 KiB, configurable and advertised.
+        Use a separately bounded multipart allowance rather than the JSON limit. Normalize to metadata-free PNG, persist in
+        PostgreSQL, update currency version and audit atomically; currency ID and balances remain unchanged.
       requestBody:
         required: true
         content:
@@ -2495,20 +2496,20 @@ paths:
       - *id003
       - *id004
       - *id005
-      description: Clear the custom icon with an audited idempotent operation; the plugin falls back to
-        its bundled default. Preserve currency ID and balances. Authorize before returning a replay; retain
-        only media needed under the documented recovery/retention policy.
-  /api/v1/groups/{groupId}/logo:
+      description: Clear the custom icon with an audited idempotent operation; the plugin falls back to its bundled default.
+        Preserve currency ID and balances. Authorize before returning a replay; retain only media needed under the documented
+        recovery/retention policy.
+  /api/v2/communities/{communityId}/logo:
     get:
-      operationId: getGroupLogo
+      operationId: getCommunityLogo
       tags:
-      - Groups
-      summary: Read the private group logo
+      - Communities
+      summary: Read the private community logo
       security:
       - Session: []
       responses:
         '200':
-          description: Read the private group logo
+          description: Read the private community logo
           content:
             image/png:
               schema:
@@ -2518,7 +2519,7 @@ paths:
             ETag:
               schema:
                 type: string
-              description: 'Independent group-logo ETag: "group-logo:{groupId:N}:{logoVersion}".'
+              description: 'Independent community-logo ETag: "community-logo:{communityId:N}:{logoVersion}".'
         '400':
           $ref: '#/components/responses/Problem'
         '401':
@@ -2549,33 +2550,33 @@ paths:
       x-implementation-status: implemented
       x-delivery-milestone: M5
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema:
           type: string
           format: uuid
-      description: Active members only. Missing custom logo returns 404; the plugin shows a placeholder.
-        Normalized PNG with no-store and nosniff. Credentials remain in headers.
+      description: Active members only. Missing custom logo returns 404; the plugin shows a placeholder. Normalized PNG with
+        no-store and nosniff. Credentials remain in headers.
     put:
-      operationId: replaceGroupLogo
+      operationId: replaceCommunityLogo
       tags:
-      - Groups
-      summary: Upload or replace the group logo
+      - Communities
+      summary: Upload or replace the community logo
       security:
       - Session: []
       responses:
         '200':
-          description: Upload or replace the group logo
+          description: Upload or replace the community logo
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/EditGroupResult'
+                $ref: '#/components/schemas/EditCommunityResult'
           headers:
             ETag:
               schema:
                 type: string
-              description: 'Independent group-logo ETag: "group-logo:{groupId:N}:{logoVersion}".'
+              description: 'Independent community-logo ETag: "community-logo:{communityId:N}:{logoVersion}".'
             Idempotency-Replayed:
               schema:
                 type: boolean
@@ -2610,7 +2611,7 @@ paths:
       x-implementation-status: implemented
       x-delivery-milestone: M5
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema:
@@ -2622,45 +2623,44 @@ paths:
         schema:
           type: string
           format: uuid
-        description: UUIDv7. Same logical request retains key; upload fingerprint includes validated file
-          content and If-Match, not the multipart boundary.
+        description: UUIDv7. Same logical request retains key; upload fingerprint includes validated file content and If-Match,
+          not the multipart boundary.
       - name: If-Match
         in: header
         required: true
         schema:
           type: string
-        description: Current independent group-logo ETag, derived from Group.logoVersion (initially 1) or
-          the logo response.
-      description: Owner only, authorized before decoding and again under the group lock. One static PNG/JPG/WebP,
-        at most 2 MiB encoded and 2048 pixels per source side. Reject animation/malformed images. Normalize
-        to metadata-free PNG, fit proportionally within 512x512 without upscaling, at most 1 MiB stored.
-        Audited, idempotent and atomically replaced; old logo bytes removed. Independent logo version preserves
-        group profile/currency ETags.
+        description: Current independent community-logo ETag, derived from Community.logoVersion (initially 1) or the logo
+          response.
+      description: Owner only, authorized before decoding and again under the community lock. One static PNG/JPG/WebP, at
+        most 2 MiB encoded and 2048 pixels per source side. Reject animation/malformed images. Normalize to metadata-free
+        PNG, fit proportionally within 512x512 without upscaling, at most 1 MiB stored. Audited, idempotent and atomically
+        replaced; old logo bytes removed. Independent logo version preserves community profile/currency ETags.
       requestBody:
         required: true
         content:
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/GroupLogoUpload'
+              $ref: '#/components/schemas/CommunityLogoUpload'
     delete:
-      operationId: removeGroupLogo
+      operationId: removeCommunityLogo
       tags:
-      - Groups
-      summary: Remove the group logo
+      - Communities
+      summary: Remove the community logo
       security:
       - Session: []
       responses:
         '200':
-          description: Remove the group logo
+          description: Remove the community logo
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/EditGroupResult'
+                $ref: '#/components/schemas/EditCommunityResult'
           headers:
             ETag:
               schema:
                 type: string
-              description: 'Independent group-logo ETag: "group-logo:{groupId:N}:{logoVersion}".'
+              description: 'Independent community-logo ETag: "community-logo:{communityId:N}:{logoVersion}".'
             Idempotency-Replayed:
               schema:
                 type: boolean
@@ -2695,7 +2695,7 @@ paths:
       x-implementation-status: implemented
       x-delivery-milestone: M5
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema:
@@ -2707,18 +2707,18 @@ paths:
         schema:
           type: string
           format: uuid
-        description: UUIDv7. Same logical request retains key; upload fingerprint includes validated file
-          content and If-Match, not the multipart boundary.
+        description: UUIDv7. Same logical request retains key; upload fingerprint includes validated file content and If-Match,
+          not the multipart boundary.
       - name: If-Match
         in: header
         required: true
         schema:
           type: string
-        description: Current independent group-logo ETag, derived from Group.logoVersion (initially 1) or
-          the logo response.
-      description: Owner only. Audited idempotent removal restores the placeholder and removes old logo
-        bytes; currency icons and other assets remain unchanged.
-  /api/v1/groups/{groupId}/balances:
+        description: Current independent community-logo ETag, derived from Community.logoVersion (initially 1) or the logo
+          response.
+      description: Owner only. Audited idempotent removal restores the placeholder and removes old logo bytes; currency icons
+        and other assets remain unchanged.
+  /api/v2/communities/{communityId}/balances:
     get:
       operationId: getOwnBalances
       tags:
@@ -2760,7 +2760,7 @@ paths:
       x-authorization-policy: Active member
       x-implementation-status: implemented
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: *id002
@@ -2778,7 +2778,7 @@ paths:
           minimum: 1
           maximum: 100
           default: 50
-  /api/v1/groups/{groupId}/currency/adjustments:
+  /api/v2/communities/{communityId}/currency/adjustments:
     post:
       operationId: adjustCurrency
       tags:
@@ -2824,7 +2824,7 @@ paths:
       x-authorization-policy: Owner or currency.manage; target active
       x-implementation-status: implemented
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: *id002
@@ -2841,17 +2841,17 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CurrencyAdjustment'
-  /api/v1/groups/{groupId}/categories:
+  /api/v2/communities/{communityId}/categories:
     get:
       operationId: listCategories
       tags:
       - Categories
-      summary: Group categories including retired labels
+      summary: Community categories including retired labels
       security:
       - Session: []
       responses:
         '200':
-          description: Group categories including retired labels
+          description: Community categories including retired labels
           content:
             application/json:
               schema:
@@ -2883,7 +2883,7 @@ paths:
       x-authorization-policy: Active member
       x-implementation-status: implemented
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: *id002
@@ -2946,7 +2946,7 @@ paths:
       x-authorization-policy: Owner
       x-implementation-status: implemented
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: *id002
@@ -2963,7 +2963,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CategoryEdit'
-  /api/v1/groups/{groupId}/categories/{categoryId}:
+  /api/v2/communities/{communityId}/categories/{categoryId}:
     get:
       operationId: getCategory
       tags:
@@ -3010,7 +3010,7 @@ paths:
       x-authorization-policy: Active member
       x-implementation-status: implemented
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: *id002
@@ -3063,7 +3063,7 @@ paths:
       x-authorization-policy: Owner
       x-implementation-status: implemented
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: *id002
@@ -3090,7 +3090,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CategoryEdit'
-  /api/v1/groups/{groupId}/categories/{categoryId}/retirement:
+  /api/v2/communities/{communityId}/categories/{categoryId}/retirement:
     post:
       operationId: retireCategory
       tags:
@@ -3136,7 +3136,7 @@ paths:
       x-authorization-policy: Owner
       x-implementation-status: implemented
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: *id002
@@ -3157,7 +3157,7 @@ paths:
         schema:
           type: string
         description: ETag from the current resource GET.
-  /api/v1/groups/{groupId}/item-definitions:
+  /api/v2/communities/{communityId}/item-definitions:
     get:
       operationId: listDefinitions
       tags:
@@ -3199,7 +3199,7 @@ paths:
       x-authorization-policy: Active member
       x-implementation-status: implemented
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: *id002
@@ -3262,7 +3262,7 @@ paths:
       x-authorization-policy: Owner or items.potion.define
       x-implementation-status: implemented
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: *id002
@@ -3279,7 +3279,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/DefinitionWrite'
-  /api/v1/groups/{groupId}/item-definitions/{definitionId}:
+  /api/v2/communities/{communityId}/item-definitions/{definitionId}:
     get:
       operationId: getDefinition
       tags:
@@ -3326,7 +3326,7 @@ paths:
       x-authorization-policy: Active member
       x-implementation-status: implemented
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: *id002
@@ -3337,7 +3337,7 @@ paths:
       - name: revision
         in: query
         required: false
-        schema: &id011
+        schema: &id012
           type: integer
           format: int32
           minimum: 1
@@ -3386,7 +3386,7 @@ paths:
       x-authorization-policy: Owner or items.potion.define
       x-implementation-status: implemented
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: *id002
@@ -3413,7 +3413,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/DefinitionWrite'
-  /api/v1/groups/{groupId}/item-definitions/{definitionId}/retirement:
+  /api/v2/communities/{communityId}/item-definitions/{definitionId}/retirement:
     post:
       operationId: retireDefinition
       tags:
@@ -3459,7 +3459,7 @@ paths:
       x-authorization-policy: Owner or items.potion.define
       x-implementation-status: implemented
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: *id002
@@ -3480,7 +3480,7 @@ paths:
         schema:
           type: string
         description: ETag from the current resource GET.
-  /api/v1/groups/{groupId}/quotas:
+  /api/v2/communities/{communityId}/quotas:
     get:
       operationId: getQuotas
       tags:
@@ -3527,11 +3527,11 @@ paths:
       x-authorization-policy: Active member
       x-implementation-status: implemented
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: *id002
-  /api/v1/groups/{groupId}/inventory:
+  /api/v2/communities/{communityId}/inventory:
     get:
       operationId: listInventory
       tags:
@@ -3573,7 +3573,7 @@ paths:
       x-authorization-policy: Active member
       x-implementation-status: implemented
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: *id002
@@ -3621,7 +3621,7 @@ paths:
         schema:
           type: string
         description: Comma separated supported types; mutually exclusive with typeId. Books uses book,letter,note.
-  /api/v1/groups/{groupId}/inventory/{holdingId}:
+  /api/v2/communities/{communityId}/inventory/{holdingId}:
     get:
       operationId: getHolding
       tags:
@@ -3668,7 +3668,7 @@ paths:
       x-authorization-policy: Current holder; active member
       x-implementation-status: implemented
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: *id002
@@ -3676,7 +3676,7 @@ paths:
         in: path
         required: true
         schema: *id002
-  /api/v1/groups/{groupId}/inventory/potions:
+  /api/v2/communities/{communityId}/inventory/potions:
     post:
       operationId: createPotions
       tags:
@@ -3722,7 +3722,7 @@ paths:
       x-authorization-policy: Owner or items.potion.create
       x-implementation-status: implemented
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: *id002
@@ -3739,7 +3739,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/PotionCreate'
-  /api/v1/groups/{groupId}/inventory/letters:
+  /api/v2/communities/{communityId}/inventory/letters:
     post:
       operationId: createLetter
       tags:
@@ -3785,7 +3785,7 @@ paths:
       x-authorization-policy: Active member
       x-implementation-status: implemented
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: *id002
@@ -3802,7 +3802,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/LetterCreate'
-  /api/v1/groups/{groupId}/letters/{letterId}:
+  /api/v2/communities/{communityId}/letters/{letterId}:
     get:
       operationId: readLetter
       tags:
@@ -3849,7 +3849,7 @@ paths:
       x-authorization-policy: Current holder; active member
       x-implementation-status: implemented
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: *id002
@@ -3902,7 +3902,7 @@ paths:
       x-authorization-policy: Author and current holder
       x-implementation-status: implemented
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: *id002
@@ -3929,7 +3929,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/LetterEdit'
-  /api/v1/groups/{groupId}/inventory/{holdingId}/use:
+  /api/v2/communities/{communityId}/inventory/{holdingId}/use:
     post:
       operationId: useHolding
       tags:
@@ -3975,7 +3975,7 @@ paths:
       x-authorization-policy: Current holder; active member; potion type
       x-implementation-status: implemented
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: *id002
@@ -3996,7 +3996,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/ConsumptionRequest'
-  /api/v1/groups/{groupId}/inventory/{holdingId}/discard:
+  /api/v2/communities/{communityId}/inventory/{holdingId}/discard:
     post:
       operationId: discardHolding
       tags:
@@ -4042,7 +4042,7 @@ paths:
       x-authorization-policy: Current holder; active member
       x-implementation-status: implemented
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: *id002
@@ -4063,7 +4063,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/DiscardRequest'
-  /api/v1/groups/{groupId}/inventory/removals:
+  /api/v2/communities/{communityId}/inventory/removals:
     post:
       operationId: removeHolding
       tags:
@@ -4109,7 +4109,7 @@ paths:
       x-authorization-policy: Owner or inventory.remove; target active
       x-implementation-status: implemented
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: *id002
@@ -4126,7 +4126,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/InventoryRemoval'
-  /api/v1/groups/{groupId}/trades:
+  /api/v2/communities/{communityId}/trades:
     get:
       operationId: listTrades
       tags:
@@ -4165,11 +4165,11 @@ paths:
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
-      x-authorization-policy: Existing group membership; only own participant trades, including terminal
-        recovery after removal
+      x-authorization-policy: Existing community membership; only own participant trades, including terminal recovery after
+        removal
       x-implementation-status: implemented
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: *id002
@@ -4196,12 +4196,12 @@ paths:
       operationId: startTrade
       tags:
       - Trading
-      summary: Invite same-group unrestricted character to trade
+      summary: Invite same-community unrestricted character to trade
       security:
       - Session: []
       responses:
         '201':
-          description: Invite same-group unrestricted character to trade
+          description: Invite same-community unrestricted character to trade
           content:
             application/json:
               schema:
@@ -4237,7 +4237,7 @@ paths:
       x-authorization-policy: Active unrestricted member; same for target
       x-implementation-status: implemented
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: *id002
@@ -4254,7 +4254,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/TradeCreate'
-  /api/v1/groups/{groupId}/trades/{tradeId}:
+  /api/v2/communities/{communityId}/trades/{tradeId}:
     get:
       operationId: getTrade
       tags:
@@ -4301,7 +4301,7 @@ paths:
       x-authorization-policy: Participant; terminal status remains available after removal
       x-implementation-status: implemented
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: *id002
@@ -4309,7 +4309,7 @@ paths:
         in: path
         required: true
         schema: *id002
-  /api/v1/groups/{groupId}/trades/{tradeId}/accept:
+  /api/v2/communities/{communityId}/trades/{tradeId}/accept:
     post:
       operationId: acceptTrade
       tags:
@@ -4355,7 +4355,7 @@ paths:
       x-authorization-policy: Recipient; both active/unrestricted
       x-implementation-status: implemented
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: *id002
@@ -4376,7 +4376,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/TradeRevisionRequest'
-  /api/v1/groups/{groupId}/trades/{tradeId}/offers/mine:
+  /api/v2/communities/{communityId}/trades/{tradeId}/offers/mine:
     put:
       operationId: setTradeOffer
       tags:
@@ -4422,7 +4422,7 @@ paths:
       x-authorization-policy: Participant; both active/unrestricted
       x-implementation-status: implemented
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: *id002
@@ -4443,7 +4443,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/TradeOfferWrite'
-  /api/v1/groups/{groupId}/trades/{tradeId}/confirm:
+  /api/v2/communities/{communityId}/trades/{tradeId}/confirm:
     post:
       operationId: confirmTrade
       tags:
@@ -4489,7 +4489,7 @@ paths:
       x-authorization-policy: Participant; both active/unrestricted
       x-implementation-status: implemented
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: *id002
@@ -4510,7 +4510,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/TradeRevisionRequest'
-  /api/v1/groups/{groupId}/trades/{tradeId}/final-confirm:
+  /api/v2/communities/{communityId}/trades/{tradeId}/final-confirm:
     post:
       operationId: finalConfirmTrade
       tags:
@@ -4556,7 +4556,7 @@ paths:
       x-authorization-policy: Participant; both active/unrestricted
       x-implementation-status: implemented
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: *id002
@@ -4577,7 +4577,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/TradeRevisionRequest'
-  /api/v1/groups/{groupId}/trades/{tradeId}/cancel:
+  /api/v2/communities/{communityId}/trades/{tradeId}/cancel:
     post:
       operationId: cancelTrade
       tags:
@@ -4623,7 +4623,7 @@ paths:
       x-authorization-policy: Participant; never undo completed trade
       x-implementation-status: implemented
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: *id002
@@ -4644,17 +4644,17 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/TradeRevisionRequest'
-  /api/v1/groups/{groupId}/history:
+  /api/v2/communities/{communityId}/history:
     get:
       operationId: getHistory
       tags:
       - History
-      summary: Personal group operation history
+      summary: Personal community operation history
       security:
       - Session: []
       responses:
         '200':
-          description: Personal group operation history
+          description: Personal community operation history
           content:
             application/json:
               schema:
@@ -4683,10 +4683,10 @@ paths:
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
-      x-authorization-policy: Active member of a non-deleted group; own actor/subject entries
+      x-authorization-policy: Active member of a non-deleted community; own actor/subject entries
       x-implementation-status: implemented
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: *id002
@@ -4704,17 +4704,17 @@ paths:
           minimum: 1
           maximum: 100
           default: 50
-  /api/v1/groups/{groupId}/audit:
+  /api/v2/communities/{communityId}/audit:
     get:
       operationId: getAudit
       tags:
       - History
-      summary: Administrative group history without private content
+      summary: Administrative community history without private content
       security:
       - Session: []
       responses:
         '200':
-          description: Administrative group history without private content
+          description: Administrative community history without private content
           content:
             application/json:
               schema:
@@ -4746,7 +4746,7 @@ paths:
       x-authorization-policy: Owner
       x-implementation-status: implemented
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: *id002
@@ -4764,7 +4764,7 @@ paths:
           minimum: 1
           maximum: 100
           default: 50
-  /api/v1/operations/{operationId}:
+  /api/v2/operations/{operationId}:
     get:
       operationId: getOperation
       tags:
@@ -4815,7 +4815,7 @@ paths:
         in: path
         required: true
         schema: *id002
-  /api/v1/operation-keys/{idempotencyKey}:
+  /api/v2/operation-keys/{idempotencyKey}:
     get:
       operationId: lookupOperationKey
       tags:
@@ -4869,7 +4869,7 @@ paths:
           type: string
           description: UUIDv7 operation key
           format: uuid
-  /api/v1/me/export-requests:
+  /api/v2/me/export-requests:
     post:
       operationId: requestExport
       tags:
@@ -4922,17 +4922,17 @@ paths:
           type: string
           format: uuid
         description: UUIDv7. Same logical request retains key; see API guide for replay and age rules.
-  /api/v1/me/deletion-requests:
+  /api/v2/me/deletion-requests:
     post:
       operationId: requestDeletion
       tags:
       - Data lifecycle
-      summary: Request deletion; resolve group ownership first
+      summary: Request deletion; resolve community ownership first
       security:
       - Session: []
       responses:
         '202':
-          description: Request deletion; resolve group ownership first
+          description: Request deletion; resolve community ownership first
           content:
             application/json:
               schema:
@@ -4981,7 +4981,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/DeletionRequest'
-  /api/v1/me/data-requests/{requestId}:
+  /api/v2/me/data-requests/{requestId}:
     get:
       operationId: getDataRequest
       tags:
@@ -5032,7 +5032,7 @@ paths:
         in: path
         required: true
         schema: *id002
-  /api/v1/me/data-requests/{requestId}/download:
+  /api/v2/me/data-requests/{requestId}/download:
     get:
       operationId: downloadExport
       tags:
@@ -5083,7 +5083,7 @@ paths:
         in: path
         required: true
         schema: *id002
-  /api/v1/events:
+  /api/v2/events:
     get:
       operationId: subscribeEvents
       tags:
@@ -5120,10 +5120,10 @@ paths:
           $ref: '#/components/responses/Problem'
         '426':
           description: WebSocket upgrade required
-      x-authorization-policy: Session; active group member
+      x-authorization-policy: Session; active community member
       x-implementation-status: planned
       parameters:
-      - name: groupId
+      - name: communityId
         in: query
         required: true
         schema: *id002
@@ -5133,16 +5133,16 @@ paths:
         schema:
           type: string
           pattern: ^[0-9]+$
-      description: HTTP description of WebSocket upgrade. Message protocol is in api.md; ordinary GET
-        without upgrade returns 426.
-  /api/v1/feasibility/login-attempts:
+      description: HTTP description of WebSocket upgrade. Message protocol is in api.md; ordinary GET without upgrade returns
+        426.
+  /api/v2/feasibility/login-attempts:
     post:
       operationId: startIdentityProbe
       tags:
       - Feasibility
       summary: Start temporary XIVAuth feasibility login
-      description: M1 isolated, single-instance probe. State is memory-only and bounded; restart requires
-        re-login. Not the durable authentication contract. Disabled until XIVAuth is configured.
+      description: M1 isolated, single-instance probe. State is memory-only and bounded; restart requires re-login. Not the
+        durable authentication contract. Disabled until XIVAuth is configured.
       security:
       - LoginBootstrap: []
       responses:
@@ -5178,22 +5178,21 @@ paths:
         schema:
           type: string
           format: uuid
-        description: Fresh UUIDv7 (at most ten minutes old). Same key and secret retry credential bind
-          probe replay.
+        description: Fresh UUIDv7 (at most ten minutes old). Same key and secret retry credential bind probe replay.
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/IdentityProbeStart'
-  /api/v1/feasibility/login-attempts/{attemptId}:
+  /api/v2/feasibility/login-attempts/{attemptId}:
     get:
       operationId: pollIdentityProbe
       tags:
       - Feasibility
       summary: Poll temporary login without session secrets
-      description: M1 isolated, single-instance probe. State is memory-only and bounded; restart requires
-        re-login. Not the durable authentication contract. Disabled until XIVAuth is configured.
+      description: M1 isolated, single-instance probe. State is memory-only and bounded; restart requires re-login. Not the
+        durable authentication contract. Disabled until XIVAuth is configured.
       security:
       - LoginAttempt: []
       responses:
@@ -5235,8 +5234,8 @@ paths:
       tags:
       - Feasibility
       summary: One-use PKCE feasibility callback
-      description: M1 isolated, single-instance probe. State is memory-only and bounded; restart requires
-        re-login. Not the durable authentication contract. Disabled until XIVAuth is configured.
+      description: M1 isolated, single-instance probe. State is memory-only and bounded; restart requires re-login. Not the
+        durable authentication contract. Disabled until XIVAuth is configured.
       security: []
       responses:
         '200':
@@ -5287,14 +5286,14 @@ paths:
         required: false
         schema:
           type: string
-  /api/v1/feasibility/login-attempts/{attemptId}/exchange:
+  /api/v2/feasibility/login-attempts/{attemptId}/exchange:
     post:
       operationId: exchangeIdentityProbe
       tags:
       - Feasibility
       summary: Exchange temporary attempt for five-minute probe session
-      description: M1 isolated, single-instance probe. State is memory-only and bounded; restart requires
-        re-login. Not the durable authentication contract. Disabled until XIVAuth is configured.
+      description: M1 isolated, single-instance probe. State is memory-only and bounded; restart requires re-login. Not the
+        durable authentication contract. Disabled until XIVAuth is configured.
       security:
       - LoginAttempt: []
       responses:
@@ -5336,16 +5335,15 @@ paths:
         schema:
           type: string
           format: uuid
-        description: Fresh UUIDv7 (at most ten minutes old). Same key and secret retry credential bind
-          probe replay.
-  /api/v1/feasibility/identity:
+        description: Fresh UUIDv7 (at most ten minutes old). Same key and secret retry credential bind probe replay.
+  /api/v2/feasibility/identity:
     get:
       operationId: readProbeIdentity
       tags:
       - Feasibility
       summary: Check temporary authenticated reconnect
-      description: M1 isolated, single-instance probe. State is memory-only and bounded; restart requires
-        re-login. Not the durable authentication contract. Disabled until XIVAuth is configured.
+      description: M1 isolated, single-instance probe. State is memory-only and bounded; restart requires re-login. Not the
+        durable authentication contract. Disabled until XIVAuth is configured.
       security:
       - Session: []
       responses:
@@ -5374,14 +5372,14 @@ paths:
           $ref: '#/components/responses/Problem'
       x-authorization-policy: Session
       x-implementation-status: implemented
-  /api/v1/feasibility/session:
+  /api/v2/feasibility/session:
     delete:
       operationId: logoutIdentityProbe
       tags:
       - Feasibility
       summary: Revoke temporary probe session
-      description: M1 isolated, single-instance probe. State is memory-only and bounded; restart requires
-        re-login. Not the durable authentication contract. Disabled until XIVAuth is configured.
+      description: M1 isolated, single-instance probe. State is memory-only and bounded; restart requires re-login. Not the
+        durable authentication contract. Disabled until XIVAuth is configured.
       security:
       - Session: []
       responses:
@@ -5413,9 +5411,8 @@ paths:
         schema:
           type: string
           format: uuid
-        description: Fresh UUIDv7 (at most ten minutes old). Same key and secret retry credential bind
-          probe replay.
-  /api/v1/groups/{groupId}/members/{characterId}:
+        description: Fresh UUIDv7 (at most ten minutes old). Same key and secret retry credential bind probe replay.
+  /api/v2/communities/{communityId}/members/{characterId}:
     get:
       operationId: getMember
       tags:
@@ -5424,7 +5421,7 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: &id006
@@ -5505,7 +5502,7 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: *id006
@@ -5590,7 +5587,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/MemberRemoval'
-  /api/v1/groups/{groupId}/members/{characterId}/block:
+  /api/v2/communities/{communityId}/members/{characterId}/block:
     put:
       operationId: blockMember
       tags:
@@ -5599,7 +5596,7 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: *id006
@@ -5691,7 +5688,7 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: *id006
@@ -5775,7 +5772,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/MemberRemoval'
-  /api/v1/groups/{groupId}/members/{characterId}/holdings/{holdingId}:
+  /api/v2/communities/{communityId}/members/{characterId}/holdings/{holdingId}:
     patch:
       operationId: reduceHolding
       tags:
@@ -5784,7 +5781,7 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: *id006
@@ -5877,7 +5874,7 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema: *id006
@@ -5962,12 +5959,12 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/HoldingDeletion'
-  /api/v1/groups/{groupId}/members/{characterId}/description:
+  /api/v2/communities/{communityId}/members/{characterId}/description:
     patch:
       operationId: editMemberDescription
       tags:
       - Membership
-      summary: Edit own group character description
+      summary: Edit own community character description
       security:
       - Session: []
       responses:
@@ -5981,8 +5978,7 @@ paths:
             Idempotency-Replayed:
               schema:
                 type: boolean
-              description: True means original response; never automatically repeat
-                chat.
+              description: True means original response; never automatically repeat chat.
         '400':
           $ref: '#/components/responses/Problem'
         '401':
@@ -6010,7 +6006,7 @@ paths:
       x-authorization-policy: Active member, self only
       x-implementation-status: implemented
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema:
@@ -6028,8 +6024,7 @@ paths:
         schema:
           type: string
           format: uuid
-        description: UUIDv7. Same logical request retains key; see API guide for replay
-          and age rules.
+        description: UUIDv7. Same logical request retains key; see API guide for replay and age rules.
       - name: If-Match
         in: header
         required: true
@@ -6042,21 +6037,20 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/MemberDescriptionEdit'
-      description: Active character edits only their own group-specific plain-text description,
-        up to 300 Unicode text elements. Empty clears it. Requires the current member
-        ETag and a UUIDv7 operation key. Owners cannot edit another character. No description
-        text is copied to audit summaries.
-  /api/v1/announcements/unread:
+      description: Active character edits only their own community-specific plain-text description, up to 300 Unicode text
+        elements. Empty clears it. Requires the current member ETag and a UUIDv7 operation key. Owners cannot edit another
+        character. No description text is copied to audit summaries.
+  /api/v2/announcements/unread:
     get:
       operationId: getUnreadAnnouncements
       tags:
       - Announcements
-      summary: Unread announcement counts for active joined groups
+      summary: Unread announcement counts for active joined communities
       security:
       - Session: []
       responses:
         '200':
-          description: Unread announcement counts for active joined groups
+          description: Unread announcement counts for active joined communities
           content:
             application/json:
               schema:
@@ -6081,10 +6075,10 @@ paths:
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
-      x-authorization-policy: Session; active memberships in nondeleted groups
+      x-authorization-policy: Session; active memberships in nondeleted communities
       x-implementation-status: implemented
       parameters: []
-  /api/v1/groups/{groupId}/announcements:
+  /api/v2/communities/{communityId}/announcements:
     get:
       operationId: listAnnouncements
       tags:
@@ -6122,7 +6116,7 @@ paths:
       x-authorization-policy: Active member
       x-implementation-status: implemented
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema:
@@ -6165,7 +6159,7 @@ paths:
       x-authorization-policy: Owner or announcements.manage
       x-implementation-status: implemented
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema:
@@ -6184,7 +6178,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/AnnouncementCreate'
-  /api/v1/groups/{groupId}/announcements/{announcementId}:
+  /api/v2/communities/{communityId}/announcements/{announcementId}:
     get:
       operationId: getAnnouncement
       tags:
@@ -6222,7 +6216,7 @@ paths:
       x-authorization-policy: Active member
       x-implementation-status: implemented
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema:
@@ -6234,7 +6228,7 @@ paths:
         schema:
           type: string
           format: uuid
-  /api/v1/groups/{groupId}/announcements/{announcementId}/read:
+  /api/v2/communities/{communityId}/announcements/{announcementId}/read:
     put:
       operationId: markAnnouncementRead
       tags:
@@ -6272,7 +6266,7 @@ paths:
       x-authorization-policy: Active member; own read state
       x-implementation-status: implemented
       parameters:
-      - name: groupId
+      - name: communityId
         in: path
         required: true
         schema:
@@ -6290,11 +6284,474 @@ paths:
         schema:
           type: string
           format: uuid
-        description: UUIDv7; read markers are naturally idempotent metadata writes without
-          operation-recovery receipts.
-      description: Marks only this retained announcement read for the authenticated
-        character. Repeated requests add no audit/operation rows and do not change the
-        member permission ETag. No financial command recovery applies.
+        description: UUIDv7; read markers are naturally idempotent metadata writes without operation-recovery receipts.
+      description: Marks only this retained announcement read for the authenticated character. Repeated requests add no audit/operation
+        rows and do not change the member permission ETag. No financial command recovery applies.
+  /api/v2/communities/{communityId}/groups:
+    get:
+      operationId: listCommunityGroups
+      tags:
+      - Community Groups
+      summary: listCommunityGroups
+      security:
+      - Session: []
+      parameters:
+      - name: communityId
+        in: path
+        required: true
+        schema: &id009
+          type: string
+          format: uuid
+      - name: cursor
+        in: query
+        schema:
+          type: string
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 50
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupPage'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '413':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Active community member
+      x-implementation-status: implemented
+    post:
+      operationId: createGroup
+      tags:
+      - Community Groups
+      summary: createGroup
+      security:
+      - Session: []
+      parameters:
+      - name: communityId
+        in: path
+        required: true
+        schema: *id009
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema: *id009
+      responses:
+        '201':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupResult'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '413':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Community owner or groups.create
+      x-implementation-status: implemented
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GroupWrite'
+  /api/v2/communities/{communityId}/groups/{groupId}:
+    get:
+      operationId: readGroup
+      tags:
+      - Community Groups
+      summary: readGroup
+      security:
+      - Session: []
+      parameters:
+      - name: communityId
+        in: path
+        required: true
+        schema: *id009
+      - name: groupId
+        in: path
+        required: true
+        schema: *id009
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Group'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '413':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Active community member
+      x-implementation-status: implemented
+    patch:
+      operationId: editGroup
+      tags:
+      - Community Groups
+      summary: editGroup
+      security:
+      - Session: []
+      parameters:
+      - name: communityId
+        in: path
+        required: true
+        schema: *id009
+      - name: groupId
+        in: path
+        required: true
+        schema: *id009
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema: *id009
+      - name: If-Match
+        in: header
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupResult'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '413':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Community owner or groups.manage
+      x-implementation-status: implemented
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GroupWrite'
+    delete:
+      operationId: deleteGroup
+      tags:
+      - Community Groups
+      summary: deleteGroup
+      security:
+      - Session: []
+      parameters:
+      - name: communityId
+        in: path
+        required: true
+        schema: *id009
+      - name: groupId
+        in: path
+        required: true
+        schema: *id009
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema: *id009
+      - name: If-Match
+        in: header
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupResult'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '413':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Community owner or groups.manage
+      x-implementation-status: implemented
+  /api/v2/communities/{communityId}/groups/{groupId}/logo:
+    get:
+      operationId: readGroupLogo
+      tags:
+      - Community Groups
+      summary: readGroupLogo
+      security:
+      - Session: []
+      parameters:
+      - name: communityId
+        in: path
+        required: true
+        schema: *id009
+      - name: groupId
+        in: path
+        required: true
+        schema: *id009
+      responses:
+        '200':
+          description: Normalized image
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '413':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Active community member
+      x-implementation-status: implemented
+    put:
+      operationId: replaceGroupLogo
+      tags:
+      - Community Groups
+      summary: replaceGroupLogo
+      security:
+      - Session: []
+      parameters:
+      - name: communityId
+        in: path
+        required: true
+        schema: *id009
+      - name: groupId
+        in: path
+        required: true
+        schema: *id009
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema: *id009
+      - name: If-Match
+        in: header
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupResult'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '413':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Community owner or groups.manage
+      x-implementation-status: implemented
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+              required:
+              - file
+    delete:
+      operationId: removeGroupLogo
+      tags:
+      - Community Groups
+      summary: removeGroupLogo
+      security:
+      - Session: []
+      parameters:
+      - name: communityId
+        in: path
+        required: true
+        schema: *id009
+      - name: groupId
+        in: path
+        required: true
+        schema: *id009
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema: *id009
+      - name: If-Match
+        in: header
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupResult'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '413':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Community owner or groups.manage
+      x-implementation-status: implemented
 components:
   securitySchemes:
     Session:
@@ -6305,8 +6762,7 @@ components:
       type: apiKey
       in: header
       name: X-Login-Request-Credential
-      description: Client-generated 256-bit random secret for this login start/retry only. Does not authenticate
-        a character.
+      description: Client-generated 256-bit random secret for this login start/retry only. Does not authenticate a character.
     LoginAttempt:
       type: apiKey
       in: header
@@ -6331,20 +6787,20 @@ components:
         type:
           type: string
           format: uri
-        title: &id009
+        title: &id010
           type: string
           description: Plain text; named service limits and Unicode text-element checks also apply.
         status:
           type: integer
           format: int32
-        detail: *id009
-        code: *id009
-        requestId: *id009
+        detail: *id010
+        code: *id010
+        requestId: *id010
         errors:
           type: object
           additionalProperties:
             type: array
-            items: *id009
+            items: *id010
       required:
       - type
       - title
@@ -6356,14 +6812,14 @@ components:
       type: object
       properties:
         id: *id002
-        displayName: &id010
+        displayName: &id011
           type: string
           minLength: 1
           maxLength: 80
         homeWorldId:
           type: string
-        homeWorldName: *id010
-        verifiedAt: &id012
+        homeWorldName: *id011
+        verifiedAt: &id013
           type: string
           format: date-time
         status:
@@ -6382,11 +6838,11 @@ components:
     PublicLimits:
       type: object
       properties:
-        ownedGroups:
+        ownedCommunities:
           type: integer
           format: int32
           minimum: 1
-        joinedGroups:
+        joinedCommunities:
           type: integer
           format: int32
           minimum: 1
@@ -6416,7 +6872,7 @@ components:
           type: integer
           format: int32
           minimum: 1
-        maxHoldingsPerCharacterGroup:
+        maxHoldingsPerCharacterCommunity:
           type: integer
           format: int32
           minimum: 1
@@ -6446,7 +6902,7 @@ components:
         maxWeeklyLetters:
           type: integer
           minimum: 0
-        maxActiveInvitationsPerGroup:
+        maxActiveInvitationsPerCommunity:
           type: integer
           minimum: 1
         ownershipProposalHours:
@@ -6462,12 +6918,12 @@ components:
           format: int32
           minimum: 1
           default: 128
-        maxCategoriesPerGroup:
+        maxCategoriesPerCommunity:
           type: integer
           format: int32
           minimum: 1
           default: 100
-        maxDefinitionsPerGroup:
+        maxDefinitionsPerCommunity:
           type: integer
           format: int32
           minimum: 1
@@ -6482,27 +6938,27 @@ components:
           format: int32
           minimum: 1
           default: 300
-        maxGroupLogoBytes:
+        maxCommunityLogoBytes:
           type: integer
           minimum: 1024
           maximum: 2097152
           default: 2097152
-        maxGroupLogoSourceDimension:
+        maxCommunityLogoSourceDimension:
           type: integer
           default: 2048
-        maxGroupLogoDimension:
+        maxCommunityLogoDimension:
           type: integer
           default: 512
       required:
-      - ownedGroups
-      - joinedGroups
+      - ownedCommunities
+      - joinedCommunities
       - defaultLettersPerWeek
       - defaultPotionPoints
       - chatMessageTextElements
       - letterTitleTextElements
       - letterBodyTextElements
       - maxPageSize
-      - maxHoldingsPerCharacterGroup
+      - maxHoldingsPerCharacterCommunity
       - maxTradeLinesPerSide
       - maxCreationQuantity
       - tradeLifetimeSeconds
@@ -6513,8 +6969,8 @@ components:
     ItemTypeInfo:
       type: object
       properties:
-        id: *id009
-        typeDataVersion: *id011
+        id: *id010
+        typeDataVersion: *id012
         canUse: *id001
         stackable: *id001
       required:
@@ -6533,7 +6989,7 @@ components:
         minimumClientVersion:
           type: string
         maintenance: *id001
-        message: *id009
+        message: *id010
         supportedTypes:
           type: array
           items:
@@ -6573,7 +7029,7 @@ components:
     LoginStart:
       type: object
       properties:
-        displayName: *id010
+        displayName: *id011
         homeWorldId:
           type: string
           minLength: 1
@@ -6602,14 +7058,15 @@ components:
         attemptCredential:
           type: string
           description: 'Secret: header only after creation, never logged.'
-        expiresAt: *id012
+        expiresAt: *id013
         pollIntervalSeconds:
           type: integer
           format: int32
           minimum: 1
         pairingRequired:
           type: boolean
-          description: Always true for durable login from server 0.0.6.2. False or absent is legacy/feasibility only; new durable clients reject it.
+          description: Always true for durable login from server 0.0.6.2. False or absent is legacy/feasibility only; new
+            durable clients reject it.
       required:
       - attemptId
       - authorizationUrl
@@ -6624,7 +7081,8 @@ components:
           type: string
           maxLength: 64
           writeOnly: true
-          description: Browser-only one-time secret; 16 random hexadecimal characters. Spaces, hyphens and case differences are accepted. Never log or put in a URL. Included in the idempotency request hash.
+          description: Browser-only one-time secret; 16 random hexadecimal characters. Spaces, hyphens and case differences
+            are accepted. Never log or put in a URL. Included in the idempotency request hash.
       required:
       - pairingCode
       additionalProperties: false
@@ -6640,7 +7098,7 @@ components:
           - failed
           - cancelled
           - expired
-        expiresAt: *id012
+        expiresAt: *id013
         failureCode:
           type: string
           nullable: true
@@ -6650,7 +7108,8 @@ components:
       - expiresAt
       - failureCode
       additionalProperties: true
-      description: No session credentials or pairing codes in status response. Verified means browser approval only, not permission to redeem without pairing.
+      description: No session credentials or pairing codes in status response. Verified means browser approval only, not permission
+        to redeem without pairing.
     SessionTokens:
       type: object
       properties:
@@ -6659,10 +7118,10 @@ components:
           $ref: '#/components/schemas/Character'
         accessToken:
           type: string
-        accessExpiresAt: *id012
+        accessExpiresAt: *id013
         refreshToken:
           type: string
-        refreshExpiresAt: *id012
+        refreshExpiresAt: *id013
       required:
       - sessionId
       - character
@@ -6684,9 +7143,9 @@ components:
       type: object
       properties:
         id: *id002
-        createdAt: *id012
-        lastUsedAt: *id012
-        expiresAt: *id012
+        createdAt: *id013
+        lastUsedAt: *id013
+        expiresAt: *id013
         isCurrent: *id001
       required:
       - id
@@ -6699,8 +7158,8 @@ components:
       type: object
       properties:
         id: *id002
-        groupId: *id002
-        name: *id010
+        communityId: *id002
+        name: *id011
         symbol:
           type: string
           maxLength: 16
@@ -6710,11 +7169,11 @@ components:
           type: string
           format: uuid
           nullable: true
-          description: M3 group-scoped asset reference; omitted by M2, null when no custom icon.
-        version: *id011
+          description: M3 community-scoped asset reference; omitted by M2, null when no custom icon.
+        version: *id012
       required:
       - id
-      - groupId
+      - communityId
       - name
       - symbol
       - version
@@ -6724,14 +7183,14 @@ components:
       properties:
         currencyId: *id002
         characterId: *id002
-        owned: &id013
+        owned: &id014
           type: string
           description: Nonnegative whole units, within signed 64-bit range.
           pattern: ^(0|[1-9][0-9]*)$
           maxLength: 19
-        reserved: *id013
-        available: *id013
-        version: *id011
+        reserved: *id014
+        available: *id014
+        version: *id012
       required:
       - currencyId
       - characterId
@@ -6740,13 +7199,14 @@ components:
       - available
       - version
       additionalProperties: true
-    GroupLogoUpload:
+    CommunityLogoUpload:
       type: object
       properties:
         file:
           type: string
           format: binary
-          description: One static PNG/JPG/WebP; at most 2 MiB and 2048px per source side. Proportionally downscaled to at most 512x512 and 1 MiB PNG.
+          description: One static PNG/JPG/WebP; at most 2 MiB and 2048px per source side. Proportionally downscaled to at
+            most 512x512 and 1 MiB PNG.
       required:
       - file
       additionalProperties: false
@@ -6756,15 +7216,15 @@ components:
         file:
           type: string
           format: binary
-          description: One static PNG, JPEG/JPG or WebP; at most 128x128 pixels, recommended maximum encoded
-            size 256 KiB. Actual format and resource bounds are verified before persistence.
+          description: One static PNG, JPEG/JPG or WebP; at most 128x128 pixels, recommended maximum encoded size 256 KiB.
+            Actual format and resource bounds are verified before persistence.
       required:
       - file
       additionalProperties: false
     CurrencyEdit:
       type: object
       properties:
-        name: *id010
+        name: *id011
         symbol:
           type: string
           maxLength: 16
@@ -6783,7 +7243,7 @@ components:
           description: Nonzero signed whole units, checked against signed 64-bit range.
           pattern: ^-?[1-9][0-9]*$
           maxLength: 20
-        reason: &id014
+        reason: &id015
           type: string
           minLength: 1
           maxLength: 500
@@ -6792,14 +7252,14 @@ components:
       - delta
       - reason
       additionalProperties: false
-    Group:
+    Community:
       type: object
       properties:
         id: *id002
-        name: *id010
-        description: *id009
+        name: *id011
+        description: *id010
         ownerCharacterId: *id002
-        version: *id011
+        version: *id012
         currency:
           $ref: '#/components/schemas/Currency'
         myCapabilities:
@@ -6834,14 +7294,14 @@ components:
       - myBalance
       - pendingOwnershipTransferId
       additionalProperties: true
-    GroupCreate:
+    CommunityCreate:
       type: object
       properties:
-        name: *id010
+        name: *id011
         description:
           type: string
           maxLength: 300
-        currencyName: *id010
+        currencyName: *id011
         currencySymbol:
           type: string
           maxLength: 16
@@ -6864,10 +7324,10 @@ components:
       - weeklyPotionPoints
       - weeklyLetters
       additionalProperties: false
-    GroupEdit:
+    CommunityEdit:
       type: object
       properties:
-        name: *id010
+        name: *id011
         description:
           type: string
           maxLength: 300
@@ -6875,14 +7335,14 @@ components:
       - name
       - description
       additionalProperties: false
-    GroupDeletion:
+    CommunityDeletion:
       type: object
       properties:
-        confirmName: *id010
+        confirmName: *id011
       required:
       - confirmName
       additionalProperties: false
-    JoinGroup:
+    JoinCommunity:
       type: object
       properties:
         invitationCode:
@@ -6911,19 +7371,19 @@ components:
       - potionPoints
       - letters
       additionalProperties: true
-    GroupPolicies:
+    CommunityPolicies:
       type: object
       properties:
-        groupId: *id002
-        version: *id011
-        currentPeriodStart: *id012
-        nextResetAt: *id012
+        communityId: *id002
+        version: *id012
+        currentPeriodStart: *id013
+        nextResetAt: *id013
         current:
           $ref: '#/components/schemas/PolicyValues'
         next:
           $ref: '#/components/schemas/PolicyValues'
       required:
-      - groupId
+      - communityId
       - version
       - currentPeriodStart
       - nextResetAt
@@ -6963,13 +7423,13 @@ components:
           items:
             type: string
         tradingRestricted: *id001
-        version: *id011
+        version: *id012
         etag:
           type: string
           description: Server-supplied member concurrency token, also available in roster rows.
         description:
           type: string
-          description: Group-specific plain text; at most 300 Unicode text elements. Empty when unset.
+          description: Community-specific plain text; at most 300 Unicode text elements. Empty when unset.
       required:
       - character
       - status
@@ -6990,7 +7450,8 @@ components:
         tradingAllowed:
           type: boolean
           nullable: true
-          description: Optional positive trading permission. Omitted or null preserves the current setting; false cancels open trades and releases reservations in the same transaction. No reason is required.
+          description: Optional positive trading permission. Omitted or null preserves the current setting; false cancels
+            open trades and releases reservations in the same transaction. No reason is required.
       required:
       - capabilities
       additionalProperties: false
@@ -7008,7 +7469,7 @@ components:
     MemberRemoval:
       type: object
       properties:
-        reason: *id014
+        reason: *id015
       required:
       - reason
       additionalProperties: false
@@ -7030,8 +7491,8 @@ components:
       type: object
       properties:
         id: *id002
-        groupId: *id002
-        expiresAt: *id012
+        communityId: *id002
+        expiresAt: *id013
         maxUses:
           type: integer
           format: int32
@@ -7041,7 +7502,7 @@ components:
         revoked: *id001
       required:
       - id
-      - groupId
+      - communityId
       - expiresAt
       - maxUses
       - used
@@ -7070,7 +7531,7 @@ components:
       type: object
       properties:
         id: *id002
-        groupId: *id002
+        communityId: *id002
         fromCharacterId: *id002
         toCharacterId: *id002
         status:
@@ -7080,10 +7541,10 @@ components:
           - accepted
           - cancelled
           - expired
-        expiresAt: *id012
+        expiresAt: *id013
       required:
       - id
-      - groupId
+      - communityId
       - fromCharacterId
       - toCharacterId
       - status
@@ -7093,17 +7554,17 @@ components:
       type: object
       properties:
         id: *id002
-        groupId: *id002
-        name: *id010
+        communityId: *id002
+        name: *id011
         allowedTypeIds:
           type: array
           items:
             type: string
         retired: *id001
-        version: *id011
+        version: *id012
       required:
       - id
-      - groupId
+      - communityId
       - name
       - allowedTypeIds
       - retired
@@ -7112,7 +7573,7 @@ components:
     CategoryEdit:
       type: object
       properties:
-        name: *id010
+        name: *id011
         allowedTypeIds:
           type: array
           items:
@@ -7130,8 +7591,7 @@ components:
           minimum: 1
         useMessage:
           type: string
-          description: Literal message. Server enforces discovered 50-text-element default and tested
-            game byte cap.
+          description: Literal message. Server enforces discovered 50-text-element default and tested game byte cap.
       required:
       - creationCost
       - useMessage
@@ -7140,21 +7600,21 @@ components:
       type: object
       properties:
         id: *id002
-        groupId: *id002
+        communityId: *id002
         typeId:
           type: string
-        revision: *id011
-        typeDataVersion: *id011
-        name: *id010
+        revision: *id012
+        typeDataVersion: *id012
+        name: *id011
         categoryId: *id002
-        description: *id009
+        description: *id010
         enabled: *id001
         retired: *id001
         potion:
           $ref: '#/components/schemas/PotionData'
       required:
       - id
-      - groupId
+      - communityId
       - typeId
       - revision
       - typeDataVersion
@@ -7165,7 +7625,8 @@ components:
       - retired
       - potion
       additionalProperties: true
-      description: Potion definitions are authored by the owner or a member authorized for items.potion.define; future types use versioned typed payloads.
+      description: Potion definitions are authored by the owner or a member authorized for items.potion.define; future types
+        use versioned typed payloads.
     PotionDataWrite:
       type: object
       properties:
@@ -7186,7 +7647,7 @@ components:
         typeId:
           type: string
           description: Only potion supported for definitions in 1.0.
-        name: *id010
+        name: *id011
         categoryId: *id002
         description:
           type: string
@@ -7206,11 +7667,11 @@ components:
       type: object
       properties:
         id: *id002
-        groupId: *id002
+        communityId: *id002
         characterId: *id002
         typeId:
           type: string
-        name: *id010
+        name: *id011
         categoryId: *id002
         quantity:
           type: integer
@@ -7224,7 +7685,7 @@ components:
           type: integer
           format: int32
           minimum: 0
-        version: *id011
+        version: *id012
         definitionId:
           type: string
           format: uuid
@@ -7239,7 +7700,7 @@ components:
           nullable: true
       required:
       - id
-      - groupId
+      - communityId
       - characterId
       - typeId
       - name
@@ -7256,13 +7717,13 @@ components:
       type: object
       properties:
         id: *id002
-        groupId: *id002
+        communityId: *id002
         author:
           $ref: '#/components/schemas/Character'
         categoryId: *id002
-        title: *id010
-        body: *id009
-        version: *id011
+        title: *id011
+        body: *id010
+        version: *id012
         locked: *id001
         firstTradedAt:
           type: string
@@ -7276,7 +7737,7 @@ components:
           - note
       required:
       - id
-      - groupId
+      - communityId
       - author
       - categoryId
       - title
@@ -7304,8 +7765,8 @@ components:
         kind:
           type: string
           description: potion_points or letters; extensible identifier.
-        periodStart: *id012
-        resetAt: *id012
+        periodStart: *id013
+        resetAt: *id013
         limit:
           type: integer
           format: int32
@@ -7329,14 +7790,14 @@ components:
     Quotas:
       type: object
       properties:
-        groupId: *id002
+        communityId: *id002
         characterId: *id002
         quotas:
           type: array
           items:
             $ref: '#/components/schemas/Quota'
       required:
-      - groupId
+      - communityId
       - characterId
       - quotas
       additionalProperties: true
@@ -7344,8 +7805,8 @@ components:
       type: object
       properties:
         definitionId: *id002
-        expectedDefinitionRevision: *id011
-        quantity: &id015
+        expectedDefinitionRevision: *id012
+        quantity: &id016
           type: integer
           format: int32
           minimum: 1
@@ -7359,7 +7820,7 @@ components:
       type: object
       properties:
         categoryId: *id002
-        title: *id010
+        title: *id011
         body:
           type: string
           maxLength: 500
@@ -7378,7 +7839,7 @@ components:
     LetterEdit:
       type: object
       properties:
-        title: *id010
+        title: *id011
         body:
           type: string
           maxLength: 500
@@ -7400,17 +7861,16 @@ components:
     ConsumptionRequest:
       type: object
       properties:
-        expectedHoldingVersion: *id011
+        expectedHoldingVersion: *id012
         chatConsent:
           type: boolean
-          description: Existing once-per-startup chat permission, automatically supplied by the client.
-            Never requires a new per-message or per-use consent question.
+          description: Existing once-per-startup chat permission, automatically supplied by the client. Never requires a new
+            per-message or per-use consent question.
           enum:
           - true
         destination:
           type: string
-          description: emote, say, party, or a selected linkshell identifier; validate locally and server-side
-            format.
+          description: emote, say, party, or a selected linkshell identifier; validate locally and server-side format.
       required:
       - expectedHoldingVersion
       - chatConsent
@@ -7421,7 +7881,7 @@ components:
       properties:
         holding:
           $ref: '#/components/schemas/Holding'
-        message: *id009
+        message: *id010
         destination:
           type: string
         chatDelivery:
@@ -7438,8 +7898,8 @@ components:
     DiscardRequest:
       type: object
       properties:
-        quantity: *id015
-        expectedHoldingVersion: *id011
+        quantity: *id016
+        expectedHoldingVersion: *id012
       required:
       - quantity
       - expectedHoldingVersion
@@ -7449,9 +7909,9 @@ components:
       properties:
         targetCharacterId: *id002
         holdingId: *id002
-        quantity: *id015
-        expectedHoldingVersion: *id011
-        reason: *id014
+        quantity: *id016
+        expectedHoldingVersion: *id012
+        reason: *id015
       required:
       - targetCharacterId
       - holdingId
@@ -7471,7 +7931,7 @@ components:
       properties:
         character:
           $ref: '#/components/schemas/Character'
-        currencyAmount: &id016
+        currencyAmount:
           type: string
           pattern: ^(0|[1-9][0-9]*)$
           maxLength: 19
@@ -7520,7 +7980,7 @@ components:
     TradeRevisionRequest:
       type: object
       properties:
-        expectedTradeRevision: *id011
+        expectedTradeRevision: *id012
       required:
       - expectedTradeRevision
       additionalProperties: false
@@ -7528,7 +7988,7 @@ components:
       type: object
       properties:
         id: *id006
-        groupId: *id006
+        communityId: *id006
         currencyId: *id006
         state:
           type: string
@@ -7556,7 +8016,7 @@ components:
           nullable: true
       required:
       - id
-      - groupId
+      - communityId
       - currencyId
       - state
       - revision
@@ -7578,8 +8038,8 @@ components:
           type: string
           format: uuid
           nullable: true
-        occurredAt: *id012
-        summary: *id009
+        occurredAt: *id013
+        summary: *id010
         reason:
           type: string
           nullable: true
@@ -7604,7 +8064,7 @@ components:
       type: object
       properties:
         id: *id002
-        groupId:
+        communityId:
           type: string
           format: uuid
           nullable: true
@@ -7615,13 +8075,13 @@ components:
           description: Required for asset commands; null only for anonymous login bootstrap receipts.
           format: uuid
           nullable: true
-        occurredAt: *id012
+        occurredAt: *id013
         resourceIds:
           type: array
           items: *id002
       required:
       - id
-      - groupId
+      - communityId
       - kind
       - actorCharacterId
       - occurredAt
@@ -7656,12 +8116,12 @@ components:
           - ready
           - completed
           - rejected
-        createdAt: *id012
+        createdAt: *id013
         expiresAt:
           type: string
           format: date-time
           nullable: true
-        message: *id009
+        message: *id010
       required:
       - id
       - kind
@@ -7673,15 +8133,15 @@ components:
     DeletionRequest:
       type: object
       properties:
-        confirmCharacterName: *id010
+        confirmCharacterName: *id011
       required:
       - confirmCharacterName
       additionalProperties: false
     ExportMembership:
       type: object
       properties:
-        groupId: *id002
-        groupNameSnapshot: *id009
+        communityId: *id002
+        communityNameSnapshot: *id010
         status:
           type: string
         ownCapabilities:
@@ -7689,8 +8149,8 @@ components:
           items:
             type: string
       required:
-      - groupId
-      - groupNameSnapshot
+      - communityId
+      - communityNameSnapshot
       - status
       - ownCapabilities
       additionalProperties: true
@@ -7699,7 +8159,7 @@ components:
       properties:
         character:
           $ref: '#/components/schemas/Character'
-        groups:
+        communities:
           type: array
           items:
             $ref: '#/components/schemas/ExportMembership'
@@ -7715,24 +8175,23 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/HistoryEntry'
-        exportedAt: *id012
+        exportedAt: *id013
       required:
       - character
-      - groups
+      - communities
       - holdings
       - quotas
       - history
       - exportedAt
       additionalProperties: true
-      description: Approved character-scoped export; no auth secrets or other holders private content.
-        May stream large arrays.
+      description: Approved character-scoped export; no auth secrets or other holders private content. May stream large arrays.
     ChangeEvent:
       type: object
       properties:
         sequence:
           type: string
           pattern: ^[0-9]+$
-        groupId: *id002
+        communityId: *id002
         type:
           type: string
         resourceId:
@@ -7747,10 +8206,10 @@ components:
           type: string
           format: uuid
           nullable: true
-        occurredAt: *id012
+        occurredAt: *id013
       required:
       - sequence
-      - groupId
+      - communityId
       - type
       - resourceId
       - resourceVersion
@@ -7758,13 +8217,13 @@ components:
       - occurredAt
       additionalProperties: true
       description: Recipient-filtered invalidation metadata; no chat action or letter-body delivery.
-    GroupPage:
+    CommunityPage:
       type: object
       properties:
         items:
           type: array
           items:
-            $ref: '#/components/schemas/Group'
+            $ref: '#/components/schemas/Community'
         nextCursor:
           type: string
           nullable: true
@@ -7996,32 +8455,32 @@ components:
       - operationId
       - result
       additionalProperties: true
-    CreateGroupResult:
+    CreateCommunityResult:
       type: object
       properties:
         operationId: *id002
         result:
-          $ref: '#/components/schemas/Group'
+          $ref: '#/components/schemas/Community'
       required:
       - operationId
       - result
       additionalProperties: true
-    JoinGroupResult:
+    JoinCommunityResult:
       type: object
       properties:
         operationId: *id002
         result:
-          $ref: '#/components/schemas/Group'
+          $ref: '#/components/schemas/Community'
       required:
       - operationId
       - result
       additionalProperties: true
-    EditGroupResult:
+    EditCommunityResult:
       type: object
       properties:
         operationId: *id002
         result:
-          $ref: '#/components/schemas/Group'
+          $ref: '#/components/schemas/Community'
       required:
       - operationId
       - result
@@ -8031,7 +8490,7 @@ components:
       properties:
         operationId: *id002
         result:
-          $ref: '#/components/schemas/GroupPolicies'
+          $ref: '#/components/schemas/CommunityPolicies'
       required:
       - operationId
       - result
@@ -8449,8 +8908,7 @@ components:
       properties:
         description:
           type: string
-          description: At most 300 Unicode text elements; ordinary newlines allowed;
-            empty clears the description.
+          description: At most 300 Unicode text elements; ordinary newlines allowed; empty clears the description.
       required:
       - description
       additionalProperties: false
@@ -8485,7 +8943,7 @@ components:
         id:
           type: string
           format: uuid
-        groupId:
+        communityId:
           type: string
           format: uuid
         title:
@@ -8499,7 +8957,7 @@ components:
           format: date-time
       required:
       - id
-      - groupId
+      - communityId
       - title
       - body
       - author
@@ -8549,10 +9007,10 @@ components:
       - announcementId
       - unreadCount
       additionalProperties: false
-    GroupAnnouncementUnread:
+    CommunityAnnouncementUnread:
       type: object
       properties:
-        groupId:
+        communityId:
           type: string
           format: uuid
         unreadCount:
@@ -8560,20 +9018,87 @@ components:
           minimum: 0
           maximum: 5
       required:
-      - groupId
+      - communityId
       - unreadCount
       additionalProperties: false
     AnnouncementUnreadPage:
       type: object
       properties:
-        groups:
+        communities:
           type: array
           items:
-            $ref: '#/components/schemas/GroupAnnouncementUnread'
+            $ref: '#/components/schemas/CommunityAnnouncementUnread'
       required:
-      - groups
+      - communities
       additionalProperties: false
     AnnouncementCreateReceipt:
       $ref: '#/components/schemas/Receipt'
+    Group:
+      type: object
+      properties:
+        id: *id009
+        communityId: *id009
+        name:
+          type: string
+          maxLength: 80
+        description:
+          type: string
+          maxLength: 300
+        logoAssetId:
+          type: string
+          format: uuid
+          nullable: true
+        logoVersion:
+          type: integer
+        version:
+          type: integer
+        etag:
+          type: string
+      required:
+      - id
+      - communityId
+      - name
+      - description
+      - logoAssetId
+      - logoVersion
+      - version
+      - etag
+      additionalProperties: true
+    GroupWrite:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+        description:
+          type: string
+          maxLength: 300
+      required:
+      - name
+      - description
+      additionalProperties: false
+    GroupPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Group'
+        nextCursor:
+          type: string
+          nullable: true
+      required:
+      - items
+      - nextCursor
+    GroupResult:
+      type: object
+      properties:
+        operationId: *id009
+        result:
+          $ref: '#/components/schemas/Group'
+      required:
+      - operationId
+      - result
 x-status: planned
 x-defaults-reviewed: '2026-10-06'

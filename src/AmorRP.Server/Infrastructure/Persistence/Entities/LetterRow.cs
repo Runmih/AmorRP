@@ -3,7 +3,7 @@ namespace AmorRP.Server.Infrastructure.Persistence;
 public sealed class LetterRow
 {
     public Guid Id { get; set; } = Guid.CreateVersion7();
-    public Guid GroupId { get; set; }
+    public Guid CommunityId { get; set; }
     public Guid AuthorCharacterId { get; set; }
     public Guid CategoryId { get; set; }
     public string TypeId { get; set; } = "letter";

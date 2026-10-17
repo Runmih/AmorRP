@@ -1,10 +1,12 @@
+using AmorRP.Server.Features.Groups;
+using AmorRP.Server.Infrastructure.Compatibility;
 using AmorRP.Server.Features.Announcements;
 using AmorRP.Server.Features.Trading;
 using AmorRP.Server.Features.Catalog;
 using AmorRP.Server.Features.Inventory;
 using AmorRP.Server.Features.Media;
 using AmorRP.Server.Features.Authentication;
-using AmorRP.Server.Features.Groups;
+using AmorRP.Server.Features.Communities;
 using AmorRP.Server.Features.Currency;
 using AmorRP.Server.Features.History;
 using AmorRP.Server.Infrastructure.Security;
@@ -18,6 +20,7 @@ using Microsoft.EntityFrameworkCore;
 
 var migrate = args.Contains("--migrate", StringComparer.Ordinal);
 var builder = WebApplication.CreateBuilder(args.Where(x => x != "--migrate").ToArray());
+LegacySettings.Apply(builder.Configuration);
 if (builder.Configuration["PORT"] is { } port && string.IsNullOrEmpty(builder.Configuration["ASPNETCORE_URLS"]))
 {
     if (!int.TryParse(port, out var number) || number is < 1 or > 65535)
@@ -46,14 +49,15 @@ builder.Services.AddScoped<SessionAccess>();
 builder.Services.AddScoped<AuthenticationService>();
 builder.Services.AddScoped<LoginAdmission>();
 builder.Services.AddHostedService<LoginOriginCleanupWorker>();
-builder.Services.AddScoped<GroupAccess>();
+builder.Services.AddScoped<CommunityAccess>();
+builder.Services.AddScoped<CommunityService>();
 builder.Services.AddScoped<GroupService>();
 builder.Services.AddScoped<AnnouncementService>();
 builder.Services.AddScoped<CurrencyService>();
 builder.Services.AddScoped<CatalogService>();
 builder.Services.AddScoped<InventoryService>();
 builder.Services.AddScoped<CurrencyIconService>();
-builder.Services.AddScoped<GroupLogoService>();
+builder.Services.AddScoped<CommunityLogoService>();
 builder.Services.AddScoped<HistoryService>();
 builder.Services.AddScoped<TradeService>();
 builder.Services.AddScoped<TradeReservations>();
@@ -98,6 +102,7 @@ if (migrate)
     return;
 }
 
+app.UseMiddleware<AmorRP.Server.Infrastructure.Compatibility.LegacyApiMiddleware>();
 app.UseExceptionHandler();
 app.Use(async (context, next) => {
     try { await next(context); }
@@ -116,15 +121,17 @@ app.MapHealthEndpoints();
 app.MapCapabilitiesEndpoints();
 app.MapFeasibilityEndpoints();
 app.MapAuthenticationEndpoints();
+app.MapCommunityEndpoints();
 app.MapGroupEndpoints();
 app.MapAnnouncementEndpoints();
 app.MapCurrencyEndpoints();
 app.MapCatalogEndpoints();
 app.MapInventoryEndpoints();
 app.MapCurrencyIconEndpoints();
-app.MapGroupLogoEndpoints();
+app.MapCommunityLogoEndpoints();
 app.MapHistoryEndpoints();
 app.MapTradeEndpoints();
+app.MapLegacyApi();
 await app.RunAsync();
 
 public partial class Program;

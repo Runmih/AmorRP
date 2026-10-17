@@ -1,3 +1,14 @@
+# Current testing update — 0.0.6.17
+
+`testing` contains the community rename and new nested group profiles. `main`
+remains stable 0.0.6.16. Both use the shared main/repo.json feed, with native
+Dalamud testing metadata for opt-in installs. See [testing release](release-0.0.6.17-testing.md).
+Do not merge the testing server/plugin into main merely to publish its package.
+API v2 uses communities; the v1 adapter supports the stable plugin. Migration
+20261017002828_CommunitiesAndGroups renames existing data in place and adds group
+profiles. Saved selections, sessions and private notes retain their associations.
+Community owners grant Create Groups and Manage Groups separately in Members.
+
 # Current repository
 
 Development and stable distribution use **main** at **Runmih/AmorRP**. Plugin
@@ -60,10 +71,10 @@ production data or read secret values without the user's actual task authorizati
 The additive TradingBeta migration preserves stable IDs, old content/balances,
 grants/quotas and icons; adds trade tables/slots/lines and writing TypeId (existing
 rows default letter). Server 0.0.6.8 removes its unsafe category name/type rewrites;
-legacy policies remain intact and owners opt in explicitly. New groups seed Books.
+legacy policies remain intact and owners opt in explicitly. New communities seed Books.
 No new login/provider setup is required. Existing assets never identify by name;
-context name/world matches only the consented verified group roster. Owners have
-implicit capabilities; quotas remain character/group-specific and alts independent.
+context name/world matches only the consented verified community roster. Owners have
+implicit capabilities; quotas remain character/community-specific and alts independent.
 
 Plugin 0.0.6.1 removes the entire startup chat permission flow, its checkbox and
 the M1 tools. Signed-out UI is one login button; browser opening/completion is
@@ -87,15 +98,15 @@ closure after eight seconds with a browser-blocked fallback; failure pages remai
 open. The image is embedded and served locally; no Reddit hotlink or provider
 query/error data is rendered. See the latest [M5 deployment notes](m5-install-test.md).
 
-Plugin **0.0.6.2** implements the maintainer's group-only header request and supplied
+Plugin **0.0.6.2** implements the maintainer's community-only header request and supplied
 full-logo installer icon. Settings → Connection holds manual sync/status controls;
 optional feedback below the content retains action errors, recovery and connection
 failures without an idle Ready/details/dismiss panel. No server change is needed.
 The original and square generated icon live in Assets/Branding; the publisher
 validates/copies the bundled PNG and content-hashed IconUrl together with the feed.
 
-Plugin **0.0.6.3** adds Join/Create group buttons beside the dropdown. Each opens
-an independent registered GroupFormWindow; forms live in GroupFormScreens.cs
+Plugin **0.0.6.3** adds Join/Create community buttons beside the dropdown. Each opens
+an independent registered CommunityFormWindow; forms live in CommunityFormScreens.cs
 instead of Settings. Successful normal/recovered commands reset/close only the
 matching form. Scope changes close/reset both; drafts survive normal refresh.
 This is a plugin-only update with the same API/schema and server compatibility.
@@ -109,16 +120,16 @@ Plugin **0.0.6.4** adds a titleless two-icon LauncherWindow, enabled by default 
 controlled by Settings General or `/amorrp launcher`. The book opens main UI and
 exchange arrows open trading. The maintainer explicitly chose **red badge only**
 for incoming requests: remove the earlier automatic window opening. TradeInbox
-binds requests to the verified character and joined groups; the selected group's
-trade poll supplies its state and TradeInboxScreens polls other joined groups
+binds requests to the verified character and joined communities; the selected community's
+trade poll supplies its state and TradeInboxScreens polls other joined communities
 about every 15 seconds. It runs with the main window closed. Opening another
-group's request respects existing active-trade/unresolved-command guards.
+community's request respects existing active-trade/unresolved-command guards.
 Configuration.ShowLauncher is additive; config version 4 and protected data stay
 compatible. No server/schema change. Actual Dalamud badges/placement require live
-acceptance; 65 helper tests now include the cross-group/identity/expiry checks.
+acceptance; 65 helper tests now include the cross-community/identity/expiry checks.
 
 Plugin **0.0.6.5** simplifies Settings to General with only Show quick launcher.
-The group header now has Join / Create group / Leave; owner leave is disabled
+The community header now has Join / Create community / Leave; owner leave is disabled
 until ownership is transferred, and an active trade must end first. Ownership
 accept/decline remains in Home. Connection, login/devices, history and support
 panels and the Compact view button are removed, along with their unused reads;
@@ -126,7 +137,7 @@ server audit/session APIs and `/amorrp compact` remain. All hover tooltips are
 removed. Ordinary action/trade feedback clears on main/trade reopening or after
 10 seconds; uncertain operations retain their original recovery controls. Latest
 terminal trades no longer reappear from polling. Context-menu Trade automatically
-resolves the selected group's full verified roster, retries on group change and
+resolves the selected community's full verified roster, retries on community change and
 only selects the stable character ID; it never sends an invitation itself.
 No server update, dependency or migration is required. Live layout/selection and
 two-character testing remain the maintainer's acceptance step.
@@ -181,10 +192,10 @@ correction; new tests cover durable isolation, lifecycle, retries, concurrency,
 rotation, cleanup and migration. Batch deployment with the other review fixes.
 
 Security review finding 4 is fixed in **server 0.0.6.6**. HistoryService in
-Features/History/HistoryEndpoints.cs now uses GroupAccess.RequireAsync for both
-feeds, requiring active membership/non-deleted group before cursor processing;
+Features/History/HistoryEndpoints.cs now uses CommunityAccess.RequireAsync for both
+feeds, requiring active membership/non-deleted community before cursor processing;
 audit additionally requires owner. Dormant/blocked rows and old cursors no longer
-grant group history, including later moderation reasons. The API/OpenAPI promise
+grant community history, including later moderation reasons. The API/OpenAPI promise
 of own history after leaving is replaced by separate metadata receipt recovery.
 Existing operation-by-ID/by-key and terminal trade recovery remain scoped to the
 actor/participant. A later moderation subject cannot read the owner's receipt.
@@ -192,12 +203,12 @@ actor/participant. A later moderation subject cannot read the owner's receipt.
 No new migration or plugin package; plugin/minimum remain 0.0.6.6. Prior migrations
 still apply. Regression reproduced leave/remove/block bypasses; tests also cover
 old cursors, inactive unblock, personal receipts by ID/key, later moderation
-receipt rejection, active filtering/audit and deleted groups. The earlier deletion
-test now expects group-history refusal while keeping the personal receipt check.
+receipt rejection, active filtering/audit and deleted communities. The earlier deletion
+test now expects community-history refusal while keeping the personal receipt check.
 No live restart or production change is required to continue reviewing.
 
 Security review finding 5 is fixed in **server 0.0.6.7**. Trade reads formerly held
-the group write advisory lock while doing per-line response queries. ReadAsync
+the community write advisory lock while doing per-line response queries. ReadAsync
 now commits/disposes expiry under lock, clears tracked entities and assembles the
 response in a read-only repeatable-read snapshot outside that lock. New
 TradeService.Views.cs batches currency, lines, characters/authors and holding
@@ -205,7 +216,7 @@ metadata (four projection lookups per nonempty page). Command responses use the
 same loader after saving, inside their existing locked transaction.
 
 Regression reproduced list/single-read lock retention. Tests now prove another
-connection can acquire the group lock and an actual offer edit completes while
+connection can acquire the community lock and an actual offer edit completes while
 projection is paused; the response keeps its original revision/quantities.
 Other checks cover expiry persistence on rejected reads, reservation release,
 query counts, cursor pagination, metadata/authors and sealed writing bodies.
@@ -217,8 +228,8 @@ Security review finding 6 is confirmed and corrected for future upgrades in
 **server 0.0.6.8**. TradingBeta no longer renames or broadens existing categories.
 There is no reliable M3 seed marker; narrowing by Correspondence/Books names alone
 would still modify owner-created data. Preserve all category names/allowed types/
-versions/retired flags instead. Fresh groups still get Books with book/letter/note.
-Legacy M3 groups need owner-authorized category edits to enable new types/rename.
+versions/retired flags instead. Fresh communities still get Books with book/letter/note.
+Legacy M3 communities need owner-authorized category edits to enable new types/rename.
 
 This edits historical migration SQL and adds no new migration ID. Already-upgraded
 databases do not rerun it; do not claim a deployment restores existing policies.
@@ -238,7 +249,7 @@ restart or production repair was performed; existing policies require owner revi
 ## Security review finding 7 — retained resources and audit
 
 Server **0.0.6.9**, plugin/minimum **0.0.6.6**. All three findings reproduced and are
-addressed: immutable original-creator accounting caps retained groups at 30 by
+addressed: immutable original-creator accounting caps retained communities at 30 by
 default even across deletion/transfer; readiness is a cached no-store HTTP read
 backed by one background probe per process; both approval stages reject repeated
 new-key consent while preserving same-key recovery. See security/operations for
@@ -254,7 +265,7 @@ once review/work is complete; this is future intent, not an instruction to wipe 
 ## Member profile UI — 0.0.6.7 / 0.0.6.10
 
 User requested main navigation icons and less member-profile clutter. Added name,
-group-specific description (self-only editing, 300 Unicode text elements) and
+community-specific description (self-only editing, 300 Unicode text elements) and
 trade action; owner permissions are directly below. Other authorized currency,
 items and membership actions remain collapsed. Background refresh preserves dirty
 description drafts; concurrent description saves require reload. Owner self-grants
@@ -282,7 +293,7 @@ updated before new permission saves. Ownership proposals are preserved when
 trading is disabled; open trades still cancel and release reservations. Source
 and plugin feed identity/URL are unchanged. See the focused M5 checklist.
 
-## Group Home and announcements — 0.0.6.9 / 0.0.6.12
+## Community Home and announcements — 0.0.6.9 / 0.0.6.12
 
 The user clarified permission naming: General Moderation is description/currency
 name only. Manage Gameplay Permissions is a separate moderator action for Trading
@@ -293,10 +304,10 @@ crafting/grant authority or introduce a moderator role.
 Plugin **0.0.6.9** / server **0.0.6.12**, minimum **0.0.6.6**. Crafting Info plus
 access-filtered Potions; Home direct editing; five latest clickable announcements
 with full-message dialogs and server read markers; Home/main-launcher badges;
-owner Group Settings tabs; per-type weekly policy inputs loaded from active values.
+owner Community Settings tabs; per-type weekly policy inputs loaded from active values.
 Drafts survive polling. Each policy save preserves the other scheduled type.
 
-New migration **20261015232913_GroupAnnouncements** adds bounded messages, group
+New migration **20261015232913_GroupAnnouncements** adds bounded messages, community
 sequence and per-membership read UUIDs. Create receipts omit message content;
 read markers are idempotent metadata PUTs without operation rows or member ETag
 churn. Notifications poll every 30 seconds while the main window is closed too.
@@ -327,32 +338,32 @@ acceptance; the offer/final-confirm protocol is unchanged. No manual recipient
 dropdown: context menu or Members supplies the target, then Send request. Pending
 requests survive closing; accepted exchanges still cancel on close, including a
 local acceptance completing after closure. Incoming invitations alone do not block
-group changes; sent invitations and accepted exchanges do.
+community changes; sent invitations and accepted exchanges do.
 
 StatusScreens owns the shared selector, bridged through MainWindow into LauncherWindow.
 It retains pending-action/renewal guards, saved selection, notification annotations
-and the active-trade group-switch safeguard. Live checks cover two-player accept,
-close/accept, timer expiry, reopening requests and cross-group selection. No backend
+and the active-trade community-switch safeguard. Live checks cover two-player accept,
+close/accept, timer expiry, reopening requests and cross-community selection. No backend
 or schema changes; existing 75 helper cases pass.
 
 ## Home overview/logos — plugin 0.0.6.12 / server 0.0.6.13
 
-Deploy GroupLogos migration first. HomeOverviewScreens owns profile/cards/logo
+Deploy CommunityLogos migration first. HomeOverviewScreens owns profile/cards/logo
 picker and resource layout; HomeProfileScreens owns inline drafts/ETags. The
 announcement composer is inline Title/Message/Publish for CanAnnounce. General
-Moderation scope is unchanged; group name/logo stay owner-only. No edit icon.
+Moderation scope is unchanged; community name/logo stay owner-only. No edit icon.
 
-GroupLogoService and StaticImageUpload reuse the existing authorized media flow;
-logos have independent version/FK and Purpose=group_logo. Currency rows retain
+CommunityLogoService and StaticImageUpload reuse the existing authorized media flow;
+logos have independent version/FK and Purpose=community_logo. Currency rows retain
 Purpose=currency and original 128px/128KiB database bounds. Upgrades preserve old
 assets; explicit downgrade removes only the new logo assets to restore old bounds.
-GroupImageCache replaces CurrencyIconCache and handles both scoped textures.
+CommunityImageCache replaces CurrencyIconCache and handles both scoped textures.
 FoundationClient streams image responses within explicit per-purpose byte limits.
 New tests cover three formats, scaling, restarts, idempotency, independent versions,
 cleanup/isolation/authority, invalid media and legacy migration preservation.
 
 Plugin 0.0.6.13 / server 0.0.6.14: feedback is now a three-result footer with
-20-second per-result countdown paused during details interaction. Group, character
+20-second per-result countdown paused during details interaction. Community, character
 and potion descriptions are capped at 300 Unicode text elements; Books bodies
 (book/letter/note) at 500. Plugin typing/pasting and server writes enforce the
 limits independently. Existing stored longer text remains readable; no migration.

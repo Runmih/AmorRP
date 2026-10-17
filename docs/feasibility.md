@@ -9,7 +9,7 @@ live inventory/chat behavior and release operations.
 
 Four application projects build against .NET 10 and Dalamud API 15. M0 and M1
 passed per maintainer reports; exact hosted/game logs and credentials are not in
-this workspace. M2 adds durable IDs/sessions, group/owner/member management,
+this workspace. M2 adds durable IDs/sessions, community/owner/member management,
 individual grants, weekly policy scheduling, currency ledger/history/recovery and
 plugin screens. M3 implements categories, immutable potion revisions, independent
 usage snapshots, letters, inventory and bounded currency media. Trades and
@@ -27,7 +27,7 @@ CDN network policy; CI/Render can supply that build evidence.
 | Area | Assessment | Required evidence |
 | --- | --- | --- |
 | Server + PostgreSQL + Render | Standard, suitable architecture | Deploy/restore a real service and measure target workload |
-| Groups/capabilities/quotas | Straightforward domain, moderate transaction work | Concurrent caps and budget tests; product-default review |
+| Communities/capabilities/quotas | Straightforward domain, moderate transaction work | Concurrent caps and budget tests; product-default review |
 | Potion/letter inventory | Small and extensible enough for 1.0 | Immutable revisions, instance ownership and renderer tests |
 | Trading | Highest integrity risk; feasible but not trivial | Reservations, stale confirmations, restart and restriction races |
 | XIVAuth | M1 accepted; durable adapter built | M2 hosted refresh/revocation behavior |
@@ -55,7 +55,7 @@ CDN network policy; CI/Render can supply that build evidence.
 
 ## What is already sufficiently defined
 
-Product types, per-character budgets, closed group boundaries, action permissions,
+Product types, per-character budgets, closed community boundaries, action permissions,
 UI flows, server authority, endpoint inventory, entity/transaction model, proposed
 tree, hosting approach, failure handling, acceptance scenarios and future seams.
 Rules that have not been explicitly confirmed are identified as recommendations,
@@ -65,7 +65,7 @@ not silently treated as user decisions.
 
 | Need | Can proceed without it? | Gate |
 | --- | --- | --- |
-| Review recommended cap scope/defaults/lifecycle decisions | Identity and chat spikes can proceed | Before group/inventory milestone acceptance |
+| Review recommended cap scope/defaults/lifecycle decisions | Identity and chat spikes can proceed | Before community/inventory milestone acceptance |
 | Live Windows FFXIV/Dalamud test machine and hosted CI | Local .NET builds/tests have passed | Remaining M0/M1 checks |
 | XIVAuth developer app, registered callbacks and secret access | Adapter design/fixtures can proceed | M1 |
 | Render account/billing/region and test database | Local development can proceed | Deployed M1, paid M3 beta |
@@ -87,5 +87,5 @@ including PostgreSQL quota/revision/isolation/privacy/media and upgrade scenario
 
 Complete M3 live acceptance, including the carried kick and inventory/chat loop,
 then start M4 trading. Keep CI/container evidence separate. Finish the full loop
-with a small real group before expansion; M5 operational, privacy, measured capacity
+with a small real community before expansion; M5 operational, privacy, measured capacity
 and human release checks still block public 1.0.

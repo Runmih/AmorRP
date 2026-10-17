@@ -9,7 +9,7 @@ Build date: 2026-10-06. Plugin version: `0.0.1.0`, Dalamud API 15.
 M0 provides a loadable plugin package with `/amorrp`, local character/home-world
 display, saved server address and an asynchronous connection check. The server
 provides liveness, PostgreSQL/schema readiness and capabilities. Product features
-start in M1–M4; M0 does not create accounts, groups, coins, potions, letters or trades.
+start in M1–M4; M0 does not create accounts, communities, coins, potions, letters or trades.
 
 ## What was verified
 
@@ -81,7 +81,7 @@ In another terminal:
 ```powershell
 Invoke-RestMethod http://127.0.0.1:5080/health/live
 Invoke-RestMethod http://127.0.0.1:5080/health/ready
-Invoke-RestMethod http://127.0.0.1:5080/api/v1/capabilities
+Invoke-RestMethod http://127.0.0.1:5080/api/v2/capabilities
 ```
 
 Both health calls must return `status: ok`. Capabilities has API version `1`, server

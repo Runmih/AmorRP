@@ -7,7 +7,7 @@ public static class FeasibilityEndpoints
 {
     public static void MapFeasibilityEndpoints(this WebApplication app)
     {
-        app.MapPost("/api/v1/feasibility/login-attempts", (IdentityProbeStart selected, HttpContext context,
+        app.MapPost("/api/v2/feasibility/login-attempts", (IdentityProbeStart selected, HttpContext context,
             IOptions<XivAuthOptions> options, IdentityProbeStore store, ICharacterIdentityProvider provider) =>
         {
             NoStore(context);
@@ -19,7 +19,7 @@ public static class FeasibilityEndpoints
             return created is null ? Rejected(409) : Results.Json(created, statusCode: 201);
         }).RequireRateLimiting("identity-probe");
 
-        app.MapGet("/api/v1/feasibility/login-attempts/{attemptId}", (Guid attemptId, HttpContext context,
+        app.MapGet("/api/v2/feasibility/login-attempts/{attemptId}", (Guid attemptId, HttpContext context,
             IOptions<XivAuthOptions> options, IdentityProbeStore store) =>
         {
             NoStore(context);
@@ -46,7 +46,7 @@ public static class FeasibilityEndpoints
                 "text/html", statusCode: success ? 200 : 400);
         }).RequireRateLimiting("identity-probe");
 
-        app.MapPost("/api/v1/feasibility/login-attempts/{attemptId}/exchange", (Guid attemptId, HttpContext context,
+        app.MapPost("/api/v2/feasibility/login-attempts/{attemptId}/exchange", (Guid attemptId, HttpContext context,
             IOptions<XivAuthOptions> options, IdentityProbeStore store) =>
         {
             NoStore(context);
@@ -56,7 +56,7 @@ public static class FeasibilityEndpoints
             return session is null ? Rejected(401) : Results.Ok(session);
         }).RequireRateLimiting("identity-probe");
 
-        app.MapGet("/api/v1/feasibility/identity", (HttpContext context, IOptions<XivAuthOptions> options, IdentityProbeStore store) =>
+        app.MapGet("/api/v2/feasibility/identity", (HttpContext context, IOptions<XivAuthOptions> options, IdentityProbeStore store) =>
         {
             NoStore(context);
             if (!options.Value.Enabled) return Disabled();
@@ -64,7 +64,7 @@ public static class FeasibilityEndpoints
             return character is null ? Rejected(401) : Results.Ok(character);
         }).RequireRateLimiting("identity-probe");
 
-        app.MapDelete("/api/v1/feasibility/session", (HttpContext context, IOptions<XivAuthOptions> options, IdentityProbeStore store) =>
+        app.MapDelete("/api/v2/feasibility/session", (HttpContext context, IOptions<XivAuthOptions> options, IdentityProbeStore store) =>
         {
             NoStore(context);
             if (!options.Value.Enabled) return Disabled();

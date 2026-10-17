@@ -9,7 +9,7 @@ see [installation and testing](m5-install-test.md). Subsequent candidates use
 0.0.6.x until release checks and explicit maintainer approval permit 1.0.
 
 M5 completes the existing 1.0 scope. It does not add item types, rich books,
-attachments, cross-group transfers, roles, a web administration application or an
+attachments, cross-community transfers, roles, a web administration application or an
 official Dalamud submission. Preserve the vertical main navigation, horizontal
 subtabs, Inventory default, contextual authorized controls, separate trade window
 and explicit user-triggered potion chat. The maintainer removed the earlier
@@ -52,15 +52,15 @@ Follow the existing [API catalog](../engineering/api.md) and
 [OpenAPI](../engineering/openapi.yaml). Mark a route implemented only with its
 authorization, failure behavior and meaningful tests. Export is restricted to the
 requesting character; held written bodies must not leak through former ownership,
-group administration, logs or other players' exports. Exclude provider grants,
+community administration, logs or other players' exports. Exclude provider grants,
 tokens, encryption material and other characters' private data.
 
-Deletion must resolve owned groups and open trades before processing. Define and
+Deletion must resolve owned communities and open trades before processing. Define and
 document the retained audit records and removal of private content before any
 operator command can purge data. Destructive production processing is a separate
 operator action; testing uses disposable databases. Existing inventories, identity
 bindings, grants, quotas, operation keys and protected settings must survive normal
-updates. A dormant membership remains a group feature and is not a personal-data
+updates. A dormant membership remains a community feature and is not a personal-data
 deletion request.
 
 Keep proposed retention and capacity figures identified as recommendations until
@@ -101,5 +101,5 @@ measurement in a development environment cannot prove the Render tier's capacity
 
 Use the [acceptance checklist](acceptance.md),
 [operating guide](operations.md) and [source map](../engineering/repository-layout.md)
-as the completion criteria. Keep code grouped by actual features; avoid empty
+as the completion criteria. Keep code communityed by actual features; avoid empty
 future folders, speculative abstractions and undocumented operator SQL.

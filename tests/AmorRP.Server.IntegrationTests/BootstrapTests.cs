@@ -79,19 +79,19 @@ public sealed class BootstrapTests : IAsyncLifetime
     {
         using var factory = CreateFactory(connection);
         using var client = factory.CreateClient();
-        var result = await client.GetFromJsonAsync<CapabilitiesResponse>("/api/v1/capabilities", TestContext.Current.CancellationToken);
+        var result = await client.GetFromJsonAsync<CapabilitiesResponse>("/api/v2/capabilities", TestContext.Current.CancellationToken);
         Assert.NotNull(result);
-        Assert.Equal("1", result.ApiVersion);
+        Assert.Equal("2", result.ApiVersion);
         Assert.Equal(new[] { "potion", "letter", "book", "note" }, result.SupportedTypes.Select(x => x.Id));
-        Assert.Equal(new[] { "currency.manage", "items.potion.create", "inventory.remove", "items.potion.define", "group.moderate", "announcements.manage", "members.gameplay.manage" }, result.GrantableCapabilities);
+        Assert.Equal(new[] { "currency.manage", "items.potion.create", "inventory.remove", "items.potion.define", "community.moderate", "announcements.manage", "members.gameplay.manage", "groups.create", "groups.manage" }, result.GrantableCapabilities);
         Assert.Equal(new[] { "emote", "say", "party", "linkshell", "crossworld-linkshell" }, result.ChatDestinationKinds);
-        Assert.Equal(3, result.Limits.OwnedGroups);
-        Assert.Equal(6, result.Limits.JoinedGroups);
-        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsync("/api/v1/groups", null, TestContext.Current.CancellationToken)).StatusCode);
+        Assert.Equal(3, result.Limits.OwnedCommunities);
+        Assert.Equal(6, result.Limits.JoinedCommunities);
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsync("/api/v2/communities", null, TestContext.Current.CancellationToken)).StatusCode);
     }
 
     [Fact]
-    public void Inconsistent_group_policy_prevents_server_startup()
+    public void Inconsistent_community_policy_prevents_server_startup()
     {
         using var factory = CreateFactory(connection, "2");
         Assert.ThrowsAny<Exception>(() => factory.CreateClient());
@@ -120,12 +120,12 @@ public sealed class BootstrapTests : IAsyncLifetime
         }
     }
 
-    private static WebApplicationFactory<Program> CreateFactory(string connectionString, string joinedGroups = "6") =>
+    private static WebApplicationFactory<Program> CreateFactory(string connectionString, string joinedCommunities = "6") =>
         new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
         {
             builder.UseEnvironment("Testing");
             builder.UseSetting("ConnectionStrings:Database", connectionString);
-            builder.UseSetting("ServicePolicy:JoinedGroups", joinedGroups);
+            builder.UseSetting("ServicePolicy:JoinedCommunities", joinedCommunities);
             builder.UseSetting("HealthPolicy:ReadinessRefreshSeconds", "1");
         });
 }

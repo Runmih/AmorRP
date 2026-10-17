@@ -10,19 +10,19 @@ product session: sign in once through the new Character login section.
 
 - Saved per-character login, automatic ownership revalidation and rotating
   credentials; Windows CurrentUser DPAPI protects the local save.
-- Up to 3 owned / 6 active joined groups per verified character, owned included.
+- Up to 3 owned / 6 active joined communities per verified character, owned included.
   Different characters, including alts, remain independent.
-- Explicit group visibility acceptance, expiring/revocable invitations, roster,
+- Explicit community visibility acceptance, expiring/revocable invitations, roster,
   leave, removal/blocking, restoration/rejoin, ownership proposal/acceptance,
-  exact-name group deletion and a persistent group selector.
+  exact-name community deletion and a persistent community selector.
 - Direct grants for `currency.manage`, `items.potion.create`, `inventory.remove`.
   The latter two configure future M3 behavior; they do not create inventory yet.
   Trading defaults allowed and can be restricted; actual trades arrive in M4.
-- Named group currency, whole-unit balances, reasoned adjustments and history.
+- Named community currency, whole-unit balances, reasoned adjustments and history.
   No currency balance or membership is selected by a display name.
 - Weekly policy defaults and scheduling: changes apply next Monday 00:00 UTC.
   UI shows current/scheduled values and reset time. Quota spending arrives in M3.
-- PostgreSQL locking, safe operation retries, ETags and cross-group checks.
+- PostgreSQL locking, safe operation retries, ETags and cross-community checks.
   A retried adjustment cannot mint/debit twice. Credentials and unresolved retry
   keys are saved before renewal/commands. Startup chat permission stays as agreed.
 
@@ -36,7 +36,7 @@ The old M1 tests remain under **M1 diagnostic tools**.
    `m2-foundation`; retain its Dockerfile `deploy/Dockerfile`, root build context,
    database secret and pre-deploy command `dotnet AmorRP.Server.dll --migrate`.
    Deploy manually. M2 adds a reviewed additive migration with characters,
-   attempts/sessions, groups/members, invitations, ownership and operation ledger.
+   attempts/sessions, communities/members, invitations, ownership and operation ledger.
 2. In your existing XIVAuth confidential OAuth client, enable the minimal scopes
    **character** and **refresh** for authorization-code login. Register the exact
    new callback `https://YOUR-SERVICE/auth/xivauth/callback`. Keep the old callback
@@ -69,7 +69,7 @@ The old M1 tests remain under **M1 diagnostic tools**.
    it in your secure backup alongside database recovery instructions. Rotation
    adds a new key ID, switches ActiveKeyId and retains the old entry.
 5. Restart/redeploy after configuration changes. Check `/health/live`,
-   `/health/ready` and `/api/v1/capabilities`: server 0.0.3, minimum client 0.0.3,
+   `/health/ready` and `/api/v2/capabilities`: server 0.0.3, minimum client 0.0.3,
    three grantable actions. Disabled/malformed auth or key configuration cannot
    simulate a successful login. Invalid enabled configuration prevents startup.
 
@@ -92,7 +92,7 @@ consent. Open the window after a restart to resume; this M2 UI renews while open
 and renews on the next open if necessary. Refresh validity defaults to 30 days
 since last renewal. A long absence, logout/revocation, lost save, reinstall, new
 Windows user/machine or provider grant failure can require browser login again.
-Those events do not replace the character or erase group assets.
+Those events do not replace the character or erase community assets.
 
 Character switches use independent saved logins. After a rename/world transfer,
 choose **Use a saved identity** and the corresponding saved character; resume or
@@ -102,45 +102,45 @@ Numeric world IDs are local display hints; provider ID/key controls ownership.
 
 ## Manual M2 exit checklist
 
-Use two verified characters and two isolated test groups. More characters can
+Use two verified characters and two isolated test communities. More characters can
 exercise join caps, but the automated PostgreSQL tests already check concurrency
 at the agreed 3/6 limits. Do not buy a rename or world transfer for this milestone.
 
-1. Sign in, create Group A with a named currency and initial weekly limits, and
-   Group B with visibly different names. Switch between them: names, your balance,
-   roster/history and owner settings must follow the selected group.
+1. Sign in, create Community A with a named currency and initial weekly limits, and
+   Community B with visibly different names. Switch between them: names, your balance,
+   roster/history and owner settings must follow the selected community.
 2. Create an A invitation. The other character accepts visibility and joins A.
    Confirm its roster entry. Ordinary members cannot invite, edit policies,
-   grant permissions or adjust currency. Group B remains inaccessible until
+   grant permissions or adjust currency. Community B remains inaccessible until
    separately invited; its balances must not appear in A.
 3. Authorize the member's Manage currency action. Adjust A currency with reasons,
    positive and negative deltas. Verify both balances and owner/personal history.
    An excessive debit is rejected without changing the balance. Revoke the action;
    further adjustments must be denied immediately.
-4. Toggle the member's trading restriction. Confirm it displays in that group
+4. Toggle the member's trading restriction. Confirm it displays in that community
    only. Potion and removal grants can be saved, but no inventory operation exists.
 5. Schedule weekly policy changes. Verify the current limits remain, the next
    limits update, and the UI shows next Monday's reset in local time. The boundary
    is covered by an automated server-clock test; do not wait a week to accept M2.
-6. Remove/block the member. It loses group access and cannot rejoin with a code.
+6. Remove/block the member. It loses community access and cannot rejoin with a code.
    Restore eligibility and rejoin with a still-valid invitation: old balance stays,
    action grants remain cleared. Leave/rejoin also preserves balance.
 7. Propose ownership to that member. Only the recipient can accept. Confirm the
    former owner stays a normal member and loses owner controls. The new owner
-   can administer and delete using the exact group-name confirmation.
+   can administer and delete using the exact community-name confirmation.
 8. Try an expired/used/revoked invitation. It must reject joining. Invite metadata
    lists must never reveal previously issued secret codes.
-9. Reload/restart plugin and server; resume the same character and check its groups,
+9. Reload/restart plugin and server; resume the same character and check its communities,
    balances and grants. Demonstrate hosted renewal without reopening the browser.
    Sign out one device or revoke a spare device session: it must lose access.
 10. Interrupt a currency request by disconnecting the test client. Reconnect and use
     **Retry original action** or **Check committed receipt**. The amount must apply
     once. On an unresolved outcome, retain the original key and reconcile before
     another change. A server restart must not erase the operation record.
-11. The chat question still appears once per plugin startup; sends and group/character
+11. The chat question still appears once per plugin startup; sends and community/character
     switches must not ask again. M1 diagnostic chat remains a real public message.
 
-Record plugin/source version, hosted .NET/PostgreSQL versions, character/group
+Record plugin/source version, hosted .NET/PostgreSQL versions, character/community
 setup, observed results and defects. M2 is accepted after these new flows pass.
 
 ## Build and automated verification
@@ -175,13 +175,13 @@ Automated evidence on 2026-10-07:
 - Seven-project Release build with zero warnings/errors; locked restore passed.
 - 62 tests passed, none skipped: 34 plugin, 27 server, one contract boundary.
   Nine M2 checks cover durable login/restart and stable ownership, renewal reuse,
-  group/invite concurrency, permission/isolation/ledger behavior, removal/rejoin,
+  community/invite concurrency, permission/isolation/ledger behavior, removal/rejoin,
   weekly policy boundary, ownership acceptance and version/pagination/deletion
   recovery. Test provider responses are fixtures, not live XIVAuth evidence.
 - EF migration/model consistency, documentation links/OpenAPI (82 operations,
   49 implemented), plugin ZIP identity/dependency/license and source boundaries pass.
 - Published native server upgraded a disposable PostgreSQL 18.6 M0 bootstrap
-  database to M2; PORT handling, health/readiness, capabilities and protected group
+  database to M2; PORT handling, health/readiness, capabilities and protected community
   access were smoke-tested. No real external secret was used.
 
  These checks do not
@@ -190,7 +190,7 @@ CI have separate evidence; the workspace network blocks Microsoft's image CDN.
 
 ## Configuration and expansion
 
-`ServicePolicy` validates group caps, weekly ceilings, active-invitation ceiling,
+`ServicePolicy` validates community caps, weekly ceilings, active-invitation ceiling,
 ownership lifetime, public page and request limits. Effective M2 domain ceilings
 are advertised in capabilities. `SessionPolicy` configures access/refresh/login
 lifetimes and session/attempt caps; defaults are 30 minutes/30 days/10 minutes,
@@ -198,7 +198,7 @@ lifetimes and session/attempt caps; defaults are 30 minutes/30 days/10 minutes,
 are 6000/1200 requests per minute by default; measure/refine at M5 capacity review.
 All limits are server-enforced, including clients other than this plugin.
 
-M3 adds group categories, potion definitions/revisions, holdings and per-character
+M3 adds community categories, potion definitions/revisions, holdings and per-character
 weekly usage through additive migrations and reuses membership authority,
 transactions and operation receipts. M4 adds reservations and trade transactions;
 M2 stores reserved currency as zero until that path exists. Future multiple

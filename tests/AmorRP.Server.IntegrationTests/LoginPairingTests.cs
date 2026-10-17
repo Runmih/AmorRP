@@ -19,7 +19,7 @@ public sealed partial class FoundationTests
     {
         using var factory = Factory(); await Migrate(factory);
         using var sender = factory.CreateClient(); using var browser = factory.CreateClient();
-        using var start = Request(HttpMethod.Post, "/api/v1/auth/login-attempts", new LoginStart("Victim character", "35", "Zalera"));
+        using var start = Request(HttpMethod.Post, "/api/v2/auth/login-attempts", new LoginStart("Victim character", "35", "Zalera"));
         start.Headers.Add("X-Login-Request-Credential", SecretVault.NewSecret());
         using var started = await sender.SendAsync(start, TestContext.Current.CancellationToken);
         var attempt = (await started.Content.ReadFromJsonAsync<CommandResult<LoginAttemptCreated>>(TestContext.Current.CancellationToken))!.Result;
@@ -28,19 +28,19 @@ public sealed partial class FoundationTests
         Assert.Equal(HttpStatusCode.OK, approved.StatusCode);
         var browserCode = PairingCodeFromPage(await approved.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
         Assert.True(attempt.PairingRequired);
-        using var poll = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/auth/login-attempts/{attempt.AttemptId}");
+        using var poll = new HttpRequestMessage(HttpMethod.Get, $"/api/v2/auth/login-attempts/{attempt.AttemptId}");
         poll.Headers.Add("X-Login-Attempt-Credential", attempt.AttemptCredential);
         using var polled = await sender.SendAsync(poll, TestContext.Current.CancellationToken);
         var publicStatus = await polled.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
         Assert.DoesNotContain(browserCode, publicStatus);
         Assert.DoesNotContain("pairingCode", publicStatus);
 
-        using var legacy = Request(HttpMethod.Post, $"/api/v1/auth/login-attempts/{attempt.AttemptId}/exchange");
+        using var legacy = Request(HttpMethod.Post, $"/api/v2/auth/login-attempts/{attempt.AttemptId}/exchange");
         legacy.Headers.Add("X-Login-Attempt-Credential", attempt.AttemptCredential);
         using var codeFree = await sender.SendAsync(legacy, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.BadRequest, codeFree.StatusCode);
 
-        using var exchange = Request(HttpMethod.Post, $"/api/v1/auth/login-attempts/{attempt.AttemptId}/exchange", new { pairingCode = "0000000000000000" });
+        using var exchange = Request(HttpMethod.Post, $"/api/v2/auth/login-attempts/{attempt.AttemptId}/exchange", new { pairingCode = "0000000000000000" });
         exchange.Headers.Add("X-Login-Attempt-Credential", attempt.AttemptCredential);
         using var stolen = await sender.SendAsync(exchange, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.Unauthorized, stolen.StatusCode);
@@ -61,7 +61,7 @@ public sealed partial class FoundationTests
 
     private async Task<(LoginAttemptCreated Attempt, string Code)> PairingAttempt(HttpClient client, string id)
     {
-        using var start = Request(HttpMethod.Post, "/api/v1/auth/login-attempts", new LoginStart("Person " + id, "35", "Zalera"));
+        using var start = Request(HttpMethod.Post, "/api/v2/auth/login-attempts", new LoginStart("Person " + id, "35", "Zalera"));
         start.Headers.Add("X-Login-Request-Credential", SecretVault.NewSecret());
         using var started = await client.SendAsync(start, TestContext.Current.CancellationToken);
         var attempt = (await started.Content.ReadFromJsonAsync<CommandResult<LoginAttemptCreated>>(TestContext.Current.CancellationToken))!.Result;
@@ -73,7 +73,7 @@ public sealed partial class FoundationTests
 
     private async Task<HttpResponseMessage> RedeemPairing(HttpClient client, LoginAttemptCreated attempt, string code, Guid? key = null)
     {
-        using var request = Request(HttpMethod.Post, $"/api/v1/auth/login-attempts/{attempt.AttemptId}/exchange", new LoginExchangeRequest(code), key);
+        using var request = Request(HttpMethod.Post, $"/api/v2/auth/login-attempts/{attempt.AttemptId}/exchange", new LoginExchangeRequest(code), key);
         request.Headers.Add("X-Login-Attempt-Credential", attempt.AttemptCredential);
         return await client.SendAsync(request, TestContext.Current.CancellationToken);
     }
@@ -126,7 +126,7 @@ public sealed partial class FoundationTests
     {
         using var factory = Factory(); await Migrate(factory); using var client = factory.CreateClient();
         var cancelled = await PairingAttempt(client, "194"); var expired = await PairingAttempt(client, "195");
-        using var cancel = Request(HttpMethod.Delete, $"/api/v1/auth/login-attempts/{cancelled.Attempt.AttemptId}");
+        using var cancel = Request(HttpMethod.Delete, $"/api/v2/auth/login-attempts/{cancelled.Attempt.AttemptId}");
         cancel.Headers.Add("X-Login-Attempt-Credential", cancelled.Attempt.AttemptCredential);
         using var response = await client.SendAsync(cancel, TestContext.Current.CancellationToken); Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         using var cancelledExchange = await RedeemPairing(client, cancelled.Attempt, cancelled.Code); Assert.Equal(HttpStatusCode.Conflict, cancelledExchange.StatusCode);

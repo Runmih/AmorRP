@@ -4,7 +4,7 @@ using SkiaSharp;
 namespace AmorRP.Server.Features.Media;
 
 // Shared hostile-input boundary. Currency icons keep their strict 128px limit;
-// group logos accept bounded larger sources and downscale before storage.
+// community logos accept bounded larger sources and downscale before storage.
 internal static class StaticImageUpload
 {
     internal sealed record Image(byte[] Input, byte[] Png, int Width, int Height);

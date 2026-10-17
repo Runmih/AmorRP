@@ -3,7 +3,7 @@ namespace AmorRP.Server.Infrastructure.Persistence;
 public sealed class TradeRow
 {
     public Guid Id { get; set; } = Guid.CreateVersion7();
-    public Guid GroupId { get; set; }
+    public Guid CommunityId { get; set; }
     public Guid InitiatorId { get; set; }
     public Guid RecipientId { get; set; }
     public string State { get; set; } = "invited";

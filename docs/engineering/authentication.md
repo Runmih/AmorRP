@@ -17,7 +17,7 @@ to install or maintain the provider's Rails/Ruby/Redis stack.
 
 ## Intended flow
 
-1. Plugin calls Amor RP `POST /api/v1/auth/login-attempts`, giving the selected
+1. Plugin calls Amor RP `POST /api/v2/auth/login-attempts`, giving the selected
    character's display-name/home-world hint. Server creates an expiring attempt,
    state and random attempt credential; hints are not authoritative. The plugin
    supplies a fresh 256-bit `X-Login-Request-Credential`, retained only for retries
@@ -52,7 +52,7 @@ Provider/browser login must be usable without another installed Dalamud plugin.
   Record name and home world for display/context matching.
 - Never merge on current name or home world. Character rename/transfer updates
   display identity after fresh verification without resetting holdings or quotas.
-- A provider user can authenticate different verified characters; their group
+- A provider user can authenticate different verified characters; their community
   permissions/budgets remain independent. Do not retrieve/store their whole alt list.
 - Explicitly test provider character unlink/relink, revocation and transfer to
   another provider account. Never silently transfer old assets to a new binding.
@@ -70,10 +70,10 @@ case and requires an explicit migration/recovery policy.
 
 For a returning verified binding, fetch/revalidate the authorized character using
 the stored Lodestone ID and verify the ownership key. The reviewed provider has
-`GET /api/v1/characters/{lodestone_id}` for this purpose; a public Lodestone ID
+`GET /api/v2/characters/{lodestone_id}` for this purpose; a public Lodestone ID
 alone never proves ownership. After verified profile refresh, update display name
 and home world on the existing internal Character record. Do not create a replacement
-record, reset quotas, rewrite asset owners or require joining groups again.
+record, reset quotas, rewrite asset owners or require joining communities again.
 Returning authentication and asset ownership lookups must use verified IDs/key;
 do not search by name/world or fall back to them to resolve an existing binding.
 Never accept a submitted new name/world as verification or silently skip matching
@@ -86,7 +86,7 @@ M2 initial login uses the same discovery hint; saved reauthentication submits
 `knownCharacterId`, resolves its stored Lodestone ID and fetches that exact provider
 resource. Session renewal also fetches exclusively by stored Lodestone ID. Both
 paths verify the ownership key before updating the existing internal Character
-record. Group balances and memberships never use name/world lookup.
+record. Community balances and memberships never use name/world lookup.
 Provider identifier derivation is documented above. Live paid rename/transfer
 tests are waived because of their real-money cost (A16), and no separate simulated
 rename/transfer gate is required. Normal authentication tests cover verified
@@ -141,7 +141,7 @@ There are no permission claims in bearer credentials; authority is read from DB.
 
 OAuth refresh and an Amor database commit cannot be one atomic transaction. A
 provider rotation whose response is lost may require fresh browser login; that
-cannot transfer or erase group assets. Hosted provider unlink/revocation behavior
+cannot transfer or erase community assets. Hosted provider unlink/revocation behavior
 and this failure path remain M2 live checks, with further fault recovery at M5.
 Numeric home-world IDs are local display hints. A provider world-name update
 invalidates a stale numeric hint until fresh selected-character login updates it;

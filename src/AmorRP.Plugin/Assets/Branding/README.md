@@ -3,7 +3,7 @@
 `logo-source.png` is the maintainer’s replacement red-and-gold RP artwork,
 supplied in `amorRPlogo.zip` on 2026-10-16. It is already 512 × 512. `icon.png`
 is an exact byte-for-byte copy; no resizing, recoloring or redrawing is applied.
-It is the plugin installer icon, separate from group and currency icons.
+It is the plugin installer icon, separate from community and currency icons.
 
 To regenerate this icon, copy `logo-source.png` to `icon.png`.
 

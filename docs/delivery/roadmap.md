@@ -8,7 +8,7 @@ Do not mark a milestone complete because its code exists without its exit eviden
 | --- | --- | --- |
 | M0: build and boundaries | Replace old scaffold with clean four-project layout, verify version matrix and lock dependencies, clean ignores, local PostgreSQL and CI | Fresh checkout builds server/core/contracts; plugin builds/packages/loads on supported platform; toolchain, host references and exact commands recorded |
 | M1: feasibility spikes | Real XIVAuth character login on Render; live context-menu and consented chat spike | Valid login, wrong identity rejection, all selected channels tested, reconnect shown; no account-ID collection |
-| M2: group foundation | Groups, invites, membership/owner lifecycle, capabilities, policies, currency, isolation | Two characters in two groups; caps and all cross-group denials tested with real PostgreSQL |
+| M2: community foundation | Communities, invites, membership/owner lifecycle, capabilities, policies, currency, isolation | Two characters in two communities; caps and all cross-community denials tested with real PostgreSQL |
 | M3: playable inventory alpha | Carried M2 removal/UI fixes, currency icons, potion definitions/copies/points, letters/quota/editing, extended and compact inventory, consented use | Plugin kick/access loss/history demonstrated; shared navigation/refresh/form resets and bounded icons verified; owner plus two members complete creation/read/use session; restart preserves data; duplicate requests verified |
 | M4: interface and trading beta | Vertical main navigation/horizontal subtabs, integrated authorized actions, stable background updates, CRUD consolidation and separate blocking; then context-menu trades, reservations, revisions/confirmation and readable history | No jarring reloads or lost selection/drafts; membership actions behave distinctly; concurrent accounting/recovery checks pass; two real players trade successfully |
 | M5: 1.0 candidate | Installation/updates, privacy/support, export/deletion, backup/restore, capacity, UI polish | Entire release checklist passes; no unresolved critical defect or integration gate; human release review |
@@ -73,17 +73,17 @@ and potion creation/use are now confirmed working after the M3.1 patches.
 - Letters and potions finish before adding more item types.
 - Beta data has a stated persistence policy and paid database before testers rely
   on it. Test and production databases are separate.
-- M2 uses per-verified-character group caps, including independent alts; confirm this during M2 acceptance. Resolve quota/week/content/lifecycle rules before
+- M2 uses per-verified-character community caps, including independent alts; confirm this during M2 acceptance. Resolve quota/week/content/lifecycle rules before
   M3; distribution/capacity/privacy policy before M5.
 
 ## Product feedback gates
 
-At M3: can unfamiliar players find their group, remaining allowance and potion
+At M3: can unfamiliar players find their community, remaining allowance and potion
 message without help? Does five letters/week feel appropriate? Does compact view
 stay useful during RP? Ask owner whether currency history is sufficient oversight.
 
 At M4: can each player understand the final offer, both approval stages and why an edit cancels the deal?
-Does restriction behavior match owner expectations? Can the group recover from
+Does restriction behavior match owner expectations? Can the community recover from
 disconnect without a maintainer editing data? Record observed defects and update scope.
 
 At M5: a clean install by a new tester, an upgrade with old settings, and a server

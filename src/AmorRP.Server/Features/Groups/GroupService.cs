@@ -1,9 +1,10 @@
-using AmorRP.Contracts.Auth;
-using AmorRP.Contracts.Groups;
-using AmorRP.Contracts.Currency;
-using AmorRP.Contracts.History;
+using System.Security.Cryptography;
 using AmorRP.Contracts.Common;
+using AmorRP.Contracts.Groups;
+using AmorRP.Core.Items;
 using AmorRP.Server.Features.Authentication;
+using AmorRP.Server.Features.Communities;
+using AmorRP.Server.Features.Media;
 using AmorRP.Server.Infrastructure.Persistence;
 using AmorRP.Server.Infrastructure.Security;
 using AmorRP.Server.Options;
@@ -12,150 +13,95 @@ using Microsoft.Extensions.Options;
 
 namespace AmorRP.Server.Features.Groups;
 
-public sealed partial class GroupService(AmorDbContext db, SessionAccess sessions, GroupAccess access, CommandStore commands,
-    PageCursor pages, IOptions<ServicePolicyOptions> policy, TimeProvider time, AmorRP.Server.Features.Trading.TradeReservations trades)
+public sealed class GroupService(AmorDbContext db, SessionAccess sessions, CommunityAccess communities, CommandStore commands, PageCursor pages, IOptions<ServicePolicyOptions> policy)
 {
-    private async Task CapsAsync(Guid character, bool owning, CancellationToken ct)
+    private static Group View(GroupRow row) => new(row.Id, row.CommunityId, row.Name, row.Description, row.LogoAssetId, row.LogoVersion, row.Version, CommandStore.ETag("group", row.Id, row.Version));
+    private async Task<GroupRow> RequireAsync(Guid communityId, Guid groupId, CancellationToken ct)
     {
-        var joined = await (from m in db.Memberships join g in db.Groups on m.GroupId equals g.Id
-            where m.CharacterId == character && m.Status == "active" && !g.Deleted select g.Id).CountAsync(ct);
-        var owned = await db.Groups.CountAsync(x => x.OwnerCharacterId == character && !x.Deleted, ct);
-        ApiFault.Require(joined < policy.Value.JoinedGroups && (!owning || owned < policy.Value.OwnedGroups), 409, "group_limit_reached", "Character group limit reached.");
+        var row = await db.Groups.SingleOrDefaultAsync(x => x.CommunityId == communityId && x.Id == groupId && !x.Deleted, ct);
+        ApiFault.Require(row != null, 404, "not_found", "Group was not found in this community."); return row!;
     }
-    public async Task<IResult> ListAsync(HttpContext http, CancellationToken ct)
+    public async Task<IResult> ListAsync(HttpContext h, Guid communityId, CancellationToken ct)
     {
-        var session = await sessions.GetAsync(http, ct);
-        var rows = await (from m in db.Memberships join g in db.Groups on m.GroupId equals g.Id
-            where m.CharacterId == session.CharacterId && m.Status == "active" && !g.Deleted orderby g.Id select new { G = g, M = m }).ToArrayAsync(ct);
-        var items = new List<Group>();
-        foreach (var row in rows) items.Add(await access.ViewAsync(row.G, row.M, time.GetUtcNow(), ct));
-        return Results.Json(new GroupPage(items.ToArray(), null, string.Join('-', items.Select(x => $"{x.Id:N}:{x.Version}")), null));
+        var actor = (await sessions.GetAsync(h, ct)).CharacterId; await communities.RequireAsync(communityId, actor, ct);
+        var scope = $"community-groups:{communityId}:{actor}"; var (limit, after) = pages.Read(h, scope);
+        var query = db.Groups.AsNoTracking().Where(x => x.CommunityId == communityId && !x.Deleted);
+        if (after.HasValue) query = query.Where(x => x.Id.CompareTo(after.Value) > 0);
+        var rows = await query.OrderBy(x => x.Id).Take(limit + 1).ToArrayAsync(ct);
+        return Results.Json(new GroupPage(rows.Take(limit).Select(View).ToArray(), rows.Length > limit ? pages.Write(rows[limit - 1].Id, scope) : null));
     }
-    private static void ValidateDescription(string description) => ApiFault.Require(AmorRP.Core.Items.PlainText.Error(description, GroupEdit.MaximumDescriptionCharacters, multiline: true, required: false) == null, 422, "invalid_request", "Group description must contain at most 300 plain-text characters.");
-
-    public async Task<IResult> CreateAsync(HttpContext http, GroupCreate body, CancellationToken ct)
+    public async Task<IResult> ReadAsync(HttpContext h, Guid communityId, Guid groupId, CancellationToken ct)
     {
-        ApiFault.Text(body.Name, 80); ValidateDescription(body.Description); ApiFault.Text(body.CurrencyName, 80); ApiFault.Text(body.CurrencySymbol, 16, false);
-        ValidatePolicy(body.WeeklyPotionPoints, body.WeeklyLetters);
-        var session = await sessions.GetAsync(http, ct);
+        var actor = (await sessions.GetAsync(h, ct)).CharacterId; await communities.RequireAsync(communityId, actor, ct);
+        var row = await RequireAsync(communityId, groupId, ct); h.Response.Headers.ETag = View(row).Etag; return Results.Json(View(row));
+    }
+    public async Task<IResult> WriteAsync(HttpContext h, Guid communityId, Guid? groupId, GroupWrite? body, CancellationToken ct)
+    {
+        var actor = (await sessions.GetAsync(h, ct)).CharacterId;
         await using var tx = await db.Database.BeginTransactionAsync(ct);
-        await CommandStore.LockAsync(db, ["character:" + session.CharacterId], ct);
-        var scope = "character:" + session.CharacterId;
-        var replay = await commands.ReplayAsync(http, scope, body, ct);
-        if (replay != null)
+        await CommandStore.LockAsync(db, ["character:" + actor, "community:" + communityId], ct);
+        var (community, member) = await communities.RequireAsync(communityId, actor, ct); CommunityAccess.Action(community, member, groupId == null ? "groups.create" : "groups.manage");
+        var scope = "character:" + actor; var replay = await commands.ReplayAsync(h, scope, body, ct); if (replay != null) return commands.Replay(replay);
+        GroupRow row;
+        if (!groupId.HasValue)
         {
-            if (replay.GroupId.HasValue) await access.RequireAsync(replay.GroupId.Value, session.CharacterId, ct);
-            return commands.Replay(replay);
+            ApiFault.Require(body != null, 422, "invalid_request", "Enter a group name and description.");
+            ApiFault.Require(await db.Groups.CountAsync(x => x.CommunityId == communityId, ct) < 100, 409, "group_limit_reached", "This community has reached its group creation limit.");
+            row = new GroupRow { CommunityId = communityId }; db.Groups.Add(row);
         }
-        await CapsAsync(session.CharacterId, true, ct);
-        ApiFault.Require(await db.Groups.CountAsync(x => x.CreatedByCharacterId == session.CharacterId, ct) < policy.Value.MaxRetainedCreatedGroupsPerCharacter,
-            409, "group_retention_limit_reached", $"Retained group creation limit ({policy.Value.MaxRetainedCreatedGroupsPerCharacter}) reached. Deleted and transferred groups count until eligible data is purged by an operator.");
-        var group = new GroupRow { Name = body.Name.Trim(), Description = body.Description, OwnerCharacterId = session.CharacterId,
-            CreatedByCharacterId = session.CharacterId,
-            CurrencyName = body.CurrencyName.Trim(), CurrencySymbol = body.CurrencySymbol, PolicyPeriod = GroupAccess.Period(time.GetUtcNow()),
-            CurrentPotionPoints = body.WeeklyPotionPoints, NextPotionPoints = body.WeeklyPotionPoints,
-            CurrentLetters = body.WeeklyLetters, NextLetters = body.WeeklyLetters };
-        var member = new MembershipRow { GroupId = group.Id, CharacterId = session.CharacterId };
-        db.Groups.Add(group); AmorRP.Server.Features.Catalog.CatalogService.Seed(db, group.Id); db.Memberships.Add(member);
-        var op = commands.New(http, scope, body, session.CharacterId, group.Id, "group.create");
-        http.Response.Headers.ETag = CommandStore.ETag("group", group.Id, group.Version);
-        var result = await commands.SaveAsync(http, op, new CommandResult<Group>(op.Id, await access.ViewAsync(group, member, time.GetUtcNow(), ct)), ct);
+        else { row = await RequireAsync(communityId, groupId.Value, ct); CommandStore.Match(h, View(row).Etag); }
+        var deleting = body == null;
+        if (deleting) row.Deleted = true;
+        else
+        {
+            var nameError = PlainText.Error(body!.Name, 80, required: true) ?? (body.Name.Length > 80 ? "Group name must be 80 characters or fewer." : null);
+            var descriptionError = PlainText.Error(body.Description, 300, multiline: true, required: false);
+            ApiFault.Require(nameError == null && descriptionError == null, 422, "invalid_description", nameError ?? descriptionError ?? "Check the group profile.");
+            row.Name = body.Name.Trim(); row.Description = body.Description;
+        }
+        row.Version++; community.Version++;
+        var op = commands.New(h, scope, body, actor, communityId, deleting ? "group.delete" : groupId.HasValue ? "group.edit" : "group.create");
+        op.Summary = deleting ? "Group deleted." : "Group profile saved.";
+        var previous = deleting ? row.LogoAssetId : null;
+        if (deleting) { row.LogoAssetId = null; row.LogoVersion++; }
+        var result = await commands.SaveAsync(h, op, new CommandResult<Group>(op.Id, View(row)), ct);
+        if (previous.HasValue) await db.MediaAssets.Where(x => x.CommunityId == communityId && x.Id == previous && x.Purpose == "group_logo").ExecuteDeleteAsync(ct);
         await tx.CommitAsync(ct); return result;
     }
-    public async Task<IResult> JoinAsync(HttpContext http, JoinGroup body, CancellationToken ct)
+    public async Task<IResult> LogoAsync(HttpContext h, Guid communityId, Guid groupId, bool? upload, CancellationToken ct)
     {
-        ApiFault.Require(body.AcceptMemberVisibility && InvitationCode.IsValid(body.InvitationCode), 422, "invalid_request", "Accept group member visibility and provide a valid invitation.");
-        var session = await sessions.GetAsync(http, ct);
-        var hash = SecretVault.Hash(InvitationCode.Normalize(body.InvitationCode));
-        var discovered = await db.Invitations.AsNoTracking().SingleOrDefaultAsync(x => x.CodeHash == hash, ct);
-        ApiFault.Require(discovered != null, 404, "not_found", "Invitation not found.");
+        var actor = (await sessions.GetAsync(h, ct)).CharacterId;
+        var (initial, initialMember) = await communities.RequireAsync(communityId, actor, ct);
+        if (upload == null)
+        {
+            var row = await RequireAsync(communityId, groupId, ct); ApiFault.Require(row.LogoAssetId != null, 404, "not_found", "No group logo yet.");
+            var image = await db.MediaAssets.SingleOrDefaultAsync(x => x.CommunityId == communityId && x.Id == row.LogoAssetId && x.Purpose == "group_logo", ct);
+            ApiFault.Require(image != null, 404, "not_found", "The group logo changed. Refresh to load its latest version.");
+            h.Response.Headers["X-Content-Type-Options"] = "nosniff"; return Results.Bytes(image!.Png, "image/png");
+        }
+        CommunityAccess.Action(initial, initialMember, "groups.manage");
+        await RequireAsync(communityId, groupId, ct);
+        var incoming = upload.Value ? await StaticImageUpload.ReadAsync(h, policy.Value.MaxCommunityLogoBytes, 2048, 512, 1048576, ct) : null;
         await using var tx = await db.Database.BeginTransactionAsync(ct);
-        await CommandStore.LockAsync(db, ["character:" + session.CharacterId, "group:" + discovered!.GroupId], ct);
-        var group = await db.Groups.SingleOrDefaultAsync(x => x.Id == discovered!.GroupId && !x.Deleted, ct);
-        ApiFault.Require(group != null, 404, "not_found", "Invitation not found.");
-        var member = await db.Memberships.SingleOrDefaultAsync(x => x.GroupId == group!.Id && x.CharacterId == session.CharacterId, ct);
-        var scope = "character:" + session.CharacterId;
-        var replay = await commands.ReplayAsync(http, scope, body, ct);
-        if (replay != null)
-        { ApiFault.Require(member?.Status == "active", 404, "not_found", "Membership is no longer active."); return commands.Replay(replay); }
-        ApiFault.Require(member?.Status != "blocked", 403, "membership_blocked", "Owner must restore your eligibility before rejoining.");
-        ApiFault.Require(member?.Status != "active", 409, "already_joined", "Character is already a member.");
-        var invite = await db.Invitations.SingleAsync(x => x.Id == discovered!.Id, ct);
-        ApiFault.Require(!invite.Revoked && invite.ExpiresAt > time.GetUtcNow() && invite.Used < invite.MaxUses, 409, "invitation_unavailable", "This invitation is no longer available. Ask the group owner for a new code.");
-        await CapsAsync(session.CharacterId, false, ct);
-        if (member == null) { member = new MembershipRow { GroupId = group!.Id, CharacterId = session.CharacterId }; db.Memberships.Add(member); }
-        else { member.Status = "active"; member.Capabilities = []; member.Version++; }
-        invite.Used++; group!.Version++;
-        var op = commands.New(http, scope, body, session.CharacterId, group.Id, "group.join");
-        var result = await commands.SaveAsync(http, op, new CommandResult<Group>(op.Id, await access.ViewAsync(group, member, time.GetUtcNow(), ct)), ct);
+        await CommandStore.LockAsync(db, ["character:" + actor, "community:" + communityId], ct);
+        await db.Entry(initial).ReloadAsync(ct);
+        await db.Entry(initialMember).ReloadAsync(ct);
+        var (community, member) = await communities.RequireAsync(communityId, actor, ct); CommunityAccess.Action(community, member, "groups.manage");
+        var target = await RequireAsync(communityId, groupId, ct);
+        object? body = incoming == null ? null : new { contentHash = Convert.ToHexString(SHA256.HashData(incoming.Input)) };
+        var scope = "character:" + actor; var replay = await commands.ReplayAsync(h, scope, body, ct); if (replay != null) return commands.Replay(replay);
+        CommandStore.Match(h, CommandStore.ETag("group-logo", groupId, target.LogoVersion)); var previous = target.LogoAssetId;
+        if (incoming != null)
+        {
+            var asset = new MediaAssetRow { CommunityId = communityId, Purpose = "group_logo", Png = incoming.Png, Width = incoming.Width, Height = incoming.Height, ContentHash = Convert.ToHexString(SHA256.HashData(incoming.Png)) };
+            db.MediaAssets.Add(asset); target.LogoAssetId = asset.Id;
+        }
+        else target.LogoAssetId = null;
+        target.LogoVersion++; target.Version++; community.Version++;
+        var op = commands.New(h, scope, body, actor, communityId, upload.Value ? "group.logo.replace" : "group.logo.remove");
+        h.Response.Headers.ETag = CommandStore.ETag("group-logo", groupId, target.LogoVersion);
+        var result = await commands.SaveAsync(h, op, new CommandResult<Group>(op.Id, View(target)), ct);
+        if (previous.HasValue) await db.MediaAssets.Where(x => x.CommunityId == communityId && x.Id == previous && x.Purpose == "group_logo").ExecuteDeleteAsync(ct);
         await tx.CommitAsync(ct); return result;
     }
-    public async Task<IResult> ReadAsync(HttpContext http, Guid groupId, string kind, CancellationToken ct)
-    {
-        var session = await sessions.GetAsync(http, ct);
-        var (group, member) = await access.RequireAsync(groupId, session.CharacterId, ct);
-        object response;
-        switch (kind)
-        {
-            case "policies": response = GroupAccess.Policies(group, time.GetUtcNow()); http.Response.Headers.ETag = CommandStore.ETag("policy", group.Id, group.PolicyVersion); break;
-            case "currency": response = GroupAccess.Currency(group); http.Response.Headers.ETag = CommandStore.ETag("currency", group.CurrencyId, group.CurrencyVersion); break;
-            case "balances": response = new BalancePage([GroupAccess.Balance(group, member)], null, member.BalanceVersion.ToString(), null); break;
-            default: response = await access.ViewAsync(group, member, time.GetUtcNow(), ct); http.Response.Headers.ETag = CommandStore.ETag("group", group.Id, group.Version); break;
-        }
-        return Results.Json(response);
-    }
-    public async Task<IResult> EditAsync(HttpContext http, Guid groupId, object? body, string kind, CancellationToken ct)
-    {
-        var session = await sessions.GetAsync(http, ct);
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
-        await CommandStore.LockAsync(db, ["character:" + session.CharacterId, "group:" + groupId], ct);
-        var (group, member) = await access.RequireAsync(groupId, session.CharacterId, ct);
-        if (kind == "leave") ApiFault.Require(group.OwnerCharacterId != session.CharacterId, 409, "owner_cannot_leave", "Transfer ownership or delete the group first.");
-        else if (kind is "edit" or "currency") GroupAccess.Action(group, member, "group.moderate");
-        else GroupAccess.Owner(group, session.CharacterId);
-        var scope = "character:" + session.CharacterId;
-        var replay = await commands.ReplayAsync(http, scope, body, ct); if (replay != null) return commands.Replay(replay);
-        var op = commands.New(http, scope, body, session.CharacterId, groupId, "group." + kind);
-        object? payload = null;
-        switch (body)
-        {
-            case GroupEdit edit:
-                ApiFault.Require(group.OwnerCharacterId == session.CharacterId || string.Equals(edit.Name?.Trim(), group.Name, StringComparison.Ordinal), 403, "owner_required", "Only the owner may rename the group.");
-                CommandStore.Match(http, CommandStore.ETag("group", group.Id, group.Version));
-                ApiFault.Text(edit.Name, 80); ValidateDescription(edit.Description);
-                group.Name = edit.Name!.Trim(); group.Description = edit.Description; group.Version++;
-                payload = await access.ViewAsync(group, member, time.GetUtcNow(), ct); http.Response.Headers.ETag = CommandStore.ETag("group", group.Id, group.Version); break;
-            case PolicyEdit edit:
-                CommandStore.Match(http, CommandStore.ETag("policy", group.Id, group.PolicyVersion)); ValidatePolicy(edit.PotionPoints, edit.Letters);
-                GroupAccess.PromotePolicy(group, time.GetUtcNow()); group.NextPotionPoints = edit.PotionPoints; group.NextLetters = edit.Letters; group.PolicyVersion++;
-                payload = GroupAccess.Policies(group, time.GetUtcNow()); http.Response.Headers.ETag = CommandStore.ETag("policy", group.Id, group.PolicyVersion); break;
-            case CurrencyEdit edit:
-                ApiFault.Require(group.OwnerCharacterId == session.CharacterId || edit.Symbol == group.CurrencySymbol, 403, "owner_required", "General Moderation permits changing the currency name only.");
-                CommandStore.Match(http, CommandStore.ETag("currency", group.CurrencyId, group.CurrencyVersion));
-                ApiFault.Text(edit.Name, 80); ApiFault.Text(edit.Symbol, 16, false); group.CurrencyName = edit.Name.Trim(); group.CurrencySymbol = edit.Symbol; group.CurrencyVersion++;
-                payload = GroupAccess.Currency(group); http.Response.Headers.ETag = CommandStore.ETag("currency", group.CurrencyId, group.CurrencyVersion); break;
-            case GroupDeletion deletion:
-                await trades.CancelForAsync(groupId, null, "Group deleted.", ct);
-                CommandStore.Match(http, CommandStore.ETag("group", group.Id, group.Version));
-                ApiFault.Require(deletion.ConfirmName == group.Name, 422, "confirmation_required", "Confirm the exact group name.");
-                group.Deleted = true; group.DeletedAt = time.GetUtcNow(); group.Version++;
-                foreach (var invite in await db.Invitations.Where(x => x.GroupId == groupId && !x.Revoked).ToArrayAsync(ct)) invite.Revoked = true;
-                foreach (var transfer in await db.OwnershipTransfers.Where(x => x.GroupId == groupId && x.Status == "proposed").ToArrayAsync(ct)) transfer.Status = "cancelled";
-                break;
-            default:
-                ApiFault.Require(kind == "leave", 400, "invalid_request", "Unknown group command.");
-                member.Status = "dormant"; member.Capabilities = []; member.Version++; group.Version++;
-                await CancelTransfersForAsync(groupId, member.CharacterId, ct); break;
-        }
-        var response = payload == null ? (object)new Receipt(op.Id) : new CommandResult<object>(op.Id, payload);
-        var result = await commands.SaveAsync(http, op, response, ct); await tx.CommitAsync(ct); return result;
-    }
-    private void ValidatePolicy(int points, int letters) => ApiFault.Require(points >= 0 && points <= policy.Value.MaxWeeklyPotionPoints && letters >= 0 && letters <= policy.Value.MaxWeeklyLetters,
-        422, "invalid_request", "Weekly limits exceed supported bounds.");
-    private async Task CancelTransfersForAsync(Guid group, Guid member, CancellationToken ct)
-    {
-        await trades.CancelForAsync(group, member, "Membership ended or trading was restricted.", ct);
-        foreach (var transfer in await db.OwnershipTransfers.Where(x => x.GroupId == group && x.ToCharacterId == member && x.Status == "proposed").ToArrayAsync(ct)) transfer.Status = "cancelled";
-    }
-
 }

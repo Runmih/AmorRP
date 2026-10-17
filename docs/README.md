@@ -2,7 +2,7 @@
 
 Specification date: 2026-10-06. Target: Amor RP 1.0.
 
-M4 implements authentication, groups, currency/icons, potions, Books writing,
+M4 implements authentication, communities, currency/icons, potions, Books writing,
 quotas, CRUD membership/removal and persistent trading. The first M5 private usability build is
 **plugin 0.0.6.15 / server 0.0.6.14**; see [installation and focused testing](delivery/m5-install-test.md).
 Install through the [custom testing repository](delivery/plugin-repository.md).
@@ -22,7 +22,7 @@ unconfirmed choices remain identified in the decision register.
 ## Reading order
 
 1. [Scope](product/scope.md): what ships and what is deferred.
-2. [Rules](product/rules.md): identity, group boundaries, permissions, item behavior.
+2. [Rules](product/rules.md): identity, community boundaries, permissions, item behavior.
 3. [Interface](product/interface.md): what players and owners see.
 4. [Architecture](engineering/architecture.md), [layout](engineering/repository-layout.md),
    and [version compatibility](engineering/versions.md).
@@ -51,13 +51,13 @@ boundary exists. Generated endpoint tables must match OpenAPI.
 ## Vocabulary
 
 - **Character:** verified FFXIV character; the unit of inventory, permissions, and quotas.
-- **Group:** isolated RP environment. Nothing transfers between groups.
-- **Owner:** the character responsible for group administration; not a grantable role.
+- **Community:** isolated RP environment. Nothing transfers between communities.
+- **Owner:** the character responsible for community administration; not a grantable role.
 - **Capability:** an individually grantable action permission.
 - **Type:** behavior implemented in code, `potion`, `book`, `letter`, or `note`.
-- **Category:** group-owned organization label; it never grants a capability.
+- **Category:** community-owned organization label; it never grants a capability.
 - **Definition:** owner-authored potion design. **Revision:** immutable version of it.
-- **Holding:** quantity or individual item owned by a character in one group.
+- **Holding:** quantity or individual item owned by a character in one community.
 - **Period:** server-defined weekly interval used to track creation usage.
 - **Reservation:** items/currency held for an open trade, still owned by the offerer.
 - **Operation ID:** durable identifier for a completed inventory/currency mutation.

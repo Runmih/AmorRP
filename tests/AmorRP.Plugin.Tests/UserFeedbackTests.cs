@@ -22,6 +22,6 @@ public sealed class UserFeedbackTests
     {
         Assert.Contains("starting up", UserFeedback.Error(HttpStatusCode.ServiceUnavailable, "unknown", "Unavailable"));
         Assert.DoesNotContain("unknown_code", UserFeedback.Error(HttpStatusCode.BadRequest, "unknown_code", "unknown_code"));
-        Assert.Contains("permissions saved", UserFeedback.Success(new("PUT", "api/v1/groups/g/members/m/capabilities", null, null)));
+        Assert.Contains("permissions saved", UserFeedback.Success(new("PUT", "api/v2/communities/g/members/m/capabilities", null, null)));
     }
 }
