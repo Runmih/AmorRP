@@ -1,15 +1,19 @@
 # API contract and endpoint catalog
 
-**Status:** M4 implements authentication, communities, currency/icons, potions, Books
-(book/letter/note), quotas, CRUD membership/removal and persistent trading. Events
-and data lifecycle remain planned for M5. [OpenAPI](openapi.yaml) declares each
-operation's implementation status and is checked against source routes. Capabilities
-reports effective limits and supported type IDs. The M5 private usability server and plugin 0.0.6.0
-use API v1; package versions and API versions are independent.
+**Current implementation:** communities, owned groups, membership, fictional currency,
+Alchemy/Cooking/Writing, inventories, trading, announcements, noticeboard and events.
+[OpenAPI](openapi.yaml) marks each operation implemented or planned and is checked
+against source endpoints. Export/data-lifecycle operations and WebSocket invalidation
+remain planned. Package versions and HTTP protocol versions are independent.
+
+The current Amor RP protocol is `/api/v2`. The existing v1 adapter translates older
+community routes/field names and preserves stored operation fingerprints. New child
+group features are v2-only. XIVAuth independently uses `/api/v1/characters`; its
+provider API must never be renamed along with ours. See [authentication](authentication.md).
 
 ## Conventions
 
-- HTTPS, UTF-8 JSON, `/api/v1`. Health and browser OAuth callback are explicitly
+- HTTPS, UTF-8 JSON, `/api/v2`. Health and browser OAuth callback are explicitly
   outside that prefix. API version is independent of package semantic version.
 - IDs are opaque UUIDs; current character derives from session, never an arbitrary
   body actor ID. Monetary amounts are bounded integer decimal strings, not floats.
@@ -307,7 +311,10 @@ revision: cancellation is not approval of an offer.
 There is no endpoint to write arbitrary balances, upload executable type behavior,
 move items between communities, bypass quota, or directly declare a trade completed.
 
-## WebSocket protocol
+## WebSocket protocol (planned)
+
+This section is a proposed transport contract, not an implemented endpoint. Current
+plugin updates use HTTP polling.
 
 `GET /api/v2/events?communityId=<UUID>&afterSequence=<cursor>` upgrades to WSS with the
 same bearer header (native client). No query token. One selected-community subscription
@@ -344,6 +351,11 @@ Implement and export server OpenAPI, compare routes/schemas with this draft, and
 keep the catalog synchronized. Integration tests assert authorization/invariants;
 OpenAPI validation alone cannot prove those semantics. Add endpoints only alongside
 product rules, schemas, failure handling and acceptance coverage.
+
+## Historical milestone implementation notes
+
+The sections below record changes at their named checkpoints. Their old package
+versions and terminology are historical; the current protocol is v2.
 
 ## M1 temporary feasibility endpoints
 

@@ -1,140 +1,119 @@
 # Architecture
 
-## Proposed baseline
+This describes the implemented system for plugin/server 0.0.6.21. Older milestone
+plans and release records describe their own checkpoints; they are not the current
+source map. See [repository layout](repository-layout.md) for file navigation and
+[versions](versions.md) for dependency pins and protocol boundaries.
 
-Single repository, one ASP.NET Core API deployment, PostgreSQL, and a separately
-distributed Dalamud plugin. XIVAuth supplies identity. Render is the initial hosting
-candidate. This is the implemented M4 composition; deployment credentials remain external.
+## Applications and dependencies
+
+Amor RP has two separately built applications in one repository: a Windows Dalamud
+plugin and an ASP.NET Core server. The server uses PostgreSQL and verifies character
+ownership through XIVAuth. Render hosts the public service; secrets stay in deployment
+configuration. The plugin's release endpoint is fixed in `ProductServer`.
 
 ```mermaid
 flowchart LR
-    P[Dalamud plugin] -->|HTTPS commands and queries| S[ASP.NET Core API]
-    S -->|Transactions| D[(PostgreSQL)]
-    S -->|OAuth and verified character data| X[XIVAuth]
-    P -->|User opens browser| B[Browser login]
+    P[Dalamud plugin] -->|HTTPS commands and reads| S[ASP.NET Core server]
+    S -->|EF Core transactions| D[(PostgreSQL)]
+    S -->|OAuth and verified character lookup| X[XIVAuth]
+    P -->|Opens authorization page| B[Browser]
     B --> X
     X -->|Registered callback| S
-    S -->|Scoped polling; future WSS invalidation| P
-    P -->|Explicit user action only| C[FFXIV chat]
 ```
 
-Start with a modular monolith: feature folders inside one server. A domain/use-case
-project owns invariants; a contracts project owns transport DTOs. No microservices,
-message broker, generic workflow engine, or Redis dependency in 1.0.
-
-## Boundaries
-
-| Boundary | Responsibilities | Must not contain |
+| Project | Implemented responsibility | Dependencies |
 | --- | --- | --- |
-| Plugin | UI, local settings/drafts, networking, character context, chat adapter | Authoritative balances/permissions or provider secrets |
-| Contracts | Versioned requests, responses, stable IDs/error/event types | EF entities, Dalamud APIs, provider implementation |
-| Core | Community rules, quotas, inventory behavior, trade transitions, use cases | ImGui, HTTP-specific handling, game memory access |
-| Server | Endpoint authorization, validation, EF/Npgsql persistence, XIVAuth adapter, hosting | Business rules duplicated in controllers |
+| Plugin | ImGui views, drafts, request coordination, protected local settings, game adapters | Core, Contracts, Dalamud |
+| Server | HTTP authorization, feature rules, transactions, persistence, provider adapter, workers | Core, Contracts, ASP.NET Core, EF/Npgsql |
+| Core | Pure text/chat validation, crafting type classification, community capacity policy | No application project references |
+| Contracts | Transport records, shared field limits and legacy wire conversion | No application project references |
 
-Dependency direction: Plugin -> Contracts + Core (pure text rules);
-Server -> Core + Contracts; Core has
-no dependency on Plugin, Server, or Contracts. Map domain values to DTOs at the
-server boundary. Feature handlers keep transactions close to the rules they enforce.
+The server and plugin do not reference each other. Core does **not** currently own
+all use cases, inventory accounting or trade transitions. Those rules live beside
+their EF transactions in server feature services. Moving every rule into another
+layer is not a prerequisite for maintaining this structure.
 
-## Authority and consistency
+## Server ownership and consistency
 
-PostgreSQL is the source of truth. A successful command commits inventory, quota,
-currency ledger, history, reservations, operation identity, and change-event rows
-together. Emit notifications only after commit. Server restart may lose connections
-but never committed trades or reservations. Query results recover missed events.
+Feature endpoints bind concrete requests and call feature services. Services check
+current sessions, active community membership and the capability required by the
+action. Group-private member lists and announcements additionally require group
+membership; community moderation does not bypass that check.
 
-Use concurrency tokens for resource updates; community/character policy locks and
-deterministic resource-lock ordering for trade and quota commands. Multi-resource
-checks cannot be implemented as independent read/update requests. Database
-constraints backstop application checks. Do not claim exactly-once network delivery;
-provide durable deduplicated operations and outcome recovery instead.
+The database is authoritative for balances, reservations, inventory, quotas and
+permissions. Commands use advisory locks across server replicas, expected versions,
+constraints and atomic transactions. `CommandStore` records request fingerprints
+and protected responses for deduplication and recovery. A client timeout cannot be
+interpreted as proof that a command failed.
 
-One server instance is sufficient for the initial target. Keep persistent state
-out of instance memory; database-backed event rows permit future fan-out. Auth
-attempts, sessions, expiry and idempotency live in shared storage. A background task
-may clean expired records/reservations, but commands must independently enforce
-expiry and stale reservations even when that task has not run.
+Trading separates the short locked expiry transaction from consistent read-only
+response assembly. `TradeReservations` is shared with membership changes and the
+expiry worker. Commands also enforce expiry themselves, so worker delays cannot
+make stale reservations authoritative indefinitely.
 
-## Configuration and extension points
+Authentication retains a global lock for short login admission, callback completion
+and pairing transactions. Renewal and revocation use a **per-session** database
+lock instead. A slow XIVAuth renewal serializes mutations of that session, without
+holding the global login lock. Revocation receipt writes also serialize per actor.
+The provider call still holds that session's transaction/connection; this is a
+bounded, deliberate tradeoff that preserves single-use renewal and revocation
+ordering without adding a persisted claim protocol. It is not a connection-pool
+capacity guarantee. See [authentication](authentication.md).
 
-| Setting | Owner/configuration source |
-| --- | --- |
-| Active backend URL | Plugin setting; trusted HTTPS default plus deliberate custom endpoint selection |
-| Database/provider credentials, callback URLs, keys | Server secret/environment configuration |
-| Owned/joined community maxima (3/6) | Validated server policy, advertised by capabilities endpoint |
-| Default letters/week (5), initial potion points (0) | Server defaults copied into community policies |
-| Current/next weekly allowances | Versioned owner policy in database |
-| Potion cost/content/category | Owner-defined immutable revision |
-| Type IDs and supported behavior | Explicit code registry and contracts |
-| Message/text/request/inventory ceilings | Named validated server options; advertised where relevant |
-| Reset weekday/time (Monday 00:00 UTC baseline) | Service policy; changing requires controlled period migration |
-| Trade/session/event/idempotency expiry | Named server options, documented defaults |
-| Icons, UI labels, localization | Bundled asset/label catalog; no arbitrary script loading |
+## Plugin requests and state
 
-Configurable does not mean arbitrary: community owner limits cannot exceed service
-ceilings, type behavior is tested code, and clients must handle unsupported types
-with a read-only fallback. Protocol enums for fixed state machines are appropriate;
-item types/capability identifiers should be extensible strings. Do not store enum
-ordinal values in the database or scatter potion/letter conditionals across UI code.
+`CommunitiesPanel` owns the selected verified character/community, view data and
+editors. Its partial files share that state; they are not independently instantiated
+controllers. The shell and game/media adapters have their own lifecycle boundaries.
 
-Implement a small `IItemTypeHandler` registry (validate/create/use/trade eligibility
-and details schema) and plugin details renderer registry. Keep creation mechanics
-type-specific; no generalized crafting system is needed. Parameterized categories
-and immutable revisions provide expansion without executable user content.
+`RequestCoordinator` owns the foreground and core-refresh task lanes, cancellation,
+view generation and data generation. Network work returns callbacks; the UI thread
+collects current results and applies them. A character/scope reset cancels both
+lanes and rejects their late results, including failures. Community changes invalidate
+view results. Mutations and accepted tokens invalidate older core/feature reads.
+A core response waits while renewal is in progress, then is checked against the
+accepted-token generation before its status can affect the session.
 
-HTTP commands remain canonical; WSS events notify views to refresh. Events do not
-grant authority, complete trades locally, or send chat. See [API](api.md).
+Core refresh reads capabilities and the character's community list. Secondary
+features have separate `BackgroundRefresh<T>` instances with independent loading,
+retry and error state. A failed events or media read does not discard a successful
+inventory read. Trade and announcement pollers remain separate. Favorite events
+refresh independently and feed a five-day UTC HUD while the main menu is closed.
 
-## Compatibility
+`CommandRoutes` maps exact HTTP verbs and route shapes to named operations, result
+handlers and refresh targets. `CommandCompletionScreens` dispatches to the matching
+handler rather than trying every feature parser. Unknown routes do not select a
+result parser. Recovered results for another community cannot overwrite the current
+editor. Stored pending requests retain their original method/path/body/ETag for
+server replay; dispatch conversion does not rewrite that wire identity.
 
-Version API as `/api/v1`; negotiate minimum client/protocol and supported types in
-capabilities. Add optional fields compatibly; use new API version for breaking
-changes. Unsupported client commands fail with explicit update guidance. Store
-`typeDataVersion` in snapshots. Migrate data using version-controlled migrations;
-retain old readers where existing holdings require them. See the dated
-[version matrix](versions.md) for platform/dependency targets and maintenance gates.
-Exact resolved pins belong in project/tool manifests and release records after
-the build spike, not scattered through feature code.
+`GroupProfileDraft` owns its complete dirty-state definition, including joining mode
+and password. `TradeDraft` preserves local offers through peer updates. Pending writes
+and saved sessions use Windows CurrentUser DPAPI and remain bound to their original
+server/character. Actual chat submission is isolated in the game adapter and requires
+explicit user intent; replayed use receipts do not automatically resend chat.
 
-## M4 implementation map
+## Verification and limits
 
-### Current plugin refresh composition (0.0.6.20)
+Contract tests check project dependency boundaries. Plugin helper tests compile the
+same production transport, draft, refresh and request-coordination sources without
+Dalamud. They exercise cancellation, delayed results, token rotation, replay and
+cross-community recovery. Server tests use disposable PostgreSQL databases and
+provider fakes, including a deliberately stalled provider for concurrency checks.
+No additional hosted testing server is required.
 
-The core refresh loads capabilities and the character's community list. Secondary
-features use separate `BackgroundRefresh<T>` instances, so an events, image or
-inventory error does not discard successful reads in other features. The component
-owns request completion, retry timing and cancellation; its feature applies results
-on the UI thread. Scope resets cancel old requests, and generation checks reject
-reads superseded by mutations or token rotation. Error state is displayed in the
-affected section. The existing trade and announcement pollers remain separate.
+These tests do not render ImGui or execute the entire game-hosted panel. Windows
+package CI checks real Dalamud references; placement, input and native game behavior
+still require in-game checks. The panel remains a substantial shared coordinator.
+Future extraction should follow concrete state ownership or observed defects.
 
-Favorite events have a dedicated 30-second read and a HUD widget that remains
-visible while the main menu is closed. It displays ongoing events and starts within
-a rolling five-day UTC window. Community switches preserve this character-wide
-data; logout and character switches clear it. Settings controls visibility.
+## Planned extensions
 
-### Earlier implementation
+WebSocket invalidation, an item-handler/renderer registry, and export/data-lifecycle
+endpoints marked planned in OpenAPI are not implemented. Current updates use HTTP
+polling. They must not be described as existing dependencies or release guarantees.
 
-Database feature services own atomic rules beside their EF transactions; pure text
-and community-cap rules remain in Core. TradeService splits command/query orchestration
-from offer/exchange accounting; TradeReservations is shared with membership and
-expiry handling. TradeExpiryWorker provides bounded cleanup, and command/read
-paths also enforce expiry. No process-local trading state or external broker exists.
-
-Plugin CommunitiesPanel owns selected verified context. NavigationScreens defines the
-vertical/horizontal shell; individual *Screens files own workflows. QuietUpdates
-has a separate background read lane. TradeScreens owns server state, queued trade
-changes and an independent polling lane. TradeWindowScreens draws the two-column
-window and revision-bound final popup; TradeDraft preserves local edits through
-peer updates. TradeWindow integrates its own Dalamud window lifecycle. Game/context/chat reads
-stay on Dalamud's draw thread; network tasks return state-application callbacks.
-Scope generations reject late responses; data generations reject reads superseded
-by mutations. Pending commands are DPAPI-protected and block new writes until
-resolved. Navigation and local selection/drafts remain usable during synchronization.
-
-The item-handler/renderer registry and WSS event extension described above remain
-future refactoring targets. M4 explicitly dispatches potions and three plain writing
-types, with extensible string IDs rather than database enum ordinals. New behavior
-requires a contract/version/migration and tests; adding another category alone does
-not invent behavior or permissions. Chapters/attachments can add a new written
-schema version while preserving existing LetterId/internal character ownership.
+Amor RP's current API is `/api/v2`; XIVAuth independently uses `/api/v1/characters`.
+The remaining v1 wire adapter and persisted request/receipt conversion are described
+in [API](api.md). This maintenance release changes neither protocol.

@@ -1,55 +1,46 @@
 # Versions and compatibility baseline
 
-Reviewed 2026-10-06. M0 now builds against this baseline with pinned dependencies.
-The old scaffold has been replaced. M0 game testing was reported successful by
-the maintainer. M1 passed per maintainer report on 2026-10-07. M2 live renewal
-and new plugin workflows await acceptance; hosted CI/container evidence is
-separate. See the [M2 guide](../delivery/m2-install-test.md).
-Other product features remain planned. No SDK 11 compatibility or legacy profile
-migration is required for the new product.
+## Current product versions
+
+Plugin and server **0.0.6.21**, Amor RP API **v2**, minimum client **0.0.6.18**.
+The wire contract and database schema are unchanged by this maintenance release;
+server 0.0.6.18 remains compatible with the plugin, but needs redeployment of the
+new server source to receive the renewal-lock fix. XIVAuth's external API remains
+**v1**. Dalamud API remains **15**. These are separate version boundaries.
+
+The table below records the pinned toolchain. Release-specific behavior and
+verification are in [0.0.6.21](../delivery/release-0.0.6.21.md). Historical milestone
+records appear after the current compatibility/maintenance sections.
 
 ## Dependency matrix
 
-| Component | Recommended baseline / observation | Where the implementation records it | Proof gate |
+| Component | Pinned baseline / boundary | Source of truth | Verification |
 | --- | --- | --- | --- |
-| FFXIV game client | Current game build supported by stable Dalamud; release feed currently reports `2026.09.15.0000.0000` | Release test record: actual game build and region | M1 live tests; repeat after game updates |
-| Dalamud host | Stable API 15; observed host `15.0.3.6` | Release test record and CI reference artifact version/hash | M0 clean build/load, M1 game adapters |
-| Plugin SDK | `Dalamud.NET.Sdk/15.0.0` | Plugin `.csproj` | M0 restore/build/package |
-| Plugin target | SDK-selected `net10.0-windows`, x64, C# 14 | Plugin project plus evaluated SDK properties | M0 Windows x64 baseline; M1 live load |
-| Plugin game/UI libraries | Dalamud-provided ImGui bindings, FFXIVClientStructs, Lumina and associated assemblies | SDK references; release records resolved assembly versions | M0 package inspection; M1 UI/context/chat tests |
-| DalamudPackager | API 15-compatible version supplied by SDK; v15 documentation identifies `15.0.0` | SDK dependency resolution and NuGet lock | M0 manifest and ZIP validation |
-| .NET build SDK | `10.0.401` checked baseline; recheck supported stable patch at M0 | Tracked root `global.json`, Docker builder and CI setup | M0 same SDK in clean local/CI builds |
-| Server / Core / Contracts | `net10.0`, C# 14; ASP.NET Core 10 for server | Project target frameworks and shared build properties | M0 Linux server and Windows plugin can use Contracts |
-| Server runtime | .NET / ASP.NET Core `10.0.12` checked baseline; current serviced .NET 10 patch at deployment | Docker runtime image tag/digest and release record | M0 container; each deploy smoke test |
-| Entity Framework Core | Microsoft EF Core packages and `dotnet-ef` all `10.0.12` checked baseline | Server package pins, lock, local tool manifest | M0 migrations; M2 transaction tests |
-| PostgreSQL EF provider | `Npgsql.EntityFrameworkCore.PostgreSQL 10.0.3` | Server package pins and lock | M0 restore; M2 PostgreSQL tests |
-| PostgreSQL driver | `Npgsql 10.0.3` checked candidate | Server package pins and lock | M0 connection; M2 concurrency and TLS checks |
-| PostgreSQL server | Major 18, available on Render; upstream current minor `18.6` | Explicit Render major version, local/test image pin; deployed server version in operations record | M0 local DB; M1 hosted connection; M5 restore |
-| PostgreSQL backup tools | PostgreSQL 18 `pg_dump` / `pg_restore` family | Backup image/tool pin and restore record | M5 backup/restore drill |
-| XIVAuth | Hosted `xivauth.net`; upstream source contains API v1 and OAuth 2 flows | Adapter options, reviewed source reference, fixtures and integration record | M1 confirms hosted routes/scopes/claims/renewal |
-| OAuth / attestation transport | M1 uses .NET HttpClient and ASP.NET WebUtilities with S256 PKCE, fixed TLS endpoints and verified-character lookup; no JWT/attestation verification in the spike | Feasibility adapter; upstream XIVAuth `4bc2440684989cf8e56bc1169afcf5bd3a200172` and test fixtures | Hosted flow and durable auth library selection remain gates |
-| HTTP specification | OpenAPI `3.0.3`; product API `/api/v1` | `openapi.yaml` and server contract comparison | M0 tooling; endpoint contract tests as implemented |
-| Live events | Product protocol v1, HTTPS/WSS using runtime networking | Contracts, capabilities and event fixtures | M4 reconnect and compatibility tests |
-| Domain / adapter tests | xunit.v3 3.2.2, runner 3.1.5, Microsoft.NET.Test.Sdk 18.10.1; disposable PostgreSQL 18 | Test projects, package pins/locks and CI | M0 22 cases passed; M2/M4 asset invariant tests remain |
-| Containers | Docker with Compose v2; Linux server images compatible with .NET 10 and Render | Dockerfile/compose; exact base image tags and digests | M0 build/start; M1 Render deployment |
-| Documentation checks | Python 3.12 baseline; dependencies require Python >=3.10; PyYAML `6.0.3`, openapi-spec-validator `0.9.0` | `scripts/requirements-docs.txt`; CI Python pin | Checker runnable now; reproducible CI at M0 |
-| CI runners / actions | ubuntu-24.04 server tests, windows-2025 plugin build; action commit SHAs pinned | `.github/workflows/` and release logs | Hosted executions pending |
+| Dalamud host | API 15; reference assembly 15.0.3.6 | `scripts/dalamud-reference.json` | Checksum-verified reference download and Windows build |
+| Plugin SDK | Dalamud.NET.Sdk 15.0.0 | Plugin project and package lock | Locked restore and ZIP inspection |
+| Plugin target | net10.0-windows, x64 | SDK-evaluated project | Windows packaging; manual game loading |
+| .NET build SDK | 10.0.401 | `global.json`, Docker builder | Same SDK in local/CI builds |
+| Server / Core / Contracts | net10.0; ASP.NET Core 10 for server | Shared project properties | Linux builds and contract boundary test |
+| Server runtime | .NET / ASP.NET Core 10.0.12 | Pinned Docker runtime image | Container build/start checks |
+| EF Core / migration tool | 10.0.12 | Central package pins and tool manifest | Locked restore, PostgreSQL tests and model consistency |
+| Npgsql provider / driver | 10.0.3 | Central package pins and locks | PostgreSQL transaction/concurrency tests |
+| PostgreSQL | Major 18; test image 18.6 | Compose/CI image digest; hosted deployment configuration | Real disposable test databases and migration tests |
+| XIVAuth | Hosted OAuth; external character API v1 | Durable adapter, validated options and provider fixtures | Adapter tests plus separate live browser/renewal checks |
+| Amor RP HTTP contract | OpenAPI 3.0.3; API v2 | `openapi.yaml`, endpoints and capabilities | Documentation/route checks and integration tests |
+| Updates | HTTP polling; WebSockets planned | Plugin refresh/pollers and planned OpenAPI statuses | Refresh/coordinator tests; no implemented WSS guarantee |
+| Tests | xunit.v3 3.2.2; runner 3.1.5; Microsoft.NET.Test.Sdk 18.10.1 | Central pins and test package locks | Linux server/contracts/helper workflow |
+| Documentation | Python 3.12 recommended, minimum 3.10 | `scripts/requirements-docs.lock.txt` | Link, schema and endpoint metadata checks |
+| CI | ubuntu-24.04 server; windows-2025 plugin | Commit-pinned workflows | Successful runs required for the published source |
 
-The SDK number, host patch, Microsoft build SDK, runtime patch and our product
-version are different numbers. Matching every dependency's patch number would
-be incorrect. Npgsql's EF provider 10.0.3 declares EF Core >=10.0.4 and <11.0.0,
-and Npgsql >=10.0.3; EF Core 10.0.12 fits that declared range. Restore and
-transaction tests must still validate the selected combination.
+SDK, host patch, runtime, product version and HTTP protocol version are independent.
+Npgsql's EF provider 10.0.3 accepts EF Core >=10.0.4 and <11.0.0; the pinned EF Core
+10.0.12 fits that range. Tests still need to verify the combination. Keep Dalamud's
+host-provided libraries out of the plugin ZIP.
 
-The .NET 10 LTS support end is 2028-11-14. PostgreSQL 18 support ends
-2030-11-14. These dates provide maintenance runway; security patching is still
-required. Render manages PostgreSQL minor updates, so record the actual hosted
-minor and align test coverage rather than claiming Render runs upstream 18.6.
-PostgreSQL 19 and .NET 11 previews are not initial production targets.
-
-Primary references and dates are recorded in [sources](../sources.md). The
-current documentation check ran under Python 3.12.14; the .NET solution build and
-native server tests ran here. A live game load has not been performed.
+Render manages PostgreSQL minor updates: record the actual deployed version instead
+of assuming it equals the test image. Production provider configuration and live
+game behavior are separate evidence from automated fixtures. Primary references
+and historical review dates are in [sources](../sources.md).
 
 ## Game integration compatibility
 
@@ -92,8 +83,8 @@ Keep these independent of package versions:
 - Plugin and server build versions: record independently, with source commit and
   release notes; versioned alpha/beta artifacts precede product 1.0.
 - HTTP and event protocol: negotiate through capabilities before mutations.
-  Support current and previous compatible plugin release while advertised by
-  the server minimum-version policy. A breaking wire change needs a new protocol,
+  Clients check the advertised minimum-client version before writes; raise that
+  minimum when an update is required. A breaking wire change needs a new protocol,
   compatible deployment transition and explicit update guidance.
 - Database migrations: version-controlled identifiers and tested schema range
   per server build. A newer schema does not justify blindly rolling back binaries.
@@ -112,7 +103,7 @@ They must not be interpreted as a potion or letter based on a numeric fallback.
 
 ## Reproducible implementation and update policy
 
-M0 has created the following files; resolved pins are their source of truth:
+The following files record dependency pins; resolved pins are their source of truth:
 
 - `global.json`: tested SDK baseline, explicit roll-forward policy, no previews.
   Recommend `latestPatch` within the selected feature band and record the resolved
@@ -143,7 +134,12 @@ Database major updates require migration and restore drills. Refresh this dated
 matrix when a baseline changes; exact deployed pins live in manifests and release
 records rather than scattered constants throughout feature code.
 
-## Milestone evidence
+## Historical milestone evidence
+
+The following dated sections preserve earlier checkpoints. Version numbers, planned
+features and then-pending gates below do not override the current versions above.
+
+### Original milestone evidence
 
 M0 records the resolved toolchain and dependency graph, creates the clean source
 tree, proves clean CI build/tests and package integrity, and confirms the plugin

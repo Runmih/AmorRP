@@ -1,26 +1,18 @@
 # Documentation index
 
-Specification date: 2026-10-06. Target: Amor RP 1.0.
+Current guides describe the implemented project. Latest release:
+[0.0.6.21 — authentication isolation and request coordination](delivery/release-0.0.6.21.md).
+The plugin remains compatible with server 0.0.6.18, but deploy server 0.0.6.21 to
+activate its authentication-lock correction. No API version or database schema change.
 
-Latest plugin patch: [0.0.6.20 — favorite events HUD and independent refreshes](delivery/release-0.0.6.20.md).
-It works with server 0.0.6.18 and needs no server redeployment.
+Start with [architecture](engineering/architecture.md), the
+[source map](engineering/repository-layout.md), [authentication](engineering/authentication.md)
+and [development workflow](delivery/development.md). The
+[installation feed](delivery/plugin-repository.md) is on `main`.
 
-M4 implements authentication, communities, currency/icons, potions, Books writing,
-quotas, CRUD membership/removal and persistent trading. The first M5 private usability build is
-**plugin 0.0.6.15 / server 0.0.6.14**; see [installation and focused testing](delivery/m5-install-test.md).
-Install through the [custom testing repository](delivery/plugin-repository.md).
-It adds shared literal-message validation and clearer inventory/crafting/member views. The
-[M4 installation/test guide](delivery/m4-install-test.md) records upgrade commands,
-verification and the live acceptance checklist. Use the
-[agent handoff](delivery/agent-handoff.md) in another environment. M3 is accepted
-per maintainer testing. The maintainer approved progression from M4 to M5 on
-2026-10-15. The [M5 plan](delivery/m5-release-plan.md) defines implementation and
-test checkpoints; final 1.0 release gates remain open.
-
-The [M4 interface plan](delivery/m4-interface-plan.md) records the agreed vertical
-navigation, horizontal subtabs, contextual controls and quiet updates. OpenAPI
-marks implemented versus planned endpoints. Operational recommendations and
-unconfirmed choices remain identified in the decision register.
+Product specifications include planned work. OpenAPI labels implemented and planned
+operations explicitly. Dated `m0`–`m5` delivery guides and older release records are
+historical snapshots; they do not override current source maps or version guidance.
 
 ## Reading order
 
@@ -55,11 +47,12 @@ boundary exists. Generated endpoint tables must match OpenAPI.
 
 - **Character:** verified FFXIV character; the unit of inventory, permissions, and quotas.
 - **Community:** isolated RP environment. Nothing transfers between communities.
-- **Owner:** the character responsible for community administration; not a grantable role.
+- **Group:** an owned subgroup inside a community, with its own membership and private announcements.
+- **Owner:** the character responsible for a community or group; ownership is not a grantable capability.
 - **Capability:** an individually grantable action permission.
-- **Type:** behavior implemented in code, `potion`, `book`, `letter`, or `note`.
+- **Type:** behavior implemented in code, Alchemy and Cooking consumable types, plus `book`, `letter`, and `note`.
 - **Category:** community-owned organization label; it never grants a capability.
-- **Definition:** owner-authored potion design. **Revision:** immutable version of it.
+- **Definition:** an authorized recipe author’s consumable design. **Revision:** immutable version of it.
 - **Holding:** quantity or individual item owned by a character in one community.
 - **Period:** server-defined weekly interval used to track creation usage.
 - **Reservation:** items/currency held for an open trade, still owned by the offerer.

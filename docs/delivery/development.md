@@ -1,101 +1,86 @@
 # Development workflow
 
-## Current setup reality
+The repository builds a Dalamud plugin and an ASP.NET Core server. Start with the
+[current architecture](../engineering/architecture.md), [source map](../engineering/repository-layout.md)
+and [version matrix](../engineering/versions.md). Dated milestone guides preserve
+historical installation/acceptance records.
 
-M0 replaces the legacy scaffold with Plugin/Core/Contracts/Server projects and
-three test projects. .NET SDK 10.0.401 and real Dalamud API 15 references were used
-to build the full solution. NuGet locks, tool manifest, pinned host archive, focused
-ignores and CI workflows are present. PostgreSQL migration/readiness and 22 tests
-passed locally. Windows game loading, hosted CI and container image build are
-pending gates. See [exact installation and test commands](m0-install-test.md).
+## Prerequisites
 
-## Plugin version baseline
+- .NET SDK from `global.json` and locked NuGet dependencies.
+- Pinned official Dalamud API 15 references for plugin builds. Fetch with
+  `scripts/Fetch-Dalamud.ps1`, then set `DALAMUD_HOME` to its destination.
+- Disposable PostgreSQL 18 for server integration tests. No hosted test server or
+  real XIVAuth account is needed for automated tests; provider fixtures are injected.
+- Python 3.12 recommended for documentation/package checks.
+- Windows/FFXIV/Dalamud for manual game loading, rendering, input and chat checks.
 
-As checked on 2026-10-06, the stable release feed reports Dalamud **15.0.3.6**
-(API **15**, .NET **10**). The official sample project uses
-`Dalamud.NET.Sdk/15.0.0`; SDK package and running Dalamud patch versions are
-separate version numbers. Use this as the recommended M0 implementation baseline.
-API 16 is a development preview, not the initial stable target.
+Never run tests against the hosted database or use production secrets in fixtures.
+`PostgresTestDatabase` requires an `amorrp_test...` database name and creates/drops
+isolated databases for tests.
 
-The plugin project now uses SDK 15 and compiles for Windows x64. The pinned
-reference archive is version 15.0.3.6; live loading must use the compatible stable
-track. See primary references in [sources](../sources.md).
+## Build and checks
 
-The documentation checker is runnable now (Python 3.10+; Python 3.12 recommended):
-
-```sh
-python3 -m pip install -r scripts/requirements-docs.lock.txt
-python3 scripts/check-docs.py
-```
-
-It checks local links, OpenAPI structure/reference resolution, authorization metadata,
-operation-key requirements, endpoint catalog parity and feature/acceptance coverage.
-It does not test server security or game behavior.
-
-The old scaffold has been replaced; sample profile behavior was removed. Follow the full
-[version matrix](../engineering/versions.md) for server, database, provider,
-game/UI libraries, reproducible builds and updates.
-
-## M0 prerequisites
-
-- Development machine capable of current supported Dalamud/FFXIV plugin builds
-  and a real game installation for manual tests.
-- .NET 10 toolchain verified against the version matrix; Server/Core/Contracts
-  target `net10.0`, plugin follows SDK 15's `net10.0-windows` x64 target.
-  Verify exact tool/package pins, host references and locked restores at M0.
-- Docker or disposable local PostgreSQL for server integration tests. Production
-  database and credentials are never used in tests.
-- GitHub CI access and local dev-plugin loading route. XIVAuth development app
-  registration is required for M1, not for running M0.
-
-## Implemented commands
-
-First fetch references and set `DALAMUD_HOME`; configure the dedicated test DB as
-shown in the installation guide. The following paths now exist:
+With reference setup and `DALAMUD_HOME` complete:
 
 ```sh
 dotnet restore AmorRP.sln --locked-mode
 dotnet tool restore
 dotnet build AmorRP.sln -c Release --no-restore
-docker compose -f deploy/compose.yaml --profile test up -d --wait test-database
-dotnet test AmorRP.sln -c Release --no-build --no-restore
+python3 -m pip install -r scripts/requirements-docs.lock.txt
+python3 scripts/check-docs.py
 python3 scripts/check-plugin-package.py
+python3 scripts/check-plugin-repository.py
 ```
 
-The installation guide provides OS-specific reference setup, database initialization,
-migration invocation and plugin loading steps. The shell used for the development
-task required network permission for .NET build/test process communication; this
-is an execution sandbox constraint, not a normal developer prerequisite.
-Use nonsecret `.env.example`/appsettings and user-secret/environment overrides.
-Never require a contributor to copy production keys or query production data.
+Start the local test database and configure this non-production connection:
 
-## CI and review
+```sh
+docker compose -f deploy/compose.yaml --profile test up -d --wait test-database
+export AMORRP_TEST_DATABASE='Host=127.0.0.1;Port=55432;Database=amorrp_test;Username=amorrp;Password=amorrp-local-only'
+dotnet test tests/AmorRP.Contracts.Tests -c Release
+dotnet test tests/AmorRP.Plugin.Tests -c Release
+dotnet test tests/AmorRP.Server.IntegrationTests -c Release
+ConnectionStrings__Database="$AMORRP_TEST_DATABASE" dotnet ef migrations has-pending-model-changes --project src/AmorRP.Server --configuration Release
+```
 
-Implemented server CI restores locks, validates docs, builds/tests against real
-PostgreSQL, checks migration-model consistency and builds the Docker image. Plugin
-CI fetches checksum-verified references, builds/packages on Windows and validates
-the ZIP before upload. Workflows have not yet run on GitHub. Presenter/business
-rules and richer contract tests are added with their milestones. Live game tests
-remain manual release gates.
+The fixed Compose password is disposable development data. The helper and integration
+test projects also have xUnit v3 executable runners; after building, their test DLLs
+can be run with `dotnet path/to/TestAssembly.dll` when a sandbox blocks VSTest's
+local communication socket.
 
-Documentation pipeline: internal links, OpenAPI validation, unique operation IDs,
-resolved schema refs, endpoint catalog parity, feature coverage and secret scan.
-Do not use passing documentation checks as evidence of application correctness.
+## What the checks prove
 
-Each implementation change includes relevant rules/contracts/migrations, focused
-tests of actual risk, and a reviewer-facing validation statement. No tests that only
-mirror getters/setters or UI layout. Transactions/security/concurrency deserve tests;
-simple display copy can be manually checked. Review SQL plans and locks for critical paths.
+- Contract tests check application/library dependency boundaries.
+- Plugin tests compile the actual standalone transport, refresh, coordination,
+  draft and text components. They cover token/character/context races and recovery;
+  they do not instantiate the entire Dalamud panel or render ImGui.
+- Server tests exercise real PostgreSQL constraints, authorization, transactions,
+  migrations and concurrency through test-hosted HTTP endpoints with provider fakes.
+- Documentation checks validate links, OpenAPI and endpoint/status metadata. They
+  are not application correctness or security tests.
+- Windows CI builds against verified Dalamud references and checks the distributable
+  ZIP. Linux CI runs server/contracts/helpers, schema consistency and container checks.
+  Both workflows have run successfully; every release needs fresh results for its source.
 
-## Code conventions
+Tests for the renewal lock deliberately hold the provider response while unrelated
+requests complete. Coordination tests use controlled task completions rather than
+sleep-based timing. Manual in-game and real-provider acceptance remain separate.
 
-Feature-oriented names and files, one authoritative rules implementation, nullable
-checks, explicit cancellation, structured logging with request IDs, async I/O,
-UTC clock abstraction and versioned configuration. No blocking requests in drawing.
-Clean disposal unregisters commands/UI/context handlers and cancels subscriptions.
-Use dependency injection at composition, not a global mutable service bag for rules.
+## Change and release discipline
 
-No database entities in transport DTOs; no HTTP concerns in Core; no game APIs in
-server libraries. Credentials use protected stores, not plugin JSON settings.
-Do not accept floating-point money, guessed character identity, arbitrary URL fetches,
-or dynamic execution from item content. Update docs whenever behavior changes.
+Keep changes bounded and explain the observed problem, resulting behavior and relevant
+verification. Update current guides when behavior changes; dated release records are
+historical evidence. Place rules requiring persistence beside the server transaction,
+pure reusable rules in Core and concrete wire types in Contracts.
+
+Do not change XIVAuth routes when changing Amor RP's protocol. Do not discard or
+rewrite an unresolved saved mutation merely because a UI operation was renamed.
+Preserve receipt fingerprints and test retries. Show debug IDs without exposing
+credentials or provider responses.
+
+Publish a new plugin version for changed package bytes. Use the exact successful
+Windows build artifact, record its source/build URL, and verify the public feed and
+package digest. Server-only corrections require a Render redeploy to become active;
+local/CI testing does not require restarting the live service. Database migrations,
+provider configuration changes and protocol changes are separate decisions.
