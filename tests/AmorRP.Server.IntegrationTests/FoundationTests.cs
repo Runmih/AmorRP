@@ -212,9 +212,12 @@ internal sealed class TestClock : TimeProvider { public DateTimeOffset UtcNow = 
 internal sealed class FakeDurableProvider : IDurableIdentityProvider
 {
     public string? LastLookupId;
+    public Func<string, string, CancellationToken, Task<ProviderGrant?>>? Renewal;
     public string AuthorizationUrl(string state, string challenge) => "https://xivauth.net/oauth/authorize?state=" + state;
     public Task<ProviderGrant?> ExchangeAsync(string code, string verifier, LoginStart selected, string? lodestoneId, CancellationToken ct)
     { LastLookupId = lodestoneId; var values = code.Split(':'); return Task.FromResult<ProviderGrant?>(new(new(values[0], values[1], selected.DisplayName, selected.HomeWorldName), code)); }
     public Task<ProviderGrant?> RenewAsync(string refresh, string lodestoneId, CancellationToken ct)
-    { var values = refresh.Split(':'); return Task.FromResult<ProviderGrant?>(new(new(lodestoneId, values[1], "Person " + lodestoneId, "Zalera"), refresh)); }
+    { if (Renewal != null) return Renewal(refresh, lodestoneId, ct); return Task.FromResult(RenewalGrant(refresh, lodestoneId)); }
+    public static ProviderGrant? RenewalGrant(string refresh, string lodestoneId)
+    { var values = refresh.Split(':'); return new(new(lodestoneId, values[1], "Person " + lodestoneId, "Zalera"), refresh); }
 }

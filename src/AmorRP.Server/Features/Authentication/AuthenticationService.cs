@@ -180,8 +180,14 @@ public sealed class AuthenticationService(AmorDbContext db, SecretVault vault, C
     {
         Enabled(); ApiFault.Require(SecretVault.IsCredential(body.RefreshToken), 401, "authentication_required", "Invalid renewal credential.");
         http.Response.Headers.CacheControl = "no-store";
-        await using var tx = await db.Database.BeginTransactionAsync(ct); await CommandStore.LockAsync(db, ["auth"], ct);
         var hash = SecretVault.Hash(body.RefreshToken); var scope = "refresh:" + hash;
+        // Resolve only the lock identity here. All authorization and replay checks
+        // below run again under that session's lock, including after a rotation.
+        var sessionId = await db.Sessions.Where(x => x.RefreshHash == hash).Select(x => (Guid?)x.Id).SingleOrDefaultAsync(ct)
+            ?? await db.UsedRefreshTokens.Where(x => x.TokenHash == hash).Select(x => (Guid?)x.SessionId).SingleOrDefaultAsync(ct);
+        ApiFault.Require(sessionId.HasValue, 401, "authentication_required", "Sign in again.");
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await CommandStore.LockAsync(db, ["session:" + sessionId.GetValueOrDefault()], ct);
         var replay = await commands.ReplayAsync(http, scope, body, ct);
         var prior = await db.UsedRefreshTokens.SingleOrDefaultAsync(x => x.TokenHash == hash, ct);
         if (replay != null && prior != null)
@@ -231,11 +237,16 @@ public sealed class AuthenticationService(AmorDbContext db, SecretVault vault, C
     }
     public async Task<IResult> RevokeAsync(HttpContext http, Guid? id, CancellationToken ct)
     {
-        await using var tx = await db.Database.BeginTransactionAsync(ct); await CommandStore.LockAsync(db, ["auth"], ct);
         var current = await access.GetAsync(http, ct);
+        var targetId = id ?? current.Id;
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        // Never hold the global login lock while waiting for a renewal. Serialize
+        // revocation receipts per actor and session mutations with RefreshAsync.
+        await CommandStore.LockAsync(db, ["revocations:" + current.CharacterId, "session:" + targetId], ct);
+        current = await access.GetAsync(http, ct);
         var scope = "character:" + current.CharacterId;
         var replay = await commands.ReplayAsync(http, scope, null, ct); if (replay != null) return commands.Replay(replay);
-        var target = await db.Sessions.SingleOrDefaultAsync(x => x.Id == (id ?? current.Id) && x.CharacterId == current.CharacterId, ct);
+        var target = await db.Sessions.SingleOrDefaultAsync(x => x.Id == targetId && x.CharacterId == current.CharacterId, ct);
         ApiFault.Require(target != null, 404, "not_found", "Session not found.");
         target!.Revoked = true; target.ProtectedProviderRefresh = "";
         var op = commands.New(http, scope, null, current.CharacterId, null, "session.revoke");
