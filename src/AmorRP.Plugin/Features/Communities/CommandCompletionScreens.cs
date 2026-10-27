@@ -10,6 +10,9 @@ public sealed partial class CommunitiesPanel
 {
     private void ApplyCommandSuccess(CommandRequest request, CommandResponse response, bool recovering)
     {
+        // A recovered action may belong to another community. Its durable
+        // receipt is still acknowledged, but must not overwrite this editor.
+        if (!request.AppliesToCommunity(community?.Id)) return;
         switch (request.Operation.Handler)
         {
             case CommandHandler.CommunityForm: ApplyFormSuccess(request, response.Json); break;

@@ -28,7 +28,7 @@ public sealed partial class CommunitiesPanel
         if (!configuration.ShowFavoriteEvents) { favoriteRefresh.Reset(); return; }
         if (SessionRenewalInProgress || session == null || origin == null || !serviceCompatible || WriteBlocked || session.AccessExpiresAt <= now) return;
         var uri = origin; var token = session.AccessToken;
-        favoriteRefresh.Start(now, dataGeneration, lifetime.Token,
+        favoriteRefresh.Start(now, dataGeneration, requests.Token,
             ct => client.GetAsync<FavoriteEvents>(uri, "api/v2/me/favorite-group-events", token, ct));
     }
 

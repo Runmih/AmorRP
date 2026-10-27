@@ -52,7 +52,7 @@ public sealed partial class CommunitiesPanel
             || communities.Length == 0 || session.AccessExpiresAt <= DateTimeOffset.UtcNow || DateTimeOffset.UtcNow < nextAnnouncementPoll) return;
         nextAnnouncementPoll = DateTimeOffset.UtcNow.AddSeconds(30);
         var uri = origin; var token = session.AccessToken; var actor = session.Character.Id; var selectedId = community?.Id;
-        var epoch = announcementEpoch; var ct = lifetime.Token;
+        var epoch = announcementEpoch; var ct = requests.Token;
         announcementWork = Task.Run(async () =>
         {
             var unread = await client.GetAsync<AnnouncementUnreadPage>(uri, "api/v2/announcements/unread", token, ct);

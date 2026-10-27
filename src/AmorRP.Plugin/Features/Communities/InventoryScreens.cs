@@ -110,7 +110,7 @@ public sealed partial class CommunitiesPanel
     }
     private void ApplyInventoryFilters()
     {
-        appliedInventoryQuery = BuildInventoryQuery(); dataGeneration++;
+        appliedInventoryQuery = BuildInventoryQuery(); requests.ChangeData();
         holdings = []; holdingCursor = null; holdingSelection = null; details = null;
         RefreshAffected(RefreshTargets.Inventory);
     }

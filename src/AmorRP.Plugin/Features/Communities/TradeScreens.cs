@@ -114,7 +114,7 @@ public sealed partial class CommunitiesPanel
         }
         PumpTradeChanges();
         if (tradeWork != null || session == null || community == null || session.AccessExpiresAt <= DateTimeOffset.UtcNow || DateTimeOffset.UtcNow < nextTradePoll) return;
-        var uri = origin!; var token = session.AccessToken; var id = community.Id; var ct = lifetime.Token;
+        var uri = origin!; var token = session.AccessToken; var id = community.Id; var ct = requests.Token;
         var loadInventory = tradeWindowVisible; var inventoryCount = tradeInventory.Length;
         tradeView = viewGeneration; tradeData = dataGeneration;
         nextTradePoll = DateTimeOffset.UtcNow.AddSeconds(ActiveTrade != null || tradeWindowVisible ? 2 : 15);
@@ -145,7 +145,7 @@ public sealed partial class CommunitiesPanel
     private void PumpContextTargetResolution()
     {
         if (!tradeWindowVisible || contextTarget == null || community == null || session == null || origin == null
-            || ActiveTrade != null || WriteBlocked || work != null || syncWork != null || refreshNeeded
+            || ActiveTrade != null || WriteBlocked || Busy || SyncBusy || refreshNeeded
             || session.AccessExpiresAt <= DateTimeOffset.UtcNow || contextLookup == (contextTarget, community.Id)) return;
         ResolveContextTarget();
     }
@@ -173,7 +173,7 @@ public sealed partial class CommunitiesPanel
     {
         var t = SelectedTrade;
         if (!tradeWindowVisible && !tradeCancelRequested) return;
-        if (t == null || !Active(t) || session == null || origin == null || community == null || WriteBlocked || work != null || tradePreparing) return;
+        if (t == null || !Active(t) || session == null || origin == null || community == null || WriteBlocked || Busy || tradePreparing) return;
         var action = tradeCancelRequested ? "cancel" : tradeAcceptRequested ? "accept" : tradeDraft?.Dirty == true && !tradeDraft.CurrencyFocused && tradeDraft.Error == null ? "offer" : tradeReadyRequested ? "confirm" : null;
         if (action == null) return;
         var uri = origin; var token = session.AccessToken; var path = $"api/v2/communities/{t.CommunityId}/trades/{t.Id}";

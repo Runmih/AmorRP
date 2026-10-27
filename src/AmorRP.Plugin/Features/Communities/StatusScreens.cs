@@ -37,7 +37,7 @@ public sealed partial class CommunitiesPanel
     {
         ImGui.SetNextItemWidth(width);
         var preview = session == null ? "Sign in first" : community?.Name ?? (communities.Length == 0 ? "No communities yet" : "Choose a community");
-        ImGui.BeginDisabled(session == null || communities.Length == 0 || WriteBlocked || work != null || session.AccessExpiresAt <= DateTimeOffset.UtcNow);
+        ImGui.BeginDisabled(session == null || communities.Length == 0 || WriteBlocked || Busy || session.AccessExpiresAt <= DateTimeOffset.UtcNow);
         if (ImGui.BeginCombo(id, preview))
         {
             var incoming = tradeInbox.Pending(DateTimeOffset.UtcNow).Select(x => x.CommunityId).ToHashSet();
@@ -61,7 +61,7 @@ public sealed partial class CommunitiesPanel
     private void DrawActionFeedback(PendingCommand? pending)
     {
         if (!HasActionFeedback(pending)) return;
-        var running = pending != null && (queuedCommand?.Key == pending.Key || work != null && currentCommand?.Key == pending.Key);
+        var running = pending != null && (queuedCommand?.Key == pending.Key || Busy && currentCommand?.Key == pending.Key);
         var recovery = pending != null && !running;
         ImGui.BeginChild("ActionFeedback", new System.Numerics.Vector2(0, ActionFeedbackHeight(pending)), true);
         if (connectionError.Length > 0)
@@ -78,7 +78,7 @@ public sealed partial class CommunitiesPanel
             Wrapped(recovery ? "We could not confirm whether this action was saved. Check its result before making another change." : "Saving action…");
             if (recovery)
             {
-                ImGui.BeginDisabled(work != null);
+                ImGui.BeginDisabled(Busy);
                 if (ImGui.SmallButton("Retry original action")) ExecutePending(pending, false, recovering: true);
                 ImGui.SameLine();
                 if (ImGui.SmallButton("Check action result")) CheckReceipt(pending);

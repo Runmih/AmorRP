@@ -26,7 +26,7 @@ public sealed partial class CommunitiesPanel
         {
             if (request.CommunityId != community?.Id)
             {
-                if (TradeBlocksCommunitySwitch || WriteBlocked || work != null)
+                if (TradeBlocksCommunitySwitch || WriteBlocked || Busy)
                 {
                     tradeFeedback = "Finish or recover the current action before opening another community's request.";
                     OpenTradeWindow?.Invoke(); return;
@@ -69,7 +69,7 @@ public sealed partial class CommunitiesPanel
         var ids = communities.Where(g => g.Id != community?.Id).Select(g => g.Id).ToArray();
         nextInboxPoll = DateTimeOffset.UtcNow.AddSeconds(15);
         if (ids.Length == 0) { inboxError = ""; return; }
-        var uri = origin; var token = session.AccessToken; var ct = lifetime.Token;
+        var uri = origin; var token = session.AccessToken; var ct = requests.Token;
         var epoch = inboxScope; var actor = session.Character.Id;
         inboxData = dataGeneration;
         inboxWork = Task.Run(async () =>

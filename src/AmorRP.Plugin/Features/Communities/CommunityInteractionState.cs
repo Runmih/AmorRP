@@ -23,7 +23,7 @@ public sealed partial class CommunitiesPanel
     {
         ResetCommunityRefreshes();
         ClearNestedGroups();
-        viewGeneration++; reads.Clear(); ClearTradeViews();
+        requests.ChangeView(); reads.Clear(); ClearTradeViews();
         icons.Clear(); logos.Clear(); community = null; members = []; policies = null; transfer = null; invitations = [];
         ClearMemberDescription(); memberSelection = null; memberDraftEtag = null; memberSearch = ""; policyDraftVersion = editCommunityVersion = editCurrencyVersion = 0; membersCursor = invitationsCursor = null;
         createdCode = ""; policyDraftLoaded = false; showInactive = false;

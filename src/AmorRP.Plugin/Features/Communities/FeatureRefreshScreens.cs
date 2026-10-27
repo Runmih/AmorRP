@@ -71,7 +71,7 @@ public sealed partial class CommunitiesPanel
         if (SessionRenewalInProgress || session == null || origin == null || community == null || WriteBlocked || session.AccessExpiresAt <= now) return;
 
         var uri = origin; var token = session.AccessToken; var active = community; var actor = session.Character.Id;
-        var ct = lifetime.Token; var id = active.Id; var owner = active.OwnerCharacterId == actor;
+        var ct = requests.Token; var id = active.Id; var owner = active.OwnerCharacterId == actor;
         var query = InventoryQuery(); var holding = holdingSelection; var count = holdings.Length;
         inventoryRefresh.Start(now, dataGeneration, ct, c => LoadInventoryAsync(uri, token, id, query, holding, count, c));
         var rosterCount = members.Length; var selectedMember = memberSelection; var inactive = owner && showInactive;

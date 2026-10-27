@@ -3,7 +3,8 @@ namespace AmorRP.Plugin.Features.Communities;
 
 public sealed partial class CommunitiesPanel
 {
-    private void RefreshAffected(CommandRequest request) => RefreshAffected(request.Operation.Refresh);
+    private void RefreshAffected(CommandRequest request) =>
+        RefreshAffected(request.AppliesToCommunity(community?.Id) ? request.Operation.Refresh : RefreshTargets.Community);
 
     private void RefreshAffected(RefreshTargets targets)
     {

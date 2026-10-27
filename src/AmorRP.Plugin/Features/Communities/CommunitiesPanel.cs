@@ -20,15 +20,16 @@ namespace AmorRP.Plugin.Features.Communities;
 public sealed partial class CommunitiesPanel(IPlayerState player, Configuration configuration, Action save, IPartyList party, ITextureProvider textures) : IDisposable
 {
     private readonly FoundationClient client = new();
-    private CancellationTokenSource lifetime = new();
-    private Task<Action>? work, syncWork;
-    private long viewGeneration, dataGeneration;
-    private long syncView, syncData;
+    private readonly RequestCoordinator requests = new();
+    private bool Busy => requests.ForegroundBusy;
+    private bool SyncBusy => requests.SynchronizationBusy;
+    private long viewGeneration => requests.ViewGeneration;
+    private long dataGeneration => requests.DataGeneration;
     private readonly Queue<(Func<CancellationToken, Task<Action>> Run, string Message)> reads = new();
     private enum MainSection { Home, Inventory, Crafting, Groups, Noticeboard, Members, Settings }
     private MainSection mainSection = MainSection.Inventory;
     private bool WriteBlocked => !serviceCompatible || currentCommand != null || configuration.PendingCommands.Any(x => x.Origin == origin?.AbsoluteUri && x.CharacterId == session?.Character.Id);
-    private bool SessionRenewalInProgress => session != null && saved?.PendingRefreshKey != null && work != null;
+    private bool SessionRenewalInProgress => session != null && saved?.PendingRefreshKey != null && Busy;
     private bool ActionButton(string label, bool mutation = true)
     {
         ImGui.BeginDisabled(mutation && WriteBlocked); var clicked = ImGui.Button(label); ImGui.EndDisabled(); return clicked;
@@ -82,18 +83,18 @@ public sealed partial class CommunitiesPanel(IPlayerState player, Configuration 
         var localWorld = player.IsLoaded && world.IsValid ? world.Value.Name.ToString() : "";
         Collect(); CollectSync();
         PumpForeground();
-        var busy = work != null;
+        var busy = Busy;
         if (!busy && session != null && session.AccessExpiresAt < DateTimeOffset.UtcNow.AddMinutes(5) && saved != null && DateTimeOffset.UtcNow >= nextRenewAttempt) Resume(saved);
-        if (refreshNeeded && work == null && syncWork == null && session != null && session.AccessExpiresAt > DateTimeOffset.UtcNow)
+        if (refreshNeeded && !Busy && !SyncBusy && session != null && session.AccessExpiresAt > DateTimeOffset.UtcNow)
         { refreshNeeded = false; Refresh(); }
-        busy = work != null;
+        busy = Busy;
         if (compactMode && session == null) { Wrapped("Open /amorrp to sign in and select your character."); return; }
         if (!compactMode && session == null) { DrawLogin(busy, localName, localWorld, world.RowId); DrawAnnouncementDialogs(); return; }
         var pending = configuration.PendingCommands.FirstOrDefault(x => x.Origin == origin?.AbsoluteUri && x.CharacterId == session?.Character.Id);
         if (session == null || session.AccessExpiresAt <= DateTimeOffset.UtcNow) return;
         if (session.Character.DisplayName != localName || session.Character.HomeWorldName != localWorld)
         { ImGui.TextWrapped("The verified profile does not match the character currently in game. Wait for XIVAuth to refresh it, then resume login. Existing assets are preserved."); return; }
-        if (work == null && syncWork == null && pending == null && DateTimeOffset.UtcNow >= nextRefresh && !refreshNeeded) Refresh();
+        if (!Busy && !SyncBusy && pending == null && DateTimeOffset.UtcNow >= nextRefresh && !refreshNeeded) Refresh();
         TickTrades(); icons.Draw(); logos.Draw();
         DrawCommunitySelection();
         var feedbackHeight = ActionFeedbackHeight(pending);
@@ -225,9 +226,9 @@ public sealed partial class CommunitiesPanel(IPlayerState player, Configuration 
         { Clear(); return; }
         if (scope.Length > 0 && !scope.StartsWith(ProductServer.Origin + "|", StringComparison.Ordinal)) { Clear(); return; }
         Collect(); CollectSync(); PumpForeground();
-        if (session != null && work == null && saved != null && session.AccessExpiresAt < DateTimeOffset.UtcNow.AddMinutes(5) && DateTimeOffset.UtcNow >= nextRenewAttempt) Resume(saved);
-        if (refreshNeeded && work == null && syncWork == null && session != null && session.AccessExpiresAt > DateTimeOffset.UtcNow) { refreshNeeded = false; Refresh(); }
-        if (session != null && work == null && syncWork == null && !WriteBlocked && DateTimeOffset.UtcNow >= nextRefresh) Refresh();
+        if (session != null && !Busy && saved != null && session.AccessExpiresAt < DateTimeOffset.UtcNow.AddMinutes(5) && DateTimeOffset.UtcNow >= nextRenewAttempt) Resume(saved);
+        if (refreshNeeded && !Busy && !SyncBusy && session != null && session.AccessExpiresAt > DateTimeOffset.UtcNow) { refreshNeeded = false; Refresh(); }
+        if (session != null && !Busy && !SyncBusy && !WriteBlocked && DateTimeOffset.UtcNow >= nextRefresh) Refresh();
         TickFeatureRefreshes(); TickFavoriteEvents();
         PumpContextTargetResolution(); TickTradeInbox(); TickTrades(); TickAnnouncements();
     }
@@ -252,7 +253,7 @@ public sealed partial class CommunitiesPanel(IPlayerState player, Configuration 
     }
     private void Accept(SessionTokens tokens)
     {
-        dataGeneration++;
+        requests.ChangeData();
         session = tokens; loginFeedback = loginDiagnostic = ""; ResetLogin();
         saved = configuration.SavedSessions.SingleOrDefault(x => x.Origin == origin!.AbsoluteUri && x.CharacterId == tokens.Character.Id);
         if (saved == null) { saved = new SavedSession { Origin = origin!.AbsoluteUri, CharacterId = tokens.Character.Id }; configuration.SavedSessions.Add(saved); }
@@ -262,30 +263,23 @@ public sealed partial class CommunitiesPanel(IPlayerState player, Configuration 
     }
     private void Start(Func<CancellationToken, Task<Action>> run, string message)
     {
-        if (work != null) { if (reads.Count >= 4) reads.Clear(); reads.Enqueue((run, message)); return; }
-        status = message; var token = lifetime.Token; var epoch = viewGeneration;
-        work = Task.Run(async () => { var apply = await run(token); return (Action)(() => { if (viewGeneration == epoch) apply(); }); }, token);
+        if (requests.StartForeground(run) == null) { if (reads.Count >= 4) reads.Clear(); reads.Enqueue((run, message)); return; }
+        status = message;
     }
     private void PumpForeground()
     {
-        if (work != null) return;
+        if (Busy) return;
         if (session == null || origin == null) { queuedCommand = null; reads.Clear(); return; }
         if (queuedCommand != null) { var pending = queuedCommand; queuedCommand = null; ExecutePending(pending, queuedSignOut, queuedRecovery); }
         else if (reads.TryDequeue(out var read)) Start(read.Run, read.Message);
     }
-    private void StartSync(Func<CancellationToken, Task<Action>> run)
-    {
-        if (syncWork != null) return;
-        syncView = viewGeneration; syncData = dataGeneration; var token = lifetime.Token;
-        syncWork = Task.Run(() => run(token), token);
-    }
+    private void StartSync(Func<CancellationToken, Task<Action>> run) => requests.StartSynchronization(run);
     private void CollectSync()
     {
-        // Renewal may invalidate the token used by this read. Let its result
-        // advance the generation before interpreting an old response or error.
-        if (syncWork is not { IsCompleted: true } || SessionRenewalInProgress) return;
-        var finished = syncWork; syncWork = null;
-        if (syncView != viewGeneration || syncData != dataGeneration) { _ = finished.Exception; refreshNeeded = true; return; }
+        // Renewal can invalidate the token used by an old read. Collect it only
+        // after renewal has applied its result and advanced the data generation.
+        if (!requests.TakeSynchronization(SessionRenewalInProgress, out var finished, out var stale)) return;
+        if (stale) { refreshNeeded = true; return; }
         if (finished.IsCompletedSuccessfully) { connectionError = connectionDiagnostic = ""; syncFailures = 0; finished.Result(); }
         else
         {
@@ -301,8 +295,8 @@ public sealed partial class CommunitiesPanel(IPlayerState player, Configuration 
     }
     private void Collect()
     {
-        if (work is not { IsCompleted: true }) return;
-        var finished = work; work = null;
+        if (!requests.TakeForeground(out var finished, out var stale)) return;
+        if (stale) { currentCommand = null; return; }
         if (finished.IsCompletedSuccessfully) { currentCommand = null; status = "Ready."; finished.Result(); }
         else
         {
@@ -344,14 +338,14 @@ public sealed partial class CommunitiesPanel(IPlayerState player, Configuration 
     private void Mutate(string method, string path, object? body, string? etag = null, bool signOut = false)
     {
         if (session == null || origin == null || WriteBlocked) return;
-        dataGeneration++;
+        requests.ChangeData();
         var command = new CommandRequest(method, path, body == null ? null : JsonSerializer.Serialize(body, FoundationClient.Json), etag);
         var pending = new PendingCommand { Origin = origin.AbsoluteUri, CharacterId = session.Character.Id, Key = Guid.CreateVersion7(), ProtectedRequest = PendingCommand.Protect(command) };
         configuration.PendingCommands.Add(pending); save(); ExecutePending(pending, signOut);
     }
     private void ExecutePending(PendingCommand pending, bool signOut, bool recovering = false)
     {
-        if (work != null) { queuedCommand = pending; queuedSignOut = signOut; queuedRecovery = recovering; return; }
+        if (Busy) { queuedCommand = pending; queuedSignOut = signOut; queuedRecovery = recovering; return; }
         var wireRequest = pending.Read(); var request = wireRequest.CurrentShape(); currentCommand = pending; var token = session!.AccessToken;
         Start(async ct => {
             var response = await client.CommandWithMetadataAsync(origin!, wireRequest, pending.Key, token, ct);
@@ -359,7 +353,7 @@ public sealed partial class CommunitiesPanel(IPlayerState player, Configuration 
                 configuration.PendingCommands.Remove(pending); save(); status = UserFeedback.Success(request); actionResult = status; actionDiagnostic = "Operation key: " + pending.Key;
                 ApplyCommandSuccess(request, response, recovering);
                 if (signOut || request.Operation.Handler == CommandHandler.SignOut) { ForgetCurrent(); status = "This device session was revoked. Sign in to reconnect."; }
-                else { dataGeneration++; RefreshAffected(request); }
+                else { requests.ChangeData(); RefreshAffected(request); }
             };
         }, "Saving action…");
     }
@@ -399,14 +393,11 @@ public sealed partial class CommunitiesPanel(IPlayerState player, Configuration 
     {
         if (pendingAuthorizationRead.HasValue) { authorizationResult = "Permission check cancelled. Reload saved permissions to try again."; pendingAuthorizationRead = null; }
         if (pendingPotionAccessRead) { potionAccessResult = "Permission check cancelled. Try checking again."; pendingPotionAccessRead = false; }
-        viewGeneration++; reads.Clear(); queuedCommand = null;
-        lifetime.Cancel(); lifetime.Dispose(); lifetime = new();
-        if (syncWork != null) _ = syncWork.ContinueWith(t => { _ = t.Exception; }, TaskScheduler.Default); syncWork = null;
-        if (work != null) _ = work.ContinueWith(t => { _ = t.Exception; }, CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
-        work = null; currentCommand = null;
+        reads.Clear(); queuedCommand = null;
+        requests.Reset(); currentCommand = null;
     }
     private void Clear()
     { ClearFavoriteEvents(); ClearMemberSearch(); personalNote = savedPersonalNote = noteKey = ""; ClearAnnouncementNotifications(); ClearTradeInbox(); ResetCommunityForms(); ResetLogin(); loginFeedback = loginDiagnostic = ""; syncFailures = 0; scope = ""; serviceCompatible = false; ClearWork(); origin = null; session = null; saved = null; selected = null; community = null; communities = []; members = []; invitations = []; transfer = null; refreshNeeded = false; createdCode = ""; contextTarget = null; contextLookup = null; ClearTransientFeedback(); connectionError = connectionDiagnostic = ""; lastRefresh = default; nextRefresh = default; ClearCommunityViews(); }
     private static void Wrapped(string message) { ImGui.PushTextWrapPos(); ImGui.TextUnformatted(message); ImGui.PopTextWrapPos(); }
-    public void Dispose() { ResetCommunityRefreshes(); ClearFavoriteEvents(); ClearMemberSearch(); personalNote = savedPersonalNote = noteKey = ""; ClearAnnouncementNotifications(); ClearTradeInbox(); ClearWork(); lifetime.Dispose(); icons.Dispose(); logos.Dispose(); groupLogos.Dispose(); client.Dispose(); }
+    public void Dispose() { ResetCommunityRefreshes(); ClearFavoriteEvents(); ClearMemberSearch(); personalNote = savedPersonalNote = noteKey = ""; ClearAnnouncementNotifications(); ClearTradeInbox(); ClearWork(); requests.Dispose(); icons.Dispose(); logos.Dispose(); groupLogos.Dispose(); client.Dispose(); }
 }

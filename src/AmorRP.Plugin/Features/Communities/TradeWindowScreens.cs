@@ -45,7 +45,7 @@ public sealed partial class CommunitiesPanel
                 ImGui.PushID(request.Id.ToString());
                 Wrapped($"{request.Initiator.Character.DisplayName} @ {request.Initiator.Character.HomeWorldName} · {targetCommunity.Name}");
                 Wrapped("Expires in " + TradeCountdown(request.ExpiresAt));
-                ImGui.BeginDisabled(work != null || tradeAcceptRequested || tradePreparing || (request.CommunityId != community!.Id && TradeBlocksCommunitySwitch));
+                ImGui.BeginDisabled(Busy || tradeAcceptRequested || tradePreparing || (request.CommunityId != community!.Id && TradeBlocksCommunitySwitch));
                 if (ActionButton("Accept")) AcceptIncomingTrade(request);
                 ImGui.EndDisabled(); ImGui.Separator(); ImGui.PopID();
             }
@@ -79,7 +79,7 @@ public sealed partial class CommunitiesPanel
     private void AcceptIncomingTrade(Trade request)
     {
         if (session == null || request.State != "invited" || request.Recipient.Character.Id != session.Character.Id
-            || request.ExpiresAt <= DateTimeOffset.UtcNow || WriteBlocked || work != null) return;
+            || request.ExpiresAt <= DateTimeOffset.UtcNow || WriteBlocked || Busy) return;
         if (request.CommunityId != community?.Id)
         {
             if (TradeBlocksCommunitySwitch) return;
