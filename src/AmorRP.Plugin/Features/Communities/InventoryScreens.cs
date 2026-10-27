@@ -112,7 +112,7 @@ public sealed partial class CommunitiesPanel
     {
         appliedInventoryQuery = BuildInventoryQuery(); dataGeneration++;
         holdings = []; holdingCursor = null; holdingSelection = null; details = null;
-        RefreshAffected(new("GET", $"api/v2/communities/{community!.Id}/inventory", null, null));
+        RefreshAffected(RefreshTargets.Inventory);
     }
     private void DrawInventory()
     {
@@ -196,7 +196,7 @@ public sealed partial class CommunitiesPanel
     private void TogglePin(Guid id) { if (!pinned.Add(id)) pinned.Remove(id); configuration.PinnedHoldings[PinScope] = pinned.ToArray(); save(); }
     private void ApplyInventorySuccess(CommandRequest request, CommandResponse response, bool recovering)
     {
-        if (request.Method == "POST" && request.Path.EndsWith("/item-definitions", StringComparison.Ordinal))
+        if (request.Operation.Kind == CommandKind.CreateRecipe)
         {
             var recipe = JsonSerializer.Deserialize<CommandResult<Definition>>(response.Json, FoundationClient.Json)!.Result;
             // Binding the receipt must not redirect a new/different draft that
@@ -205,41 +205,41 @@ public sealed partial class CommunitiesPanel
                 && definitionMessage == recipe.Potion.UseMessage && definitionCost == recipe.Potion.CreationCost && definitionEnabled == recipe.Enabled)
             { definitionEditId = recipe.Id; definitionEditRevision = recipe.Revision; }
         }
-        if (request.Method == "PATCH" && request.Path.Contains("/item-definitions/", StringComparison.Ordinal))
+        if (request.Operation.Kind == CommandKind.EditRecipe)
         {
             var recipe = JsonSerializer.Deserialize<CommandResult<Definition>>(response.Json, FoundationClient.Json)!.Result;
             if (definitionEditId == recipe.Id) definitionEditRevision = Math.Max(definitionEditRevision ?? 0, recipe.Revision);
         }
-        if (request.Method == "PATCH" && request.Path.Contains("/letters/", StringComparison.Ordinal))
+        if (request.Operation.Kind == CommandKind.EditWriting)
         {
             var written = JsonSerializer.Deserialize<CommandResult<Letter>>(response.Json, FoundationClient.Json)!.Result;
             if (editingLetter == written.Id) letterEditVersion = Math.Max(letterEditVersion, written.Version);
         }
-        if (request.Path.EndsWith("/inventory/letters", StringComparison.Ordinal) && request.Json != null)
+        if (request.Operation.Kind == CommandKind.CreateWriting && request.Json != null)
         {
             var submittedWriting = JsonSerializer.Deserialize<LetterCreate>(request.Json, FoundationClient.Json)!;
             if (letterTitle == submittedWriting.Title && letterBody == submittedWriting.Body) letterTitle = letterBody = "";
         }
         Holding? changed = null;
-        if (request.Path.EndsWith("/inventory/potions", StringComparison.Ordinal) || request.Path.EndsWith("/inventory/letters", StringComparison.Ordinal))
+        if (request.Operation.Kind is CommandKind.CraftConsumables or CommandKind.CreateWriting)
         {
             var produced = JsonSerializer.Deserialize<CommandResult<ProductionResult>>(response.Json, FoundationClient.Json)!.Result;
             changed = produced.Holding;
             if (quotas != null) quotas = quotas with { Items = quotas.Items.Select(x => x.Kind == produced.Quota.Kind ? produced.Quota : x).ToArray() };
         }
-        else if (request.Path.Contains("/holdings/", StringComparison.Ordinal) || request.Path.EndsWith("/discard", StringComparison.Ordinal))
+        else if (request.Operation.Kind is CommandKind.ChangeHolding or CommandKind.DeleteHolding or CommandKind.DiscardHolding or CommandKind.RemoveInventory)
             changed = JsonSerializer.Deserialize<CommandResult<Holding>>(response.Json, FoundationClient.Json)!.Result;
-        else if (request.Path.EndsWith("/use", StringComparison.Ordinal)) changed = JsonSerializer.Deserialize<CommandResult<ConsumptionResult>>(response.Json, FoundationClient.Json)!.Result.Holding;
+        else if (request.Operation.Kind == CommandKind.UseItem) changed = JsonSerializer.Deserialize<CommandResult<ConsumptionResult>>(response.Json, FoundationClient.Json)!.Result.Holding;
         if (changed != null)
         {
             var h = changed;
             Holding[] Apply(Holding[] list) => list.Where(x => x.Id != h.Id).Concat(h.Quantity > 0 && list.Any(x => x.Id == h.Id) ? new[] { h } : Array.Empty<Holding>()).OrderBy(x => x.Name).ToArray();
             holdings = Apply(holdings); compact = Apply(compact); memberHoldings = Apply(memberHoldings);
             if (details?.Holding.Id == h.Id) details = h.Quantity == 0 ? null : details with { Holding = h };
-            if (request.Path.Contains("/holdings/", StringComparison.Ordinal) || request.Path.EndsWith("/discard", StringComparison.Ordinal))
+            if (request.Operation.Kind is CommandKind.ChangeHolding or CommandKind.DeleteHolding or CommandKind.DiscardHolding or CommandKind.RemoveInventory)
             { discardConfirmed = false; removeItemsConfirmed = false; }
         }
-        if (!request.Path.EndsWith("/use", StringComparison.Ordinal)) return;
+        if (request.Operation.Kind != CommandKind.UseItem) return;
         var result = JsonSerializer.Deserialize<CommandResult<ConsumptionResult>>(response.Json, FoundationClient.Json)!.Result;
         lastUse = result; resendConfirmed = false;
         var destination = DestinationIndex(result.Destination);

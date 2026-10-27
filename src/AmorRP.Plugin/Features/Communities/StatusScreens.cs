@@ -1,4 +1,5 @@
 using AmorRP.Contracts.Common;
+using AmorRP.Plugin.Services.Api;
 using AmorRP.Contracts.History;
 using AmorRP.Plugin.Services.Identity;
 using Dalamud.Bindings.ImGui;
@@ -118,7 +119,7 @@ public sealed partial class CommunitiesPanel
             return () => {
                 configuration.PendingCommands.Remove(pending); save(); ApplyFormSuccess(pending.Read().CurrentShape(), null);
                 NoteAuthorizationReceipt(pending.Read().CurrentShape(), receipt.Id);
-                if (pending.Read().CurrentShape().Path is "api/v2/communities" or "api/v2/communities/join") selected = receipt.CommunityId;
+                if (pending.Read().Operation.Handler == CommandHandler.CommunityForm) selected = receipt.CommunityId;
                 actionResult = "Your action was saved. Any chat message has not been sent again.";
                 status = "Refreshing current state."; refreshNeeded = true;
             };

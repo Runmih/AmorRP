@@ -11,8 +11,7 @@ public sealed partial class CommunitiesPanel
     private string authorizationResult = "", authorizationDiagnostic = "", potionAccessResult = "";
     private bool pendingPotionAccessRead;
 
-    private static bool IsAuthorizationCommand(CommandRequest request) => request.Method == "PUT"
-        && request.Path.EndsWith("/capabilities", StringComparison.Ordinal);
+    private static bool IsAuthorizationCommand(CommandRequest request) => request.Operation.Kind == CommandKind.EditMemberPermissions;
 
     private static string Permission(bool allowed) => allowed ? "Allowed" : "Not authorized";
 

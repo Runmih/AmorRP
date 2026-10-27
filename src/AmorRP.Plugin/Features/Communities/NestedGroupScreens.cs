@@ -158,20 +158,30 @@ public sealed partial class CommunitiesPanel
             }, "Reading group logo…");
         });
     }
-    private void ApplyNestedGroupSuccess(CommandRequest request, string json)
+    private void ApplyGroupActivitySuccess(CommandRequest request)
     {
-        if (!request.Path.Contains("/groups", StringComparison.Ordinal)) return;
-        var tail = request.Path.Split('/');
-        if (tail.Length > 6 && !request.Path.EndsWith("/logo", StringComparison.Ordinal))
-        { groupPrivate = null; privateRequestedFor = null; groupJoinPassword = "";
-            if (request.Path.EndsWith("/notice", StringComparison.Ordinal)) noticeDraftFor = null;
-            if (request.Path.Contains("/events", StringComparison.Ordinal)) NewGroupEvent();
-            if (request.Path.EndsWith("/announcements", StringComparison.Ordinal)) groupAnnouncementTitle = groupAnnouncementMessage = "";
-            refreshNeeded = true; return; }
-        var row = JsonSerializer.Deserialize<CommandResult<GroupProfile>>(json, FoundationClient.Json)!.Result;
-        var deleted = request.Method == "DELETE" && !request.Path.EndsWith("/logo", StringComparison.Ordinal);
+        groupPrivate = null; privateRequestedFor = null; groupJoinPassword = "";
+        switch (request.Operation.Kind)
+        {
+            case CommandKind.SaveGroupNotice:
+            case CommandKind.DeleteGroupNotice: noticeDraftFor = null; break;
+            case CommandKind.CreateGroupEvent:
+            case CommandKind.EditGroupEvent:
+            case CommandKind.DeleteGroupEvent: NewGroupEvent(); break;
+            case CommandKind.PublishGroupAnnouncement: groupAnnouncementTitle = groupAnnouncementMessage = ""; break;
+        }
+    }
+    private void ApplyGroupProfileSuccess(CommandRequest request, string json)
+    {
+        var row = ReadCommand<GroupProfile>(json);
+        var deleted = request.Operation.Kind == CommandKind.DeleteGroup;
         communityGroups = communityGroups.Where(x => x.Id != row.Id).Concat(deleted ? [] : new[] { row }).ToArray();
         if (deleted) { selectedGroupId = null; if (communityGroups.FirstOrDefault() is { } next) SelectGroup(next); }
-        else { groupPrivate = null; privateRequestedFor = null; selectedGroupId = row.Id; creatingGroup = false; if (request.Path.EndsWith("/logo", StringComparison.Ordinal)) groupDraft.AcceptLogoVersion(row.Etag); else groupDraft.Load(row); }
+        else
+        {
+            groupPrivate = null; privateRequestedFor = null; selectedGroupId = row.Id; creatingGroup = false;
+            if (request.Operation.Kind is CommandKind.SetGroupLogo or CommandKind.RemoveGroupLogo) groupDraft.AcceptLogoVersion(row.Etag);
+            else groupDraft.Load(row);
+        }
     }
 }

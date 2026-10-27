@@ -321,7 +321,7 @@ public sealed partial class CommunitiesPanel(IPlayerState player, Configuration 
             {
                 actionResult = status;
                 actionDiagnostic = UserFeedback.Details(failure) + "\nAction ID: " + currentCommand.Key;
-                if (currentCommand.Read().Path.EndsWith("/announcements", StringComparison.Ordinal))
+                if (currentCommand.Read().Operation.Kind == CommandKind.PublishAnnouncement)
                     announcementPostError = status + (failure is FoundationApiException { OutcomeUncertain: false } ? "" : " Close this window to recover the saved action.");
                 NoteAuthorizationFailure(currentCommand.Read(), failure);
             }
@@ -357,31 +357,8 @@ public sealed partial class CommunitiesPanel(IPlayerState player, Configuration 
             var response = await client.CommandWithMetadataAsync(origin!, wireRequest, pending.Key, token, ct);
             return () => {
                 configuration.PendingCommands.Remove(pending); save(); status = UserFeedback.Success(request); actionResult = status; actionDiagnostic = "Operation key: " + pending.Key;
-                ApplyFormSuccess(request, response.Json);
-                ApplyHomeSuccess(request, response.Json);
-                ApplyNestedGroupSuccess(request, response.Json);
-                ApplyInventorySuccess(request, response, recovering);
-                ApplyTradeSuccess(request, response.Json);
-                if (request.Path.EndsWith("/currency/adjustments", StringComparison.Ordinal))
-                {
-                    var balance = JsonSerializer.Deserialize<CommandResult<Balance>>(response.Json, FoundationClient.Json)!.Result;
-                    if (memberSelection == balance.CharacterId && community?.Currency.Id == balance.CurrencyId)
-                    { selectedMemberBalance = balance; balanceFor = balance.CharacterId; }
-                }
-                if (request.Path.Contains("/members/", StringComparison.Ordinal) && !request.Path.Contains("/holdings", StringComparison.Ordinal) && !request.Path.EndsWith("/balances", StringComparison.Ordinal))
-                {
-                    var updated = JsonSerializer.Deserialize<CommandResult<Member>>(response.Json, FoundationClient.Json)!;
-                    members = members.Select(x => x.Character.Id == updated.Result.Character.Id ? updated.Result : x).ToArray();
-                    memberSearchResults = memberSearchResults.Select(x => x.Character.Id == updated.Result.Character.Id ? updated.Result : x).ToArray();
-                    if (memberSelection == updated.Result.Character.Id) memberDraftEtag = updated.Result.Etag; AcceptAuthorizationSave(request, updated);
-                    AcceptMemberDescriptionSave(request, updated.Result);
-                }
-                if (request.Path.EndsWith("/policies", StringComparison.Ordinal)) AcceptPolicySave(request, JsonSerializer.Deserialize<CommandResult<CommunityPolicies>>(response.Json, FoundationClient.Json)!.Result);
-                if (request.Method == "PATCH" && request.Path.EndsWith("/currency", StringComparison.Ordinal)) editCurrencyVersion = JsonSerializer.Deserialize<CommandResult<AmorRP.Contracts.Currency.Currency>>(response.Json, FoundationClient.Json)!.Result.Version;
-                if (request.Method == "PATCH" && request.Path.Split('/').Length == 4) editCommunityVersion = JsonSerializer.Deserialize<CommandResult<Community>>(response.Json, FoundationClient.Json)!.Result.Version;
-                if (request.Method == "POST" && request.Path.EndsWith("/invitations", StringComparison.Ordinal))
-                    createdCode = JsonSerializer.Deserialize<CommandResult<InvitationCreated>>(response.Json, FoundationClient.Json)!.Result.InvitationCode;
-                if (signOut || request.Path == "api/v2/auth/sessions/current") { ForgetCurrent(); status = "This device session was revoked. Sign in to reconnect."; }
+                ApplyCommandSuccess(request, response, recovering);
+                if (signOut || request.Operation.Handler == CommandHandler.SignOut) { ForgetCurrent(); status = "This device session was revoked. Sign in to reconnect."; }
                 else { dataGeneration++; RefreshAffected(request); }
             };
         }, "Saving action…");

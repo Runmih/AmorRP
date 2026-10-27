@@ -47,54 +47,60 @@ public static class UserFeedback
         }
     };
 
-    public static string Success(CommandRequest request)
+    public static string Success(CommandRequest request) => request.Operation.Kind switch
     {
-        var p = request.Path;
-        if (p.Contains("/groups", StringComparison.Ordinal))
-        {
-            if (p.EndsWith("/join", StringComparison.Ordinal)) return "Joined group.";
-            if (p.EndsWith("/membership", StringComparison.Ordinal)) return "Left group.";
-            if (p.EndsWith("/favorite", StringComparison.Ordinal)) return request.Method == "DELETE" ? "Group removed from favorites." : "Group added to favorites.";
-            if (p.EndsWith("/notice", StringComparison.Ordinal)) return request.Method == "DELETE" ? "Notice removed." : "Notice published.";
-            if (p.EndsWith("/announcements", StringComparison.Ordinal)) return "Group announcement published.";
-            if (p.Contains("/events", StringComparison.Ordinal)) return request.Method == "DELETE" ? "Event cancelled." : "Event saved.";
-            if (p.EndsWith("/logo", StringComparison.Ordinal)) return request.Method == "DELETE" ? "Group logo removed." : "Group logo updated.";
-            return request.Method == "DELETE" ? "Group deleted." : request.Method == "POST" ? "Group created." : "Group profile saved.";
-        }
-
-        if (p.EndsWith("/currency/adjustments", StringComparison.Ordinal)) return "Currency balance updated.";
-        if (p.EndsWith("/description", StringComparison.Ordinal)) return "Character description saved.";
-        if (p.EndsWith("/capabilities", StringComparison.Ordinal)) return "Member permissions saved.";
-        if (p.EndsWith("/block", StringComparison.Ordinal)) return request.Method == "DELETE" ? "Member can rejoin with an invitation." : "Member blocked from rejoining.";
-        if (p.Contains("/members/", StringComparison.Ordinal) && !p.Contains("/holdings/", StringComparison.Ordinal) && request.Method == "DELETE") return "Membership ended. Items and currency have been kept.";
-        if (p.Contains("/holdings/", StringComparison.Ordinal)) return request.Method == "DELETE" ? "Items removed from the member's inventory." : "Item quantity updated.";
-        if (p.EndsWith("/discard", StringComparison.Ordinal)) return "Items discarded. Weekly crafting points have not been refunded.";
-        if (p.EndsWith("/inventory/removals", StringComparison.Ordinal)) return "Items removed from the member's inventory.";
-        if (p.Contains("/invitations/", StringComparison.Ordinal)) return "Invitation deleted. Its code can no longer be used.";
-        if (p.EndsWith("/invitations", StringComparison.Ordinal)) return "Invitation created. Share the code below to invite someone.";
-        if (p.EndsWith("/policies", StringComparison.Ordinal)) return "Weekly crafting limits saved.";
-        if (p.EndsWith("/deletion", StringComparison.Ordinal)) return "Community deleted.";
-        if (p.Contains("/ownership-transfers", StringComparison.Ordinal)) return p.EndsWith("/accept", StringComparison.Ordinal) ? "Community ownership transferred." : p.EndsWith("/cancel", StringComparison.Ordinal) ? "Ownership transfer cancelled." : "Ownership transfer proposed.";
-        if (p.EndsWith("/logo", StringComparison.Ordinal)) return request.Method == "DELETE" ? "Community logo removed." : "Community logo updated.";
-        if (p.Contains("/currency/icon", StringComparison.Ordinal)) return request.Method == "DELETE" ? "Currency icon reset." : "Currency icon updated.";
-        if (p.EndsWith("/currency", StringComparison.Ordinal)) return "Currency settings saved.";
-        if (p.Contains("/item-definitions", StringComparison.Ordinal)) return "Potion recipe saved.";
-        if (p.Contains("/letters", StringComparison.Ordinal)) return request.Method == "POST" ? "Written item created in your inventory." : "Written item saved.";
-        if (p.EndsWith("/inventory/potions", StringComparison.Ordinal)) return "Potions crafted and added to your inventory.";
-        if (p.EndsWith("/inventory", StringComparison.Ordinal)) return "Items added to your inventory.";
-        if (p == "api/v2/communities/join") return "You joined the community.";
-        if (p == "api/v2/communities") return "Community created.";
-        if (p.Contains("/trades", StringComparison.Ordinal))
-        {
-            if (p.EndsWith("/trades", StringComparison.Ordinal)) return "Trade request sent. Waiting for the other player to accept.";
-            if (p.EndsWith("/accept", StringComparison.Ordinal)) return "Trade request accepted. Build your offer below.";
-            if (p.EndsWith("/offers/mine", StringComparison.Ordinal)) return "Your trade offer was saved.";
-            if (p.EndsWith("/final-confirm", StringComparison.Ordinal)) return "Final confirmation saved. Waiting for the other player.";
-            if (p.EndsWith("/confirm", StringComparison.Ordinal)) return "Offer accepted. Both players must complete the final review.";
-            if (p.EndsWith("/cancel", StringComparison.Ordinal)) return "Trade cancelled. Your items and currency have been released.";
-        }
-        return "Changes saved.";
-    }
+        CommandKind.CreateCommunity => "Community created.",
+        CommandKind.JoinCommunity => "You joined the community.",
+        CommandKind.LeaveCommunity or CommandKind.RemoveMember => "Membership ended. Items and currency have been kept.",
+        CommandKind.DeleteCommunity => "Community deleted.",
+        CommandKind.EditCommunity => "Community profile saved.",
+        CommandKind.EditCurrency => "Currency settings saved.",
+        CommandKind.AdjustCurrency => "Currency balance updated.",
+        CommandKind.SetCommunityLogo => "Community logo updated.",
+        CommandKind.RemoveCommunityLogo => "Community logo removed.",
+        CommandKind.SetCurrencyIcon => "Currency icon updated.",
+        CommandKind.RemoveCurrencyIcon => "Currency icon reset.",
+        CommandKind.EditMemberDescription => "Character description saved.",
+        CommandKind.EditMemberPermissions => "Member permissions saved.",
+        CommandKind.EditTradingPermission => "Trading permission saved.",
+        CommandKind.BlockMember => "Member blocked from rejoining.",
+        CommandKind.UnblockMember => "Member can rejoin with an invitation.",
+        CommandKind.EditPolicy => "Weekly crafting limits saved.",
+        CommandKind.CreateInvitation => "Invitation created. Share the code below to invite someone.",
+        CommandKind.DeleteInvitation => "Invitation deleted. Its code can no longer be used.",
+        CommandKind.ProposeOwnership => "Ownership transfer proposed.",
+        CommandKind.AcceptOwnership => "Community ownership transferred.",
+        CommandKind.CancelOwnership => "Ownership transfer cancelled.",
+        CommandKind.PublishAnnouncement => "Announcement published.",
+        CommandKind.CreateRecipe or CommandKind.EditRecipe or CommandKind.RetireRecipe => "Recipe saved.",
+        CommandKind.CraftConsumables => "Items crafted and added to your inventory.",
+        CommandKind.CreateWriting => "Written item created in your inventory.",
+        CommandKind.EditWriting => "Written item saved.",
+        CommandKind.ChangeHolding => "Item quantity updated.",
+        CommandKind.DeleteHolding or CommandKind.RemoveInventory => "Items removed from the member's inventory.",
+        CommandKind.DiscardHolding => "Items discarded. Weekly crafting points have not been refunded.",
+        CommandKind.CreateTrade => "Trade request sent. Waiting for the other player to accept.",
+        CommandKind.AcceptTrade => "Trade request accepted. Build your offer below.",
+        CommandKind.EditTradeOffer => "Your trade offer was saved.",
+        CommandKind.ConfirmTrade => "Offer accepted. Both players must complete the final review.",
+        CommandKind.FinalConfirmTrade => "Final confirmation saved. Waiting for the other player.",
+        CommandKind.CancelTrade => "Trade cancelled. Your items and currency have been released.",
+        CommandKind.CreateGroup => "Group created.",
+        CommandKind.EditGroup => "Group profile saved.",
+        CommandKind.DeleteGroup => "Group deleted.",
+        CommandKind.SetGroupLogo => "Group logo updated.",
+        CommandKind.RemoveGroupLogo => "Group logo removed.",
+        CommandKind.JoinGroup => "Joined group.",
+        CommandKind.LeaveGroup => "Left group.",
+        CommandKind.FavoriteGroup => "Group added to favorites.",
+        CommandKind.UnfavoriteGroup => "Group removed from favorites.",
+        CommandKind.SaveGroupNotice => "Notice published.",
+        CommandKind.DeleteGroupNotice => "Notice removed.",
+        CommandKind.CreateGroupEvent or CommandKind.EditGroupEvent => "Event saved.",
+        CommandKind.DeleteGroupEvent => "Event cancelled.",
+        CommandKind.PublishGroupAnnouncement => "Group announcement published.",
+        _ => "Changes saved."
+    };
     public static string Details(Exception? error) => error is FoundationApiException api
         ? $"HTTP {(int)api.Status}; code: {api.Code}; request: {api.RequestId ?? "unavailable"}.\nServer: {api.ServerMessage}"
         : error is null ? "No additional details available." : $"Connection error: {error.GetType().Name}.";

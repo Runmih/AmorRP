@@ -12,6 +12,45 @@ namespace AmorRP.Server.IntegrationTests;
 
 public sealed partial class FoundationTests
 {
+    [Fact]
+    public async Task Typed_group_handlers_preserve_updates_deletions_membership_and_receipt_replay()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        using var factory = Factory(); await Migrate(factory);
+        using var owner = factory.CreateClient(); await Login(owner, "1010"); var community = await Create(owner);
+        using var peer = factory.CreateClient(); await Login(peer, "1011"); await Join(peer, await Invite(owner, community));
+        var group = await Command<GroupProfile>(owner, HttpMethod.Post, $"/api/v2/communities/{community.Id}/groups", new GroupWrite("Patrol", ""));
+        var path = $"/api/v2/communities/{community.Id}/groups/{group.Id}";
+        await GroupAction(peer, HttpMethod.Post, path + "/join", new GroupJoin());
+        await GroupAction(peer, HttpMethod.Put, path + "/favorite");
+        var start = clock.GetUtcNow().AddDays(1);
+        await GroupAction(owner, HttpMethod.Post, path + "/events", new EventWrite("Patrol", "Patrol details", "Limsa", start, start.AddHours(1)));
+        var hubPath = $"/api/v2/communities/{community.Id}/group-hub";
+        var item = Assert.Single((await owner.GetFromJsonAsync<GroupHub>(hubPath, ct))!.Events);
+        await GroupAction(owner, HttpMethod.Put, path + "/events/" + item.Id,
+            new EventWrite("Updated patrol", "Patrol details", "Gridania", start, start.AddHours(2)), $"\"group-event:{item.Id:N}:1\"");
+        Assert.Equal("Updated patrol", Assert.Single((await peer.GetFromJsonAsync<FavoriteEvents>("/api/v2/me/favorite-group-events", ct))!.Items).Title);
+        await GroupAction(peer, HttpMethod.Delete, path + "/favorite");
+        Assert.Empty((await peer.GetFromJsonAsync<FavoriteEvents>("/api/v2/me/favorite-group-events", ct))!.Items);
+        await GroupAction(owner, HttpMethod.Put, path + "/notice", new NoticeWrite("Help", "Wanted", "Coins"));
+        await GroupAction(owner, HttpMethod.Delete, path + "/notice", etag: $"\"group-notice:{group.Id:N}:1\"");
+        await GroupAction(owner, HttpMethod.Delete, path + "/events/" + item.Id, etag: $"\"group-event:{item.Id:N}:2\"");
+        var hub = (await owner.GetFromJsonAsync<GroupHub>(hubPath, ct))!;
+        Assert.Empty(hub.Notices); Assert.Empty(hub.Events);
+        var key = Guid.CreateVersion7();
+        for (var i = 0; i < 2; i++)
+        {
+            using var request = Request(HttpMethod.Post, path + "/announcements", new AnnouncementWrite("Orders", "Private"), key);
+            using var reply = await owner.SendAsync(request, ct);
+            Assert.Equal(HttpStatusCode.OK, reply.StatusCode);
+            Assert.Equal(i == 1, reply.Headers.Contains("Idempotency-Replayed"));
+        }
+        Assert.Single((await peer.GetFromJsonAsync<GroupPrivate>(path + "/private", ct))!.Announcements);
+        await GroupAction(peer, HttpMethod.Delete, path + "/membership");
+        using var privateDenied = await peer.GetAsync(path + "/private", ct);
+        Assert.Equal(HttpStatusCode.Forbidden, privateDenied.StatusCode);
+    }
+
     private async Task GroupAction(HttpClient client, HttpMethod method, string path, object? body = null, string? etag = null)
     {
         using var request = Request(method, path, body, etag: etag);

@@ -138,7 +138,7 @@ public sealed partial class CommunitiesPanel
                 var previous = ActiveTrade;
                 foreach (var t in pageTrades.Items) ObserveTrade(t);
                 if (previous != null && ActiveTrade == null)
-                { tradeFeedback = "Trade ended. Inventory and balance are updating."; RefreshAffected(new("GET", $"api/v2/communities/{id}/trades", null, null)); }
+                { tradeFeedback = "Trade ended. Inventory and balance are updating."; RefreshAffected(RefreshTargets.Inventory); }
             });
         }, ct);
     }
@@ -215,26 +215,26 @@ public sealed partial class CommunitiesPanel
     private void NoteTradeFailure(CommandRequest? request, Exception? failure)
     {
         tradePreparing = false;
-        if (request == null || !request.Path.Contains("/trades", StringComparison.Ordinal)) return;
+        if (request == null || request.Operation.Handler != CommandHandler.Trade) return;
         tradeFeedback = status;
         if (failure is FoundationApiException { Code: "trade_changed", OutcomeUncertain: false } && ++tradeConflictRetries <= 3)
         {
-            if (request.Path.EndsWith("/confirm", StringComparison.Ordinal)) { tradeReadyRequested = true; confirmationStartedLocally = false; }
+            if (request.Operation.Kind == CommandKind.ConfirmTrade) { tradeReadyRequested = true; confirmationStartedLocally = false; }
             nextTradePoll = default; tradeFeedback = "The other offer changed; synchronizing automatically.";
         }
         else { tradeReadyRequested = false; if (tradeDraft != null) tradeDraft.Pause(status); }
     }
     private void ApplyTradeSuccess(CommandRequest request, string json)
     {
-        if (!request.Path.Contains("/trades", StringComparison.Ordinal)) return;
+        if (request.Operation.Handler != CommandHandler.Trade) return;
         var t = JsonSerializer.Deserialize<CommandResult<Trade>>(json, FoundationClient.Json)!.Result;
-        if (request.Path.EndsWith("/offers/mine", StringComparison.Ordinal) && tradeDraft?.TradeId == t.Id) tradeDraft.Acknowledge(t, session!.Character.Id, submittedTradeGeneration);
+        if (request.Operation.Kind == CommandKind.EditTradeOffer && tradeDraft?.TradeId == t.Id) tradeDraft.Acknowledge(t, session!.Character.Id, submittedTradeGeneration);
         ObserveTrade(t); tradeSelection = t.Id; tradeConflictRetries = 0;
         if (tradeWindowCloseRequested && t.State is "open" or "confirming") RequestTradeCancel();
         if (!Active(t)) tradeOutcomeUntil = DateTimeOffset.UtcNow + FeedbackLifetime;
         tradeFeedback = "";
         actionResult = t.State == "completed" ? "Trade completed. Items and currency have been exchanged." : t.State == "cancelled" ? t.EndReason ?? "Trade cancelled." : UserFeedback.Success(request);
-        if (request.Path.EndsWith("/trades", StringComparison.Ordinal))
+        if (request.Operation.Kind == CommandKind.CreateTrade)
         { requestedTradeTab = 1; if (!tradeWindowCloseRequested) OpenTradeWindow?.Invoke(); }
         nextTradePoll = default;
     }

@@ -52,7 +52,7 @@ public sealed partial class CommunitiesPanel
 
     private void AcceptMemberDescriptionSave(CommandRequest request, Member member)
     {
-        if (!request.Path.EndsWith("/description", StringComparison.Ordinal) || memberSelection != member.Character.Id) return;
+        if (request.Operation.Kind != CommandKind.EditMemberDescription || memberSelection != member.Character.Id) return;
         ResetMemberDescription(member); actionResult = "Description saved.";
     }
 }

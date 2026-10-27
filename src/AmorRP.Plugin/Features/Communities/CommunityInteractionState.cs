@@ -35,8 +35,8 @@ public sealed partial class CommunitiesPanel
     }
     private void ApplyFormSuccess(CommandRequest request, string? response)
     {
-        if (request.Method == "POST" && request.Path == "api/v2/communities/join") { invitationCode = ""; visibilityAccepted = false; CloseJoinCommunity?.Invoke(); }
-        if (request.Method == "POST" && request.Path == "api/v2/communities")
+        if (request.Operation.Kind == CommandKind.JoinCommunity) { invitationCode = ""; visibilityAccepted = false; CloseJoinCommunity?.Invoke(); }
+        if (request.Operation.Kind == CommandKind.CreateCommunity)
         {
             name = description = ""; currencyName = "Coins"; symbol = "C";
             initialCooking = 0;
@@ -44,7 +44,7 @@ public sealed partial class CommunitiesPanel
             initialAllowancesEdited = false;
             CloseCreateCommunity?.Invoke();
         }
-        if (request.Method == "POST" && request.Path is "api/v2/communities" or "api/v2/communities/join" && response != null)
+        if (request.Operation.Handler == CommandHandler.CommunityForm && response != null)
             selected = JsonSerializer.Deserialize<CommandResult<Community>>(response, FoundationClient.Json)!.Result.Id;
     }
     private void DrawCurrencyIconEditor()

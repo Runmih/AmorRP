@@ -89,20 +89,20 @@ public sealed partial class CommunitiesPanel
     }
     private void ApplyHomeSuccess(CommandRequest request, string json)
     {
-        if (request.Method == "POST" && request.Path == $"api/v2/communities/{community?.Id}/announcements")
+        if (request.Operation.Kind == CommandKind.PublishAnnouncement)
         {
             var submitted = JsonSerializer.Deserialize<AnnouncementCreate>(request.Json!, FoundationClient.Json)!;
             if (announcementTitle == submitted.Title && announcementBody == submitted.Body) announcementTitle = announcementBody = "";
             announcementPostError = ""; InvalidateAnnouncements(); return;
         }
         if (community == null) return;
-        if (request.Path == $"api/v2/communities/{community.Id}/logo")
+        if (request.Operation.Kind is CommandKind.SetCommunityLogo or CommandKind.RemoveCommunityLogo)
         {
             var updated = JsonSerializer.Deserialize<CommandResult<Community>>(json, FoundationClient.Json)!.Result;
             community = community with { LogoAssetId = updated.LogoAssetId, LogoVersion = updated.LogoVersion };
             logos.Clear(); return;
         }
-        if (request.Method == "PATCH" && request.Path == $"api/v2/communities/{community.Id}")
+        if (request.Operation.Kind == CommandKind.EditCommunity)
         {
             var updated = JsonSerializer.Deserialize<CommandResult<Community>>(json, FoundationClient.Json)!.Result;
             var submitted = JsonSerializer.Deserialize<CommunityEdit>(request.Json!, FoundationClient.Json)!;
@@ -111,7 +111,7 @@ public sealed partial class CommunitiesPanel
             if (editDescription == submitted.Description) editDescription = updated.Description;
             savedCommunityName = updated.Name; savedHomeDescription = updated.Description; editCommunityVersion = updated.Version;
         }
-        if (request.Method == "PATCH" && request.Path == $"api/v2/communities/{community.Id}/currency")
+        if (request.Operation.Kind == CommandKind.EditCurrency)
         {
             var updated = JsonSerializer.Deserialize<CommandResult<AmorRP.Contracts.Currency.Currency>>(json, FoundationClient.Json)!.Result;
             var submitted = JsonSerializer.Deserialize<CurrencyEdit>(request.Json!, FoundationClient.Json)!;
