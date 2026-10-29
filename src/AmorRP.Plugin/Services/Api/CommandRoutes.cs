@@ -145,7 +145,7 @@ internal static class CommandRoutes
         new("PUT", "api/v2/communities/{communityId}/groups/{groupId}/members/{characterId}/capabilities", new(CommandKind.EditGroupStaff, CommandHandler.GroupActivity, RefreshTargets.Groups)),
         new("POST", "api/v2/communities/{communityId}/groups", new(CommandKind.CreateGroup, CommandHandler.GroupProfile, RefreshTargets.Groups)),
         new("PATCH", "api/v2/communities/{communityId}/groups/{groupId}", new(CommandKind.EditGroup, CommandHandler.GroupProfile, RefreshTargets.Groups)),
-        new("DELETE", "api/v2/communities/{communityId}/groups/{groupId}", new(CommandKind.DeleteGroup, CommandHandler.GroupProfile, RefreshTargets.Groups)),
+        new("DELETE", "api/v2/communities/{communityId}/groups/{groupId}", new(CommandKind.DeleteGroup, CommandHandler.GroupProfile, RefreshTargets.Groups | RefreshTargets.Community)),
         new("PUT", "api/v2/communities/{communityId}/groups/{groupId}/logo", new(CommandKind.SetGroupLogo, CommandHandler.GroupProfile, RefreshTargets.Groups)),
         new("DELETE", "api/v2/communities/{communityId}/groups/{groupId}/logo", new(CommandKind.RemoveGroupLogo, CommandHandler.GroupProfile, RefreshTargets.Groups)),
         new("POST", "api/v2/communities/{communityId}/groups/{groupId}/join", new(CommandKind.JoinGroup, CommandHandler.GroupActivity, RefreshTargets.Groups)),

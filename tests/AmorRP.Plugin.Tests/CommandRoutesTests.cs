@@ -79,6 +79,7 @@ public sealed class CommandRoutesTests
     public void Refresh_targets_are_scoped_to_the_affected_features()
     {
         Assert.Equal(RefreshTargets.Groups, Resolve("PUT", "groups/{id}/notice").Refresh);
+        Assert.Equal(RefreshTargets.Groups | RefreshTargets.Community, Resolve("DELETE", "groups/{id}").Refresh);
         Assert.Equal(RefreshTargets.Community | RefreshTargets.Inventory, Resolve("PUT", "trades/{id}/offers/mine").Refresh);
         Assert.Equal(RefreshTargets.Community | RefreshTargets.Members, Resolve("PUT", "members/{id}/capabilities").Refresh);
         Assert.Equal(RefreshTargets.Community | RefreshTargets.CommunityLogo, Resolve("PUT", "logo").Refresh);
