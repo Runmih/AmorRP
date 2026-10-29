@@ -112,8 +112,9 @@ retry it durably if the bot/network is offline. Immediate currency authorization
 must not depend on successfully contacting Discord. Removing the bot through Discord
 also disconnects its earning association. Reconcile after restart.
 
-Render remains testing infrastructure. The maintainer will choose private hosting
-separately; do not provision a second paid Render service. Validate continuous bot
+Render remains testing infrastructure until the private Ubuntu server is ready;
+see [hosting and releases](hosting-and-releases.md). Do not provision a second paid
+Render service. Validate continuous bot
 connectivity, Discord application/intents, token storage and restart behavior on the
 chosen host before enabling real rewards. Decide process placement then; a separate
 paid machine or a new general integration framework is not a prerequisite.

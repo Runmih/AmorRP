@@ -11,6 +11,8 @@ earlier suggestions in the conversation, not the description of deployed behavio
 ## Documents
 
 - [Decisions](decisions.md): agreed rules, proposed defaults and deferred choices.
+- [Hosting and releases](hosting-and-releases.md): private Ubuntu target, migration
+  prerequisites, main-only development and 0.feature.0.patch versions.
 - [Economy and groups](economy-and-groups.md): permissions, treasury, billing, debt,
   commissions, taxes, shop and ownership permits.
 - [Gameplay](gameplay.md): gathering, classes and group recipes.
@@ -115,5 +117,7 @@ Currency treasury and a registered ownership document do not require a general
 shared item warehouse. Permit trading must transfer the registration and billing
 lock together; an ordinary inventory transfer is insufficient.
 
-Render remains testing infrastructure. The maintainer will choose the permanent
-private host separately. A second paid Render test service is not required.
+The selected future target is a private Ubuntu server on the maintainer's GMKtec
+NucBox M8. Render stays testing until the controlled cutover. Use main only and
+0.feature.0.patch release numbers; see [hosting and releases](hosting-and-releases.md).
+A second paid Render test service is not required.

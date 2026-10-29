@@ -12,6 +12,15 @@ The table below records the pinned toolchain. Release-specific behavior and
 verification are in [0.0.6.21](../delivery/release-0.0.6.21.md). Historical milestone
 records appear after the current compatibility/maintenance sections.
 
+## Product release numbering
+
+Use main only for development/publication. From the next feature release, use
+`0.feature.0.patch`: first/third parts stay 0; completed feature releases increment
+the second part and reset patch to 0; fixes increment the fourth part. The transition
+from current 0.0.6.21 to next feature 0.1.0.0 is numerically increasing. Documentation
+alone does not bump binaries. See the [release and hosting policy](../planning/hosting-and-releases.md).
+These numbers do not change Amor RP API v2, XIVAuth API v1 or Dalamud API 15.
+
 ## Dependency matrix
 
 | Component | Pinned baseline / boundary | Source of truth | Verification |

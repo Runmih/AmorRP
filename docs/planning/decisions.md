@@ -32,7 +32,9 @@ not claims about the installed plugin. Follow the [work order](README.md).
 | D23 | Discord earnings are fully opt-in. One community can connect multiple Discord servers through groups with Discord Bot Permission. Only the permitted group owner can initiate Amor RP linking; Discord administrators still control installation/channel/role authority. |
 | D24 | Use one selected earning character per Discord account in a community. Changing character or connected server must not reset earning usage. |
 | D25 | Discord rewards have weekly limits and an owner-configurable personal balance ceiling. Stop rewards at the ceiling; spending can resume eligibility. Owners have enough controls to tolerate treasury deposits lowering personal balance. |
-| D26 | Disbanding a linked group disables earnings and ejects the bot from that Discord server. Render stays testing; permanent private hosting will be discussed separately. |
+| D26 | Disbanding a linked group disables earnings and ejects the bot from that Discord server. Render stays testing until the planned private Ubuntu cutover. |
+| D27 | The future private server uses Ubuntu on the maintainer's GMKtec NucBox M8 (Ryzen 5 PRO 6650H, 16 GB RAM, 512 GB storage). Setup/cutover is future work; do not provision it now. |
+| D28 | Use main only and application versions 0.feature.0.patch: feature releases increment the second part, patches increment the fourth, first/third stay 0. No new feature/testing/milestone branches or testing feed; no application-version bump for documentation alone. |
 
 ## Proposed implementation defaults
 
