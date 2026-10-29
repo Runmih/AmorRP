@@ -14,6 +14,13 @@ Product specifications include planned work. OpenAPI labels implemented and plan
 operations explicitly. Dated `m0`–`m5` delivery guides and older release records are
 historical snapshots; they do not override current source maps or version guidance.
 
+## Current expansion planning
+
+The [expansion work plan](planning/README.md) records the 2026-10-29 feature decisions,
+dependency order and progress checklist. It links separate plans for economy/groups,
+gameplay and integrations. These features are planned, not part of release 0.0.6.21.
+Start there for new feature work; historical milestone roadmaps remain reference records.
+
 ## Reading order
 
 1. [Scope](product/scope.md): what ships and what is deferred.
@@ -23,7 +30,7 @@ historical snapshots; they do not override current source maps or version guidan
    and [version compatibility](engineering/versions.md).
 5. [API](engineering/api.md), [OpenAPI](engineering/openapi.yaml), and [data model](engineering/data-model.md).
 6. [Security](engineering/security.md) and [authentication](engineering/authentication.md).
-7. [Roadmap](delivery/roadmap.md), [acceptance](delivery/acceptance.md),
+7. [Expansion work plan](planning/README.md), [historical roadmap](delivery/roadmap.md), [acceptance](delivery/acceptance.md),
    [development](delivery/development.md), and [operations](delivery/operations.md).
 8. [Decisions](decisions.md), [feasibility](feasibility.md), and [expansion](product/expansion.md).
 
@@ -31,7 +38,7 @@ historical snapshots; they do not override current source maps or version guidan
 
 | Area | Source of truth |
 | --- | --- |
-| Agreed requirements versus recommendations | [Decision register](decisions.md) |
+| Agreed requirements versus recommendations | [Decision register](decisions.md); current expansion [decisions](planning/decisions.md) |
 | Product behavior | [Rules](product/rules.md) |
 | HTTP paths, wire schemas, authorization metadata | [OpenAPI](engineering/openapi.yaml) |
 | HTTP conventions and event protocol | [API guide](engineering/api.md) |
@@ -58,6 +65,6 @@ boundary exists. Generated endpoint tables must match OpenAPI.
 - **Reservation:** items/currency held for an open trade, still owned by the offerer.
 - **Operation ID:** durable identifier for a completed inventory/currency mutation.
 
-Carried feedback and implementation record: [M2 feedback/M3 plan](delivery/m2-feedback-m3-plan.md). M3 is accepted; M4 is the current live-test build.
+Historical feedback and implementation record: [M2 feedback/M3 plan](delivery/m2-feedback-m3-plan.md).
 
-Current beta release: [0.0.6.18 — crafting, groups and events](delivery/release-0.0.6.18.md).
+Feature baseline before maintenance patches: [0.0.6.18 — crafting, groups and events](delivery/release-0.0.6.18.md). The latest maintenance release is linked above.

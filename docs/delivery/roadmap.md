@@ -1,4 +1,8 @@
-# Roadmap to 1.0
+# Historical roadmap to 1.0
+
+This records the original milestone plan and its dated feedback. The current
+[expansion work plan](../planning/README.md) owns the new feature sequence and
+progress; use it for work after 0.0.6.21.
 
 Milestones are ordered by dependency and evidence. Dates require team availability,
 integration results and tester feedback; none are promised by this specification.
