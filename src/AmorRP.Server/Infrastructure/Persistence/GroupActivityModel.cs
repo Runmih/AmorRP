@@ -12,6 +12,8 @@ public sealed partial class AmorDbContext
     {
         m.Entity<GroupMembershipRow>(e => {
             e.ToTable("group_memberships"); e.HasKey(x => new { x.CommunityId, x.GroupId, x.CharacterId });
+            e.Property(x => x.Capabilities).HasDefaultValue(Array.Empty<string>());
+            e.Property(x => x.PermissionVersion).HasDefaultValueSql("gen_random_uuid()");
             e.HasOne<GroupRow>().WithMany().HasForeignKey(x => new { x.CommunityId, Id = x.GroupId }).OnDelete(DeleteBehavior.Restrict);
             e.HasOne<MembershipRow>().WithMany().HasForeignKey(x => new { x.CommunityId, x.CharacterId }).OnDelete(DeleteBehavior.Restrict);
         });

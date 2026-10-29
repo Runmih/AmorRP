@@ -343,3 +343,13 @@ the community; neither grant permits changing moderator permissions. Any active
 community member may read group profiles. Groups have independent names, descriptions
 (up to 300 characters) and logos, with no fixed organisation type. They currently
 share the community economy rather than receiving separate currency/inventories.
+
+## Group permissions — implemented in 0.1.0.0
+
+Community owners approve announcements, notice and events for each group; all start
+enabled for existing/new groups. Group owners can assign only enabled actions to
+active group members. Owner authority is implicit within approved features. Staff
+cannot approve features, edit grants or gain community moderation through group grants.
+Feature revocation removes affected staff grants; reenabling requires a new grant.
+Group/community departure clears staff grants. Private membership/announcement reads
+still require group membership, including for community administrators.

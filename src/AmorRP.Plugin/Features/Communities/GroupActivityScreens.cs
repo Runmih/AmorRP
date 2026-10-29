@@ -24,40 +24,45 @@ public sealed partial class CommunitiesPanel
         privateRequestedFor = group.Id; if (!more) groupPrivate = null;
         var id = group.Id; var communityId = group.CommunityId; var token = session!.AccessToken; var uri = origin!;
         Start(async ct => {
+            var summary = await client.GetAsync<AmorRP.Contracts.Groups.Group>(uri, GroupPath(group), token, ct);
             var content = await client.GetAsync<GroupPrivate>(uri, GroupPath(group) + "/private" + (previous?.NextCursor == null ? "" : "?cursor=" + Uri.EscapeDataString(previous.NextCursor)), token, ct);
-            return () => { if (selectedGroupId == id && community?.Id == communityId && SelectedGroup?.IsMember == true) groupPrivate = previous == null ? content : content with { Members = previous.Members.Concat(content.Members).DistinctBy(x => x.CharacterId).ToArray() }; };
+            return () => {
+                if (selectedGroupId != id || community?.Id != communityId || !summary.IsMember) return;
+                communityGroups = communityGroups.Select(x => x.Id == id ? summary : x).ToArray();
+                groupPrivate = previous == null ? content : content with {
+                    Members = previous.Members.Concat(content.Members).DistinctBy(x => x.CharacterId).ToArray()
+                };
+            };
         }, "Loading private group contents…");
     }
     private void DrawGroupSections(AmorRP.Contracts.Groups.Group group)
     {
         if (!ImGui.BeginTabBar("GroupSections")) return;
         if (ImGui.BeginTabItem("Members")) { DrawGroupMembers(group); ImGui.EndTabItem(); }
-        if (ImGui.BeginTabItem("Announcements"))
+        if (group.IsMember && ImGui.BeginTabItem("Announcements"))
         {
-            if (!group.IsMember) Wrapped("Only group members can read announcements.");
-            else
+            LoadGroupPrivate(group);
+            if (ActionButton("Refresh announcements", mutation: false)) LoadGroupPrivate(group, true);
+            if (CanGroupAction(group, GroupCapabilities.Announcements))
             {
-                LoadGroupPrivate(group);
-                if (ActionButton("Refresh announcements", mutation: false)) LoadGroupPrivate(group, true);
-                if (OwnSelectedGroup)
-                {
-                    FieldLabel("Title"); LimitedInput("##GroupAnnouncementTitle", ref groupAnnouncementTitle, AmorRP.Contracts.Announcements.AnnouncementCreate.MaximumTitleCharacters);
-                    FieldLabel("Message"); WrappedInput("##GroupAnnouncementMessage", ref groupAnnouncementMessage, 524288, new(-1, ImGui.GetTextLineHeightWithSpacing() * 4), maximumCharacters: AmorRP.Contracts.Announcements.AnnouncementCreate.MaximumBodyCharacters);
-                    ImGui.BeginDisabled(string.IsNullOrWhiteSpace(groupAnnouncementTitle) || string.IsNullOrWhiteSpace(groupAnnouncementMessage));
-                    if (ActionButton("Publish announcement")) Mutate("POST", GroupPath(group) + "/announcements", new AnnouncementWrite(groupAnnouncementTitle, groupAnnouncementMessage));
-                    ImGui.EndDisabled();
-                }
-                if (groupPrivate != null) foreach (var item in groupPrivate.Announcements)
-                {
-                    if (ImGui.Selectable(item.Title + "###ga" + item.Id, announcementOpen == item.Id)) announcementOpen = announcementOpen == item.Id ? null : item.Id;
-                    if (announcementOpen == item.Id) Wrapped(item.Message);
-                }
-                if (groupPrivate?.Announcements.Length == 0) Wrapped("No group announcements yet.");
+                FieldLabel("Title"); LimitedInput("##GroupAnnouncementTitle", ref groupAnnouncementTitle, AmorRP.Contracts.Announcements.AnnouncementCreate.MaximumTitleCharacters);
+                FieldLabel("Message"); WrappedInput("##GroupAnnouncementMessage", ref groupAnnouncementMessage, 524288, new(-1, ImGui.GetTextLineHeightWithSpacing() * 4), maximumCharacters: AmorRP.Contracts.Announcements.AnnouncementCreate.MaximumBodyCharacters);
+                ImGui.BeginDisabled(string.IsNullOrWhiteSpace(groupAnnouncementTitle) || string.IsNullOrWhiteSpace(groupAnnouncementMessage));
+                if (ActionButton("Publish announcement")) Mutate("POST", GroupPath(group) + "/announcements", new AnnouncementWrite(groupAnnouncementTitle, groupAnnouncementMessage));
+                ImGui.EndDisabled();
             }
+            if (groupPrivate != null) foreach (var item in groupPrivate.Announcements)
+            {
+                if (ImGui.Selectable(item.Title + "###ga" + item.Id, announcementOpen == item.Id)) announcementOpen = announcementOpen == item.Id ? null : item.Id;
+                if (announcementOpen == item.Id) Wrapped(item.Message);
+            }
+            if (groupPrivate?.Announcements.Length == 0) Wrapped("No group announcements yet.");
             ImGui.EndTabItem();
         }
         if (ImGui.BeginTabItem("Events")) { DrawGroupEvents(group); ImGui.EndTabItem(); }
-        if (OwnSelectedGroup && ImGui.BeginTabItem("Notice")) { DrawNoticeEditor(group); ImGui.EndTabItem(); }
+        if (CanGroupAction(group, GroupCapabilities.Notice) && ImGui.BeginTabItem("Notice")) { DrawNoticeEditor(group); ImGui.EndTabItem(); }
+        if (OwnSelectedGroup && ImGui.BeginTabItem("Staff")) { DrawGroupStaff(group); ImGui.EndTabItem(); }
+        if (Owner && ImGui.BeginTabItem("Features")) { DrawGroupFeatures(group); ImGui.EndTabItem(); }
         ImGui.EndTabBar();
     }
     private void DrawGroupMembers(AmorRP.Contracts.Groups.Group group)
@@ -105,7 +110,7 @@ public sealed partial class CommunitiesPanel
             if (ImGui.SmallButton("View group") && communityGroups.FirstOrDefault(x => x.Id == item.GroupId) is { } group) { SelectGroup(group); mainSection = MainSection.Groups; }
             ImGui.PopID();
         }
-        if (hub.Notices.Length == 0) Wrapped("No requests posted yet. Group owners can publish one from their group's Notice tab.");
+        if (hub.Notices.Length == 0) Wrapped("No requests posted yet. Group owners and authorized staff can publish one from their group's Notice tab.");
     }
     private void DrawNoticeEditor(AmorRP.Contracts.Groups.Group group)
     {
@@ -134,14 +139,14 @@ public sealed partial class CommunitiesPanel
         foreach (var item in hub.Events.Where(x => x.GroupId == group.Id))
         {
             ImGui.PushID(item.Id.ToString()); DrawEvent(item);
-            if (OwnSelectedGroup)
+            if (CanGroupAction(group, GroupCapabilities.Events))
             {
                 if (ImGui.SmallButton("Edit")) { eventEditId = item.Id; eventEditVersion = item.Version; eventTitle = item.Title; eventDescription = item.Description; eventLocation = item.Location; eventStart = item.StartsAt.ToString("yyyy-MM-dd HH:mm"); eventEnd = item.EndsAt.ToString("yyyy-MM-dd HH:mm"); }
                 ImGui.SameLine(); if (ActionButton("Cancel event")) Mutate("DELETE", GroupPath(group) + "/events/" + item.Id, null, ETag("group-event", item.Id, item.Version));
             }
             ImGui.PopID();
         }
-        if (!OwnSelectedGroup) return;
+        if (!CanGroupAction(group, GroupCapabilities.Events)) return;
         if (ImGui.Button("New event")) NewGroupEvent();
         if (eventStart.Length == 0) NewGroupEvent();
         ImGui.Separator(); FieldLabel("Event title"); LimitedInput("##EventTitle", ref eventTitle, 40);

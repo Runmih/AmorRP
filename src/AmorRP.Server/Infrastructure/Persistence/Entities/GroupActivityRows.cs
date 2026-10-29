@@ -5,6 +5,8 @@ public sealed class GroupMembershipRow
     public Guid CommunityId { get; set; }
     public Guid GroupId { get; set; }
     public Guid CharacterId { get; set; }
+    public string[] Capabilities { get; set; } = [];
+    public Guid PermissionVersion { get; set; } = Guid.CreateVersion7();
 }
 public sealed class GroupFavoriteRow
 {

@@ -20,6 +20,7 @@ public sealed partial class AmorDbContext(DbContextOptions<AmorDbContext> option
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<GroupRow>(e => {
+            e.Property(x => x.EnabledFeatures).HasDefaultValue(AmorRP.Contracts.Groups.GroupCapabilities.All.ToArray());
             e.ToTable("groups"); e.HasKey(x => new { x.CommunityId, x.Id });
             e.Property(x => x.Name).HasMaxLength(80); e.Property(x => x.Description).HasColumnType("text");
             e.HasIndex(x => new { x.OwnerCharacterId, x.Deleted });

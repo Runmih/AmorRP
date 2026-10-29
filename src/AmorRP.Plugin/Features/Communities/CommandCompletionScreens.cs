@@ -13,6 +13,8 @@ public sealed partial class CommunitiesPanel
         // A recovered action may belong to another community. Its durable
         // receipt is still acknowledged, but must not overwrite this editor.
         if (!request.AppliesToCommunity(community?.Id)) return;
+        if (request.Operation.Handler is CommandHandler.GroupProfile or CommandHandler.GroupActivity
+            && !request.AppliesToGroup(selectedGroupId)) return;
         switch (request.Operation.Handler)
         {
             case CommandHandler.CommunityForm: ApplyFormSuccess(request, response.Json); break;

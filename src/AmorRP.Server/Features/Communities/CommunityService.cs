@@ -148,15 +148,17 @@ public sealed partial class CommunityService(AmorDbContext db, SessionAccess ses
             default:
                 ApiFault.Require(kind == "leave", 400, "invalid_request", "Unknown community command.");
                 member.Status = "dormant"; member.Capabilities = []; member.Version++; community.Version++;
-                await CancelTransfersForAsync(communityId, member.CharacterId, ct); break;
+                await EndMemberAccessAsync(communityId, member.CharacterId, ct); break;
         }
         var response = payload == null ? (object)new Receipt(op.Id) : new CommandResult<object>(op.Id, payload);
         var result = await commands.SaveAsync(http, op, response, ct); await tx.CommitAsync(ct); return result;
     }
     private void ValidatePolicy(int points, int letters) => ApiFault.Require(points >= 0 && points <= policy.Value.MaxWeeklyPotionPoints && letters >= 0 && letters <= policy.Value.MaxWeeklyLetters,
         422, "invalid_request", "Weekly limits exceed supported bounds.");
-    private async Task CancelTransfersForAsync(Guid community, Guid member, CancellationToken ct)
+    private async Task EndMemberAccessAsync(Guid community, Guid member, CancellationToken ct)
     {
+        foreach (var groupMember in await db.GroupMemberships.Where(x => x.CommunityId == community && x.CharacterId == member).ToArrayAsync(ct))
+        { groupMember.Capabilities = []; groupMember.PermissionVersion = Guid.CreateVersion7(); }
         await trades.CancelForAsync(community, member, "Membership ended or trading was restricted.", ct);
         foreach (var transfer in await db.OwnershipTransfers.Where(x => x.CommunityId == community && x.ToCharacterId == member && x.Status == "proposed").ToArrayAsync(ct)) transfer.Status = "cancelled";
     }

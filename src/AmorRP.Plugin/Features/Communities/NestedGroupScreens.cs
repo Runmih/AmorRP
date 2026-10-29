@@ -40,11 +40,13 @@ public sealed partial class CommunitiesPanel
     }
     private void SelectGroup(GroupProfile row)
     {
+        ClearGroupPermissions();
         groupPrivate = null; privateRequestedFor = null; selectedGroupId = row.Id; creatingGroup = false; noticeDraftFor = null; NewGroupEvent(); groupAnnouncementTitle = groupAnnouncementMessage = ""; groupDraft.Load(row);
         groupLogos.Clear(); requestedGroupLogo = "";
     }
     private void ClearNestedGroups()
     {
+        ClearGroupPermissions();
         groupPrivate = null; privateRequestedFor = null; hub = new([], []); groupJoinPassword = ""; noticeDraftFor = null;
         communityGroups = []; selectedGroupId = null; creatingGroup = false;
         groupDraft.Clear(); requestedGroupLogo = ""; groupLogos.Clear();
@@ -55,6 +57,7 @@ public sealed partial class CommunitiesPanel
         DrawRefreshState(groupsRefresh, "Groups");
         groupLogos.Draw();
         Wrapped("Groups within " + community.Name);
+        if (ActionButton("Refresh groups", mutation: false)) { groupsRefresh.Invalidate(); hubRefresh.Invalidate(); if (SelectedGroup is { IsMember: true } selectedGroup) LoadGroupPrivate(selectedGroup, true); }
         if (CanCreateGroups && ImGui.Button("New group"))
         {
             groupDraft.Clear();
@@ -160,6 +163,7 @@ public sealed partial class CommunitiesPanel
     }
     private void ApplyGroupActivitySuccess(CommandRequest request)
     {
+        if (request.Operation.Kind == CommandKind.EditGroupStaff) groupStaffDraft.Clear();
         groupPrivate = null; privateRequestedFor = null; groupJoinPassword = "";
         switch (request.Operation.Kind)
         {
@@ -174,6 +178,12 @@ public sealed partial class CommunitiesPanel
     private void ApplyGroupProfileSuccess(CommandRequest request, string json)
     {
         var row = ReadCommand<GroupProfile>(json);
+        if (request.Operation.Kind == CommandKind.EditGroupFeatures)
+        {
+            communityGroups = communityGroups.Select(x => x.Id == row.Id ? row : x).ToArray();
+            groupFeaturesDraft.Load(row.Id.ToString(), row.Etag, row.EnabledFeatures ?? []);
+            groupPrivate = null; privateRequestedFor = null; return;
+        }
         var deleted = request.Operation.Kind == CommandKind.DeleteGroup;
         communityGroups = communityGroups.Where(x => x.Id != row.Id).Concat(deleted ? [] : new[] { row }).ToArray();
         if (deleted) { selectedGroupId = null; if (communityGroups.FirstOrDefault() is { } next) SelectGroup(next); }

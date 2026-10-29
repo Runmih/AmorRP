@@ -80,7 +80,7 @@ public sealed partial class CommunityService
             case MemberRemoval removal:
                 ApiFault.Text(removal.Reason, 500); op.Reason = removal.Reason;
                 if (kind == "restore") { ApiFault.Require(target.Status == "blocked", 409, "member_not_blocked", "Only blocked members can be restored."); target.Status = "dormant"; }
-                else { target.Status = "blocked"; target.Capabilities = []; await CancelTransfersForAsync(communityId, characterId, ct); }
+                else { target.Status = "blocked"; target.Capabilities = []; await EndMemberAccessAsync(communityId, characterId, ct); }
                 break;
         }
         target.Version++; community.Version++;
@@ -124,7 +124,7 @@ public sealed partial class CommunityService
         {
             ApiFault.Require(kind == "block" || target.Status == "active", 409, "membership_inactive", "Membership is already inactive.");
             target.Status = kind == "block" ? "blocked" : "dormant"; target.Capabilities = [];
-            await CancelTransfersForAsync(communityId, characterId, ct);
+            await EndMemberAccessAsync(communityId, characterId, ct);
         }
         target.Version++; community.Version++;
         var op = commands.New(h, scope, body, actor, communityId, "member." + kind); op.SubjectCharacterId = characterId;

@@ -297,3 +297,12 @@ retained; replacement/deletion removes its old bytes in the same transaction.
 Upgrade preserves all existing assets. Downgrade drops this feature's logos only
 before restoring the old media constraint; use backups rather than downgrading if
 those new logo bytes must be retained. No downgrade is part of normal deployment.
+
+## Group staff persistence — 0.1.0.0
+
+GroupStaffPermissions adds groups.EnabledFeatures (text[], initially all three content
+actions), group_memberships.Capabilities (text[], initially empty), and PermissionVersion
+(UUID, freshly generated per membership/grant mutation). Staff preconditions include
+the group, target character and this revision, preventing old edits from surviving
+leave/rejoin. Mutations and membership cleanup share the community advisory lock.
+Existing group/profile/asset and membership identities are retained by migration.

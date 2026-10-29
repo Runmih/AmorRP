@@ -1,9 +1,9 @@
 # Documentation index
 
 Current guides describe the implemented project. Latest release:
-[0.0.6.21 — authentication isolation and request coordination](delivery/release-0.0.6.21.md).
-The plugin remains compatible with server 0.0.6.18, but deploy server 0.0.6.21 to
-activate its authentication-lock correction. No API version or database schema change.
+[0.1.0.0 — community permissions and group staff](delivery/release-0.1.0.0.md).
+Update both server and plugin. The server migration preserves existing groups and
+owner features. Amor RP API v2 and XIVAuth API v1 remain unchanged.
 
 Start with [architecture](engineering/architecture.md), the
 [source map](engineering/repository-layout.md), [authentication](engineering/authentication.md)
@@ -18,7 +18,8 @@ historical snapshots; they do not override current source maps or version guidan
 
 The [expansion work plan](planning/README.md) records the 2026-10-29 feature decisions,
 dependency order and progress checklist. It links separate plans for economy/groups,
-gameplay and integrations. These features are planned, not part of release 0.0.6.21.
+gameplay and integrations. S01 implementation is delivered in 0.1.0.0 with maintainer game acceptance pending;
+remaining features are planned.
 Start there for new feature work; historical milestone roadmaps remain reference records.
 
 ## Reading order

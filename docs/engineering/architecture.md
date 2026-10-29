@@ -1,6 +1,6 @@
 # Architecture
 
-This describes the implemented system for plugin/server 0.0.6.21. Older milestone
+This describes the implemented system for plugin/server 0.1.0.0. Older milestone
 plans and release records describe their own checkpoints; they are not the current
 source map. See [repository layout](repository-layout.md) for file navigation and
 [versions](versions.md) for dependency pins and protocol boundaries.
@@ -39,7 +39,10 @@ layer is not a prerequisite for maintaining this structure.
 Feature endpoints bind concrete requests and call feature services. Services check
 current sessions, active community membership and the capability required by the
 action. Group-private member lists and announcements additionally require group
-membership; community moderation does not bypass that check.
+membership; community moderation does not bypass that check. GroupAuthorization
+combines enabled group features with group-owner authority or individual staff grants.
+Community owners approve features; only group owners edit staff grants. Content writes
+check authorization under the community transaction lock, including before replay.
 
 The database is authoritative for balances, reservations, inventory, quotas and
 permissions. Commands use advisory locks across server replicas, expected versions,

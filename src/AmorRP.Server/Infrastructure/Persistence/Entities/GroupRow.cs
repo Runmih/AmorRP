@@ -15,4 +15,5 @@ public sealed class GroupRow
     public string JoinMode { get; set; } = "open";
     public string? PasswordHash { get; set; }
     public bool Deleted { get; set; }
+    public string[] EnabledFeatures { get; set; } = AmorRP.Contracts.Groups.GroupCapabilities.All.ToArray();
 }

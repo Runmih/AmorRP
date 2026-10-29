@@ -60,11 +60,12 @@ public sealed partial class CommunitiesPanel
             {
                 if (target.IsOwner)
                 {
-                    ImGui.Separator(); ImGui.TextUnformatted("Permissions");
+                    ImGui.Separator(); ImGui.TextUnformatted("Gameplay permissions");
                     ImGui.TextDisabled("Community owner — all permissions enabled.");
                 }
                 else DrawMemberAuthorizations(target);
             }
+            if (Owner && target.Status == "active" && !target.IsOwner) DrawCommunityPermissions(target);
             if (CanCoins && target.Status == "active")
             {
                 EnsureMemberBalance(target);
@@ -78,7 +79,7 @@ public sealed partial class CommunitiesPanel
     private void DrawMemberAuthorizations(Member target)
     {
         if (community == null) return;
-        ImGui.Separator(); ImGui.TextUnformatted("Permissions");
+        ImGui.Separator(); ImGui.TextUnformatted("Gameplay permissions");
         DrawPermissionConflict(target);
         ImGui.Checkbox("Trading", ref tradingAllowed);
         ImGui.Checkbox("Craft Alchemy Items", ref grantPotions);
@@ -105,39 +106,47 @@ public sealed partial class CommunitiesPanel
         authorizationResultFor = target.Character.Id; authorizationResult = "Saving permissions…"; authorizationDiagnostic = "";
         Mutate("PUT", $"api/v2/communities/{community!.Id}/members/{target.Character.Id}/capabilities", permissions, memberDraftEtag ?? target.Etag);
     }
+    private void DrawCommunityPermissions(Member target)
+    {
+        if (!ImGui.CollapsingHeader("Community permissions")) return;
+        DrawPermissionConflict(target);
+        ImGui.TextUnformatted("Moderation");
+        ImGui.Checkbox("General Moderation", ref grantGeneralModeration);
+        ImGui.Checkbox("Manage Gameplay Permissions", ref grantGameplayPermissions);
+        ImGui.Checkbox("Create Announcements", ref grantAnnouncements);
+
+        ImGui.Separator(); ImGui.TextUnformatted("Recipe creation");
+        ImGui.Checkbox("Create Alchemy Recipes", ref grantDefinitions);
+        ImGui.Checkbox("Create Cooking Recipes", ref grantCookingDefinitions);
+        ImGui.Separator(); ImGui.TextUnformatted("Group administration");
+        ImGui.Checkbox("Create Groups", ref grantGroupCreation);
+        ImGui.Checkbox("Manage Groups", ref grantGroupManagement);
+        ImGui.Separator(); ImGui.TextUnformatted("Economy");
+        ImGui.Checkbox("Manage currency", ref grantCoins);
+        ImGui.Checkbox("Remove other members' items", ref grantRemoval);
+        ImGui.BeginDisabled(memberDraftEtag != target.Etag);
+        if (ActionButton("Save moderator permissions"))
+        {
+            // Do not silently save or discard an unfinished gameplay draft.
+            var actions = target.Capabilities.Where(x => x is not ("currency.manage" or "inventory.remove" or "items.potion.define" or "community.moderate" or "announcements.manage" or "members.gameplay.manage" or "groups.create" or "groups.manage" or "items.cooking.define")).ToList();
+            if (grantGroupCreation) actions.Add("groups.create");
+            if (grantGroupManagement) actions.Add("groups.manage");
+            if (grantGeneralModeration) actions.Add("community.moderate");
+            if (grantGameplayPermissions) actions.Add("members.gameplay.manage");
+            if (grantAnnouncements) actions.Add("announcements.manage");
+            if (grantCoins) actions.Add("currency.manage");
+            if (grantRemoval) actions.Add("inventory.remove");
+            if (grantDefinitions) actions.Add("items.potion.define");
+            if (grantCookingDefinitions) actions.Add("items.cooking.define");
+            SaveMemberPermissions(target, new MemberCapabilities(actions.ToArray()));
+        }
+        ImGui.EndDisabled();
+    }
     private void DrawMemberMembership(Member target)
     {
         if (community == null) return;
         if (target.Status == "active")
         {
-            ImGui.TextUnformatted("Moderator permissions");
-            ImGui.Checkbox("General Moderation", ref grantGeneralModeration);
-            ImGui.Checkbox("Manage Gameplay Permissions", ref grantGameplayPermissions);
-            ImGui.Checkbox("Create Announcements", ref grantAnnouncements);
-            ImGui.Checkbox("Create Groups", ref grantGroupCreation);
-            ImGui.Checkbox("Manage Groups", ref grantGroupManagement);
-            ImGui.Checkbox("Create Alchemy Recipes", ref grantDefinitions);
-            ImGui.Checkbox("Create Cooking Recipes", ref grantCookingDefinitions);
-            ImGui.TextDisabled("Manage Groups allows deletion only; private group contents stay private.");
-            ImGui.Checkbox("Manage currency", ref grantCoins);
-            ImGui.Checkbox("Remove other members' items", ref grantRemoval);
-            ImGui.BeginDisabled(memberDraftEtag != target.Etag);
-            if (ActionButton("Save moderator permissions"))
-            {
-                // Do not silently save or discard an unfinished gameplay draft.
-                var actions = target.Capabilities.Where(x => x is not ("currency.manage" or "inventory.remove" or "items.potion.define" or "community.moderate" or "announcements.manage" or "members.gameplay.manage" or "groups.create" or "groups.manage" or "items.cooking.define")).ToList();
-                if (grantGroupCreation) actions.Add("groups.create");
-                if (grantGroupManagement) actions.Add("groups.manage");
-                if (grantGeneralModeration) actions.Add("community.moderate");
-                if (grantGameplayPermissions) actions.Add("members.gameplay.manage");
-                if (grantAnnouncements) actions.Add("announcements.manage");
-                if (grantCoins) actions.Add("currency.manage");
-                if (grantRemoval) actions.Add("inventory.remove");
-                if (grantDefinitions) actions.Add("items.potion.define");
-                if (grantCookingDefinitions) actions.Add("items.cooking.define");
-                SaveMemberPermissions(target, new MemberCapabilities(actions.ToArray()));
-            }
-            ImGui.EndDisabled();
             ImGui.Separator(); ImGui.TextUnformatted("Membership actions");
             FieldLabel("Reason (required)"); LimitedInput("##MemberRemovalReason", ref removalReason, 500, countCodeUnits: true);
             var validReason = !string.IsNullOrWhiteSpace(removalReason) && removalReason.Length <= 500;

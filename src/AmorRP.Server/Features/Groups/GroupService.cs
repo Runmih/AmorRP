@@ -14,15 +14,24 @@ using Microsoft.Extensions.Options;
 
 namespace AmorRP.Server.Features.Groups;
 
-public sealed class GroupService(AmorDbContext db, SessionAccess sessions, CommunityAccess communities, CommandStore commands, PageCursor pages, IOptions<ServicePolicyOptions> policy)
+public sealed partial class GroupService(AmorDbContext db, SessionAccess sessions, CommunityAccess communities, CommandStore commands, PageCursor pages, IOptions<ServicePolicyOptions> policy)
 {
     private readonly HashSet<Guid> joined = [], favorites = [];
+    private readonly Dictionary<Guid, GroupMembershipRow> viewerMemberships = [];
     private async Task LoadViewerAsync(Guid actor, Guid communityId, CancellationToken ct)
     {
-        joined.UnionWith(await db.GroupMemberships.Where(x => x.CommunityId == communityId && x.CharacterId == actor).Select(x => x.GroupId).ToArrayAsync(ct));
+        var memberships = await db.GroupMemberships.Where(x => x.CommunityId == communityId && x.CharacterId == actor).ToArrayAsync(ct);
+        foreach (var membership in memberships) viewerMemberships[membership.GroupId] = membership;
+        joined.UnionWith(memberships.Select(x => x.GroupId));
         favorites.UnionWith(await db.GroupFavorites.Where(x => x.CommunityId == communityId && x.CharacterId == actor).Select(x => x.GroupId).ToArrayAsync(ct));
     }
-    private Group View(GroupRow row) => new(row.Id, row.CommunityId, row.Name, row.Description, row.LogoAssetId, row.LogoVersion, row.Version, CommandStore.ETag("group", row.Id, row.Version), row.OwnerCharacterId, row.JoinMode, joined.Contains(row.Id), favorites.Contains(row.Id));
+    private Group View(GroupRow row)
+    {
+        var viewer = viewerMemberships.GetValueOrDefault(row.Id);
+        return new(row.Id, row.CommunityId, row.Name, row.Description, row.LogoAssetId, row.LogoVersion, row.Version,
+            CommandStore.ETag("group", row.Id, row.Version), row.OwnerCharacterId, row.JoinMode, joined.Contains(row.Id), favorites.Contains(row.Id),
+            row.EnabledFeatures, GroupAuthorization.Effective(row, viewer?.CharacterId ?? Guid.Empty, viewer));
+    }
     private async Task<GroupRow> RequireAsync(Guid communityId, Guid groupId, CancellationToken ct)
     {
         var row = await db.Groups.SingleOrDefaultAsync(x => x.CommunityId == communityId && x.Id == groupId && !x.Deleted, ct);
@@ -58,7 +67,8 @@ public sealed class GroupService(AmorDbContext db, SessionAccess sessions, Commu
             ApiFault.Require(await db.Groups.CountAsync(x => x.CommunityId == communityId, ct) < 100, 409, "group_limit_reached", "This community has reached its group creation limit.");
             ApiFault.Require(await db.Groups.CountAsync(x => x.OwnerCharacterId == actor && !x.Deleted && db.Communities.Any(c => c.Id == x.CommunityId && !c.Deleted), ct) < 3, 409, "owned_groups_limit", "You can own at most 3 groups across all communities.");
             row = new GroupRow { CommunityId = communityId, OwnerCharacterId = actor }; db.Groups.Add(row);
-            db.GroupMemberships.Add(new() { CommunityId = communityId, GroupId = row.Id, CharacterId = actor }); joined.Add(row.Id);
+            var ownerMembership = new GroupMembershipRow { CommunityId = communityId, GroupId = row.Id, CharacterId = actor };
+            db.GroupMemberships.Add(ownerMembership); viewerMemberships[row.Id] = ownerMembership; joined.Add(row.Id);
         }
         else {
             row = await RequireAsync(communityId, groupId.Value, ct);

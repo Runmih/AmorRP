@@ -399,6 +399,17 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("CharacterId")
                         .HasColumnType("uuid");
 
+                    b.PrimitiveCollection<string[]>("Capabilities")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text[]")
+                        .HasDefaultValue(new string[0]);
+
+                    b.Property<Guid>("PermissionVersion")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
                     b.HasKey("CommunityId", "GroupId", "CharacterId");
 
                     b.HasIndex("CommunityId", "CharacterId");
@@ -448,6 +459,12 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.PrimitiveCollection<string[]>("EnabledFeatures")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text[]")
+                        .HasDefaultValue(new[] { "announcements.manage", "notice.manage", "events.manage" });
 
                     b.Property<string>("JoinMode")
                         .IsRequired()

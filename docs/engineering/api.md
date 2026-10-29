@@ -672,6 +672,8 @@ in nondeleted communities. Removed/blocked/outsider callers cannot read or mark 
 | GET | `/api/v2/communities/{communityId}/groups/{groupId}` | Active community member |
 | PATCH | `/api/v2/communities/{communityId}/groups/{groupId}` | Group owner only |
 | DELETE | `/api/v2/communities/{communityId}/groups/{groupId}` | Owner or Manage Groups |
+| PUT | `/api/v2/communities/{communityId}/groups/{groupId}/features` | Community owner only; no private-content bypass |
+| PUT | `/api/v2/communities/{communityId}/groups/{groupId}/members/{characterId}/capabilities` | Group owner only; active target membership; enabled features |
 | GET | `/api/v2/communities/{communityId}/groups/{groupId}/logo` | Active community member |
 | PUT | `/api/v2/communities/{communityId}/groups/{groupId}/logo` | Group owner only |
 | DELETE | `/api/v2/communities/{communityId}/groups/{groupId}/logo` | Group owner only |
@@ -689,11 +691,29 @@ API v1 keeps the stable `/groups` routes and legacy field/ETag names through an 
 | DELETE | `/api/v2/communities/{communityId}/groups/{groupId}/membership` | Current group member; group owner cannot leave |
 | PUT | `/api/v2/communities/{communityId}/groups/{groupId}/favorite` | Active community member |
 | DELETE | `/api/v2/communities/{communityId}/groups/{groupId}/favorite` | Active community member |
-| PUT | `/api/v2/communities/{communityId}/groups/{groupId}/notice` | Group owner only |
-| DELETE | `/api/v2/communities/{communityId}/groups/{groupId}/notice` | Group owner only |
-| POST | `/api/v2/communities/{communityId}/groups/{groupId}/events` | Group owner only |
-| PUT | `/api/v2/communities/{communityId}/groups/{groupId}/events/{eventId}` | Group owner only |
-| DELETE | `/api/v2/communities/{communityId}/groups/{groupId}/events/{eventId}` | Group owner only |
-| POST | `/api/v2/communities/{communityId}/groups/{groupId}/announcements` | Group owner only |
+| PUT | `/api/v2/communities/{communityId}/groups/{groupId}/notice` | Active group member; enabled feature and owner/staff permission |
+| DELETE | `/api/v2/communities/{communityId}/groups/{groupId}/notice` | Active group member; enabled feature and owner/staff permission |
+| POST | `/api/v2/communities/{communityId}/groups/{groupId}/events` | Active group member; enabled feature and owner/staff permission |
+| PUT | `/api/v2/communities/{communityId}/groups/{groupId}/events/{eventId}` | Active group member; enabled feature and owner/staff permission |
+| DELETE | `/api/v2/communities/{communityId}/groups/{groupId}/events/{eventId}` | Active group member; enabled feature and owner/staff permission |
+| POST | `/api/v2/communities/{communityId}/groups/{groupId}/announcements` | Active group member; enabled feature and owner/staff permission |
 
 Private group reads require group membership even for community owners. Manage Groups permits deletion only. Notices and events are community-visible. One notice per group; group announcements retain the latest five. Group passwords are hashed, never returned. Event timestamps are UTC; titles allow 40 characters and descriptions 100. Rewards are descriptive text, with no transfer or escrow.
+
+## Group staff and feature approval — 0.1.0.0
+
+Community owners approve the implemented group features through the features endpoint.
+New and migrated groups start with announcements.manage, notice.manage and events.manage
+enabled, preserving owner behavior. Feature approval does not grant access to private
+members/announcements. Disabling a feature removes its staff grants; re-enabling does
+not restore them automatically. Group profile/logo/joining management remains owner-only.
+
+Group owners grant those enabled actions to active group members. Staff cannot edit
+permissions or approve features. Group responses contain enabledFeatures and the current
+viewer's effective myCapabilities; private roster entries expose grant values/ETags
+only to the group owner. Staff updates use opaque membership permission ETags; leaving
+and rejoining creates a new identity so stale edits cannot restore the old grant.
+Community membership removal/blocking clears grants before any later rejoin.
+
+Both writes require UUIDv7 Idempotency-Key and If-Match. Feature writes return GroupResult;
+staff writes return GroupMemberResult. Existing provider endpoints and API v2 are unchanged.

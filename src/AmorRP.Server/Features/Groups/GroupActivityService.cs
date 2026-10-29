@@ -11,7 +11,7 @@ namespace AmorRP.Server.Features.Groups;
 
 public sealed class GroupActivityService(AmorDbContext db, SessionAccess sessions, CommunityAccess communities, CommandStore commands, TimeProvider time, PageCursor pages)
 {
-    public static void Owner(GroupRow row, Guid actor) => ApiFault.Require(row.OwnerCharacterId == actor, 403, "group_owner_required", "Only this group's owner can change its contents.");
+    public static void Owner(GroupRow row, Guid actor) => ApiFault.Require(row.OwnerCharacterId == actor, 403, "group_owner_required", "Only this group's owner may perform this action.");
     private async Task<(Guid Actor, GroupRow Group)> RequireAsync(HttpContext h, Guid communityId, Guid groupId, CancellationToken ct)
     {
         var actor = (await sessions.GetAsync(h, ct)).CharacterId;
@@ -48,22 +48,25 @@ public sealed class GroupActivityService(AmorDbContext db, SessionAccess session
     }
     public async Task<IResult> PrivateAsync(HttpContext h, Guid communityId, Guid groupId, CancellationToken ct)
     {
-        var (actor, _) = await RequireAsync(h, communityId, groupId, ct);
+        var (actor, group) = await RequireAsync(h, communityId, groupId, ct);
         ApiFault.Require(await db.GroupMemberships.AnyAsync(x => x.CommunityId == communityId && x.GroupId == groupId && x.CharacterId == actor, ct), 403, "group_membership_required", "Join this group to view its members and announcements.");
         var scope = $"group-members:{communityId}:{groupId}:{actor}"; var (limit, after) = pages.Read(h, scope);
-        var members = await (from gm in db.GroupMemberships.AsNoTracking()
+        var rows = await (from gm in db.GroupMemberships.AsNoTracking()
             join m in db.Memberships on new { gm.CommunityId, gm.CharacterId } equals new { m.CommunityId, m.CharacterId }
             join c in db.Characters on gm.CharacterId equals c.Id
-            join g in db.Groups on new { gm.CommunityId, Id = gm.GroupId } equals new { g.CommunityId, g.Id }
             where gm.CommunityId == communityId && gm.GroupId == groupId && m.Status == "active" && (!after.HasValue || c.Id.CompareTo(after.Value) > 0)
-            orderby c.Id select new GroupMember(c.Id, c.DisplayName, c.HomeWorldName, g.OwnerCharacterId == c.Id)).Take(limit + 1).ToArrayAsync(ct);
+            orderby c.Id select new { Membership = gm, c.DisplayName, c.HomeWorldName }).Take(limit + 1).ToArrayAsync(ct);
+        var members = rows.Select(x => new GroupMember(x.Membership.CharacterId, x.DisplayName, x.HomeWorldName,
+            x.Membership.CharacterId == group.OwnerCharacterId,
+            actor == group.OwnerCharacterId ? x.Membership.Capabilities : null,
+            actor == group.OwnerCharacterId ? GroupAuthorization.ETag(x.Membership) : null)).ToArray();
         var posts = await db.GroupAnnouncements.AsNoTracking().Where(x => x.CommunityId == communityId && x.GroupId == groupId).OrderByDescending(x => x.PublishedAt).ThenByDescending(x => x.Id).Take(5)
             .Select(x => new GroupAnnouncement(x.Id, x.Title, x.Message, x.PublishedAt)).ToArrayAsync(ct);
         h.Response.Headers.CacheControl = "no-store";
         return Results.Json(new GroupPrivate(members.Take(limit).ToArray(), posts, members.Length > limit ? pages.Write(members[limit - 1].CharacterId, scope) : null));
     }
     public Task<IResult> JoinAsync(HttpContext h, Guid communityId, Guid groupId, GroupJoin body, CancellationToken ct) =>
-        ExecuteAsync(h, communityId, groupId, "join", body, false, async (actor, group) =>
+        ExecuteAsync(h, communityId, groupId, "join", body, null, async (actor, group) =>
         {
             ApiFault.Require(group.JoinMode != "closed", 403, "group_closed", "This group is closed to new members.");
             if (!await db.GroupMemberships.AnyAsync(x => x.CommunityId == communityId && x.GroupId == groupId && x.CharacterId == actor, ct))
@@ -76,14 +79,14 @@ public sealed class GroupActivityService(AmorDbContext db, SessionAccess session
         }, ct);
 
     public Task<IResult> LeaveAsync(HttpContext h, Guid communityId, Guid groupId, CancellationToken ct) =>
-        ExecuteAsync(h, communityId, groupId, "leave", null, false, async (actor, group) =>
+        ExecuteAsync(h, communityId, groupId, "leave", null, null, async (actor, group) =>
         {
             ApiFault.Require(group.OwnerCharacterId != actor, 409, "group_owner_leave", "Delete your group before leaving it.");
             await db.GroupMemberships.Where(x => x.CommunityId == communityId && x.GroupId == groupId && x.CharacterId == actor).ExecuteDeleteAsync(ct);
         }, ct);
 
     public Task<IResult> FavoriteAsync(HttpContext h, Guid communityId, Guid groupId, bool enabled, CancellationToken ct) =>
-        ExecuteAsync(h, communityId, groupId, "favorite", null, false, async (actor, group) =>
+        ExecuteAsync(h, communityId, groupId, "favorite", null, null, async (actor, group) =>
         {
             var current = await db.GroupFavorites.SingleOrDefaultAsync(x => x.CommunityId == communityId && x.GroupId == groupId && x.CharacterId == actor, ct);
             if (!enabled) { if (current != null) db.GroupFavorites.Remove(current); }
@@ -91,7 +94,7 @@ public sealed class GroupActivityService(AmorDbContext db, SessionAccess session
         }, ct);
 
     public Task<IResult> NoticeAsync(HttpContext h, Guid communityId, Guid groupId, NoticeWrite? body, CancellationToken ct) =>
-        ExecuteAsync(h, communityId, groupId, "notice", body, true, async (actor, group) =>
+        ExecuteAsync(h, communityId, groupId, "notice", body, GroupCapabilities.Notice, async (actor, group) =>
         {
             var notice = await db.GroupNotices.SingleOrDefaultAsync(x => x.CommunityId == communityId && x.GroupId == groupId, ct);
             if (body == null) { if (notice != null) { CommandStore.Match(h, CommandStore.ETag("group-notice", groupId, notice.Version)); db.GroupNotices.Remove(notice); } return; }
@@ -102,7 +105,7 @@ public sealed class GroupActivityService(AmorDbContext db, SessionAccess session
         }, ct);
 
     public Task<IResult> EventAsync(HttpContext h, Guid communityId, Guid groupId, EventWrite? body, Guid? eventId, CancellationToken ct) =>
-        ExecuteAsync(h, communityId, groupId, "event", body, true, async (actor, group) =>
+        ExecuteAsync(h, communityId, groupId, "event", body, GroupCapabilities.Events, async (actor, group) =>
         {
             var row = eventId.HasValue ? await db.GroupEvents.SingleOrDefaultAsync(x => x.CommunityId == communityId && x.GroupId == groupId && x.Id == eventId, ct) : null;
             if (eventId.HasValue) { ApiFault.Require(row != null, 404, "not_found", "Event is no longer available."); CommandStore.Match(h, CommandStore.ETag("group-event", row!.Id, row.Version)); }
@@ -120,7 +123,7 @@ public sealed class GroupActivityService(AmorDbContext db, SessionAccess session
         }, ct);
 
     public Task<IResult> AnnouncementAsync(HttpContext h, Guid communityId, Guid groupId, AnnouncementWrite body, CancellationToken ct) =>
-        ExecuteAsync(h, communityId, groupId, "announcement", body, true, async (actor, group) =>
+        ExecuteAsync(h, communityId, groupId, "announcement", body, GroupCapabilities.Announcements, async (actor, group) =>
         {
             var a = body; Text(a.Title, AmorRP.Contracts.Announcements.AnnouncementCreate.MaximumTitleCharacters); Text(a.Message, AmorRP.Contracts.Announcements.AnnouncementCreate.MaximumBodyCharacters);
             db.GroupAnnouncements.Add(new() { CommunityId = communityId, GroupId = groupId, Title = a.Title.Trim(), Message = a.Message, PublishedAt = time.GetUtcNow() });
@@ -131,16 +134,16 @@ public sealed class GroupActivityService(AmorDbContext db, SessionAccess session
     // The envelope owns authorization, locking and durable receipts. Each
     // public handler supplies a typed action; the body is only hashed/stored here.
     private async Task<IResult> ExecuteAsync(HttpContext h, Guid communityId, Guid groupId, string kind,
-        object? body, bool ownerRequired, Func<Guid, GroupRow, Task> change, CancellationToken ct)
+        object? body, string? capability, Func<Guid, GroupRow, Task> change, CancellationToken ct)
     {
         var actor = (await sessions.GetAsync(h, ct)).CharacterId;
         await using var tx = await db.Database.BeginTransactionAsync(ct);
         await CommandStore.LockAsync(db, ["character:" + actor, "community:" + communityId], ct);
         var (_, group) = await RequireAsync(h, communityId, groupId, ct);
+        if (capability != null) await GroupAuthorization.ActionAsync(db, group, actor, capability, ct);
         var scope = "character:" + actor;
         var replay = await commands.ReplayAsync(h, scope, body, ct);
         if (replay != null) return commands.Replay(replay);
-        if (ownerRequired) Owner(group, actor);
         await change(actor, group);
         var op = commands.New(h, scope, body, actor, communityId, "group." + kind);
         op.Summary = "Group " + kind + " updated.";

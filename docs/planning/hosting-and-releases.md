@@ -2,7 +2,7 @@
 
 Maintainer decisions recorded 2026-10-29. This is a migration/release plan, not a
 claim that the private server is installed, reachable or carrying live data.
-Current published plugin/server remains 0.0.6.21 until an application release.
+Current plugin/server release is 0.1.0.0; private-server cutover is still future work.
 
 ## Branch and version policy
 
@@ -20,7 +20,7 @@ Application versions use **0.feature.0.patch**:
 | Third | Keep 0 |
 | Fourth: patch | Increment for fixes/adjustments within the current feature release |
 
-Next feature release is 0.1.0.0; its fixes are 0.1.0.1, 0.1.0.2, and so on. The
+The first feature release is 0.1.0.0; its fixes are 0.1.0.1, 0.1.0.2, and so on. The
 following feature release is 0.2.0.0. Reset patch to 0 when feature increments.
 The four-part numeric comparison makes 0.1.0.0 newer than 0.0.6.21. Do not release
 unverified bytes or rename/reuse an already published immutable package version.

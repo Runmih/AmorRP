@@ -6,6 +6,11 @@ below remain feature-time choices, not implemented behavior.
 
 ## S01 — Permissions and authority
 
+Implementation: [0.1.0.0](../delivery/release-0.1.0.0.md), with major in-game acceptance
+pending. Existing content features (announcements, notice and events) now have community
+approval and owner-assigned staff grants. Treasury/Discord grants will be added with
+their actual features, not as nonfunctional controls in this version.
+
 Keep three scopes distinct:
 
 - Community owner: enables group features such as Treasury access and Discord

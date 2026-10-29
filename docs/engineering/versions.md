@@ -2,22 +2,20 @@
 
 ## Current product versions
 
-Plugin and server **0.0.6.21**, Amor RP API **v2**, minimum client **0.0.6.18**.
-The wire contract and database schema are unchanged by this maintenance release;
-server 0.0.6.18 remains compatible with the plugin, but needs redeployment of the
-new server source to receive the renewal-lock fix. XIVAuth's external API remains
-**v1**. Dalamud API remains **15**. These are separate version boundaries.
+Plugin and server **0.1.0.0**, Amor RP API **v2**, minimum client **0.1.0.0**.
+The plugin requires server 0.1.0.0. Deploy the GroupStaffPermissions migration before
+using group staff features; existing owner features stay enabled and staff start with
+no grants. XIVAuth's external API remains **v1** and Dalamud API remains **15**.
 
-The table below records the pinned toolchain. Release-specific behavior and
-verification are in [0.0.6.21](../delivery/release-0.0.6.21.md). Historical milestone
-records appear after the current compatibility/maintenance sections.
+Release-specific changes and verification are in [0.1.0.0](../delivery/release-0.1.0.0.md).
+Historical milestone records appear after current compatibility/maintenance guidance.
 
 ## Product release numbering
 
-Use main only for development/publication. From the next feature release, use
+Use main only for development/publication. Use
 `0.feature.0.patch`: first/third parts stay 0; completed feature releases increment
 the second part and reset patch to 0; fixes increment the fourth part. The transition
-from current 0.0.6.21 to next feature 0.1.0.0 is numerically increasing. Documentation
+from the previous 0.0.6.21 series to 0.1.0.0 is numerically increasing. Documentation
 alone does not bump binaries. See the [release and hosting policy](../planning/hosting-and-releases.md).
 These numbers do not change Amor RP API v2, XIVAuth API v1 or Dalamud API 15.
 

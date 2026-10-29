@@ -5,6 +5,10 @@ public static class UserFeedback
 {
     public static string Error(HttpStatusCode status, string code, string serverMessage) => code switch
     {
+        "group_capability_required" => "You do not have permission for this group action.",
+        "group_feature_disabled" => "The community owner has not enabled that group feature.",
+        "invalid_group_capability" => "Choose only the available group permissions.",
+        "group_owner_protected" => "Group owner permissions are automatic.",
         "group_owner_required" => "Only this group’s owner can edit its contents.",
         "group_membership_required" => "Join this group to read its members and announcements.",
         "group_closed" => "This group is closed to new members.",
@@ -85,6 +89,8 @@ public static class UserFeedback
         CommandKind.ConfirmTrade => "Offer accepted. Both players must complete the final review.",
         CommandKind.FinalConfirmTrade => "Final confirmation saved. Waiting for the other player.",
         CommandKind.CancelTrade => "Trade cancelled. Your items and currency have been released.",
+        CommandKind.EditGroupFeatures => "Group features saved.",
+        CommandKind.EditGroupStaff => "Group staff permissions saved.",
         CommandKind.CreateGroup => "Group created.",
         CommandKind.EditGroup => "Group profile saved.",
         CommandKind.DeleteGroup => "Group deleted.",

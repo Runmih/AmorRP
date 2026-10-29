@@ -7172,7 +7172,7 @@ paths:
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
-      x-authorization-policy: Group owner only
+      x-authorization-policy: Active group member with enabled feature and its owner or staff grant
       x-implementation-status: implemented
       requestBody:
         required: true
@@ -7238,7 +7238,7 @@ paths:
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
-      x-authorization-policy: Group owner only
+      x-authorization-policy: Active group member with enabled feature and its owner or staff grant
       x-implementation-status: implemented
   /api/v2/communities/{communityId}/groups/{groupId}/events:
     post:
@@ -7294,7 +7294,7 @@ paths:
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
-      x-authorization-policy: Group owner only
+      x-authorization-policy: Active group member with enabled feature and its owner or staff grant
       x-implementation-status: implemented
       requestBody:
         required: true
@@ -7367,7 +7367,7 @@ paths:
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
-      x-authorization-policy: Group owner only
+      x-authorization-policy: Active group member with enabled feature and its owner or staff grant
       x-implementation-status: implemented
       requestBody:
         required: true
@@ -7439,7 +7439,7 @@ paths:
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
-      x-authorization-policy: Group owner only
+      x-authorization-policy: Active group member with enabled feature and its owner or staff grant
       x-implementation-status: implemented
   /api/v2/communities/{communityId}/groups/{groupId}/announcements:
     post:
@@ -7495,7 +7495,7 @@ paths:
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
-      x-authorization-policy: Group owner only
+      x-authorization-policy: Active group member with enabled feature and its owner or staff grant
       x-implementation-status: implemented
       requestBody:
         required: true
@@ -7503,6 +7503,154 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/GroupAnnouncementWrite'
+  /api/v2/communities/{communityId}/groups/{groupId}/features:
+    put:
+      operationId: editGroupFeatures
+      tags:
+      - Community Groups
+      summary: Save group features
+      security:
+      - Session: []
+      parameters:
+      - name: communityId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: groupId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: If-Match
+        in: header
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupResult'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '413':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Active community owner only; group membership not required; no private content access
+      x-implementation-status: implemented
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GroupFeaturesEdit'
+  /api/v2/communities/{communityId}/groups/{groupId}/members/{characterId}/capabilities:
+    put:
+      operationId: editGroupStaff
+      tags:
+      - Community Groups
+      summary: Save group staff permissions
+      security:
+      - Session: []
+      parameters:
+      - name: communityId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: groupId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: characterId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: If-Match
+        in: header
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupMemberResult'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '413':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Active group owner only; active group/community target member; enabled features only
+      x-implementation-status: implemented
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GroupStaffEdit'
 components:
   securitySchemes:
     Session:
@@ -9825,9 +9973,72 @@ components:
       additionalProperties: false
     AnnouncementCreateReceipt:
       $ref: '#/components/schemas/Receipt'
+    GroupFeaturesEdit:
+      type: object
+      required:
+      - enabledFeatures
+      additionalProperties: false
+      properties:
+        enabledFeatures:
+          type: array
+          maxItems: 3
+          uniqueItems: true
+          items:
+            type: string
+            enum:
+            - announcements.manage
+            - notice.manage
+            - events.manage
+    GroupStaffEdit:
+      type: object
+      required:
+      - capabilities
+      additionalProperties: false
+      properties:
+        capabilities:
+          type: array
+          maxItems: 3
+          uniqueItems: true
+          items:
+            type: string
+            enum:
+            - announcements.manage
+            - notice.manage
+            - events.manage
+    GroupMemberResult:
+      type: object
+      required:
+      - operationId
+      - result
+      properties:
+        operationId:
+          type: string
+          format: uuid
+        result:
+          $ref: '#/components/schemas/GroupMember'
     Group:
       type: object
       properties:
+        enabledFeatures:
+          type: array
+          maxItems: 3
+          uniqueItems: true
+          items:
+            type: string
+            enum:
+            - announcements.manage
+            - notice.manage
+            - events.manage
+        myCapabilities:
+          type: array
+          maxItems: 3
+          uniqueItems: true
+          items:
+            type: string
+            enum:
+            - announcements.manage
+            - notice.manage
+            - events.manage
         id: *id009
         communityId: *id009
         name:
@@ -10054,6 +10265,20 @@ components:
       - world
       - isOwner
       properties:
+        capabilities:
+          type: array
+          maxItems: 3
+          uniqueItems: true
+          items:
+            type: string
+            enum:
+            - announcements.manage
+            - notice.manage
+            - events.manage
+          nullable: true
+        etag:
+          type: string
+          nullable: true
         characterId: *id019
         name:
           type: string

@@ -60,6 +60,8 @@ internal enum CommandKind
     EditGroupEvent,
     DeleteGroupEvent,
     PublishGroupAnnouncement,
+    EditGroupFeatures,
+    EditGroupStaff,
     SignOut,
 }
 
@@ -136,6 +138,8 @@ internal static class CommandRoutes
         new("POST", "api/v2/communities/{communityId}/trades/{tradeId}/confirm", new(CommandKind.ConfirmTrade, CommandHandler.Trade, RefreshTargets.Community | RefreshTargets.Inventory)),
         new("POST", "api/v2/communities/{communityId}/trades/{tradeId}/final-confirm", new(CommandKind.FinalConfirmTrade, CommandHandler.Trade, RefreshTargets.Community | RefreshTargets.Inventory)),
         new("POST", "api/v2/communities/{communityId}/trades/{tradeId}/cancel", new(CommandKind.CancelTrade, CommandHandler.Trade, RefreshTargets.Community | RefreshTargets.Inventory)),
+        new("PUT", "api/v2/communities/{communityId}/groups/{groupId}/features", new(CommandKind.EditGroupFeatures, CommandHandler.GroupProfile, RefreshTargets.Groups)),
+        new("PUT", "api/v2/communities/{communityId}/groups/{groupId}/members/{characterId}/capabilities", new(CommandKind.EditGroupStaff, CommandHandler.GroupActivity, RefreshTargets.Groups)),
         new("POST", "api/v2/communities/{communityId}/groups", new(CommandKind.CreateGroup, CommandHandler.GroupProfile, RefreshTargets.Groups)),
         new("PATCH", "api/v2/communities/{communityId}/groups/{groupId}", new(CommandKind.EditGroup, CommandHandler.GroupProfile, RefreshTargets.Groups)),
         new("DELETE", "api/v2/communities/{communityId}/groups/{groupId}", new(CommandKind.DeleteGroup, CommandHandler.GroupProfile, RefreshTargets.Groups)),
