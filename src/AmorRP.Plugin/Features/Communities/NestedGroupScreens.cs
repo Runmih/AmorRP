@@ -40,26 +40,29 @@ public sealed partial class CommunitiesPanel
     }
     private void SelectGroup(GroupProfile row)
     {
-        ClearGroupPermissions();
+        ClearGroupPermissions(); ClearTreasury();
         groupPrivate = null; privateRequestedFor = null; selectedGroupId = row.Id; creatingGroup = false; noticeDraftFor = null; NewGroupEvent(); groupAnnouncementTitle = groupAnnouncementMessage = ""; groupDraft.Load(row);
         groupLogos.Clear(); requestedGroupLogo = "";
     }
     private void ClearNestedGroups()
     {
-        ClearGroupPermissions();
+        ClearTreasuryReturns();
+        ClearGroupPermissions(); ClearTreasury();
         groupPrivate = null; privateRequestedFor = null; hub = new([], []); groupJoinPassword = ""; noticeDraftFor = null;
         communityGroups = []; selectedGroupId = null; creatingGroup = false;
         groupDraft.Clear(); requestedGroupLogo = ""; groupLogos.Clear();
     }
     private void DrawCommunityGroups()
     {
+        DrawTreasuryReturns();
         if (community == null) { Wrapped("Choose a community first to see its groups."); return; }
         DrawRefreshState(groupsRefresh, "Groups");
         groupLogos.Draw();
         Wrapped("Groups within " + community.Name);
-        if (ActionButton("Refresh groups", mutation: false)) { groupsRefresh.Invalidate(); hubRefresh.Invalidate(); if (SelectedGroup is { IsMember: true } selectedGroup) LoadGroupPrivate(selectedGroup, true); }
+        if (ActionButton("Refresh groups", mutation: false)) { groupsRefresh.Invalidate(); hubRefresh.Invalidate(); ClearTreasury(); if (SelectedGroup is { IsMember: true } selectedGroup) LoadGroupPrivate(selectedGroup, true); }
         if (CanCreateGroups && ImGui.Button("New group"))
         {
+            ClearGroupPermissions(); ClearTreasury();
             groupDraft.Clear();
             creatingGroup = true; selectedGroupId = null;
             groupLogos.Clear(); requestedGroupLogo = "";
@@ -185,6 +188,7 @@ public sealed partial class CommunitiesPanel
             groupPrivate = null; privateRequestedFor = null; return;
         }
         var deleted = request.Operation.Kind == CommandKind.DeleteGroup;
+        if (deleted) ClearTreasuryReturns();
         communityGroups = communityGroups.Where(x => x.Id != row.Id).Concat(deleted ? [] : new[] { row }).ToArray();
         if (deleted) { selectedGroupId = null; if (communityGroups.FirstOrDefault() is { } next) SelectGroup(next); }
         else

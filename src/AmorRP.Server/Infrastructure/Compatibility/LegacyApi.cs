@@ -19,6 +19,7 @@ public static class LegacyApi
             var path = endpoint.RoutePattern.RawText;
             // New child groups only exist in v2. The old /groups route means communities.
             if (path == null || !path.StartsWith("/api/v2/", StringComparison.Ordinal) || path.Contains("/groups", StringComparison.Ordinal)
+                || path.EndsWith("/treasury-returns", StringComparison.Ordinal)
                 || path.EndsWith("/group-hub", StringComparison.Ordinal) || path.EndsWith("/favorite-group-events", StringComparison.Ordinal)) continue;
             var oldPath = path.Replace("/api/v2/", "/api/v1/", StringComparison.Ordinal).Replace("/communities", "/groups", StringComparison.Ordinal);
             var methods = endpoint.Metadata.GetMetadata<HttpMethodMetadata>()!.HttpMethods;

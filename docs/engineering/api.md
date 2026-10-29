@@ -717,3 +717,38 @@ Community membership removal/blocking clears grants before any later rejoin.
 
 Both writes require UUIDv7 Idempotency-Key and If-Match. Feature writes return GroupResult;
 staff writes return GroupMemberResult. Existing provider endpoints and API v2 are unchanged.
+
+## Group currency treasury — 0.2.0.0
+
+| Method | Route | Authorization |
+| --- | --- | --- |
+| GET | `/api/v2/communities/{communityId}/groups/{groupId}/treasury` | Active community and group member; treasury enabled |
+| GET | `/api/v2/communities/{communityId}/groups/{groupId}/treasury/records` | Active group member with treasury.records and enabled treasury; or former owner of deleted group |
+| POST | `/api/v2/communities/{communityId}/groups/{groupId}/treasury/deposits` | Active community and group member; treasury enabled; own available coins only |
+| POST | `/api/v2/communities/{communityId}/groups/{groupId}/treasury/withdrawals` | Active group owner or treasury.withdraw staff; treasury enabled; pay caller only |
+| GET | `/api/v2/me/treasury-returns` | Current verified character; own pending disband returns only |
+| POST | `/api/v2/communities/{communityId}/groups/{groupId}/treasury/return` | Current verified character who owns the deleted group; original retained account |
+
+Treasury approval is the `treasury` group feature, disabled by default for both
+existing and new groups. Group owners can separately delegate `treasury.withdraw`
+and `treasury.records` once approved. Every active group member can read the balance
+and deposit their own available coins; withdrawals pay only the caller. Community
+moderation does not bypass group membership or grant treasury access. Feature
+revocation retains coins and removes both financial staff grants.
+
+Transfers accept a positive whole-unit amount string and optional 300-character
+plain-text note. Every mutation requires UUIDv7 Idempotency-Key, uses the community
+transaction lock and returns TreasuryTransferCommandResult. Both balances and an
+immutable two-sided movement commit together. Trading reservations are unavailable
+to deposits; transfers cannot issue currency. Records are newest-first, bounded and
+use actor/community/group-scoped cursors. A depositor sees their own receipt in the
+transfer result without receiving staff access to the full financial record list.
+
+Group and community deletion use GroupLifecycle to return currency to the registered
+group owner, including dormant/blocked retained memberships. Community deletion first
+cancels trades. If a receiving balance would overflow, the deliverable part is returned
+and the rest remains on the deleted group, visible only in the owner's pending-return
+list. Collection can run after leaving/deletion and pays the same original account;
+it cannot redirect currency or restore group access. Former owners may read retained
+treasury records, including their disband receipts, through the records endpoint.
+The records contain financial notes only, not group announcements or member rosters.

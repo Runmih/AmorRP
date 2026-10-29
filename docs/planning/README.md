@@ -1,7 +1,8 @@
 # Expansion work plan
 
 Planning baseline: 2026-10-29. Implemented release: plugin/server 0.0.6.21,
-source `d2316f5`. The 0.1.0.0 S01 implementation is delivered; maintainer in-game acceptance is pending.
+source `d2316f5`. S01 (0.1.0.0) passed the maintainer's major in-game checks on
+2026-10-29. S02 (0.2.0.0) implementation is delivered; its in-game acceptance is pending.
 Everything else in this directory is **planned**, unless its work item
 below is explicitly completed with implementation and verification evidence.
 Amor RP API remains v2 and XIVAuth's external API remains v1; no protocol change
@@ -72,8 +73,8 @@ flowchart TD
 
 ## Progress checklist
 
-- [ ] S01 acceptance — [0.1.0.0 implementation and automated verification](../delivery/release-0.1.0.0.md) delivered; major in-game checks pending
-- [ ] S02 accounts/treasury/disbanding
+- [x] S01 acceptance — [0.1.0.0 implementation and verification](../delivery/release-0.1.0.0.md); maintainer confirmed major checks work on 2026-10-29
+- [ ] S02 acceptance — [0.2.0.0 treasury implementation](../delivery/release-0.2.0.0.md); major in-game checks pending
 - [ ] S03 billing/debt/automatic collection
 - [ ] S04 taxes/commission/clock-in
 - [ ] S05 community shop

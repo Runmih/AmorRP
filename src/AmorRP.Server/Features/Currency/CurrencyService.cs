@@ -33,14 +33,11 @@ public sealed class CurrencyService(AmorDbContext db, SessionAccess sessions, Co
         var scope = "character:" + session.CharacterId; var replay = await commands.ReplayAsync(http, scope, body, ct);
         if (replay != null) return commands.Replay(replay);
         var target = await communities.TargetAsync(communityId, body.TargetCharacterId, true, ct);
-        long after;
-        try { after = checked(target.Owned + delta); }
-        catch (OverflowException) { throw new ApiFault(409, "balance_overflow", "Balance would exceed the supported whole-unit range."); }
-        ApiFault.Require(after >= target.Reserved, 409, "insufficient_available_quantity", "Not enough available currency.");
+        var after = CurrencyAccounts.After(target, delta);
         var op = commands.New(http, scope, body, session.CharacterId, communityId, "currency.adjust");
         op.SubjectCharacterId = target.CharacterId; op.Delta = delta; op.BeforeBalance = target.Owned; op.AfterBalance = after;
         op.Reason = body.Reason; op.Summary = $"Currency adjustment: {delta.ToString(CultureInfo.InvariantCulture)}; balance {target.Owned.ToString(CultureInfo.InvariantCulture)} → {after.ToString(CultureInfo.InvariantCulture)}.";
-        target.Owned = after; target.BalanceVersion++;
+        CurrencyAccounts.Apply(target, delta);
         var result = await commands.SaveAsync(http, op, new CommandResult<Balance>(op.Id, CommunityAccess.Balance(community, target)), ct);
         await tx.CommitAsync(ct); return result;
     }

@@ -364,7 +364,7 @@ public sealed partial class CommunitiesPanel(IPlayerState player, Configuration 
         nextRefresh = DateTimeOffset.UtcNow.AddMinutes(1);
         StartSync(async ct => {
             var capability = await client.GetAsync<CapabilitiesResponse>(uri, "api/v2/capabilities", token, ct);
-            if (capability.ApiVersion != "2" || !Version.TryParse(capability.ServerVersion, out var serverVersion) || serverVersion < new Version(0, 1, 0, 0)
+            if (capability.ApiVersion != "2" || !Version.TryParse(capability.ServerVersion, out var serverVersion) || serverVersion < new Version(0, 2, 0, 0)
                 || !Version.TryParse(capability.MinimumClientVersion, out var minimumClient) || minimumClient > typeof(CommunitiesPanel).Assembly.GetName().Version)
                 throw new InvalidOperationException("Amor RP needs an update. Check for a plugin update; the server may also need updating.");
             if (capability.Maintenance) throw new InvalidOperationException(capability.Message);

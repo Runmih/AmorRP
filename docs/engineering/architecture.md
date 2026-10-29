@@ -1,6 +1,6 @@
 # Architecture
 
-This describes the implemented system for plugin/server 0.1.0.0. Older milestone
+This describes the implemented system for plugin/server 0.2.0.0. Older milestone
 plans and release records describe their own checkpoints; they are not the current
 source map. See [repository layout](repository-layout.md) for file navigation and
 [versions](versions.md) for dependency pins and protocol boundaries.
@@ -49,6 +49,16 @@ permissions. Commands use advisory locks across server replicas, expected versio
 constraints and atomic transactions. `CommandStore` records request fingerprints
 and protected responses for deduplication and recovery. A client timeout cannot be
 interpreted as proof that a command failed.
+
+Group treasury transfers use that same community transaction lock. `TreasuryLedger`
+validates and changes the two account balances and inserts an immutable movement;
+`CommandStore` saves the command and response in the same transaction. `CurrencyAccounts`
+owns character balance mutations for treasury, adjustments and net trade settlement.
+`GroupLifecycle` handles treasury settlement for both group and community deletion.
+It always pays the registered group owner, including retained inactive accounts;
+overflow stays on the deleted group for owner-only collection. Approval never grants
+community administrators private group access. Group treasuries cannot reserve or
+trade coins yet, so their reserved amount is explicitly zero.
 
 Trading separates the short locked expiry transaction from consistent read-only
 response assembly. `TradeReservations` is shared with membership changes and the

@@ -10,7 +10,7 @@ public sealed partial class CommunitiesPanel
     private readonly GroupPermissionDraft groupFeaturesDraft = new(), groupStaffDraft = new();
     private Guid? groupStaffSelection;
     private bool CanGroupAction(GroupProfile group, string action) => group.IsMember
-        && group.EnabledFeatures?.Contains(action) == true
+        && GroupCapabilities.Enabled(group.EnabledFeatures ?? [], action)
         && (group.OwnerCharacterId == session?.Character.Id || group.MyCapabilities?.Contains(action) == true);
 
     private static string GroupActionLabel(string action) => action switch
@@ -18,6 +18,9 @@ public sealed partial class CommunitiesPanel
         GroupCapabilities.Announcements => "Group announcements",
         GroupCapabilities.Notice => "Noticeboard post",
         GroupCapabilities.Events => "Group events",
+        GroupCapabilities.Treasury => "Currency treasury",
+        GroupCapabilities.TreasuryRecords => "View treasury records",
+        GroupCapabilities.TreasuryWithdraw => "Withdraw treasury currency",
         _ => action
     };
     private static void DrawGroupPermissionChoices(GroupPermissionDraft draft, IEnumerable<string> actions)
@@ -35,7 +38,7 @@ public sealed partial class CommunitiesPanel
     {
         var key = group.Id.ToString(); var actions = group.EnabledFeatures ?? [];
         groupFeaturesDraft.Refresh(key, group.Etag, actions);
-        DrawGroupPermissionChoices(groupFeaturesDraft, GroupCapabilities.All);
+        DrawGroupPermissionChoices(groupFeaturesDraft, GroupCapabilities.Features);
         var stale = groupFeaturesDraft.ETag != group.Etag;
         if (stale) Wrapped("Group features changed. Reload before saving.");
         ImGui.BeginDisabled(stale || !groupFeaturesDraft.IsDirty);
@@ -64,9 +67,9 @@ public sealed partial class CommunitiesPanel
         if (selectedMember?.Etag == null) return;
         var key = group.Id + ":" + selectedMember.CharacterId;
         groupStaffDraft.Refresh(key, selectedMember.Etag, selectedMember.Capabilities ?? []);
-        DrawGroupPermissionChoices(groupStaffDraft, group.EnabledFeatures ?? []);
+        DrawGroupPermissionChoices(groupStaffDraft, GroupCapabilities.All.Where(x => GroupCapabilities.Enabled(group.EnabledFeatures ?? [], x)));
         var stale = groupStaffDraft.ETag != selectedMember.Etag
-            || groupStaffDraft.Actions.Any(x => group.EnabledFeatures?.Contains(x) != true);
+            || groupStaffDraft.Actions.Any(x => !GroupCapabilities.Enabled(group.EnabledFeatures ?? [], x));
         if (stale) Wrapped("Staff permissions changed. Reload before saving.");
         ImGui.BeginDisabled(stale || !groupStaffDraft.IsDirty);
         if (ActionButton("Save staff permissions")) Mutate("PUT", GroupPath(group) + "/members/" + selectedMember.CharacterId + "/capabilities", new GroupStaffEdit(groupStaffDraft.Actions.Order().ToArray()), groupStaffDraft.ETag);

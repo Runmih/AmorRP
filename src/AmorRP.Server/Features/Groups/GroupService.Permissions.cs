@@ -19,11 +19,11 @@ public sealed partial class GroupService
         var group = await RequireAsync(communityId, groupId, ct);
         var scope = "character:" + actor;
         var replay = await commands.ReplayAsync(h, scope, body, ct); if (replay != null) return commands.Replay(replay);
-        CommandStore.Match(h, View(group).Etag); GroupAuthorization.Validate(body.EnabledFeatures);
+        CommandStore.Match(h, View(group).Etag); GroupAuthorization.Validate(body.EnabledFeatures, features: true);
         group.EnabledFeatures = body.EnabledFeatures.Order().ToArray(); group.Version++;
         foreach (var member in await db.GroupMemberships.Where(x => x.CommunityId == communityId && x.GroupId == groupId).ToArrayAsync(ct))
         {
-            var retained = member.Capabilities.Intersect(group.EnabledFeatures).Order().ToArray();
+            var retained = member.Capabilities.Where(x => GroupCapabilities.Enabled(group.EnabledFeatures, x)).Order().ToArray();
             if (!member.Capabilities.Order().SequenceEqual(retained))
             { member.Capabilities = retained; member.PermissionVersion = Guid.CreateVersion7(); }
         }
@@ -49,7 +49,7 @@ public sealed partial class GroupService
         ApiFault.Require(characterId != group.OwnerCharacterId, 409, "group_owner_protected", "Group owner permissions are automatic.");
         var member = await GroupAuthorization.MemberAsync(db, group, characterId, ct);
         CommandStore.Match(h, GroupAuthorization.ETag(member)); GroupAuthorization.Validate(body.Capabilities);
-        ApiFault.Require(body.Capabilities.All(group.EnabledFeatures.Contains), 403, "group_feature_disabled", "The community owner has not enabled that group feature.");
+        ApiFault.Require(body.Capabilities.All(x => GroupCapabilities.Enabled(group.EnabledFeatures, x)), 403, "group_feature_disabled", "The community owner has not enabled that group feature.");
         member.Capabilities = body.Capabilities.Order().ToArray(); member.PermissionVersion = Guid.CreateVersion7();
         var character = await db.Characters.SingleAsync(x => x.Id == characterId, ct);
         var dto = new GroupMember(character.Id, character.DisplayName, character.HomeWorldName, false, member.Capabilities, GroupAuthorization.ETag(member));

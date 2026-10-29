@@ -5,6 +5,7 @@ public static class UserFeedback
 {
     public static string Error(HttpStatusCode status, string code, string serverMessage) => code switch
     {
+        "treasury_return_unavailable" => "Your balance is full or this return was already collected. Spend some coins, refresh and try again.",
         "group_capability_required" => "You do not have permission for this group action.",
         "group_feature_disabled" => "The community owner has not enabled that group feature.",
         "invalid_group_capability" => "Choose only the available group permissions.",
@@ -89,6 +90,9 @@ public static class UserFeedback
         CommandKind.ConfirmTrade => "Offer accepted. Both players must complete the final review.",
         CommandKind.FinalConfirmTrade => "Final confirmation saved. Waiting for the other player.",
         CommandKind.CancelTrade => "Trade cancelled. Your items and currency have been released.",
+        CommandKind.DepositTreasury => "Coins deposited into the group treasury.",
+        CommandKind.WithdrawTreasury => "Coins withdrawn to your character.",
+        CommandKind.CollectTreasuryReturn => "Treasury return collected.",
         CommandKind.EditGroupFeatures => "Group features saved.",
         CommandKind.EditGroupStaff => "Group staff permissions saved.",
         CommandKind.CreateGroup => "Group created.",

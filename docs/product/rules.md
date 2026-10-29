@@ -338,11 +338,12 @@ when edited. Announcements retain their separate 120/5000 title/body limits.
 ## Groups within communities (testing)
 
 Community owners may grant Create Groups (`groups.create`) and Manage Groups
-(`groups.manage`) independently. The latter covers profiles and logos throughout
-the community; neither grant permits changing moderator permissions. Any active
+(`groups.manage`) independently. Manage Groups permits deletion only and does not
+grant profile/logo editing or private access; neither grant permits changing moderator permissions. Any active
 community member may read group profiles. Groups have independent names, descriptions
 (up to 300 characters) and logos, with no fixed organisation type. They currently
-share the community economy rather than receiving separate currency/inventories.
+use the community currency. An individually approved group treasury can hold those
+coins; group item storage is not implemented.
 
 ## Group permissions — implemented in 0.1.0.0
 
@@ -353,3 +354,27 @@ cannot approve features, edit grants or gain community moderation through group 
 Feature revocation removes affected staff grants; reenabling requires a new grant.
 Group/community departure clears staff grants. Private membership/announcement reads
 still require group membership, including for community administrators.
+
+## Group currency treasury — implemented in 0.2.0.0
+
+The community owner individually enables Currency treasury in a group's Features.
+It is off by default, including for existing groups. This approval alone does not
+admit the community owner to the group. Any active group member can deposit their
+own available community coins and read the treasury balance. Group owners can
+withdraw and read records; they may separately grant Withdraw treasury currency and
+View treasury records to joined staff. Staff cannot approve treasury access or edit
+grants. Disabling treasury retains coins, stops transfers/reads and clears financial
+grants; reenabling does not restore those staff grants.
+
+A withdrawal moves currency to the acting character's account. Transfers are positive
+whole units, cannot spend coins reserved in trades, and cannot create currency. Both
+balances and a receipt commit atomically; retries cannot repeat the movement. The
+sender can see their own transfer receipt; full treasury records require the records
+grant. Notes are optional, plain text and capped at 300 characters.
+
+Disbanding returns treasury currency to the actual group owner, including retained
+inactive/blocked memberships. Deletion by community moderators does not change the
+beneficiary. Community deletion settles all groups under the same rule. Any amount
+that cannot fit stays on the retained deleted group, listed under Treasury returns
+for its owner and collectable into the same original account later. No debt, tax,
+commission, billing or general group item storage is implemented in this release.

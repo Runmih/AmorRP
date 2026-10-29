@@ -57,7 +57,8 @@ public sealed partial class TradeService
         var lines = await db.TradeLines.Where(x => x.CommunityId == row.CommunityId && x.TradeId == row.Id).ToArrayAsync(ct);
         var holdings = (await db.Holdings.Where(x => x.CommunityId == row.CommunityId && (x.CharacterId == row.InitiatorId || x.CharacterId == row.RecipientId)).ToArrayAsync(ct)).ToList();
         await reservations.ReleaseAsync(row, ct);
-        a.Owned = nextA; b.Owned = nextB; a.BalanceVersion++; b.BalanceVersion++;
+        AmorRP.Server.Features.Currency.CurrencyAccounts.Apply(a, nextA - a.Owned);
+        AmorRP.Server.Features.Currency.CurrencyAccounts.Apply(b, nextB - b.Owned);
         // Net outgoing first: full-inventory swaps and near-limit stack exchanges remain possible.
         foreach (var line in lines.Where(x => CraftingTypes.IsConsumable(x.TypeId))) { var source = holdings.Single(x => x.Id == line.HoldingId); source.Quantity -= line.Quantity; source.Version++; }
         foreach (var line in lines)

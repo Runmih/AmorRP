@@ -2,7 +2,7 @@
 
 Maintainer decisions recorded 2026-10-29. This is a migration/release plan, not a
 claim that the private server is installed, reachable or carrying live data.
-Current plugin/server release is 0.1.0.0; private-server cutover is still future work.
+Current plugin/server release is 0.2.0.0; private-server cutover is still future work.
 
 ## Branch and version policy
 

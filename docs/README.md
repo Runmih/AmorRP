@@ -1,7 +1,7 @@
 # Documentation index
 
 Current guides describe the implemented project. Latest release:
-[0.1.0.0 — community permissions and group staff](delivery/release-0.1.0.0.md).
+[0.2.0.0 — group currency treasury](delivery/release-0.2.0.0.md).
 Update both server and plugin. The server migration preserves existing groups and
 owner features. Amor RP API v2 and XIVAuth API v1 remain unchanged.
 
@@ -18,7 +18,7 @@ historical snapshots; they do not override current source maps or version guidan
 
 The [expansion work plan](planning/README.md) records the 2026-10-29 feature decisions,
 dependency order and progress checklist. It links separate plans for economy/groups,
-gameplay and integrations. S01 implementation is delivered in 0.1.0.0 with maintainer game acceptance pending;
+gameplay and integrations. S01 was accepted after maintainer game checks; S02 treasury is delivered in 0.2.0.0 with game acceptance pending;
 remaining features are planned.
 Start there for new feature work; historical milestone roadmaps remain reference records.
 

@@ -20,8 +20,8 @@ public sealed partial class AmorDbContext(DbContextOptions<AmorDbContext> option
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<GroupRow>(e => {
-            e.Property(x => x.EnabledFeatures).HasDefaultValue(AmorRP.Contracts.Groups.GroupCapabilities.All.ToArray());
-            e.ToTable("groups"); e.HasKey(x => new { x.CommunityId, x.Id });
+            e.Property(x => x.EnabledFeatures).HasDefaultValue(AmorRP.Contracts.Groups.GroupCapabilities.DefaultFeatures.ToArray());
+            e.ToTable("groups", t => t.HasCheckConstraint("ck_group_treasury", "\"TreasuryOwned\" >= 0")); e.HasKey(x => new { x.CommunityId, x.Id });
             e.Property(x => x.Name).HasMaxLength(80); e.Property(x => x.Description).HasColumnType("text");
             e.HasIndex(x => new { x.OwnerCharacterId, x.Deleted });
             e.HasOne<CharacterRow>().WithMany().HasForeignKey(x => x.OwnerCharacterId).OnDelete(DeleteBehavior.Restrict);
@@ -29,6 +29,7 @@ public sealed partial class AmorDbContext(DbContextOptions<AmorDbContext> option
             e.HasOne<MediaAssetRow>().WithMany().HasForeignKey(x => new { x.CommunityId, x.LogoAssetId }).OnDelete(DeleteBehavior.Restrict);
         });
         ConfigureGroupActivity(modelBuilder);
+        ConfigureTreasury(modelBuilder);
         ConfigureAnnouncements(modelBuilder);
         ConfigureInventory(modelBuilder);
         ConfigureTrading(modelBuilder);

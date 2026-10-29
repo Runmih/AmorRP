@@ -36,7 +36,10 @@ public sealed class CommandStore(AmorDbContext db, SecretVault vault, TimeProvid
     private string ReplayJson(OperationRow row)
     {
         var json = vault.Unprotect(row.ProtectedResponse, "operation:" + row.Id);
-        return json.Contains("\"groupId\"", StringComparison.Ordinal) ? AmorRP.Contracts.Common.LegacyCommunityJson.ToCurrent(json) : json;
+        // Only pre-community receipts need conversion. Current receipts can contain
+        // both communityId and the actual child groupId (for example treasury movements).
+        return json.Contains("\"groupId\"", StringComparison.Ordinal) && !json.Contains("\"communityId\"", StringComparison.Ordinal)
+            ? AmorRP.Contracts.Common.LegacyCommunityJson.ToCurrent(json) : json;
     }
     public OperationRow New(HttpContext context, string scope, object? body, Guid? actor, Guid? community, string kind) => new()
     {

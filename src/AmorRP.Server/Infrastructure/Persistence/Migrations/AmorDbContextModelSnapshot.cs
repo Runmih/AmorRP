@@ -487,6 +487,12 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                     b.Property<string>("PasswordHash")
                         .HasColumnType("text");
 
+                    b.Property<long>("TreasuryOwned")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("TreasuryVersion")
+                        .HasColumnType("integer");
+
                     b.Property<int>("Version")
                         .HasColumnType("integer");
 
@@ -496,7 +502,10 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("OwnerCharacterId", "Deleted");
 
-                    b.ToTable("groups", (string)null);
+                    b.ToTable("groups", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_group_treasury", "\"TreasuryOwned\" >= 0");
+                        });
                 });
 
             modelBuilder.Entity("AmorRP.Server.Infrastructure.Persistence.HoldingRow", b =>
@@ -1150,6 +1159,78 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                     b.ToTable("trade_slots", (string)null);
                 });
 
+            modelBuilder.Entity("AmorRP.Server.Infrastructure.Persistence.TreasuryEntryRow", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ActorCharacterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<long>("Amount")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("CharacterAfter")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("CharacterBefore")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid>("CharacterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CharacterName")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<Guid>("CommunityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<long>("GroupAfter")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("GroupBefore")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid>("GroupId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("Note")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("OccurredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("OperationId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorCharacterId");
+
+                    b.HasIndex("CommunityId", "CharacterId");
+
+                    b.HasIndex("OperationId", "GroupId")
+                        .IsUnique();
+
+                    b.HasIndex("CommunityId", "GroupId", "Id");
+
+                    b.ToTable("treasury_entries", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_treasury_entry_amount", "\"Amount\" > 0 AND \"GroupBefore\" >= 0 AND \"GroupAfter\" >= 0 AND \"CharacterBefore\" >= 0 AND \"CharacterAfter\" >= 0");
+
+                            t.HasCheckConstraint("ck_treasury_entry_conservation", "(\"Kind\" = 'deposit' AND \"GroupAfter\"::numeric - \"GroupBefore\"::numeric = \"Amount\" AND \"CharacterBefore\"::numeric - \"CharacterAfter\"::numeric = \"Amount\") OR (\"Kind\" IN ('withdrawal', 'disband_return') AND \"GroupBefore\"::numeric - \"GroupAfter\"::numeric = \"Amount\" AND \"CharacterAfter\"::numeric - \"CharacterBefore\"::numeric = \"Amount\")");
+                        });
+                });
+
             modelBuilder.Entity("AmorRP.Server.Infrastructure.Persistence.UsedRefreshRow", b =>
                 {
                     b.Property<string>("TokenHash")
@@ -1477,6 +1558,33 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                     b.HasOne("AmorRP.Server.Infrastructure.Persistence.TradeRow", null)
                         .WithMany()
                         .HasForeignKey("CommunityId", "TradeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AmorRP.Server.Infrastructure.Persistence.TreasuryEntryRow", b =>
+                {
+                    b.HasOne("AmorRP.Server.Infrastructure.Persistence.CharacterRow", null)
+                        .WithMany()
+                        .HasForeignKey("ActorCharacterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AmorRP.Server.Infrastructure.Persistence.OperationRow", null)
+                        .WithMany()
+                        .HasForeignKey("OperationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AmorRP.Server.Infrastructure.Persistence.MembershipRow", null)
+                        .WithMany()
+                        .HasForeignKey("CommunityId", "CharacterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AmorRP.Server.Infrastructure.Persistence.GroupRow", null)
+                        .WithMany()
+                        .HasForeignKey("CommunityId", "GroupId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });

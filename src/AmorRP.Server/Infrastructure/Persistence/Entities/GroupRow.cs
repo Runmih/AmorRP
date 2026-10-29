@@ -1,7 +1,6 @@
 namespace AmorRP.Server.Infrastructure.Persistence;
 
-// A group is a profile within a community. Currency, inventory and permissions
-// belong to its community; this record does not silently create another economy.
+// A group belongs to one community; its approved treasury uses that community's currency.
 public sealed class GroupRow
 {
     public Guid Id { get; set; } = Guid.CreateVersion7();
@@ -15,5 +14,7 @@ public sealed class GroupRow
     public string JoinMode { get; set; } = "open";
     public string? PasswordHash { get; set; }
     public bool Deleted { get; set; }
-    public string[] EnabledFeatures { get; set; } = AmorRP.Contracts.Groups.GroupCapabilities.All.ToArray();
+    public string[] EnabledFeatures { get; set; } = AmorRP.Contracts.Groups.GroupCapabilities.DefaultFeatures.ToArray();
+    public long TreasuryOwned { get; set; }
+    public int TreasuryVersion { get; set; } = 1;
 }

@@ -10,10 +10,11 @@ public sealed partial class CommunitiesPanel
 {
     private void ApplyCommandSuccess(CommandRequest request, CommandResponse response, bool recovering)
     {
+        if (request.Operation.Kind == CommandKind.CollectTreasuryReturn) ClearTreasuryReturns();
         // A recovered action may belong to another community. Its durable
         // receipt is still acknowledged, but must not overwrite this editor.
         if (!request.AppliesToCommunity(community?.Id)) return;
-        if (request.Operation.Handler is CommandHandler.GroupProfile or CommandHandler.GroupActivity
+        if (request.Operation.Handler is CommandHandler.GroupProfile or CommandHandler.GroupActivity or CommandHandler.Treasury
             && !request.AppliesToGroup(selectedGroupId)) return;
         switch (request.Operation.Handler)
         {
@@ -21,6 +22,7 @@ public sealed partial class CommunitiesPanel
             case CommandHandler.Home: ApplyHomeSuccess(request, response.Json); break;
             case CommandHandler.GroupProfile: ApplyGroupProfileSuccess(request, response.Json); break;
             case CommandHandler.GroupActivity: ApplyGroupActivitySuccess(request); break;
+            case CommandHandler.Treasury: ApplyTreasurySuccess(response.Json); break;
             case CommandHandler.Inventory: ApplyInventorySuccess(request, response, recovering); break;
             case CommandHandler.Trade: ApplyTradeSuccess(request, response.Json); break;
             case CommandHandler.Balance:

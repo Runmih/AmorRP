@@ -13,7 +13,7 @@ using Microsoft.Extensions.Options;
 namespace AmorRP.Server.Features.Communities;
 
 public sealed partial class CommunityService(AmorDbContext db, SessionAccess sessions, CommunityAccess access, CommandStore commands,
-    PageCursor pages, IOptions<ServicePolicyOptions> policy, TimeProvider time, AmorRP.Server.Features.Trading.TradeReservations trades)
+    PageCursor pages, IOptions<ServicePolicyOptions> policy, TimeProvider time, AmorRP.Server.Features.Trading.TradeReservations trades, AmorRP.Server.Features.Groups.GroupLifecycle groups)
 {
     private async Task CapsAsync(Guid character, bool owning, CancellationToken ct)
     {
@@ -141,6 +141,8 @@ public sealed partial class CommunityService(AmorDbContext db, SessionAccess ses
                 await trades.CancelForAsync(communityId, null, "Community deleted.", ct);
                 CommandStore.Match(http, CommandStore.ETag("community", community.Id, community.Version));
                 ApiFault.Require(deletion.ConfirmName == community.Name, 422, "confirmation_required", "Confirm the exact community name.");
+                foreach (var group in await db.Groups.Where(x => x.CommunityId == communityId && !x.Deleted).OrderBy(x => x.Id).ToArrayAsync(ct))
+                { await groups.DisbandAsync(group, op, ct); group.Version++; }
                 community.Deleted = true; community.DeletedAt = time.GetUtcNow(); community.Version++;
                 foreach (var invite in await db.Invitations.Where(x => x.CommunityId == communityId && !x.Revoked).ToArrayAsync(ct)) invite.Revoked = true;
                 foreach (var transfer in await db.OwnershipTransfers.Where(x => x.CommunityId == communityId && x.Status == "proposed").ToArrayAsync(ct)) transfer.Status = "cancelled";

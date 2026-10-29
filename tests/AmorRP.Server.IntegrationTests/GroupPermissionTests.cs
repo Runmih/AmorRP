@@ -35,13 +35,13 @@ public sealed partial class FoundationTests
         await GrantHome(communityOwner, community, ownerId, "groups.create");
         var group = await Command<GroupProfile>(owner, HttpMethod.Post, $"/api/v2/communities/{community.Id}/groups", new GroupWrite("Delegated", ""));
         var path = $"/api/v2/communities/{community.Id}/groups/{group.Id}";
-        Assert.Equal(GroupCapabilities.All.Order(), group.EnabledFeatures!.Order());
-        Assert.Equal(GroupCapabilities.All.Order(), group.MyCapabilities!.Order());
+        Assert.Equal(GroupCapabilities.DefaultFeatures.Order(), group.EnabledFeatures!.Order());
+        Assert.Equal(GroupCapabilities.DefaultFeatures.Order(), group.MyCapabilities!.Order());
         using var staff = factory.CreateClient(); var staffId = (await Login(staff, "1102")).Character.Id; await Join(staff, invitation);
         await GroupAction(staff, HttpMethod.Post, path + "/join", new GroupJoin());
-        await GrantStaff(owner, path, staffId, GroupCapabilities.All.ToArray());
+        await GrantStaff(owner, path, staffId, GroupCapabilities.DefaultFeatures.ToArray());
         var view = (await staff.GetFromJsonAsync<GroupProfile>(path, ct))!;
-        Assert.Equal(GroupCapabilities.All.Order(), view.MyCapabilities!.Order());
+        Assert.Equal(GroupCapabilities.DefaultFeatures.Order(), view.MyCapabilities!.Order());
         await GroupAction(staff, HttpMethod.Post, path + "/announcements", new AnnouncementWrite("Staff news", "Private message"));
         await GroupAction(staff, HttpMethod.Put, path + "/notice", new NoticeWrite("Request", "Staff can post", "Coins"));
         var start = clock.GetUtcNow().AddDays(1);
@@ -77,7 +77,7 @@ public sealed partial class FoundationTests
             using var denied = await client.SendAsync(request, ct); Assert.Equal(HttpStatusCode.Forbidden, denied.StatusCode);
         }
         Assert.Empty((await StaffRow(owner, path, id)).Capabilities!);
-        group = await Command<GroupProfile>(owner, HttpMethod.Put, path + "/features", new GroupFeaturesEdit(GroupCapabilities.All.ToArray()), group.Etag);
+        group = await Command<GroupProfile>(owner, HttpMethod.Put, path + "/features", new GroupFeaturesEdit(GroupCapabilities.DefaultFeatures.ToArray()), group.Etag);
         Assert.Empty((await staff.GetFromJsonAsync<GroupProfile>(path, ct))!.MyCapabilities!);
         var start = clock.GetUtcNow().AddDays(1);
         await GroupAction(owner, HttpMethod.Post, path + "/events", new EventWrite("Owner event", "Still enabled", "Limsa", start, start.AddHours(1)));
@@ -166,7 +166,7 @@ public sealed partial class FoundationTests
         db.ChangeTracker.Clear(); await db.Database.MigrateAsync(ct);
         var restored = await db.Groups.SingleAsync(ct);
         Assert.Equal(group.Id, restored.Id); Assert.Equal(group.Description, restored.Description);
-        Assert.Equal(GroupCapabilities.All.Order(), restored.EnabledFeatures.Order());
+        Assert.Equal(GroupCapabilities.DefaultFeatures.Order(), restored.EnabledFeatures.Order());
         var member = await db.GroupMemberships.SingleAsync(ct); Assert.Empty(member.Capabilities); Assert.NotEqual(Guid.Empty, member.PermissionVersion);
         Assert.False(db.Database.HasPendingModelChanges());
     }

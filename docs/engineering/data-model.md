@@ -306,3 +306,27 @@ actions), group_memberships.Capabilities (text[], initially empty), and Permissi
 the group, target character and this revision, preventing old edits from surviving
 leave/rejoin. Mutations and membership cleanup share the community advisory lock.
 Existing group/profile/asset and membership identities are retained by migration.
+
+## Treasury persistence — 0.2.0.0
+
+GroupTreasury adds groups.TreasuryOwned (nonnegative bigint, initially zero) and
+TreasuryVersion. The retained group composite key identifies the account owner and
+community. Character accounts remain the existing memberships, preserving balances,
+reservations and dormant/blocked status. No character balances are copied or reset.
+The currency is the community's existing currency; no cross-community transfer is possible.
+
+TreasuryEntryRow maps to treasury_entries, an append-only financial record with the
+command ID, group/community, actor, character beneficiary, kind, amount, both before/
+after balances, note and timestamp. A unique (OperationId, GroupId) index prevents
+multiple movements for one command/group. Scoped group/member foreign keys retain
+ownership, and database checks enforce exact two-sided conservation using numeric
+arithmetic to avoid overflow in the check itself. Actor and command foreign keys
+preserve provenance. Application updates never rewrite entries.
+
+GroupLifecycle settles all deliverable coins before marking the group deleted, under
+the same lock/transaction as its command. Any amount above the owner's account capacity
+remains on that retained group. The former owner's pending-return endpoint can collect
+it into the original membership, including dormant/blocked or archived community
+accounts. No inventory limit can discard currency. Community deletion cancels trades,
+settles all nondeleted groups to their distinct owners and retains audit records.
+Downgrade refuses to drop the treasury schema if any balance or receipt exists.

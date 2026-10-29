@@ -62,10 +62,13 @@ internal enum CommandKind
     PublishGroupAnnouncement,
     EditGroupFeatures,
     EditGroupStaff,
+    DepositTreasury,
+    WithdrawTreasury,
+    CollectTreasuryReturn,
     SignOut,
 }
 
-internal enum CommandHandler { None, CommunityForm, Home, Balance, Policy, Invitation, Member, Inventory, Trade, GroupProfile, GroupActivity, SignOut }
+internal enum CommandHandler { None, CommunityForm, Home, Balance, Policy, Invitation, Member, Inventory, Trade, GroupProfile, GroupActivity, Treasury, SignOut }
 
 [Flags]
 internal enum RefreshTargets
@@ -155,6 +158,9 @@ internal static class CommandRoutes
         new("PUT", "api/v2/communities/{communityId}/groups/{groupId}/events/{eventId}", new(CommandKind.EditGroupEvent, CommandHandler.GroupActivity, RefreshTargets.Groups)),
         new("DELETE", "api/v2/communities/{communityId}/groups/{groupId}/events/{eventId}", new(CommandKind.DeleteGroupEvent, CommandHandler.GroupActivity, RefreshTargets.Groups)),
         new("POST", "api/v2/communities/{communityId}/groups/{groupId}/announcements", new(CommandKind.PublishGroupAnnouncement, CommandHandler.GroupActivity, RefreshTargets.Groups)),
+        new("POST", "api/v2/communities/{communityId}/groups/{groupId}/treasury/deposits", new(CommandKind.DepositTreasury, CommandHandler.Treasury, RefreshTargets.Community)),
+        new("POST", "api/v2/communities/{communityId}/groups/{groupId}/treasury/withdrawals", new(CommandKind.WithdrawTreasury, CommandHandler.Treasury, RefreshTargets.Community)),
+        new("POST", "api/v2/communities/{communityId}/groups/{groupId}/treasury/return", new(CommandKind.CollectTreasuryReturn, CommandHandler.Treasury, RefreshTargets.Community)),
         new("DELETE", "api/v2/auth/sessions/current", new(CommandKind.SignOut, CommandHandler.SignOut, RefreshTargets.None)),
     };
     private static readonly CommandOperation Unknown = new(CommandKind.Unknown, CommandHandler.None, RefreshTargets.Community);

@@ -10,7 +10,7 @@ public static class CapabilitiesEndpoints
     public static void MapCapabilitiesEndpoints(this WebApplication app)
     {
         app.MapGet("/api/v2/capabilities", (IOptions<ServicePolicyOptions> policy) =>
-            new CapabilitiesResponse("2", "0.1.0.0", "0.1.0.0", false,
+            new CapabilitiesResponse("2", "0.2.0.0", "0.2.0.0", false,
                 "Communities, owned groups, Alchemy, Cooking, Writing, trading, notices and events.",
                 CraftingTypes.All.Select(x => new ItemTypeInfo(x, 1, CraftingTypes.IsConsumable(x), CraftingTypes.IsConsumable(x))).ToArray(), AmorRP.Server.Features.Communities.CommunityAccess.GrantableActions, ["emote", "say", "party", "linkshell", "crossworld-linkshell"], policy.Value.ToContract()));
     }

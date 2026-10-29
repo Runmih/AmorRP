@@ -8,7 +8,7 @@ namespace AmorRP.Server.Features.Groups;
 public static class GroupAuthorization
 {
     public static string[] Effective(GroupRow group, Guid actor, GroupMembershipRow? member) =>
-        member == null ? [] : group.EnabledFeatures.Where(x => GroupCapabilities.All.Contains(x)
+        member == null ? [] : GroupCapabilities.All.Where(x => GroupCapabilities.Enabled(group.EnabledFeatures, x)
             && (group.OwnerCharacterId == actor || member.Capabilities.Contains(x))).Order().ToArray();
 
     public static string ETag(GroupMembershipRow member) =>
@@ -29,7 +29,11 @@ public static class GroupAuthorization
         ApiFault.Require(Effective(group, actor, member).Contains(capability), 403, "group_capability_required", "You do not have permission for this group action.");
     }
 
-    public static void Validate(string[]? values) => ApiFault.Require(values != null && values.Length <= GroupCapabilities.All.Count
-        && values.Distinct(StringComparer.Ordinal).Count() == values.Length && values.All(GroupCapabilities.All.Contains),
+    public static void Validate(string[]? values, bool features = false)
+    {
+        var allowed = features ? GroupCapabilities.Features : GroupCapabilities.All;
+        ApiFault.Require(values != null && values.Length <= allowed.Count
+        && values.Distinct(StringComparer.Ordinal).Count() == values.Length && values.All(allowed.Contains),
         422, "invalid_group_capability", "Choose only the available group permissions, without duplicates.");
+    }
 }

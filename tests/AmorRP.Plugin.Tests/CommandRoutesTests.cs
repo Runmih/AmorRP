@@ -60,6 +60,22 @@ public sealed class CommandRoutesTests
     }
 
     [Fact]
+    public void Treasury_movements_select_their_typed_handler_and_keep_group_scope()
+    {
+        foreach (var suffix in new[] { "deposits", "withdrawals", "return" })
+        {
+            var request = new CommandRequest("POST", $"api/v2/communities/{Id}/groups/{Id}/treasury/" + suffix, null, null);
+            Assert.Equal(CommandHandler.Treasury, request.Operation.Handler);
+            Assert.Equal(RefreshTargets.Community, request.Operation.Refresh);
+            Assert.True(request.AppliesToGroup(Guid.Parse(Id)));
+            Assert.False(request.AppliesToGroup(Guid.NewGuid()));
+        }
+        Assert.Equal(CommandKind.DepositTreasury, Resolve("POST", "groups/{id}/treasury/deposits").Kind);
+        Assert.Equal(CommandKind.WithdrawTreasury, Resolve("POST", "groups/{id}/treasury/withdrawals").Kind);
+        Assert.Equal(CommandKind.CollectTreasuryReturn, Resolve("POST", "groups/{id}/treasury/return").Kind);
+    }
+
+    [Fact]
     public void Refresh_targets_are_scoped_to_the_affected_features()
     {
         Assert.Equal(RefreshTargets.Groups, Resolve("PUT", "groups/{id}/notice").Refresh);

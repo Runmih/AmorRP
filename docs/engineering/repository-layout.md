@@ -1,6 +1,6 @@
 # Repository layout and navigation
 
-This is the current source map for 0.1.0.0. Plugin and server share a repository,
+This is the current source map for 0.2.0.0. Plugin and server share a repository,
 but build as separate applications. All paths below are relative to the repository.
 See [architecture](architecture.md) for ownership and dependencies.
 
@@ -47,6 +47,7 @@ repo.json               Public Dalamud repository feed
 | Foreground/core request lifecycle | Plugin `Services/Api/RequestCoordinator.cs` |
 | Independent feature refresh lifecycle | Plugin `Services/Api/BackgroundRefresh.cs`; `Features/Communities/FeatureRefreshScreens.cs` |
 | Command response dispatch and refresh targets | Plugin `Services/Api/CommandRoutes.cs`; `Features/Communities/CommandCompletionScreens.cs`, `QuietUpdates.cs` |
+| Treasury balances, transfers, records and disband returns | Plugin `Features/Communities/GroupTreasuryScreens.cs`; server `Features/Currency/TreasuryService.cs`, `TreasuryLedger.cs`, `CurrencyAccounts.cs`; `Features/Groups/GroupLifecycle.cs` |
 | Group staff permissions | Plugin `Features/Communities/GroupPermissionScreens.cs`, `GroupPermissionDraft.cs`; server `Features/Groups/GroupAuthorization.cs`, `GroupService.Permissions.cs` |
 | Group profile draft | Plugin `Features/Communities/GroupProfileDraft.cs`, `NestedGroupScreens.cs` |
 | Trade draft and views | Plugin `Services/Api/TradeDraft.cs`; `Features/Communities/TradeScreens.cs`, `TradeWindowScreens.cs` |

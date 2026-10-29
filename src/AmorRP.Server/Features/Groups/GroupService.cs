@@ -14,7 +14,7 @@ using Microsoft.Extensions.Options;
 
 namespace AmorRP.Server.Features.Groups;
 
-public sealed partial class GroupService(AmorDbContext db, SessionAccess sessions, CommunityAccess communities, CommandStore commands, PageCursor pages, IOptions<ServicePolicyOptions> policy)
+public sealed partial class GroupService(AmorDbContext db, SessionAccess sessions, CommunityAccess communities, CommandStore commands, PageCursor pages, IOptions<ServicePolicyOptions> policy, GroupLifecycle lifecycle)
 {
     private readonly HashSet<Guid> joined = [], favorites = [];
     private readonly Dictionary<Guid, GroupMembershipRow> viewerMemberships = [];
@@ -77,8 +77,7 @@ public sealed partial class GroupService(AmorDbContext db, SessionAccess session
             CommandStore.Match(h, View(row).Etag);
         }
         var deleting = body == null;
-        if (deleting) row.Deleted = true;
-        else
+        if (!deleting)
         {
             var nameError = PlainText.Error(body!.Name, 80, required: true) ?? (body.Name.Length > 80 ? "Group name must be 80 characters or fewer." : null);
             var descriptionError = PlainText.Error(body.Description, 300, multiline: true, required: false);
@@ -92,6 +91,7 @@ public sealed partial class GroupService(AmorDbContext db, SessionAccess session
         }
         row.Version++; community.Version++;
         var op = commands.New(h, scope, body, actor, communityId, deleting ? "group.delete" : groupId.HasValue ? "group.edit" : "group.create");
+        if (deleting) await lifecycle.DisbandAsync(row, op, ct);
         op.Summary = deleting ? "Group deleted." : "Group profile saved.";
         var previous = deleting ? row.LogoAssetId : null;
         if (deleting) { row.LogoAssetId = null; row.LogoVersion++; }

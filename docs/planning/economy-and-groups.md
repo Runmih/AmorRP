@@ -6,8 +6,8 @@ below remain feature-time choices, not implemented behavior.
 
 ## S01 — Permissions and authority
 
-Implementation: [0.1.0.0](../delivery/release-0.1.0.0.md), with major in-game acceptance
-pending. Existing content features (announcements, notice and events) now have community
+Implementation: [0.1.0.0](../delivery/release-0.1.0.0.md), accepted by the maintainer
+after major in-game checks on 2026-10-29. Existing content features (announcements, notice and events) now have community
 approval and owner-assigned staff grants. Treasury/Discord grants will be added with
 their actual features, not as nonfunctional controls in this version.
 
@@ -38,6 +38,14 @@ Verification: denied/cross-group grants; stale permission edits; owner versus st
 feature revocation during an action; preservation of current permissions/privacy.
 
 ## S02 — Accounts, treasury and disband settlement
+
+Implementation: [0.2.0.0](../delivery/release-0.2.0.0.md). Treasury currency,
+owner-approved access, separate withdrawal/records staff grants, immutable two-sided
+receipts and shared group/community disband settlement are delivered. Coins are
+preserved for dormant/blocked owners and overflow remains recoverable. Character
+adjustment and trade settlement now share the currency-account mutation helper.
+Major in-game acceptance is pending. A community tax account arrives with S04;
+group item storage remains L01, and debt settlement hooks belong to S03.
 
 The current character balance is attached to a community membership. Extend that
 accounting deliberately to group accounts; preserve integer amounts, available versus

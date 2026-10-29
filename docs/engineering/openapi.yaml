@@ -7651,6 +7651,339 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/GroupStaffEdit'
+  /api/v2/communities/{communityId}/groups/{groupId}/treasury:
+    get:
+      operationId: getTreasury
+      tags:
+      - Currency
+      summary: Read group treasury balance
+      security:
+      - Session: []
+      parameters:
+      - name: communityId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: groupId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TreasuryBalance'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Active community and group member; treasury enabled
+      x-implementation-status: implemented
+  /api/v2/communities/{communityId}/groups/{groupId}/treasury/records:
+    get:
+      operationId: getTreasuryRecords
+      tags:
+      - Currency
+      summary: List group treasury receipts
+      security:
+      - Session: []
+      parameters:
+      - name: communityId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: groupId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TreasuryReceiptPage'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Active group member with treasury.records and enabled
+        treasury; or former owner of deleted group
+      x-implementation-status: implemented
+  /api/v2/communities/{communityId}/groups/{groupId}/treasury/deposits:
+    post:
+      operationId: depositTreasury
+      tags:
+      - Currency
+      summary: Deposit own coins into group treasury
+      security:
+      - Session: []
+      parameters:
+      - name: communityId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: groupId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TreasuryTransferCommandResult'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Active community and group member; treasury enabled; own
+        available coins only
+      x-implementation-status: implemented
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TreasuryTransfer'
+  /api/v2/communities/{communityId}/groups/{groupId}/treasury/withdrawals:
+    post:
+      operationId: withdrawTreasury
+      tags:
+      - Currency
+      summary: Withdraw treasury coins to own character
+      security:
+      - Session: []
+      parameters:
+      - name: communityId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: groupId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TreasuryTransferCommandResult'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Active group owner or treasury.withdraw staff; treasury
+        enabled; pay caller only
+      x-implementation-status: implemented
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TreasuryTransfer'
+  /api/v2/me/treasury-returns:
+    get:
+      operationId: getTreasuryReturns
+      tags:
+      - Currency
+      summary: List own pending disband returns
+      security:
+      - Session: []
+      parameters:
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TreasuryReturnPage'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Current verified character; own pending disband returns
+        only
+      x-implementation-status: implemented
+  /api/v2/communities/{communityId}/groups/{groupId}/treasury/return:
+    post:
+      operationId: collectTreasuryReturn
+      tags:
+      - Currency
+      summary: Collect disbanded group coins into original account
+      security:
+      - Session: []
+      parameters:
+      - name: communityId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: groupId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TreasuryTransferCommandResult'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Current verified character who owns the deleted group;
+        original retained account
+      x-implementation-status: implemented
 components:
   securitySchemes:
     Session:
@@ -9981,7 +10314,7 @@ components:
       properties:
         enabledFeatures:
           type: array
-          maxItems: 3
+          maxItems: 4
           uniqueItems: true
           items:
             type: string
@@ -9989,6 +10322,7 @@ components:
             - announcements.manage
             - notice.manage
             - events.manage
+            - treasury
     GroupStaffEdit:
       type: object
       required:
@@ -9997,7 +10331,7 @@ components:
       properties:
         capabilities:
           type: array
-          maxItems: 3
+          maxItems: 5
           uniqueItems: true
           items:
             type: string
@@ -10005,6 +10339,8 @@ components:
             - announcements.manage
             - notice.manage
             - events.manage
+            - treasury.records
+            - treasury.withdraw
     GroupMemberResult:
       type: object
       required:
@@ -10021,7 +10357,7 @@ components:
       properties:
         enabledFeatures:
           type: array
-          maxItems: 3
+          maxItems: 4
           uniqueItems: true
           items:
             type: string
@@ -10029,9 +10365,10 @@ components:
             - announcements.manage
             - notice.manage
             - events.manage
+            - treasury
         myCapabilities:
           type: array
-          maxItems: 3
+          maxItems: 5
           uniqueItems: true
           items:
             type: string
@@ -10039,6 +10376,8 @@ components:
             - announcements.manage
             - notice.manage
             - events.manage
+            - treasury.records
+            - treasury.withdraw
         id: *id009
         communityId: *id009
         name:
@@ -10267,7 +10606,7 @@ components:
       properties:
         capabilities:
           type: array
-          maxItems: 3
+          maxItems: 5
           uniqueItems: true
           items:
             type: string
@@ -10275,6 +10614,8 @@ components:
             - announcements.manage
             - notice.manage
             - events.manage
+            - treasury.records
+            - treasury.withdraw
           nullable: true
         etag:
           type: string
@@ -10328,5 +10669,187 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/GroupEvent'
+    TreasuryTransfer:
+      type: object
+      properties:
+        amount:
+          type: string
+          pattern: ^[0-9]{1,64}$
+        note:
+          type: string
+          maxLength: 300
+          default: ''
+      required:
+      - amount
+      additionalProperties: false
+    TreasuryBalance:
+      type: object
+      properties:
+        communityId:
+          type: string
+          format: uuid
+        groupId:
+          type: string
+          format: uuid
+        currencyId:
+          type: string
+          format: uuid
+        owned:
+          type: string
+        reserved:
+          type: string
+        available:
+          type: string
+        version:
+          type: integer
+      required:
+      - communityId
+      - groupId
+      - currencyId
+      - owned
+      - reserved
+      - available
+      - version
+      additionalProperties: false
+    TreasuryReceipt:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        communityId:
+          type: string
+          format: uuid
+        groupId:
+          type: string
+          format: uuid
+        operationId:
+          type: string
+          format: uuid
+        actorCharacterId:
+          type: string
+          format: uuid
+        characterId:
+          type: string
+          format: uuid
+        characterName:
+          type: string
+        kind:
+          type: string
+          enum:
+          - deposit
+          - withdrawal
+          - disband_return
+        amount:
+          type: string
+        groupBefore:
+          type: string
+        groupAfter:
+          type: string
+        characterBefore:
+          type: string
+        characterAfter:
+          type: string
+        note:
+          type: string
+        occurredAt:
+          type: string
+          format: date-time
+      required:
+      - id
+      - communityId
+      - groupId
+      - operationId
+      - actorCharacterId
+      - characterId
+      - characterName
+      - kind
+      - amount
+      - groupBefore
+      - groupAfter
+      - characterBefore
+      - characterAfter
+      - note
+      - occurredAt
+      additionalProperties: false
+    TreasuryReceiptPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/TreasuryReceipt'
+        nextCursor:
+          type: string
+          nullable: true
+      required:
+      - items
+      - nextCursor
+      additionalProperties: false
+    TreasuryTransferResult:
+      type: object
+      properties:
+        treasury:
+          $ref: '#/components/schemas/TreasuryBalance'
+        characterBalance:
+          $ref: '#/components/schemas/Balance'
+        receipt:
+          $ref: '#/components/schemas/TreasuryReceipt'
+      required:
+      - treasury
+      - characterBalance
+      - receipt
+      additionalProperties: false
+    TreasuryTransferCommandResult:
+      type: object
+      properties:
+        operationId:
+          type: string
+          format: uuid
+        result:
+          $ref: '#/components/schemas/TreasuryTransferResult'
+      required:
+      - operationId
+      - result
+      additionalProperties: false
+    TreasuryReturn:
+      type: object
+      properties:
+        communityId:
+          type: string
+          format: uuid
+        groupId:
+          type: string
+          format: uuid
+        communityName:
+          type: string
+        groupName:
+          type: string
+        currencyName:
+          type: string
+        amount:
+          type: string
+      required:
+      - communityId
+      - groupId
+      - communityName
+      - groupName
+      - currencyName
+      - amount
+      additionalProperties: false
+    TreasuryReturnPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/TreasuryReturn'
+        nextCursor:
+          type: string
+          nullable: true
+      required:
+      - items
+      - nextCursor
+      additionalProperties: false
 x-status: planned
 x-defaults-reviewed: '2026-10-06'

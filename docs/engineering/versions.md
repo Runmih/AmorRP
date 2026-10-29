@@ -2,12 +2,12 @@
 
 ## Current product versions
 
-Plugin and server **0.1.0.0**, Amor RP API **v2**, minimum client **0.1.0.0**.
-The plugin requires server 0.1.0.0. Deploy the GroupStaffPermissions migration before
-using group staff features; existing owner features stay enabled and staff start with
-no grants. XIVAuth's external API remains **v1** and Dalamud API remains **15**.
+Plugin and server **0.2.0.0**, Amor RP API **v2**, minimum client **0.2.0.0**.
+The plugin requires server 0.2.0.0. Deploy the GroupTreasury migration before
+using treasury features. Existing balances/permissions are preserved; treasuries
+start empty and require community-owner approval. XIVAuth's external API remains **v1** and Dalamud API remains **15**.
 
-Release-specific changes and verification are in [0.1.0.0](../delivery/release-0.1.0.0.md).
+Release-specific changes and verification are in [0.2.0.0](../delivery/release-0.2.0.0.md).
 Historical milestone records appear after current compatibility/maintenance guidance.
 
 ## Product release numbering
