@@ -44,7 +44,7 @@ owner-approved access, separate withdrawal/records staff grants, immutable two-s
 receipts and shared group/community disband settlement are delivered. Coins are
 preserved for dormant/blocked owners and overflow remains recoverable. Character
 adjustment and trade settlement now share the currency-account mutation helper.
-Major in-game acceptance is pending. A community tax account arrives with S04;
+The maintainer confirmed all four major in-game checks on 2026-11-05. A community tax account arrives with S04;
 group item storage remains L01, and debt settlement hooks belong to S03.
 
 The current character balance is attached to a community membership. Extend that
@@ -83,6 +83,28 @@ and owner-membership removal paths that affect groups.
 
 ## S03 — Billing, debt and full collection
 
+Implementation: [0.3.0.0](../delivery/release-0.3.0.0.md). The maintainer confirmed on
+2026-11-05 that unpaid claims remain owed and later repayments belong to the former
+group owner. The implementation retains each bill on its original archived group and
+makes later collected coins available through the existing owner-only Treasury returns
+path. It does not recursively auto-pay a character, preventing automatic credit cycles.
+
+Implementation checklist:
+
+- [x] Add default-off debt policy and default-untrusted own-character group settings.
+- [x] Add group billing staff authority under individually approved treasury access.
+- [x] Durable bill identity, thirty-second cashier/customer/group cooldown, atomic receipts.
+- [x] Oldest-first collection shared by adjustments, treasury credits, trades and releases.
+- [x] Bound batches and retain pending funds across restarts; fair continuation worker.
+- [x] Separate own receipts and scoped staff records; private group boundaries unchanged.
+- [x] Disbanded claim entitlement confirmed on 2026-11-05; local verification passes.
+- [ ] Maintainer major in-game acceptance.
+
+Routine defaults: debt starts off, unaffordable no-debt bills fail atomically, oldest
+server-created bill first, 100-character service text, 128-bill collection batches,
+5-second continuation interval. These are feature implementation defaults, not new
+per-character spending or bill-amount caps.
+
 An authorized cashier bills an active community character who trusts that group.
 The customer can be offline; they do not confirm each bill. Billing requires an
 enabled group financial feature and staff permission. No arbitrary group can debit
@@ -117,10 +139,10 @@ and conserves money through rounding, retries and concurrent credits. If work is
 continued durably, funds owed to collection cannot briefly become spendable twice.
 This is an engineering design/verification gate before enabling bills.
 
-When a creditor group disbands, do not erase its claims. Proposed default: keep the
+When a creditor group disbands, do not erase its claims. Confirmed 2026-11-05: keep the
 same claim IDs/order and transfer its residual treasury entitlement to the former
-owner, while honoring any recorded tax/staff allocation. Confirm the exact treatment
-when S03 starts. Asset succession is not permission to invent a debt write-off.
+owner. Collected funds enter the archived treasury and are available as owner-only
+Treasury returns. Later tax/staff allocations must remain traceable when S04 adds them. Asset succession is not permission to invent a debt write-off.
 
 Verification: offline billing, revoked trust, permission loss, exact/insufficient
 funds, debt-disabled policy, partial repayments, reserved balances, simultaneous

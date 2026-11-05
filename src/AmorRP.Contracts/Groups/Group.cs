@@ -1,6 +1,6 @@
 namespace AmorRP.Contracts.Groups;
 
-public sealed record Group(Guid Id, Guid CommunityId, string Name, string Description, Guid? LogoAssetId, int LogoVersion, int Version, string Etag, Guid OwnerCharacterId = default, string JoinMode = "open", bool IsMember = false, bool IsFavorite = false, string[]? EnabledFeatures = null, string[]? MyCapabilities = null);
+public sealed record Group(Guid Id, Guid CommunityId, string Name, string Description, Guid? LogoAssetId, int LogoVersion, int Version, string Etag, Guid OwnerCharacterId = default, string JoinMode = "open", bool IsMember = false, bool IsFavorite = false, string[]? EnabledFeatures = null, string[]? MyCapabilities = null, bool IsTrusted = false, int TrustVersion = 0);
 public sealed record GroupWrite(string Name, string Description, string JoinMode = "open", string? Password = null);
 public sealed record GroupPage(Group[] Items, string? NextCursor);
 public sealed record GroupJoin(string? Password = null);

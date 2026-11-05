@@ -4,7 +4,7 @@ namespace AmorRP.Server.Features.Trading;
 
 // Caller owns a transaction and the community advisory lock. Membership/asset writers
 // use the same lock, so cancellation, expiry and exchange cannot race one another.
-public sealed class TradeReservations(AmorDbContext db, TimeProvider time)
+public sealed class TradeReservations(AmorDbContext db, TimeProvider time, AmorRP.Server.Features.Billing.DebtSettlement settlement)
 {
     public static bool Active(TradeRow t) => t.State is "invited" or "open" or "confirming";
     public async Task ReleaseAsync(TradeRow t, CancellationToken ct)
@@ -26,7 +26,10 @@ public sealed class TradeReservations(AmorDbContext db, TimeProvider time)
     public async Task EndAsync(TradeRow t, string state, string reason, CancellationToken ct)
     {
         if (!Active(t)) return;
-        await ReleaseAsync(t, ct); t.State = state; t.EndReason = reason; t.Revision++;
+        await ReleaseAsync(t, ct);
+        foreach (var id in new[] { t.InitiatorId, t.RecipientId })
+            await settlement.CollectAsync(await db.Memberships.SingleAsync(x => x.CommunityId == t.CommunityId && x.CharacterId == id, ct), "trade.release", t.Id, ct);
+        t.State = state; t.EndReason = reason; t.Revision++;
         t.InitiatorConfirmed = false; t.RecipientConfirmed = false; t.InitiatorFinalConfirmed = false; t.RecipientFinalConfirmed = false;
     }
     public async Task CancelForAsync(Guid community, Guid? member, string reason, CancellationToken ct)

@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AmorRP.Server.Features.Currency;
 
-public sealed class CurrencyService(AmorDbContext db, SessionAccess sessions, CommunityAccess communities, CommandStore commands)
+public sealed class CurrencyService(AmorDbContext db, SessionAccess sessions, CommunityAccess communities, CommandStore commands, AmorRP.Server.Features.Billing.DebtSettlement settlement)
 {
     public async Task<IResult> MemberBalanceAsync(HttpContext http, Guid communityId, Guid characterId, CancellationToken ct)
     {
@@ -38,6 +38,9 @@ public sealed class CurrencyService(AmorDbContext db, SessionAccess sessions, Co
         op.SubjectCharacterId = target.CharacterId; op.Delta = delta; op.BeforeBalance = target.Owned; op.AfterBalance = after;
         op.Reason = body.Reason; op.Summary = $"Currency adjustment: {delta.ToString(CultureInfo.InvariantCulture)}; balance {target.Owned.ToString(CultureInfo.InvariantCulture)} → {after.ToString(CultureInfo.InvariantCulture)}.";
         CurrencyAccounts.Apply(target, delta);
+        await settlement.CollectAsync(target, "currency.adjust", op.Id, ct);
+        op.AfterBalance = target.Owned;
+        op.Summary = $"Currency adjustment: {delta.ToString(CultureInfo.InvariantCulture)}; balance {op.BeforeBalance} → {target.Owned}. Automatic bill repayments are recorded separately.";
         var result = await commands.SaveAsync(http, op, new CommandResult<Balance>(op.Id, CommunityAccess.Balance(community, target)), ct);
         await tx.CommitAsync(ct); return result;
     }

@@ -5,6 +5,12 @@ public static class UserFeedback
 {
     public static string Error(HttpStatusCode status, string code, string serverMessage) => code switch
     {
+        "repayment_pending" => "Coins are being applied to unpaid bills. Try again after automatic repayment finishes.",
+        "billing_not_trusted" => "The customer must enable Trusted for automatic billing on this group's profile.",
+        "billing_insufficient_funds" => "The customer cannot afford this bill. Nothing was charged; this community does not allow new debt.",
+        "billing_cooldown" => "Wait 30 seconds before charging this customer again. Check the previous bill in the records.",
+        "bill_identity_mismatch" => "That bill ID already belongs to another charge. Refresh its receipt.",
+        "invalid_bill" => "Choose a customer, a positive whole-number amount and a service of up to 100 characters.",
         "treasury_return_unavailable" => "Your balance is full or this return was already collected. Spend some coins, refresh and try again.",
         "group_capability_required" => "You do not have permission for this group action.",
         "group_feature_disabled" => "The community owner has not enabled that group feature.",
@@ -90,6 +96,9 @@ public static class UserFeedback
         CommandKind.ConfirmTrade => "Offer accepted. Both players must complete the final review.",
         CommandKind.FinalConfirmTrade => "Final confirmation saved. Waiting for the other player.",
         CommandKind.CancelTrade => "Trade cancelled. Your items and currency have been released.",
+        CommandKind.EditGroupTrust => "Automatic billing trust saved.",
+        CommandKind.EditBillingPolicy => "Billing settings saved.",
+        CommandKind.CreateBill => "Bill recorded. Open Billing for its receipt.",
         CommandKind.DepositTreasury => "Coins deposited into the group treasury.",
         CommandKind.WithdrawTreasury => "Coins withdrawn to your character.",
         CommandKind.CollectTreasuryReturn => "Treasury return collected.",

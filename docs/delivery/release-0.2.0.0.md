@@ -50,7 +50,8 @@ recovery, scoped pagination and migration preservation/downgrade protection.
 Linked plugin transport tests cover typed treasury command routing and group scope.
 The full server, plugin helper and dependency-boundary suites must pass, alongside
 schema, documentation, package and startup checks, before main feed publication.
-Windows CI supplies the distributed package. In-game acceptance remains pending.
+Windows CI supplies the distributed package. The maintainer confirmed all four major
+in-game checks work on 2026-11-05.
 
 ## Major in-game checks
 

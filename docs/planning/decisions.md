@@ -34,6 +34,7 @@ not claims about the installed plugin. Follow the [work order](README.md).
 | D25 | Discord rewards have weekly limits and an owner-configurable personal balance ceiling. Stop rewards at the ceiling; spending can resume eligibility. Owners have enough controls to tolerate treasury deposits lowering personal balance. |
 | D26 | Disbanding a linked group disables earnings and ejects the bot from that Discord server. Render stays testing until the planned private Ubuntu cutover. |
 | D27 | The future private server uses Ubuntu on the maintainer's GMKtec NucBox M8 (Ryzen 5 PRO 6650H, 16 GB RAM, 512 GB storage). Setup/cutover is future work; do not provision it now. |
+| D29 | Confirmed 2026-11-05: unpaid bills survive group disbanding and future repayments belong to its former owner, delivered through the existing Treasury returns path. |
 | D28 | Use main only and application versions 0.feature.0.patch: feature releases increment the second part, patches increment the fourth, first/third stay 0. No new feature/testing/milestone branches or testing feed; no application-version bump for documentation alone. |
 
 ## Proposed implementation defaults
@@ -44,7 +45,6 @@ only the relevant entries when their feature starts; none requires a question no
 | Topic | Proposed default | Resolve by |
 | --- | --- | --- |
 | Debt order | Oldest bill first with stable tie-breaking; priority ranks can be added/configured if needed. Full collection is accepted; the exact priority UI is not. | S03 |
-| Disbanded creditor claims | Preserve claim IDs, order and history; assign the remaining treasury entitlement to the former group owner. Do not erase character debt on group deletion. | S03, before bills ship |
 | Tax and commission basis | Apply community tax to collected service proceeds, then calculate cashier commission on the remainder. Snapshot allocation on the bill. | S04 |
 | Tax revenue destination | Explicit community-controlled destination/account, with balanced receipts. Do not implicitly pay a random administrator. | S04 |
 | Staff cut | One group-wide commission percentage, paid to the issuing cashier. Per-staff rates are later. | S04 |
@@ -59,8 +59,8 @@ only the relevant entries when their feature starts; none requires a question no
 
 ## Questions and changes
 
-There is no blocking question for starting S01. Financial claim transfer must be
-resolved by S03; permanent-host readiness is a gate for S11. Those can wait until
+Financial claim entitlement was settled for S03 on 2026-11-05 (D29).
+Permanent-host readiness remains a gate for S11. Those can wait until
 that work starts. Do not turn every numeric default, label or control arrangement
 into a new approval request.
 

@@ -76,6 +76,16 @@ public sealed class CommandRoutesTests
     }
 
     [Fact]
+    public void Billing_replies_keep_their_typed_handler_and_group_target()
+    {
+        var bill = new CommandRequest("POST", $"api/v2/communities/{Id}/groups/{Id}/bills", null, null);
+        Assert.Equal(CommandHandler.Billing, bill.Operation.Handler); Assert.False(bill.AppliesToGroup(Guid.NewGuid()));
+        Assert.Equal(CommandHandler.GroupProfile, Resolve("PUT", "groups/{id}/trust").Handler);
+        Assert.Equal(CommandHandler.BillingPolicy, Resolve("PUT", "billing-policy").Handler);
+        Assert.Equal(RefreshTargets.Community, bill.Operation.Refresh);
+    }
+
+    [Fact]
     public void Refresh_targets_are_scoped_to_the_affected_features()
     {
         Assert.Equal(RefreshTargets.Groups, Resolve("PUT", "groups/{id}/notice").Refresh);

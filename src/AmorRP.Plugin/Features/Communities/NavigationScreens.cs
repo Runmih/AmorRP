@@ -9,6 +9,7 @@ public sealed partial class CommunitiesPanel
     {
         if (community == null) { Wrapped("Choose a community, or use Join / Create community above."); return; }
         DrawHomeOverview();
+        DrawMyBills();
         DrawOwnershipOffer();
         if (Owner) { DrawWeeklyPolicy(); DrawCommunitySettings(); }
     }

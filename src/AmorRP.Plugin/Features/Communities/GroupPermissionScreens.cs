@@ -18,6 +18,7 @@ public sealed partial class CommunitiesPanel
         GroupCapabilities.Announcements => "Group announcements",
         GroupCapabilities.Notice => "Noticeboard post",
         GroupCapabilities.Events => "Group events",
+        GroupCapabilities.Billing => "Bill trusted customers",
         GroupCapabilities.Treasury => "Currency treasury",
         GroupCapabilities.TreasuryRecords => "View treasury records",
         GroupCapabilities.TreasuryWithdraw => "Withdraw treasury currency",

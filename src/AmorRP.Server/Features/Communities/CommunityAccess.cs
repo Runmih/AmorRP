@@ -31,7 +31,8 @@ public sealed class CommunityAccess(AmorDbContext db)
     public static AmorRP.Contracts.Currency.Currency Currency(CommunityRow community) => new(community.CurrencyId, community.Id, community.CurrencyName, community.CurrencySymbol, community.CurrencyVersion, community.CurrencyIconAssetId);
     public static Balance Balance(CommunityRow community, MembershipRow member) => new(community.CurrencyId, member.CharacterId,
         member.Owned.ToString(System.Globalization.CultureInfo.InvariantCulture), member.Reserved.ToString(System.Globalization.CultureInfo.InvariantCulture),
-        (member.Owned - member.Reserved).ToString(System.Globalization.CultureInfo.InvariantCulture), member.BalanceVersion);
+        AmorRP.Server.Features.Currency.CurrencyAccounts.Available(member).ToString(System.Globalization.CultureInfo.InvariantCulture), member.BalanceVersion,
+        (member.CollectionPending ? member.Owned - member.Reserved : 0).ToString(System.Globalization.CultureInfo.InvariantCulture));
     public static string MemberETag(MembershipRow member) => CommandStore.ETag("member-" + member.CommunityId.ToString("N"), member.CharacterId, member.Version);
     public async Task<Community> ViewAsync(CommunityRow community, MembershipRow member, DateTimeOffset now, CancellationToken ct)
     {

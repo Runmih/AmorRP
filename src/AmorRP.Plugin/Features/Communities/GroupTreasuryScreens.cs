@@ -127,6 +127,9 @@ public sealed partial class CommunitiesPanel
         treasuryReadVersion++; treasuryRequestedFor = null;
         treasuryBalance = result.Treasury; lastTreasuryReceipt = result.Receipt;
         AcceptTreasuryPersonalBalance(result.CharacterBalance);
+        if (WholeUnits.TryNormalize(result.Receipt.CharacterAfter, out _, out var beforeRepayment)
+            && WholeUnits.TryNormalize(result.CharacterBalance.Owned, out _, out var afterRepayment) && afterRepayment < beforeRepayment)
+            actionResult = "Coins received and applied to unpaid bills. See Your bills and debt on Home.";
         treasuryAmount = treasuryNote = "";
     }
 }

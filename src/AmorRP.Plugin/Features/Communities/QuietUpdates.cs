@@ -17,6 +17,6 @@ public sealed partial class CommunitiesPanel
         if (targets.HasFlag(RefreshTargets.Invitations)) invitationRefresh.Invalidate();
         if (targets.HasFlag(RefreshTargets.CommunityLogo)) { logos.Clear(); logoReadKey = ""; }
         if (targets.HasFlag(RefreshTargets.CurrencyIcon)) { icons.Clear(); iconReadKey = ""; }
-        if (targets.HasFlag(RefreshTargets.Community)) refreshNeeded = true;
+        if (targets.HasFlag(RefreshTargets.Community)) { refreshNeeded = true; myBillsRefresh.Invalidate(); }
     }
 }

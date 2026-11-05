@@ -752,3 +752,59 @@ list. Collection can run after leaving/deletion and pays the same original accou
 it cannot redirect currency or restore group access. Former owners may read retained
 treasury records, including their disband receipts, through the records endpoint.
 The records contain financial notes only, not group announcements or member rosters.
+
+## Trusted billing and debt — 0.3.0.0
+
+| Method | Route | Authorization |
+| --- | --- | --- |
+| GET | `/api/v2/communities/{communityId}/billing-policy` | Active community member |
+| PUT | `/api/v2/communities/{communityId}/billing-policy` | Active community owner only |
+| PUT | `/api/v2/communities/{communityId}/groups/{groupId}/trust` | Active community character; own trust only; treasury enabled to opt in |
+| POST | `/api/v2/communities/{communityId}/groups/{groupId}/bills` | Active group owner or treasury.bill staff; treasury enabled; active trusted customer |
+| GET | `/api/v2/communities/{communityId}/groups/{groupId}/bills` | Active group records staff or owner; billing staff see only their issued bills; deleted group former owner |
+| GET | `/api/v2/communities/{communityId}/bills/mine` | Current verified character with retained community membership; own bills only |
+| GET | `/api/v2/communities/{communityId}/bills/{billId}/payments` | Payer or issuing character; otherwise authorized group records staff or former owner of deleted group |
+
+Group trust is per verified character and community, independent of group membership.
+The group summary returns isTrusted and trustVersion for the caller only. Trust PUT
+uses If-Match `"group-trust:{groupId:N}:{characterId:N}:{trustVersion}"`, where absent
+rows start at version zero. Enabling requires an approved treasury; disabling remains
+possible after feature revocation. Community departure/removal clears trust and advances
+its version. Group departure alone does not change customer trust. Removing trust
+prevents new bills and does not cancel existing debt.
+
+Billing requires the enabled treasury feature plus owner authority or `treasury.bill`.
+The customer must be an active community member who trusts that group, with no online
+session requirement. A cashier's fresh charge to the same customer/group has a 30-second
+cooldown. BillCreate.billId is an independent durable UUIDv7 identity. Repeating the same
+bill ID with a fresh operation key returns the existing bill; changed intent returns
+409. Same operation key replays normally, including its seven-day expiry safeguards.
+The existing bill identity survives replay expiry. Amounts are positive whole units;
+service is required plain text up to 100 characters. These commands use the existing
+community transaction lock, and new billing routes have no API v1 aliases.
+
+Debt is off by default. Only the community owner edits BillingPolicy with If-Match.
+When disabled, unaffordable new bills fail without a partial charge. Disabling new debt
+does not stop collecting previously accepted bills. Creation pays old bills first,
+records only actually collected coins as treasury funds, and leaves the remainder owed.
+Personal bill pages include totalOutstanding across all pages. Lists sort by server
+CreatedAt with a stable ID tie-break; cursors are actor/community/list scoped.
+
+DebtSettlement applies all unreserved character funds to oldest unpaid bills, preserving
+trade reservations. Positive adjustments, trade settlement, reservation release,
+treasury withdrawals and disband returns use the same collection function. Bills and
+their two-sided payment rows commit with the triggering transaction. A batch processes
+at most 128 bills; remaining available funds become heldForDebt and Available is zero
+until durable continuation finishes. Held funds cannot be offered, deposited or debited.
+A five-second worker processes bounded batches with oldest-attempt-first fairness;
+errors leave funds held for retry. Payment sources link to a bill, operation or trade
+through source/sourceId; automatic worker payments have no source ID. No receipt claims
+that uncovered debt is newly minted currency.
+
+Collection credits the original group treasury, including after disbanding; receipts
+and claim priority remain intact. Such receipts appear in the former owner's existing
+Treasury returns list. Owner collection is an explicit character credit and itself
+repays that owner's debts. Collection never recursively pays another character, so
+reciprocal/cyclic claims cannot create an unbounded automatic payment loop. Payers and
+issuers can read their own bill payment receipts after departure without getting group
+member lists, announcements or unrelated financial records.

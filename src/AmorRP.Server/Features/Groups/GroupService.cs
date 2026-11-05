@@ -17,12 +17,14 @@ namespace AmorRP.Server.Features.Groups;
 public sealed partial class GroupService(AmorDbContext db, SessionAccess sessions, CommunityAccess communities, CommandStore commands, PageCursor pages, IOptions<ServicePolicyOptions> policy, GroupLifecycle lifecycle)
 {
     private readonly HashSet<Guid> joined = [], favorites = [];
+    private readonly Dictionary<Guid, GroupTrustRow> viewerTrusts = [];
     private readonly Dictionary<Guid, GroupMembershipRow> viewerMemberships = [];
     private async Task LoadViewerAsync(Guid actor, Guid communityId, CancellationToken ct)
     {
         var memberships = await db.GroupMemberships.Where(x => x.CommunityId == communityId && x.CharacterId == actor).ToArrayAsync(ct);
         foreach (var membership in memberships) viewerMemberships[membership.GroupId] = membership;
         joined.UnionWith(memberships.Select(x => x.GroupId));
+        foreach (var trust in await db.GroupTrusts.Where(x => x.CommunityId == communityId && x.CharacterId == actor).ToArrayAsync(ct)) viewerTrusts[trust.GroupId] = trust;
         favorites.UnionWith(await db.GroupFavorites.Where(x => x.CommunityId == communityId && x.CharacterId == actor).Select(x => x.GroupId).ToArrayAsync(ct));
     }
     private Group View(GroupRow row)
@@ -30,7 +32,8 @@ public sealed partial class GroupService(AmorDbContext db, SessionAccess session
         var viewer = viewerMemberships.GetValueOrDefault(row.Id);
         return new(row.Id, row.CommunityId, row.Name, row.Description, row.LogoAssetId, row.LogoVersion, row.Version,
             CommandStore.ETag("group", row.Id, row.Version), row.OwnerCharacterId, row.JoinMode, joined.Contains(row.Id), favorites.Contains(row.Id),
-            row.EnabledFeatures, GroupAuthorization.Effective(row, viewer?.CharacterId ?? Guid.Empty, viewer));
+            row.EnabledFeatures, GroupAuthorization.Effective(row, viewer?.CharacterId ?? Guid.Empty, viewer),
+            viewerTrusts.GetValueOrDefault(row.Id)?.Trusted ?? false, viewerTrusts.GetValueOrDefault(row.Id)?.Version ?? 0);
     }
     private async Task<GroupRow> RequireAsync(Guid communityId, Guid groupId, CancellationToken ct)
     {

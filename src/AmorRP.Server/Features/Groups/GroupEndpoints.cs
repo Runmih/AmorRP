@@ -5,6 +5,7 @@ public static class GroupEndpoints
 {
     public static void MapGroupEndpoints(this WebApplication app)
     {
+        app.MapPut("/api/v2/communities/{communityId}/groups/{groupId}/trust", (HttpContext h, Guid communityId, Guid groupId, GroupTrustEdit b, GroupService s, CancellationToken ct) => s.TrustAsync(h, communityId, groupId, b, ct));
         app.MapGet("/api/v2/communities/{communityId}/groups", (HttpContext h, Guid communityId, GroupService s, CancellationToken ct) => s.ListAsync(h, communityId, ct));
         app.MapPost("/api/v2/communities/{communityId}/groups", (HttpContext h, Guid communityId, GroupWrite b, GroupService s, CancellationToken ct) => s.WriteAsync(h, communityId, null, b, ct));
         app.MapGet("/api/v2/communities/{communityId}/groups/{groupId}", (HttpContext h, Guid communityId, Guid groupId, GroupService s, CancellationToken ct) => s.ReadAsync(h, communityId, groupId, ct));

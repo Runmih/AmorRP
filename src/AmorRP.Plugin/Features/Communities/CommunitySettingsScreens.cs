@@ -9,6 +9,7 @@ public sealed partial class CommunitiesPanel
         if (!Owner || community == null || !ImGui.CollapsingHeader("Community Settings")) return;
         if (!ImGui.BeginTabBar("CommunitySettingsTabs")) return;
         if (ImGui.BeginTabItem("Currency")) { DrawRefreshState(iconRefresh, "Currency icon"); DrawCurrencyIconEditor(); ImGui.EndTabItem(); }
+        if (ImGui.BeginTabItem("Economy")) { DrawBillingPolicy(); ImGui.EndTabItem(); }
         if (ImGui.BeginTabItem("Invitations")) { DrawInvitations(); ImGui.EndTabItem(); }
         if (ImGui.BeginTabItem("Delete Community"))
         {

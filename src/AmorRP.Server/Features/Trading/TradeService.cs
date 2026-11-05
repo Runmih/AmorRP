@@ -12,7 +12,7 @@ namespace AmorRP.Server.Features.Trading;
 
 public sealed partial class TradeService(AmorDbContext db, SessionAccess sessions, CommunityAccess communities,
     CommandStore commands, TradeReservations reservations, PageCursor pages, TimeProvider time,
-    IOptions<ServicePolicyOptions> policy)
+    IOptions<ServicePolicyOptions> policy, AmorRP.Server.Features.Billing.DebtSettlement settlement)
 {
     public async Task<IResult> ReadAsync(HttpContext h, Guid communityId, Guid? id, CancellationToken ct)
     {

@@ -1,6 +1,6 @@
 # Architecture
 
-This describes the implemented system for plugin/server 0.2.0.0. Older milestone
+This describes the implemented system for plugin/server 0.3.0.0. Older milestone
 plans and release records describe their own checkpoints; they are not the current
 source map. See [repository layout](repository-layout.md) for file navigation and
 [versions](versions.md) for dependency pins and protocol boundaries.
@@ -130,3 +130,22 @@ polling. They must not be described as existing dependencies or release guarante
 Amor RP's current API is `/api/v2`; XIVAuth independently uses `/api/v1/characters`.
 The remaining v1 wire adapter and persisted request/receipt conversion are described
 in [API](api.md). This maintenance release changes neither protocol.
+
+## Billing — 0.3.0.0
+
+BillingService owns trust/authority checks, durable bill identity, debt policy and
+financial reads. DebtSettlement owns the only character-to-creditor collection path,
+inside the existing community transaction lock. CurrencyAccounts still validates
+ordinary debits. Adjustments, treasury credits and trade completion/release explicitly
+invoke settlement before building their response. Trade completion honors previously
+reserved offers, then collects the remaining/newly received funds.
+
+A batch handles at most 128 bills. Remaining unreserved coins are held by the persisted
+membership.CollectionPending marker; every ordinary debit and offer respects that marker.
+DebtCollectionWorker continues bounded work in fair oldest-attempt order, retaining the
+hold on failure. Every payment lowers an existing outstanding bill and transfers the
+same amount to its original group treasury, with an immutable two-sided receipt.
+There are no recursive calls to public transfer/billing commands, and collection never
+credits another character. Archived-group receipts use the existing explicit treasury
+return collection path, itself an ordinary character credit subject to repayment.
+This keeps reciprocal claims from creating an unbounded automatic settlement cycle.

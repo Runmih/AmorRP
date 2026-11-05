@@ -5,7 +5,7 @@ using AmorRP.Server.Infrastructure.Security;
 using Microsoft.EntityFrameworkCore;
 namespace AmorRP.Server.Features.Currency;
 
-public sealed class TreasuryLedger(AmorDbContext db, TimeProvider time)
+public sealed class TreasuryLedger(AmorDbContext db, TimeProvider time, AmorRP.Server.Features.Billing.DebtSettlement settlement)
 {
     private static string Units(long amount) => amount.ToString(CultureInfo.InvariantCulture);
     public static TreasuryBalance Balance(GroupRow group, CommunityRow community) =>
@@ -30,7 +30,9 @@ public sealed class TreasuryLedger(AmorDbContext db, TimeProvider time)
             Kind = kind, Amount = amount, GroupBefore = group.TreasuryOwned, GroupAfter = groupAfter,
             CharacterBefore = member.Owned, CharacterAfter = characterAfter, Note = note, OccurredAt = time.GetUtcNow() };
         group.TreasuryOwned = groupAfter; group.TreasuryVersion++; CurrencyAccounts.Apply(member, delta);
-        db.TreasuryEntries.Add(entry); return entry;
+        db.TreasuryEntries.Add(entry);
+        if (!deposit) await settlement.CollectAsync(member, "treasury." + kind, operation.Id, ct);
+        return entry;
     }
 
     public async Task<TreasuryEntryRow?> ReturnToOwnerAsync(GroupRow group, OperationRow operation, CancellationToken ct)

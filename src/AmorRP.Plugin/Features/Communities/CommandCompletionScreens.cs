@@ -14,7 +14,7 @@ public sealed partial class CommunitiesPanel
         // A recovered action may belong to another community. Its durable
         // receipt is still acknowledged, but must not overwrite this editor.
         if (!request.AppliesToCommunity(community?.Id)) return;
-        if (request.Operation.Handler is CommandHandler.GroupProfile or CommandHandler.GroupActivity or CommandHandler.Treasury
+        if (request.Operation.Handler is CommandHandler.GroupProfile or CommandHandler.GroupActivity or CommandHandler.Treasury or CommandHandler.Billing
             && !request.AppliesToGroup(selectedGroupId)) return;
         switch (request.Operation.Handler)
         {
@@ -22,6 +22,8 @@ public sealed partial class CommunitiesPanel
             case CommandHandler.Home: ApplyHomeSuccess(request, response.Json); break;
             case CommandHandler.GroupProfile: ApplyGroupProfileSuccess(request, response.Json); break;
             case CommandHandler.GroupActivity: ApplyGroupActivitySuccess(request); break;
+            case CommandHandler.Billing: ApplyBillingSuccess(response.Json); break;
+            case CommandHandler.BillingPolicy: billingPolicyEtag = ""; AcceptBillingPolicy(ReadCommand<BillingPolicy>(response.Json)); billingPolicyRefresh.Invalidate(); break;
             case CommandHandler.Treasury: ApplyTreasurySuccess(response.Json); break;
             case CommandHandler.Inventory: ApplyInventorySuccess(request, response, recovering); break;
             case CommandHandler.Trade: ApplyTradeSuccess(request, response.Json); break;

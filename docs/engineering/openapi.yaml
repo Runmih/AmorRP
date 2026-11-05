@@ -7984,6 +7984,431 @@ paths:
       x-authorization-policy: Current verified character who owns the deleted group;
         original retained account
       x-implementation-status: implemented
+  /api/v2/communities/{communityId}/billing-policy:
+    get:
+      operationId: getBillingPolicy
+      tags:
+      - Currency
+      summary: Read billing settings
+      security:
+      - Session: []
+      parameters:
+      - name: communityId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingPolicy'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Active community member
+      x-implementation-status: implemented
+    put:
+      operationId: editBillingPolicy
+      tags:
+      - Currency
+      summary: Save community debt policy
+      security:
+      - Session: []
+      parameters:
+      - name: communityId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: If-Match
+        in: header
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillingPolicyResult'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Active community owner only
+      x-implementation-status: implemented
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BillingPolicyEdit'
+  /api/v2/communities/{communityId}/groups/{groupId}/trust:
+    put:
+      operationId: editGroupBillingTrust
+      tags:
+      - Currency
+      summary: Save own automatic billing trust
+      security:
+      - Session: []
+      parameters:
+      - name: communityId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: groupId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: If-Match
+        in: header
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupResult'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Active community character; own trust only; treasury enabled
+        to opt in
+      x-implementation-status: implemented
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GroupTrustEdit'
+  /api/v2/communities/{communityId}/groups/{groupId}/bills:
+    post:
+      operationId: createBill
+      tags:
+      - Currency
+      summary: Charge a trusted customer
+      security:
+      - Session: []
+      parameters:
+      - name: communityId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: groupId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillResult'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Active group owner or treasury.bill staff; treasury enabled;
+        active trusted customer
+      x-implementation-status: implemented
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BillCreate'
+    get:
+      operationId: getGroupBills
+      tags:
+      - Currency
+      summary: List group bills
+      security:
+      - Session: []
+      parameters:
+      - name: communityId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: groupId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+      - name: cursor
+        in: query
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillPage'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Active group records staff or owner; billing staff see
+        only their issued bills; deleted group former owner
+      x-implementation-status: implemented
+  /api/v2/communities/{communityId}/bills/mine:
+    get:
+      operationId: getOwnBills
+      tags:
+      - Currency
+      summary: List own bills and debt
+      security:
+      - Session: []
+      parameters:
+      - name: communityId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+      - name: cursor
+        in: query
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillPage'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Current verified character with retained community membership;
+        own bills only
+      x-implementation-status: implemented
+  /api/v2/communities/{communityId}/bills/{billId}/payments:
+    get:
+      operationId: getBillPayments
+      tags:
+      - Currency
+      summary: Read bill payment receipts
+      security:
+      - Session: []
+      parameters:
+      - name: communityId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: billId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+      - name: cursor
+        in: query
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BillPaymentPage'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Payer or issuing character; otherwise authorized group
+        records staff or former owner of deleted group
+      x-implementation-status: implemented
 components:
   securitySchemes:
     Session:
@@ -8413,6 +8838,9 @@ components:
     Balance:
       type: object
       properties:
+        heldForDebt:
+          type: string
+          default: '0'
         currencyId: *id002
         characterId: *id002
         owned: &id014
@@ -10331,7 +10759,7 @@ components:
       properties:
         capabilities:
           type: array
-          maxItems: 5
+          maxItems: 6
           uniqueItems: true
           items:
             type: string
@@ -10341,6 +10769,7 @@ components:
             - events.manage
             - treasury.records
             - treasury.withdraw
+            - treasury.bill
     GroupMemberResult:
       type: object
       required:
@@ -10355,6 +10784,12 @@ components:
     Group:
       type: object
       properties:
+        isTrusted:
+          type: boolean
+          default: false
+        trustVersion:
+          type: integer
+          default: 0
         enabledFeatures:
           type: array
           maxItems: 4
@@ -10368,7 +10803,7 @@ components:
             - treasury
         myCapabilities:
           type: array
-          maxItems: 5
+          maxItems: 6
           uniqueItems: true
           items:
             type: string
@@ -10378,6 +10813,7 @@ components:
             - events.manage
             - treasury.records
             - treasury.withdraw
+            - treasury.bill
         id: *id009
         communityId: *id009
         name:
@@ -10606,7 +11042,7 @@ components:
       properties:
         capabilities:
           type: array
-          maxItems: 5
+          maxItems: 6
           uniqueItems: true
           items:
             type: string
@@ -10616,6 +11052,7 @@ components:
             - events.manage
             - treasury.records
             - treasury.withdraw
+            - treasury.bill
           nullable: true
         etag:
           type: string
@@ -10850,6 +11287,202 @@ components:
       required:
       - items
       - nextCursor
+      additionalProperties: false
+    BillingPolicy:
+      type: object
+      properties:
+        allowDebt:
+          type: boolean
+        version:
+          type: integer
+        etag:
+          type: string
+      required:
+      - allowDebt
+      - version
+      - etag
+      additionalProperties: false
+    BillingPolicyEdit:
+      type: object
+      properties:
+        allowDebt:
+          type: boolean
+      required:
+      - allowDebt
+      additionalProperties: false
+    GroupTrustEdit:
+      type: object
+      properties:
+        trusted:
+          type: boolean
+      required:
+      - trusted
+      additionalProperties: false
+    BillCreate:
+      type: object
+      properties:
+        billId:
+          type: string
+          format: uuid
+        characterId:
+          type: string
+          format: uuid
+        amount:
+          type: string
+          pattern: ^[0-9]{1,64}$
+        service:
+          type: string
+          maxLength: 100
+      required:
+      - billId
+      - characterId
+      - amount
+      - service
+      additionalProperties: false
+    Bill:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        communityId:
+          type: string
+          format: uuid
+        groupId:
+          type: string
+          format: uuid
+        issuerCharacterId:
+          type: string
+          format: uuid
+        characterId:
+          type: string
+          format: uuid
+        groupName:
+          type: string
+        issuerName:
+          type: string
+        characterName:
+          type: string
+        service:
+          type: string
+        amount:
+          type: string
+        collected:
+          type: string
+        outstanding:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+      - id
+      - communityId
+      - groupId
+      - issuerCharacterId
+      - characterId
+      - groupName
+      - issuerName
+      - characterName
+      - service
+      - amount
+      - collected
+      - outstanding
+      - createdAt
+      additionalProperties: false
+    BillPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Bill'
+        nextCursor:
+          type: string
+          nullable: true
+        totalOutstanding:
+          type: string
+      required:
+      - items
+      - nextCursor
+      - totalOutstanding
+      additionalProperties: false
+    BillPayment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        billId:
+          type: string
+          format: uuid
+        amount:
+          type: string
+        characterBefore:
+          type: string
+        characterAfter:
+          type: string
+        treasuryBefore:
+          type: string
+        treasuryAfter:
+          type: string
+        source:
+          type: string
+        sourceId:
+          type: string
+          format: uuid
+          nullable: true
+        occurredAt:
+          type: string
+          format: date-time
+      required:
+      - id
+      - billId
+      - amount
+      - characterBefore
+      - characterAfter
+      - treasuryBefore
+      - treasuryAfter
+      - source
+      - sourceId
+      - occurredAt
+      additionalProperties: false
+    BillPaymentPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/BillPayment'
+        nextCursor:
+          type: string
+          nullable: true
+      required:
+      - items
+      - nextCursor
+      additionalProperties: false
+    BillResult:
+      type: object
+      properties:
+        operationId:
+          type: string
+          format: uuid
+        result:
+          $ref: '#/components/schemas/Bill'
+      required:
+      - operationId
+      - result
+      additionalProperties: false
+    BillingPolicyResult:
+      type: object
+      properties:
+        operationId:
+          type: string
+          format: uuid
+        result:
+          $ref: '#/components/schemas/BillingPolicy'
+      required:
+      - operationId
+      - result
       additionalProperties: false
 x-status: planned
 x-defaults-reviewed: '2026-10-06'

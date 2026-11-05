@@ -10,6 +10,8 @@ public sealed class MembershipRow
     public string[] Capabilities { get; set; } = [];
     public bool TradingRestricted { get; set; }
     public int Version { get; set; } = 1;
+    public long LastCollectionAttempt { get; set; }
+    public bool CollectionPending { get; set; }
     public long Owned { get; set; }
     public long Reserved { get; set; }
     public int BalanceVersion { get; set; } = 1;

@@ -159,6 +159,8 @@ public sealed partial class CommunityService(AmorDbContext db, SessionAccess ses
         422, "invalid_request", "Weekly limits exceed supported bounds.");
     private async Task EndMemberAccessAsync(Guid community, Guid member, CancellationToken ct)
     {
+        foreach (var trust in await db.GroupTrusts.Where(x => x.CommunityId == community && x.CharacterId == member && x.Trusted).ToArrayAsync(ct))
+        { trust.Trusted = false; trust.Version++; }
         foreach (var groupMember in await db.GroupMemberships.Where(x => x.CommunityId == community && x.CharacterId == member).ToArrayAsync(ct))
         { groupMember.Capabilities = []; groupMember.PermissionVersion = Guid.CreateVersion7(); }
         await trades.CancelForAsync(community, member, "Membership ended or trading was restricted.", ct);

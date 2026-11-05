@@ -19,7 +19,7 @@ public sealed partial class TradeService
         AmorRP.Contracts.Currency.WholeUnits.TryNormalize(body.CurrencyAmount, out _, out var amount);
         var member = await db.Memberships.SingleAsync(x => x.CommunityId == row.CommunityId && x.CharacterId == actor, ct);
         var oldAmount = actor == row.InitiatorId ? row.InitiatorCurrency : row.RecipientCurrency;
-        ApiFault.Require(amount <= member.Owned - member.Reserved + oldAmount, 409, "insufficient_available_quantity", "Insufficient available currency.");
+        ApiFault.Require(amount <= AmorRP.Server.Features.Currency.CurrencyAccounts.Available(member) + oldAmount, 409, "insufficient_available_quantity", "Insufficient available currency.");
         member.Reserved = member.Reserved - oldAmount + amount; member.BalanceVersion++;
         if (actor == row.InitiatorId) row.InitiatorCurrency = amount; else row.RecipientCurrency = amount;
         var previous = await db.TradeLines.Where(x => x.CommunityId == row.CommunityId && x.TradeId == row.Id && x.CharacterId == actor).ToArrayAsync(ct);
@@ -45,6 +45,7 @@ public sealed partial class TradeService
             }
             else snapshot.AuthorId = (await db.Letters.SingleAsync(x => x.CommunityId == row.CommunityId && x.Id == holding.LetterId, ct)).AuthorCharacterId;
         }
+        await settlement.CollectAsync(member, "trade.offer", row.Id, ct);
         row.Revision++; row.InitiatorConfirmed = false; row.RecipientConfirmed = false; community.InventoryVersion++;
     }
     private async Task CompleteAsync(TradeRow row, CancellationToken ct)
@@ -57,8 +58,10 @@ public sealed partial class TradeService
         var lines = await db.TradeLines.Where(x => x.CommunityId == row.CommunityId && x.TradeId == row.Id).ToArrayAsync(ct);
         var holdings = (await db.Holdings.Where(x => x.CommunityId == row.CommunityId && (x.CharacterId == row.InitiatorId || x.CharacterId == row.RecipientId)).ToArrayAsync(ct)).ToList();
         await reservations.ReleaseAsync(row, ct);
-        AmorRP.Server.Features.Currency.CurrencyAccounts.Apply(a, nextA - a.Owned);
-        AmorRP.Server.Features.Currency.CurrencyAccounts.Apply(b, nextB - b.Owned);
+        AmorRP.Server.Features.Currency.CurrencyAccounts.CompleteTrade(a, nextA);
+        AmorRP.Server.Features.Currency.CurrencyAccounts.CompleteTrade(b, nextB);
+        await settlement.CollectAsync(a, "trade.complete", row.Id, ct);
+        await settlement.CollectAsync(b, "trade.complete", row.Id, ct);
         // Net outgoing first: full-inventory swaps and near-limit stack exchanges remain possible.
         foreach (var line in lines.Where(x => CraftingTypes.IsConsumable(x.TypeId))) { var source = holdings.Single(x => x.Id == line.HoldingId); source.Quantity -= line.Quantity; source.Version++; }
         foreach (var line in lines)

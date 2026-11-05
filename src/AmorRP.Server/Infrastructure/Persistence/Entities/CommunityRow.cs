@@ -14,6 +14,8 @@ public sealed class CommunityRow
     public DateTimeOffset? DeletedAt { get; set; }
     public Guid? LogoAssetId { get; set; }
     public int LogoVersion { get; set; } = 1;
+    public bool AllowDebt { get; set; }
+    public int BillingPolicyVersion { get; set; } = 1;
     public Guid CurrencyId { get; set; } = Guid.CreateVersion7();
     public string CurrencyName { get; set; } = "";
     public string CurrencySymbol { get; set; } = "";

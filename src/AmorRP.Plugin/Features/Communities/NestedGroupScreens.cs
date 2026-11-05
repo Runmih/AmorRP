@@ -40,14 +40,14 @@ public sealed partial class CommunitiesPanel
     }
     private void SelectGroup(GroupProfile row)
     {
-        ClearGroupPermissions(); ClearTreasury();
+        ClearGroupPermissions(); ClearTreasury(); ClearGroupBilling();
         groupPrivate = null; privateRequestedFor = null; selectedGroupId = row.Id; creatingGroup = false; noticeDraftFor = null; NewGroupEvent(); groupAnnouncementTitle = groupAnnouncementMessage = ""; groupDraft.Load(row);
         groupLogos.Clear(); requestedGroupLogo = "";
     }
     private void ClearNestedGroups()
     {
         ClearTreasuryReturns();
-        ClearGroupPermissions(); ClearTreasury();
+        ClearGroupPermissions(); ClearTreasury(); ClearGroupBilling();
         groupPrivate = null; privateRequestedFor = null; hub = new([], []); groupJoinPassword = ""; noticeDraftFor = null;
         communityGroups = []; selectedGroupId = null; creatingGroup = false;
         groupDraft.Clear(); requestedGroupLogo = ""; groupLogos.Clear();
@@ -62,7 +62,7 @@ public sealed partial class CommunitiesPanel
         if (ActionButton("Refresh groups", mutation: false)) { groupsRefresh.Invalidate(); hubRefresh.Invalidate(); ClearTreasury(); if (SelectedGroup is { IsMember: true } selectedGroup) LoadGroupPrivate(selectedGroup, true); }
         if (CanCreateGroups && ImGui.Button("New group"))
         {
-            ClearGroupPermissions(); ClearTreasury();
+            ClearGroupPermissions(); ClearTreasury(); ClearGroupBilling();
             groupDraft.Clear();
             creatingGroup = true; selectedGroupId = null;
             groupLogos.Clear(); requestedGroupLogo = "";
@@ -113,6 +113,7 @@ public sealed partial class CommunitiesPanel
         {
             ImGui.Separator();
             if (ActionButton(current.IsFavorite ? "Unfavorite group" : "Favorite group")) Mutate(current.IsFavorite ? "DELETE" : "PUT", GroupPath(current) + "/favorite", null);
+            DrawTrust(current);
             DrawGroupSections(current);
             if (OwnSelectedGroup || CanManageGroups)
             {
@@ -181,10 +182,11 @@ public sealed partial class CommunitiesPanel
     private void ApplyGroupProfileSuccess(CommandRequest request, string json)
     {
         var row = ReadCommand<GroupProfile>(json);
-        if (request.Operation.Kind == CommandKind.EditGroupFeatures)
+        if (request.Operation.Kind is CommandKind.EditGroupFeatures or CommandKind.EditGroupTrust)
         {
             communityGroups = communityGroups.Select(x => x.Id == row.Id ? row : x).ToArray();
-            groupFeaturesDraft.Load(row.Id.ToString(), row.Etag, row.EnabledFeatures ?? []);
+            if (request.Operation.Kind == CommandKind.EditGroupFeatures) groupFeaturesDraft.Load(row.Id.ToString(), row.Etag, row.EnabledFeatures ?? []);
+            else groupFeaturesDraft.Refresh(row.Id.ToString(), row.Etag, row.EnabledFeatures ?? []);
             groupPrivate = null; privateRequestedFor = null; return;
         }
         var deleted = request.Operation.Kind == CommandKind.DeleteGroup;

@@ -378,3 +378,32 @@ beneficiary. Community deletion settles all groups under the same rule. Any amou
 that cannot fit stays on the retained deleted group, listed under Treasury returns
 for its owner and collectable into the same original account later. No debt, tax,
 commission, billing or general group item storage is implemented in this release.
+
+## Trusted automatic billing — implemented in 0.3.0.0
+
+Each character can enable Trusted for automatic billing on a community group's profile,
+without joining it. Trust permits the approved group's owner or authorized billing staff
+to charge for services, including while the character is offline, without payer action
+on each bill. Community departures clear trust. Removing trust stops future charges and
+does not cancel prior bills. Community moderation cannot set another character's trust.
+
+The community owner enables the group's Treasury access and decides whether new bills
+may create debt. The group owner delegates Bill trusted customers separately from
+withdrawal and record access. Debt starts disabled: an unaffordable bill then fails
+without a partial charge. With debt enabled, collect available coins and record the
+rest as owed. There is no arbitrary RP bill amount cap beyond supported whole-unit
+accounting. A durable bill ID prevents duplicate charging; thirty-second cashier/group/
+customer cooldown reduces accidental fresh submissions.
+
+Existing debts are repaid oldest first from available coins and future character income,
+including trades, treasury withdrawals, disband returns and authorized currency grants.
+Reserved trade offers remain protected until completion/cancellation/expiry. New debt
+being disabled later does not forgive existing debt. Long queues hold spendable funds
+until automatic continuation finishes. Payers can see their own bills and payment
+receipts; financial staff see only their authorized records. Private rosters and group
+announcements remain restricted to group members.
+
+The confirmed disband rule retains bills on the archived group. Subsequent repayments
+become Treasury returns for the former owner to collect; they do not recursively pay
+another character automatically. The maintainer confirmed this ownership treatment on 2026-11-05.
+Taxes, commissions, clock-in and new earning sources are separate later releases.

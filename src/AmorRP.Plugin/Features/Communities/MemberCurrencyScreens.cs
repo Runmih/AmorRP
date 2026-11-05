@@ -51,6 +51,7 @@ public sealed partial class CommunitiesPanel
             ImGui.TextUnformatted("Total: " + balance.Owned);
             ImGui.TextUnformatted("Available: " + balance.Available);
             ImGui.TextUnformatted("Offered in trades: " + balance.Reserved);
+            if (balance.HeldForDebt != "0") Wrapped("Awaiting debt repayment: " + balance.HeldForDebt);
         }
         else ImGui.TextDisabled("Loading balance…");
         ImGui.Separator();

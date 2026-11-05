@@ -62,6 +62,7 @@ public sealed partial class CommunitiesPanel
         if (ImGui.BeginTabItem("Events")) { DrawGroupEvents(group); ImGui.EndTabItem(); }
         if (CanGroupAction(group, GroupCapabilities.Notice) && ImGui.BeginTabItem("Notice")) { DrawNoticeEditor(group); ImGui.EndTabItem(); }
         if (group.IsMember && group.EnabledFeatures?.Contains(GroupCapabilities.Treasury) == true && ImGui.BeginTabItem("Treasury")) { DrawGroupTreasury(group); ImGui.EndTabItem(); }
+        if ((CanGroupAction(group, GroupCapabilities.Billing) || CanGroupAction(group, GroupCapabilities.TreasuryRecords)) && ImGui.BeginTabItem("Billing")) { DrawGroupBilling(group); ImGui.EndTabItem(); }
         if (OwnSelectedGroup && ImGui.BeginTabItem("Staff")) { DrawGroupStaff(group); ImGui.EndTabItem(); }
         if (Owner && ImGui.BeginTabItem("Features")) { DrawGroupFeatures(group); ImGui.EndTabItem(); }
         ImGui.EndTabBar();

@@ -1,4 +1,5 @@
 using System.Net;
+using AmorRP.Contracts.Currency;
 using AmorRP.Contracts.Communities;
 using AmorRP.Contracts.Groups;
 using AmorRP.Contracts.Inventory;
@@ -10,6 +11,8 @@ namespace AmorRP.Plugin.Features.Communities;
 
 public sealed partial class CommunitiesPanel
 {
+    private readonly BackgroundRefresh<BillPage> myBillsRefresh = new(TimeSpan.FromMinutes(1));
+    private readonly BackgroundRefresh<BillingPolicy> billingPolicyRefresh = new(TimeSpan.FromMinutes(1));
     private static readonly TimeSpan FeatureInterval = TimeSpan.FromMinutes(1);
     private readonly BackgroundRefresh<InventoryState> inventoryRefresh = new(FeatureInterval);
     private readonly BackgroundRefresh<MemberPage> rosterRefresh = new(FeatureInterval);
@@ -26,6 +29,7 @@ public sealed partial class CommunitiesPanel
 
     private void ResetCommunityRefreshes()
     {
+        ClearBilling(); myBillsRefresh.Reset(); billingPolicyRefresh.Reset();
         inventoryRefresh.Reset(); rosterRefresh.Reset(); policyRefresh.Reset(); invitationRefresh.Reset();
         ownershipRefresh.Reset(); groupsRefresh.Reset(); hubRefresh.Reset(); inspectorRefresh.Reset();
         iconRefresh.Reset(); logoRefresh.Reset(); iconReadKey = logoReadKey = "";
@@ -33,6 +37,7 @@ public sealed partial class CommunitiesPanel
 
     private void RefreshCommunityFeatures()
     {
+        myBillsRefresh.Invalidate(); billingPolicyRefresh.Invalidate();
         inventoryRefresh.Invalidate(); rosterRefresh.Invalidate(); policyRefresh.Invalidate();
         invitationRefresh.Invalidate(); ownershipRefresh.Invalidate(); groupsRefresh.Invalidate();
         hubRefresh.Invalidate(); inspectorRefresh.Invalidate();
@@ -41,6 +46,8 @@ public sealed partial class CommunitiesPanel
     private void TickFeatureRefreshes()
     {
         var now = DateTimeOffset.UtcNow;
+        if (myBillsRefresh.TryCollect(now, dataGeneration, out var bills)) myBills = bills;
+        if (billingPolicyRefresh.TryCollect(now, dataGeneration, out var billingSettings)) AcceptBillingPolicy(billingSettings);
         if (inventoryRefresh.TryCollect(now, dataGeneration, out var inventory)) AcceptInventoryState(inventory);
         if (rosterRefresh.TryCollect(now, dataGeneration, out var roster))
         {
@@ -64,7 +71,7 @@ public sealed partial class CommunitiesPanel
         if (logoRefresh.TryCollect(now, dataGeneration, out var logo) && logo.Key == logoReadKey)
             logos.Update(logo.Key, logo.Bytes, logo.Custom);
 
-        var errors = new[] { inventoryRefresh.Error, rosterRefresh.Error, policyRefresh.Error, invitationRefresh.Error,
+        var errors = new[] { myBillsRefresh.Error, billingPolicyRefresh.Error, inventoryRefresh.Error, rosterRefresh.Error, policyRefresh.Error, invitationRefresh.Error,
             ownershipRefresh.Error, groupsRefresh.Error, hubRefresh.Error, inspectorRefresh.Error, iconRefresh.Error, logoRefresh.Error };
         if (!SessionRenewalInProgress && errors.Any(x => x is FoundationApiException { Status: HttpStatusCode.Unauthorized }))
         { ClearWork(); ClearCommunityViews(); session = null; return; }
@@ -72,6 +79,9 @@ public sealed partial class CommunitiesPanel
 
         var uri = origin; var token = session.AccessToken; var active = community; var actor = session.Character.Id;
         var ct = requests.Token; var id = active.Id; var owner = active.OwnerCharacterId == actor;
+        var billCount = myBills.Items.Length;
+        myBillsRefresh.Start(now, dataGeneration, ct, c => LoadMyBillsAsync(uri, token, id, billCount, c));
+        billingPolicyRefresh.Start(now, dataGeneration, ct, c => client.GetAsync<BillingPolicy>(uri, $"api/v2/communities/{id}/billing-policy", token, c));
         var query = InventoryQuery(); var holding = holdingSelection; var count = holdings.Length;
         inventoryRefresh.Start(now, dataGeneration, ct, c => LoadInventoryAsync(uri, token, id, query, holding, count, c));
         var rosterCount = members.Length; var selectedMember = memberSelection; var inactive = owner && showInactive;

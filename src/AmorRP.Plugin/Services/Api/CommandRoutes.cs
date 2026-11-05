@@ -62,13 +62,16 @@ internal enum CommandKind
     PublishGroupAnnouncement,
     EditGroupFeatures,
     EditGroupStaff,
+    EditGroupTrust,
+    EditBillingPolicy,
+    CreateBill,
     DepositTreasury,
     WithdrawTreasury,
     CollectTreasuryReturn,
     SignOut,
 }
 
-internal enum CommandHandler { None, CommunityForm, Home, Balance, Policy, Invitation, Member, Inventory, Trade, GroupProfile, GroupActivity, Treasury, SignOut }
+internal enum CommandHandler { None, CommunityForm, Home, Balance, Policy, Invitation, Member, Inventory, Trade, GroupProfile, GroupActivity, Treasury, Billing, BillingPolicy, SignOut }
 
 [Flags]
 internal enum RefreshTargets
@@ -158,6 +161,9 @@ internal static class CommandRoutes
         new("PUT", "api/v2/communities/{communityId}/groups/{groupId}/events/{eventId}", new(CommandKind.EditGroupEvent, CommandHandler.GroupActivity, RefreshTargets.Groups)),
         new("DELETE", "api/v2/communities/{communityId}/groups/{groupId}/events/{eventId}", new(CommandKind.DeleteGroupEvent, CommandHandler.GroupActivity, RefreshTargets.Groups)),
         new("POST", "api/v2/communities/{communityId}/groups/{groupId}/announcements", new(CommandKind.PublishGroupAnnouncement, CommandHandler.GroupActivity, RefreshTargets.Groups)),
+        new("PUT", "api/v2/communities/{communityId}/groups/{groupId}/trust", new(CommandKind.EditGroupTrust, CommandHandler.GroupProfile, RefreshTargets.Groups)),
+        new("PUT", "api/v2/communities/{communityId}/billing-policy", new(CommandKind.EditBillingPolicy, CommandHandler.BillingPolicy, RefreshTargets.Community)),
+        new("POST", "api/v2/communities/{communityId}/groups/{groupId}/bills", new(CommandKind.CreateBill, CommandHandler.Billing, RefreshTargets.Community)),
         new("POST", "api/v2/communities/{communityId}/groups/{groupId}/treasury/deposits", new(CommandKind.DepositTreasury, CommandHandler.Treasury, RefreshTargets.Community)),
         new("POST", "api/v2/communities/{communityId}/groups/{groupId}/treasury/withdrawals", new(CommandKind.WithdrawTreasury, CommandHandler.Treasury, RefreshTargets.Community)),
         new("POST", "api/v2/communities/{communityId}/groups/{groupId}/treasury/return", new(CommandKind.CollectTreasuryReturn, CommandHandler.Treasury, RefreshTargets.Community)),

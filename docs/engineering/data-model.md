@@ -330,3 +330,27 @@ it into the original membership, including dormant/blocked or archived community
 accounts. No inventory limit can discard currency. Community deletion cancels trades,
 settles all nondeleted groups to their distinct owners and retains audit records.
 Downgrade refuses to drop the treasury schema if any balance or receipt exists.
+
+## Trusted billing — 0.3.0.0
+
+TrustedBilling adds default-false communities.AllowDebt, BillingPolicyVersion,
+memberships.CollectionPending and LastCollectionAttempt. No currency is copied or
+reset. GroupTrustRow keys own trust by (community, group, character) with an optimistic
+version; no existing character is automatically trusted. Community departure clears
+trust and increments its version, without deleting financial records.
+
+BillRow has a durable client UUIDv7 within its community, immutable parties/service/
+amount and canonical request fingerprint, server creation time, and collected amount.
+Database checks require 0 <= Collected <= Amount. The unpaid character/time index
+supports oldest-first collection; cashier/group/customer/time supports the cooldown.
+BillPaymentRow records amount, both character/treasury before and after balances,
+source/source ID and time. Scoped bill/member/group foreign keys preserve provenance;
+database constraints require exact conservation. Source IDs are diagnostic references
+to the triggering operation, bill or trade rather than polymorphic foreign keys.
+
+CollectionPending makes every unreserved coin unavailable to new debits/offers until
+continuation completes. It is durable and indexed with the last attempt for fair worker
+scheduling. Balance.reserved remains trade-only; heldForDebt separately reports the hold,
+and available subtracts both. No negative balance represents debt; unpaid bill principal
+is a claim, never newly spendable money. Downgrade refuses to discard bills, payment
+receipts or held repayments. Group/character/community soft deletion retains claims.
