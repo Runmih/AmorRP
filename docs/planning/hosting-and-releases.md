@@ -2,7 +2,10 @@
 
 Maintainer decisions recorded 2026-10-29. This is a migration/release plan, not a
 claim that the private server is installed, reachable or carrying live data.
-Current plugin/server release is 0.3.0.0; private-server cutover is still future work.
+Current plugin/server release is 0.3.0.0. On 2026-11-05 the maintainer reported the
+Ubuntu/Docker/Portainer/NPM/DuckDNS infrastructure ready and authorized a fresh database
+because Render test data is unavailable. The [concrete cutover guide](../delivery/home-server.md)
+is prepared; backend deployment, public readiness and the plugin origin switch are pending.
 
 ## Branch and version policy
 
@@ -36,7 +39,9 @@ XIVAuth remains external API v1. No provider URL change follows from a feature n
 The maintainer plans a private **Ubuntu server** on a GMKtec NucBox M8 with
 AMD Ryzen 5 PRO 6650H, 16 GB RAM and 512 GB storage. Render remains testing
 infrastructure until cutover. Use a supported Ubuntu Server LTS release and Linux
-x64 builds. The exact Ubuntu release/network setup will be selected during setup.
+x64 builds. The maintainer reports a supported Ubuntu Server LTS installation with Docker,
+Portainer, NPM and public HTTPS already functioning. Host-specific addresses and
+administrator identifiers stay out of the repository.
 
 The [listed configuration](https://www.digitec.ch/en/s1/product/gmktec-nucbox-m8-512-gb-16-gb-amd-ryzen-5-pro-6650h-pc-66735403)
 is a reasonable initial target for the ASP.NET Core API, PostgreSQL and future bot.

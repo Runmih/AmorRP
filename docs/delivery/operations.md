@@ -1,7 +1,12 @@
 # Deployment, operations and data recovery
 
-Host: Render web service plus managed PostgreSQL, one region, one initial API
-instance. The maintainer reported M1 deployment/login testing passed; this
+The maintainer is preparing a fresh home-server cutover after Render test data became
+unavailable. Use the [Portainer/Nginx Proxy Manager setup](home-server.md). The backend
+supports this deployment without authentication or API changes; production readiness
+and the plugin origin switch remain pending host-side checks.
+
+The historical Render setup below documents the previous service: Render web service
+plus managed PostgreSQL, one region, one initial API instance. The maintainer reported M1 deployment/login testing passed; this
 workspace has no hosted credentials. M2 upgrade configuration is in the [guide](m2-install-test.md). Application and database
 remain portable through Docker and standard PostgreSQL.
 

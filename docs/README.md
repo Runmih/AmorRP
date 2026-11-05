@@ -1,6 +1,7 @@
 # Documentation index
 
-Current guides describe the implemented project. Latest release:
+Current guides describe the implemented project.
+Home-server cutover: [Portainer + Nginx Proxy Manager](delivery/home-server.md). Latest release:
 [0.3.0.0 — trusted billing and automatic debt repayment](delivery/release-0.3.0.0.md).
 Update both server and plugin. The server migration preserves existing groups and
 owner features. Amor RP API v2 and XIVAuth API v1 remain unchanged.

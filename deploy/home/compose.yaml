@@ -1,0 +1,72 @@
+# Production stack for Portainer on one Docker host with Nginx Proxy Manager.
+# Build the server image locally first; this stack never pulls an unknown image.
+name: amorrp
+
+services:
+  database:
+    image: postgres:18.6@sha256:fc973eb97c9fd04bfa1840e0f510719a584ccb3be8debfe6a4144637a9dfe8cf
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: amorrp
+      POSTGRES_DB: amorrp
+      POSTGRES_PASSWORD: ${AMORRP_DB_PASSWORD:?Generate and retain a private database password}
+    volumes:
+      - database:/var/lib/postgresql
+    networks:
+      - database
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U amorrp -d amorrp"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
+    stop_grace_period: 60s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  api:
+    image: ${AMORRP_SERVER_IMAGE:?Build the server image before deploying the stack}
+    pull_policy: never
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_HTTP_PORTS: "8080"
+      AMORRP_MIGRATE_ON_START: "true"
+      ConnectionStrings__Database: "Host=database;Database=amorrp;Username=amorrp;Password=${AMORRP_DB_PASSWORD:?Database password is required}"
+      XivAuth__Enabled: "false"
+      XivAuth__DurableEnabled: "true"
+      XivAuth__ClientId: ${XIVAUTH_CLIENT_ID:?Enter the XIVAuth application client ID}
+      XivAuth__ClientSecret: ${XIVAUTH_CLIENT_SECRET:?Enter the XIVAuth application client secret}
+      XivAuth__DurableCallbackUrl: "${AMORRP_PUBLIC_ORIGIN:?Enter the HTTPS origin without a trailing slash}/auth/xivauth/callback"
+      SecretVault__ActiveKeyId: primary
+      SecretVault__Keys__primary: ${AMORRP_VAULT_KEY:?Generate and retain the 32-byte vault key}
+      ReverseProxy__UseRenderClientIp: "false"
+      ReverseProxy__KnownProxies__0: ${AMORRP_PROXY_IP:?Enter the pinned Nginx Proxy Manager container address}
+      ReverseProxy__ForwardLimit: "1"
+    networks:
+      database:
+      web-proxy:
+        aliases:
+          - amorrp-api
+    depends_on:
+      database:
+        condition: service_healthy
+    stop_grace_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+networks:
+  database:
+    internal: true
+  web-proxy:
+    external: true
+    name: web-proxy
+
+volumes:
+  database:
