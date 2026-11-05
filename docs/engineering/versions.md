@@ -10,6 +10,15 @@ start off. Treasury approval remains required for a group to bill. XIVAuth's ext
 Release-specific changes and verification are in [0.3.0.0](../delivery/release-0.3.0.0.md).
 Historical milestone records appear after current compatibility/maintenance guidance.
 
+## Home-server cutover candidate
+
+Published stable remains plugin/server 0.3.0.0. Plugin-only 0.3.0.1 is prepared for
+the maintainer's new HTTPS origin; do not publish its feed until home-server public
+readiness and the new XIVAuth callback registration are confirmed. The backend and
+minimum client/server stay 0.3.0.0, API v2, external XIVAuth v1 and Dalamud API15.
+See the [home-server guide](../delivery/home-server.md) and
+[patch checklist](../delivery/release-0.3.0.1.md). No Render data recovery is required.
+
 ## Product release numbering
 
 Use main only for development/publication. Use

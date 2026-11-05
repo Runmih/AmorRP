@@ -182,9 +182,9 @@ Readiness must return `status: ok`; capabilities must report API 2 and server 0.
 The root `/` may return 404 because this is an API; that does not indicate a failure.
 Readiness is cached and can take several seconds to become healthy after startup.
 
-Only once these public routes work and the callback is registered, change the plugin's
-ProductServer origin to the selected HTTPS hostname, increment the plugin to 0.3.0.1,
-run the existing checks/Windows packaging and publish it through main. The backend
+The plugin-only 0.3.0.1 candidate prepares the new HTTPS origin in ProductServer.
+Build/Windows verification can happen beforehand, but publish that candidate to the
+main feed only once these public routes work and the callback is registered. The backend
 stays 0.3.0.0; the plugin still requires server 0.3.0.0 and API 2. No API version change
 or fictitious coordinated backend feature release is needed.
 

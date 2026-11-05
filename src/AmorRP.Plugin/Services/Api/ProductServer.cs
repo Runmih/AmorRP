@@ -4,5 +4,5 @@ namespace AmorRP.Plugin.Services.Api;
 // commands remain bound to their saved origin; never rewrite those bindings.
 public static class ProductServer
 {
-    public const string Origin = "https://amorrp-server.onrender.com/";
+    public const string Origin = "https://rpcorp.duckdns.org/";
 }
