@@ -1,11 +1,13 @@
 # Hosting and release policy
 
-Maintainer decisions recorded 2026-10-29. This is a migration/release plan, not a
-claim that the private server is installed, reachable or carrying live data.
-Current plugin/server release is 0.3.0.0. On 2026-11-05 the maintainer reported the
+Maintainer decisions recorded 2026-10-29, with cutover status updated 2026-11-07.
+Current plugin release is 0.3.0.1; the server remains 0.3.0.0.
+On 2026-11-05 the maintainer reported the
 Ubuntu/Docker/Portainer/NPM/DuckDNS infrastructure ready and authorized a fresh database
 because Render test data is unavailable. The [concrete cutover guide](../delivery/home-server.md)
-is prepared; backend deployment, public readiness and the plugin origin switch are pending.
+was followed on 2026-11-07: the maintainer deployed the backend, confirmed public
+readiness/capabilities and configured the new XIVAuth callback. Plugin 0.3.0.1 now
+switches the installation feed to the home origin; live in-game acceptance is pending.
 
 ## Branch and version policy
 
@@ -69,16 +71,17 @@ and automatic service restart. No additional paid test server is required.
   depends on RENDER/UseRenderClientIp; do not copy it unchanged to Ubuntu or trust all
   forwarded headers. Verify separate clients receive separate rate-limit identities
   through the selected proxy/tunnel and direct backend access cannot spoof them.
-- The plugin currently points to the Render origin in ProductServer. Coordinate an
-  endpoint update with the new service; saved sessions and pending commands are
+- Plugin 0.3.0.1 points to the home origin in ProductServer. Saved sessions and pending commands are
   origin-bound. Do not silently rewrite those bindings. Resolve pending outcomes
-  before cutover and plan fresh login when the origin changes.
+  before any future cutover and require fresh login when the origin changes.
 - Register/configure the exact new browser callback in XIVAuth when its URL changes.
   Preserve the provider's external API URLs and verification behavior. Test real
   browser login, pairing, renewal, logout and receipts before moving testers.
 - Prevent split writes to independent Render/private database copies. Use a controlled
   write pause/final backup or an explicitly planned test-data wipe; no wipe is authorized
-  by this document. Keep rollback and the old endpoint's treatment explicit.
+  by this document alone. The maintainer separately authorized a fresh database
+  for the 2026-11-07 cutover because the Render test data was unavailable. Keep
+  rollback and the old endpoint's treatment explicit.
 - Verify automatic startup, PostgreSQL persistence, disk/log growth and monitoring.
   For a machine operated at home, power/router/ISP outages affect service availability;
   a UPS and off-machine backup improve recovery. One machine is not high availability.

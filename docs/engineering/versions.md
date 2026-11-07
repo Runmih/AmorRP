@@ -2,7 +2,7 @@
 
 ## Current product versions
 
-Plugin and server **0.3.0.0**, Amor RP API **v2**, minimum client **0.3.0.0**.
+Plugin **0.3.0.1**, server **0.3.0.0**, Amor RP API **v2**, minimum client **0.3.0.0**.
 The plugin requires server 0.3.0.0. Deploy the TrustedBilling migration before
 using billing. Existing balances/permissions are preserved; debt and character trust
 start off. Treasury approval remains required for a group to bill. XIVAuth's external API remains **v1** and Dalamud API remains **15**.
@@ -10,11 +10,11 @@ start off. Treasury approval remains required for a group to bill. XIVAuth's ext
 Release-specific changes and verification are in [0.3.0.0](../delivery/release-0.3.0.0.md).
 Historical milestone records appear after current compatibility/maintenance guidance.
 
-## Home-server cutover candidate
+## Home-server cutover
 
-Published stable remains plugin/server 0.3.0.0. Plugin-only 0.3.0.1 is prepared for
-the maintainer's new HTTPS origin; do not publish its feed until home-server public
-readiness and the new XIVAuth callback registration are confirmed. The backend and
+Plugin-only 0.3.0.1 is published on 2026-11-07 for the selected home-server HTTPS
+origin, after the maintainer confirmed public readiness and the new XIVAuth callback
+registration. In-game login and operation checks remain pending. The backend and
 minimum client/server stay 0.3.0.0, API v2, external XIVAuth v1 and Dalamud API15.
 See the [home-server guide](../delivery/home-server.md) and
 [patch checklist](../delivery/release-0.3.0.1.md). No Render data recovery is required.

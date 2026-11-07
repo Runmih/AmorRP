@@ -1,7 +1,7 @@
-# Amor RP 0.3.0.1 — home-server candidate
+# Amor RP 0.3.0.1 — home-server cutover
 
-This is a plugin-only hosting patch. It is prepared on main but **not published to
-the installation feed** until the maintainer's new backend is ready.
+This plugin-only hosting patch is published to the main installation feed on
+2026-11-07. The backend remains 0.3.0.0.
 
 - The plugin origin becomes the maintainer's selected public HTTPS hostname.
 - The installation repository URL remains unchanged.
@@ -16,13 +16,22 @@ The public callback must be registered on the existing XIVAuth application as
 `/auth/xivauth/callback` under the new hostname. Provider API URLs and scopes remain
 unchanged. Keep client credentials and the vault key out of chat and source control.
 
-## Publication gate
+## Publication checks
+
+On 2026-11-07 the maintainer confirmed the home API/container deployment, healthy
+PostgreSQL, public HTTPS readiness, API 2/server 0.3.0.0/minimum client 0.3.0.0,
+and registration of the exact new XIVAuth callback. The matching source passed
+both GitHub workflows. The Windows artifact from run 42115083628 is published
+unchanged, with its source commit and SHA-256 recorded beside the package.
+Actual browser login and in-game operations remain to be tested.
+
+The release checks were:
 
 1. The maintainer deploys the home API and persistent database using the prepared stack.
 2. Public HTTPS `/health/ready` returns ok and `/api/v2/capabilities` reports API2/server0.3.0.0.
 3. The exact new XIVAuth callback is registered and configured in the stack.
 4. Publish the verified Windows 0.3.0.1 artifact from the matching main commit, with
-   immutable provenance. The main Dalamud feed remains on 0.3.0.0 until this step.
+   immutable provenance. The main Dalamud feed now offers 0.3.0.1.
 
 ## Major live checks after publication
 
@@ -31,4 +40,5 @@ unchanged. Keep client credentials and the vault key out of chat and source cont
 3. Restart the API stack and confirm that the community and balances persist and
    reconnect still works. Retain the database volume and the original vault key.
 
-No live home deployment or provider configuration edit is performed by this candidate.
+Host-side deployment and provider configuration were performed by the maintainer.
+The feed publication does not restart or modify the deployed backend.
