@@ -39,7 +39,9 @@ jobs:
       - name: Verify container startup and migration failure handling
         run: python scripts/check-server-startup.py
       - name: Validate home deployment configuration
-        run: python scripts/check-home-deployment.py
+        run: |
+          python scripts/check-home-deployment.py
+          python scripts/check-home-updates.py
       - name: Restore locked dependency graphs
         run: |
           dotnet restore src/AmorRP.Server/AmorRP.Server.csproj --locked-mode

@@ -210,13 +210,50 @@ copy both configuration and dumps off this machine (the existing Windows machine
 serve as a temporary destination until external storage is ready). No automatic backup
 schedule or external SSD is provisioned by this guide.
 
-For updates, take the backup, `git pull --ff-only origin main` in the source directory,
-build the intended server version into a new explicit local image tag and update
-AMORRP_SERVER_IMAGE in Portainer. Keep all other settings and the database volume.
-Redeploy the API stack; do not regenerate credentials or remove volumes. Inspect
-readiness and test reconnect afterwards. Rebuilding/restarting NPM is not an application
-update step. Record the source/image IDs. Keep the previous image until the update is
-verified; roll back only when compatible with the database schema.
+### Update from Windows, then apply in Portainer
+
+The maintainer has deferred backup setup until their backup drive is ready. The
+update helper does not require or create a backup. It prepares an image and leaves
+the running containers, private settings and database untouched. Applying it in
+Portainer can run database migrations; Git history only restores source code.
+
+One-time setup: in the Ubuntu SSH terminal, download the helper from main:
+
+```sh
+cd /opt/amorrp/source
+git pull --ff-only origin main
+```
+
+Save [Update-AmorRP.bat](../../deploy/home/Update-AmorRP.bat) on Windows, open it
+in Notepad, and replace `REPLACE_WITH_YOUR_SSH_TARGET` with the same SSH target used
+for the existing Ubuntu login. Keep that configured copy local. It contains no
+password or Portainer API key and uses the existing SSH key/agent.
+
+For each update:
+
+1. Double-click the batch file. Enter the Ubuntu sudo password if prompted.
+2. The helper fetches main and requires its latest **Server and contracts** workflow
+   run to pass for the exact commit. If checks are running/failed or GitHub cannot
+   be reached, it stops. It also refuses local edits and divergent history.
+3. It fast-forwards source and builds a separate local image tagged with the server
+   version and source commit. Build failures leave the running service in place.
+4. Once it prints **BUILD READY**, copy the displayed image name into Portainer:
+   **Stacks → amorrp → Editor → Environment variables → AMORRP_SERVER_IMAGE**.
+   Keep all other values. Click **Update the stack** with image re-pull disabled.
+5. Confirm public `/health/ready` returns `status: ok`, check the version at
+   `/api/v2/capabilities`, and reconnect in game. Plugin updates still use Dalamud.
+
+The same preparation can be run directly over SSH:
+
+```sh
+python3 /opt/amorrp/source/deploy/home/prepare-update.py
+```
+
+No NPM restart or new OAuth credentials are needed for an ordinary application
+update. Keep the displayed source/image IDs and the previous image until the update
+is verified. Roll back only when compatible with the database schema. Stack-definition
+or infrastructure changes still need their own instructions; this helper builds the
+backend and does not silently replace the Portainer configuration.
 
 **Never select Remove volumes when deleting/redeploying the stack unless intentionally
 wiping that installation.** A surviving data volume and surviving vault key are both
