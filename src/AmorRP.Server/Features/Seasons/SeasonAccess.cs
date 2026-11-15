@@ -15,6 +15,7 @@ public sealed class SeasonAccess(AmorDbContext db)
     public async Task<(CommunityRow Season, MembershipRow Member)> RequireAsync(Guid communityId, Guid actor, CancellationToken ct)
     {
         var community = await db.Seasons.SingleOrDefaultAsync(x => x.Id == communityId && !x.Deleted, ct);
+        if (community != null) await SeasonMemberships.EnrollAsync(db, actor, communityId, ct);
         var member = await db.Memberships.SingleOrDefaultAsync(x => x.CommunityId == communityId && x.CharacterId == actor && x.Status == "active", ct);
         ApiFault.Require(community != null && member != null, 404, "not_found", "Season was not found or is inaccessible.");
         return (community!, member!);

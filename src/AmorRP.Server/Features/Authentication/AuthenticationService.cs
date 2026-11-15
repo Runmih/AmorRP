@@ -106,7 +106,10 @@ public sealed class AuthenticationService(AmorDbContext db, SecretVault vault, C
         }
         if (row.Status == "pending") { row.Status = "failed"; row.FailureCode = failure; }
         row.ProtectedVerifier = "";
-        await db.SaveChangesAsync(CancellationToken.None); await tx.CommitAsync(CancellationToken.None);
+        await db.SaveChangesAsync(CancellationToken.None);
+        if (row.Status == "verified" && row.CharacterId.HasValue)
+            await AmorRP.Server.Features.Seasons.SeasonMemberships.EnrollAsync(db, row.CharacterId.Value, null, CancellationToken.None);
+        await tx.CommitAsync(CancellationToken.None);
         return Browser.LoginResultPage.Render(http, row.Status == "verified", pairingCode: pairingCode);
     }
     private async Task<LoginRow> AttemptAsync(HttpContext http, Guid id, CancellationToken ct)

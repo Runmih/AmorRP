@@ -89,8 +89,8 @@ public sealed partial class SeasonsPanel
         billingPolicyRefresh.Start(now, dataGeneration, ct, c => client.GetAsync<BillingPolicy>(uri, $"api/v2/seasons/{id}/billing-policy", token, c));
         var query = InventoryQuery(); var holding = holdingSelection; var count = holdings.Length;
         inventoryRefresh.Start(now, dataGeneration, ct, c => LoadInventoryAsync(uri, token, id, query, holding, count, c));
-        var rosterCount = members.Length; var selectedMember = memberSelection; var inactive = owner && showInactive;
-        rosterRefresh.Start(now, dataGeneration, ct, c => LoadRosterAsync(uri, token, id, inactive, owner, rosterCount, selectedMember, c));
+        var rosterCount = members.Length; var selectedMember = memberSelection;
+        rosterRefresh.Start(now, dataGeneration, ct, c => LoadRosterAsync(uri, token, id, rosterCount, selectedMember, c));
         policyRefresh.Start(now, dataGeneration, ct, c => client.GetAsync<SeasonPolicies>(uri, $"api/v2/seasons/{id}/policies", token, c));
         ownershipRefresh.Start(now, dataGeneration, ct, c => LoadOwnershipAsync(uri, token, active, c));
         groupsRefresh.Start(now, dataGeneration, ct, c => LoadCommunityGroupsAsync(uri, token, id, c));
@@ -104,15 +104,14 @@ public sealed partial class SeasonsPanel
         TickCommunityImages(uri, token, active, actor, now, ct);
     }
 
-    private async Task<MemberPage> LoadRosterAsync(Uri uri, string token, Guid id, bool inactive, bool owner, int loadedCount, Guid? selection, CancellationToken ct)
+    private async Task<MemberPage> LoadRosterAsync(Uri uri, string token, Guid id, int loadedCount, Guid? selection, CancellationToken ct)
     {
         var path = $"api/v2/seasons/{id}/members";
-        var suffix = inactive ? "&includeDormant=true" : "";
-        var page = await client.GetAsync<MemberPage>(uri, path + (inactive ? "?includeDormant=true" : ""), token, ct);
+        var page = await client.GetAsync<MemberPage>(uri, path, token, ct);
         var rows = page.Items.ToList();
         while (page.NextCursor != null && rows.Count < loadedCount)
         {
-            page = await client.GetAsync<MemberPage>(uri, path + "?cursor=" + Uri.EscapeDataString(page.NextCursor) + suffix, token, ct);
+            page = await client.GetAsync<MemberPage>(uri, path + "?cursor=" + Uri.EscapeDataString(page.NextCursor), token, ct);
             rows.AddRange(page.Items);
         }
         if (selection.HasValue && rows.All(x => x.Character.Id != selection))
@@ -120,7 +119,7 @@ public sealed partial class SeasonsPanel
             try
             {
                 var selectedMember = await client.GetAsync<Member>(uri, path + "/" + selection, token, ct);
-                if (selectedMember.Status == "active" || owner && inactive) rows.Add(selectedMember);
+                rows.Add(selectedMember);
             }
             catch (FoundationApiException error) when (error.Status == HttpStatusCode.NotFound) { }
         }

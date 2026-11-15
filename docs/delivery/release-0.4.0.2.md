@@ -1,5 +1,8 @@
 # Amor RP 0.4.0.2 — Seasons only
 
+Historical release. [0.4.0.3](release-0.4.0.3.md) replaces active-season-only enrollment
+and season-scoped membership exclusion with shared access to all seasons.
+
 Seasons replace Communities outright. This release removes the mode switch,
 older-server fallback, invitation/join flows and old community/API aliases.
 There is one seasonal model with RP groups inside it, one active season at a time,

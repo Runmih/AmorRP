@@ -6,7 +6,7 @@ namespace AmorRP.Plugin.Features.Seasons;
 
 public sealed partial class SeasonsPanel
 {
-    private enum MemberView { Legacy, Directory, Management }
+    private enum MemberView { Directory, Management }
     private Guid? pendingMemberSelection;
     private string memberSearch = "", appliedMemberSearch = "";
     private Member[] memberSearchResults = [];
@@ -23,15 +23,14 @@ public sealed partial class SeasonsPanel
         grantGroupCreation = row.Capabilities.Contains("groups.create"); grantGroupManagement = row.Capabilities.Contains("groups.manage");
         grantGeneralModeration = row.Capabilities.Contains("season.moderate"); grantAnnouncements = row.Capabilities.Contains("announcements.manage"); grantGameplayPermissions = row.Capabilities.Contains("members.gameplay.manage");
         grantCoins = row.Capabilities.Contains("currency.manage"); grantPotions = row.Capabilities.Contains("items.potion.create"); grantRemoval = row.Capabilities.Contains("inventory.remove"); tradingAllowed = !row.TradingRestricted; grantDefinitions = row.Capabilities.Contains("items.potion.define");
-        reason = removalReason = itemRemovalReason = delta = ""; removeItemsConfirmed = false;
+        reason = itemRemovalReason = delta = ""; removeItemsConfirmed = false;
         memberHoldings = []; memberInventoryFor = memberInventoryRequestedFor = memberHoldingSelection = null; memberHoldingCursor = null;
         ClearMemberBalance();
     }
-    private void DrawMembers(MemberView view = MemberView.Legacy)
+    private void DrawMembers(MemberView view = MemberView.Directory)
     {
         if (community == null) { DrawNoSeason(); return; }
         DrawRefreshState(rosterRefresh, "Members");
-        if (view != MemberView.Directory && Owner && ImGui.Checkbox("Show inactive members", ref showInactive)) { members = []; memberSelection = null; ClearMemberSearch(); rosterRefresh.Invalidate(); refreshNeeded = true; }
         var narrow = ImGui.GetContentRegionAvail().X < ImGui.CalcTextSize("Character description and private notes").X * 1.7f;
         if (!ImGui.BeginTable("MemberLayout", narrow ? 1 : 2, ImGuiTableFlags.Resizable | ImGuiTableFlags.BordersInnerV)) return;
         ImGui.TableSetupColumn("Members", ImGuiTableColumnFlags.WidthStretch, .38f); if (!narrow) ImGui.TableSetupColumn("Details", ImGuiTableColumnFlags.WidthStretch, .62f);
@@ -85,7 +84,7 @@ public sealed partial class SeasonsPanel
                 if (ImGui.CollapsingHeader("Currency")) DrawMemberCurrency(target);
             }
             if (view != MemberView.Directory && (Owner || community.MyCapabilities.Contains("inventory.remove")) && ImGui.CollapsingHeader("Manage items")) DrawMemberInventory(target);
-            if (view != MemberView.Directory && Owner && !target.IsOwner && ImGui.CollapsingHeader("Manage membership")) DrawMemberMembership(target);
+            if (view != MemberView.Directory && Owner && !target.IsOwner && ImGui.CollapsingHeader("Ownership")) DrawMemberOwnershipTransfer(target);
         }
         ImGui.PopItemWidth(); ImGui.EndChild(); ImGui.EndTable();
     }
@@ -95,7 +94,7 @@ public sealed partial class SeasonsPanel
         if (current == null) return false;
         var caps = current.Capabilities;
         return personalNote != savedPersonalNote || memberDescription != savedMemberDescription
-            || delta.Length > 0 || reason.Length > 0 || removalReason.Length > 0 || itemRemovalReason.Length > 0
+            || delta.Length > 0 || reason.Length > 0 || itemRemovalReason.Length > 0
             || tradingAllowed == current.TradingRestricted || grantCoins != caps.Contains("currency.manage")
             || grantPotions != caps.Contains("items.potion.create") || grantCooking != caps.Contains("items.cooking.create")
             || grantDefinitions != caps.Contains("items.potion.define") || grantCookingDefinitions != caps.Contains("items.cooking.define")
@@ -188,38 +187,10 @@ public sealed partial class SeasonsPanel
         }
         ImGui.EndDisabled();
     }
-    private void DrawMemberMembership(Member target)
+    private void DrawMemberOwnershipTransfer(Member target)
     {
-        if (community == null) return;
-        if (target.Status == "active")
-        {
-            ImGui.Separator(); ImGui.TextUnformatted("Membership actions");
-            FieldLabel("Reason (required)"); LimitedInput("##MemberRemovalReason", ref removalReason, 500, countCodeUnits: true);
-            var validReason = !string.IsNullOrWhiteSpace(removalReason) && removalReason.Length <= 500;
-            if (ShiftMemberButton("Remove member", validReason))
-                Mutate("DELETE", $"api/v2/seasons/{community.Id}/members/{target.Character.Id}", new MemberRemoval(removalReason), memberDraftEtag ?? target.Etag);
-            if (ShiftMemberButton("Block member from rejoining", validReason))
-                Mutate("PUT", $"api/v2/seasons/{community.Id}/members/{target.Character.Id}/block", new MemberRemoval(removalReason), memberDraftEtag ?? target.Etag);
-            if (ShiftMemberButton("Propose ownership transfer"))
-                Mutate("POST", $"api/v2/seasons/{community.Id}/ownership-transfers", new OwnershipProposal(target.Character.Id));
-        }
-        else if (target.Status == "dormant")
-        {
-            {
-                FieldLabel("Restore reason (required)"); LimitedInput("##DormantRestoreReason", ref reason, 500, countCodeUnits: true);
-                if (ShiftMemberButton("Restore season membership", !string.IsNullOrWhiteSpace(reason) && reason.Length <= 500))
-                    Mutate("POST", $"api/v2/seasons/{community.Id}/members/{target.Character.Id}/restoration", new MemberRemoval(reason), memberDraftEtag ?? target.Etag);
-            }
-            FieldLabel("Block reason (required)"); LimitedInput("##DormantBlockReason", ref removalReason, 500, countCodeUnits: true);
-            if (ShiftMemberButton("Block member from rejoining", !string.IsNullOrWhiteSpace(removalReason) && removalReason.Length <= 500))
-                Mutate("PUT", $"api/v2/seasons/{community.Id}/members/{target.Character.Id}/block", new MemberRemoval(removalReason), target.Etag);
-        }
-        else if (target.Status == "blocked")
-        {
-            FieldLabel("Unblock reason (required)"); LimitedInput("##MemberUnblockReason", ref reason, 500, countCodeUnits: true);
-            if (ShiftMemberButton("Restore season membership", !string.IsNullOrWhiteSpace(reason) && reason.Length <= 500))
-                Mutate("POST", $"api/v2/seasons/{community.Id}/members/{target.Character.Id}/restoration", new MemberRemoval(reason), memberDraftEtag ?? target.Etag);
-        }
+        if (community != null && ShiftMemberButton("Propose ownership transfer"))
+            Mutate("POST", $"api/v2/seasons/{community.Id}/ownership-transfers", new OwnershipProposal(target.Character.Id));
     }
     private bool ShiftMemberButton(string label, bool valid = true)
     {

@@ -7,7 +7,7 @@ public sealed partial class SeasonsPanel
     private int inventoryTab;
     private void DrawInventoryTabs()
     {
-        if (community == null) { Wrapped("Use Join or Create season above to get started."); return; }
+        if (community == null) { DrawNoSeason(); return; }
         if (!ImGui.BeginTabBar("InventorySubtabs")) return;
         if (ImGui.BeginTabItem("All")) { inventoryTab = 0; DrawInventory(); ImGui.EndTabItem(); }
         if (ImGui.BeginTabItem("Consumables")) { inventoryTab = 1; DrawInventory(); ImGui.EndTabItem(); }
@@ -16,7 +16,7 @@ public sealed partial class SeasonsPanel
     }
     private void DrawCraftingTabs(bool includeWriting = true)
     {
-        if (community == null) { Wrapped("Use Join or Create season above to get started."); return; }
+        if (community == null) { DrawNoSeason(); return; }
         DrawRefreshState(inventoryRefresh, "Crafting");
         if (!inventoryRefresh.HasLoaded && definitions.Length == 0) return;
         if (!ImGui.BeginTabBar("CraftingSubtabs")) return;

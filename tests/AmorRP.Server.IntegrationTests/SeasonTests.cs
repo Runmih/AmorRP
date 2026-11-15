@@ -43,7 +43,7 @@ public sealed partial class FoundationTests
         using var admin = f.CreateClient(); await Login(admin, "90001");
         Assert.True((await admin.GetFromJsonAsync<SeasonContext>("/api/v2/seasons/context", TestContext.Current.CancellationToken))!.IsAdministrator);
         var draft = await Draft(admin, "First season"); Assert.Equal("draft", draft.SeasonState);
-        Assert.Empty((await SeasonList(ordinary))!.Items);
+        Assert.Equal(draft.Id, Assert.Single((await SeasonList(ordinary))!.Items).Id);
         using (var activate = Request(HttpMethod.Post, $"/api/v2/seasons/{draft.Id}/activation", new SeasonTransition(draft.Name), etag: $"\"season:{draft.Id:N}:1\""))
             Assert.Equal(HttpStatusCode.Forbidden, (await ordinary.SendAsync(activate, TestContext.Current.CancellationToken)).StatusCode);
         using var empty = SeasonFactory(configured: false); using var noAdmin = empty.CreateClient(); await Login(noAdmin, "90001");
@@ -52,30 +52,25 @@ public sealed partial class FoundationTests
     }
 
     [Fact]
-    public async Task Activation_enrolls_existing_and_future_players_once_and_preserves_moderation()
+    public async Task Drafts_archives_and_active_seasons_include_existing_and_new_players_once()
     {
         using var f = SeasonFactory(); await Migrate(f);
         using var admin = f.CreateClient(); await Login(admin, "90001");
-        using var playerClient = f.CreateClient(); var playerIdentity = await Login(playerClient, "90003");
-        var season = await Draft(admin); await Transition(admin, season);
-        Assert.Equal(season.Id, Assert.Single((await SeasonList(playerClient))!.Items).Id);
-        using var late = f.CreateClient(); var lateIdentity = await Login(late, "90004");
+        using var player = f.CreateClient(); var identity = await Login(player, "90003");
+        var archive = await Draft(admin, "Earlier"); await Transition(admin, archive);
+        var active = await Draft(admin, "Current"); await Transition(admin, active);
+        var draft = await Draft(admin, "Upcoming");
+        Assert.Equal(3, (await SeasonList(player))!.Items.Length);
+        using var late = f.CreateClient(); var newcomer = await Login(late, "90004");
         await Task.WhenAll(Enumerable.Range(0, 6).Select(_ => SeasonList(late)));
-        var member = await Member(admin, season, lateIdentity.Character.Id);
-        await Command<Member>(admin, HttpMethod.Put, $"/api/v2/seasons/{season.Id}/members/{lateIdentity.Character.Id}/block", new MemberRemoval("Test moderation"), member.Etag);
-        Assert.Empty((await SeasonList(late))!.Items);
-        Assert.Empty((await SeasonList(late))!.Items);
-        var blocked = await Member(admin, season, lateIdentity.Character.Id);
-        await Command<Member>(admin, HttpMethod.Post, $"/api/v2/seasons/{season.Id}/members/{lateIdentity.Character.Id}/restoration", new MemberRemoval("Restored explicitly"), blocked.Etag);
-        Assert.Single((await SeasonList(late))!.Items);
-        var removed = await Member(admin, season, playerIdentity.Character.Id);
-        await Command<Member>(admin, HttpMethod.Delete, $"/api/v2/seasons/{season.Id}/members/{playerIdentity.Character.Id}", new MemberRemoval("Remove from season"), removed.Etag);
-        Assert.Empty((await SeasonList(playerClient))!.Items);
-        var dormant = await Member(admin, season, playerIdentity.Character.Id);
-        await Command<Member>(admin, HttpMethod.Post, $"/api/v2/seasons/{season.Id}/members/{playerIdentity.Character.Id}/restoration", new MemberRemoval("Welcome back"), dormant.Etag);
-        Assert.Single((await SeasonList(playerClient))!.Items);
+        var seasons = (await SeasonList(late))!.Items;
+        Assert.Equal(3, seasons.Length);
+        Assert.Contains(seasons, x => x.Id == archive.Id && x.SeasonState == "archived");
+        Assert.Contains(seasons, x => x.Id == active.Id && x.SeasonState == "active");
+        Assert.Contains(seasons, x => x.Id == draft.Id && x.SeasonState == "draft");
         await using var scope = f.Services.CreateAsyncScope(); var db = scope.ServiceProvider.GetRequiredService<AmorDbContext>();
-        Assert.Equal(3, await db.Memberships.CountAsync(x => x.CommunityId == season.Id, TestContext.Current.CancellationToken));
+        Assert.Equal(9, await db.Memberships.CountAsync(TestContext.Current.CancellationToken));
+        Assert.Equal(3, await db.Memberships.CountAsync(x => x.CharacterId == newcomer.Character.Id, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -121,8 +116,8 @@ public sealed partial class FoundationTests
         }
         using (var cross = Request(HttpMethod.Post, $"/api/v2/seasons/{next.Id}/inventory/potions", new PotionCreate(recipe.Id, 1, 1)))
             Assert.Equal(HttpStatusCode.NotFound, (await admin.SendAsync(cross, TestContext.Current.CancellationToken)).StatusCode);
-        using var newcomer = f.CreateClient(); await Login(newcomer, "90006"); Assert.Single((await SeasonList(newcomer))!.Items);
-        Assert.Equal(HttpStatusCode.NotFound, (await newcomer.GetAsync($"/api/v2/seasons/{first.Id}", TestContext.Current.CancellationToken)).StatusCode);
+        using var newcomer = f.CreateClient(); await Login(newcomer, "90006"); Assert.Equal(2, (await SeasonList(newcomer))!.Items.Length);
+        Assert.Equal(HttpStatusCode.OK, (await newcomer.GetAsync($"/api/v2/seasons/{first.Id}", TestContext.Current.CancellationToken)).StatusCode);
         await using var scope = f.Services.CreateAsyncScope(); var db = scope.ServiceProvider.GetRequiredService<AmorDbContext>();
         Assert.False((await db.Groups.SingleAsync(x => x.Id == group.Id, TestContext.Current.CancellationToken)).Deleted);
         Assert.Equal("100", (await SeasonList(admin))!.Items.Single(x => x.Id == first.Id).MyBalance.Owned);

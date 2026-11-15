@@ -1003,7 +1003,7 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                         {
                             t.HasCheckConstraint("ck_membership_balance", "\"Owned\" >= 0 AND \"Reserved\" >= 0 AND \"Reserved\" <= \"Owned\"");
 
-                            t.HasCheckConstraint("ck_membership_status", "\"Status\" IN ('active', 'dormant', 'blocked')");
+                            t.HasCheckConstraint("ck_membership_status", "\"Status\" = 'active'");
                         });
                 });
 

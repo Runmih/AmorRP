@@ -79,14 +79,14 @@ public sealed partial class FoundationTests
         Assert.Equal(6, (await ac.GetFromJsonAsync<Quotas>($"/api/v2/seasons/{g.Id}/quotas", TestContext.Current.CancellationToken))!.Items.Single(x => x.Kind == "potion_points").Used);
     }
     [Fact]
-    public async Task Concurrent_confirm_and_removal_have_one_consistent_outcome_and_removal_differs_from_block()
+    public async Task Concurrent_confirm_and_trading_restriction_have_one_consistent_outcome()
     {
         using var f = Factory(); await Migrate(f); using var a = f.CreateClient(); var aa = await Login(a, "405"); var g = await Create(a); using var b = f.CreateClient(); var bb = await Login(b, "406"); await Enroll(b, g);
         await Command<Balance>(a, HttpMethod.Post, $"/api/v2/seasons/{g.Id}/currency/adjustments", new CurrencyAdjustment(aa.Character.Id, "50", "Seed"));
         var t = await Command<Trade>(a, HttpMethod.Post, $"/api/v2/seasons/{g.Id}/trades", new TradeCreate(bb.Character.Id)); t = await TradeCommand(b, g, t, "accept"); t = await Offer(a, g, t, "20"); t = await TradeCommand(a, g, t, "confirm");
         t = await TradeCommand(b, g, t, "confirm"); t = await TradeCommand(a, g, t, "final-confirm");
         var member = await Member(a, g, bb.Character.Id);
-        using var removal = Request(HttpMethod.Delete, $"/api/v2/seasons/{g.Id}/members/{bb.Character.Id}", new MemberRemoval("Removed"), etag: member.Etag);
+        using var removal = Request(HttpMethod.Put, $"/api/v2/seasons/{g.Id}/members/{bb.Character.Id}/trade-restriction", new MemberRestriction(true, "Restricted"), etag: member.Etag);
         using var confirm = Request(HttpMethod.Post, $"/api/v2/seasons/{g.Id}/trades/{t.Id}/final-confirm", new TradeRevision(t.Revision));
         var outcomes = await Task.WhenAll(a.SendAsync(removal, TestContext.Current.CancellationToken), b.SendAsync(confirm, TestContext.Current.CancellationToken)); Assert.True(outcomes[0].IsSuccessStatusCode); foreach (var o in outcomes) o.Dispose();
         var ended = await ReadTrade(b, g, t); Assert.Contains(ended.State, new[] { "completed", "cancelled" });
@@ -96,11 +96,8 @@ public sealed partial class FoundationTests
             Assert.Equal(50, balances.Sum(x => x.Owned)); Assert.All(balances, x => Assert.Equal(0, x.Reserved));
             Assert.Equal(ended.State == "completed" ? 20 : 0, balances.Single(x => x.CharacterId == bb.Character.Id).Owned);
         }
-        Assert.Equal("dormant", (await Member(a, g, bb.Character.Id)).Status); member = await Member(a, g, bb.Character.Id); await Command<Member>(a, HttpMethod.Post, $"/api/v2/seasons/{g.Id}/members/{bb.Character.Id}/restoration", new MemberRemoval("Restored"), member.Etag); await Enroll(b, g);
-        member = await Member(a, g, bb.Character.Id); await Command<Member>(a, HttpMethod.Put, $"/api/v2/seasons/{g.Id}/members/{bb.Character.Id}/block", new MemberRemoval("Blocked"), member.Etag);
-        Assert.Empty((await b.GetFromJsonAsync<SeasonPage>("/api/v2/seasons", TestContext.Current.CancellationToken))!.Items);
-        member = await Member(a, g, bb.Character.Id); var unblocked = await Command<Member>(a, HttpMethod.Delete, $"/api/v2/seasons/{g.Id}/members/{bb.Character.Id}/block", new MemberRemoval("Unblocked"), member.Etag); Assert.Equal("dormant", unblocked.Status);
-        member = await Member(a, g, bb.Character.Id); await Command<Member>(a, HttpMethod.Post, $"/api/v2/seasons/{g.Id}/members/{bb.Character.Id}/restoration", new MemberRemoval("Restored explicitly"), member.Etag); await Enroll(b, g); var self = (await b.GetFromJsonAsync<Member>($"/api/v2/seasons/{g.Id}/members/{bb.Character.Id}", TestContext.Current.CancellationToken))!;
-        await Command<Member>(a, HttpMethod.Delete, $"/api/v2/seasons/{g.Id}/members/{bb.Character.Id}", new MemberRemoval("Removed"), self.Etag); Assert.Equal("dormant", (await Member(a, g, bb.Character.Id)).Status);
+        Assert.Equal("active", (await Member(a, g, bb.Character.Id)).Status);
+        Assert.Single((await b.GetFromJsonAsync<SeasonPage>("/api/v2/seasons", TestContext.Current.CancellationToken))!.Items);
+
     }
 }

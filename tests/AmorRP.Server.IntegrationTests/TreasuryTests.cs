@@ -112,7 +112,7 @@ public sealed partial class FoundationTests
     }
 
     [Fact]
-    public async Task Moderator_disband_pays_the_inactive_group_owner_and_replays_after_server_restart()
+    public async Task Moderator_disband_pays_the_group_owner_and_replays_after_server_restart()
     {
         var ct = TestContext.Current.CancellationToken;
         using var f = Factory(); await Migrate(f); using var admin = f.CreateClient(); var adminToken = await Login(admin, "1240"); var c = await Create(admin);
@@ -120,7 +120,6 @@ public sealed partial class FoundationTests
         var group = await Command<GroupProfile>(owner, HttpMethod.Post, $"/api/v2/seasons/{c.Id}/groups", new GroupWrite("Departed", "")); var path = TreasuryPath(c, group);
         group = await Command<GroupProfile>(admin, HttpMethod.Put, path[..^9] + "/features", new GroupFeaturesEdit(GroupCapabilities.Features.ToArray()), group.Etag);
         await Fund(admin, c, ownerToken.Character.Id, "90"); await TreasuryMove(owner, c, group, "60");
-        var member = await Member(admin, c, ownerToken.Character.Id); await Command<Member>(admin, HttpMethod.Delete, $"/api/v2/seasons/{c.Id}/members/{ownerToken.Character.Id}", new MemberRemoval("Left community"), member.Etag);
         var key = Guid.CreateVersion7(clock.GetUtcNow());
         using (var request = Request(HttpMethod.Delete, path[..^9], key: key, etag: group.Etag))
         using (var reply = await admin.SendAsync(request, ct)) Assert.Equal(HttpStatusCode.OK, reply.StatusCode);

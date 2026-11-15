@@ -17,12 +17,10 @@ public sealed partial class SeasonResourceService
     public async Task<IResult> MembersAsync(HttpContext http, Guid communityId, CancellationToken ct)
     {
         var session = await sessions.GetAsync(http, ct); var (community, _) = await access.RequireAsync(communityId, session.CharacterId, ct);
-        var dormant = http.Request.Query["includeDormant"] == "true";
-        if (dormant) SeasonAccess.Owner(community, session.CharacterId);
         var search = http.Request.Query["search"].ToString().Trim();
         ApiFault.Require(search.Length <= 200, 422, "invalid_request", "Member search must be 200 characters or fewer.");
-        var scope = $"members:{communityId}:{session.CharacterId}:{dormant}:{SecretVault.Hash(search)}"; var (limit, after) = pages.Read(http, scope);
-        var query = db.Memberships.Where(x => x.CommunityId == communityId && (dormant || x.Status == "active"));
+        var scope = $"members:{communityId}:{session.CharacterId}:{SecretVault.Hash(search)}"; var (limit, after) = pages.Read(http, scope);
+        var query = db.Memberships.Where(x => x.CommunityId == communityId && x.Status == "active");
         if (search.Length > 0)
         {
             var pattern = "%" + search.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_") + "%";
@@ -51,7 +49,7 @@ public sealed partial class SeasonResourceService
         var scope = "character:" + session.CharacterId;
         var replay = await commands.ReplayAsync(http, scope, body, ct); if (replay != null) return commands.Replay(replay);
         ApiFault.Require(characterId != community.OwnerCharacterId, 409, "owner_protected", "Owner authority cannot be edited as a member grant.");
-        var target = await access.TargetAsync(communityId, characterId, kind != "restore", ct);
+        var target = await access.TargetAsync(communityId, characterId, true, ct);
         CommandStore.Match(http, SeasonAccess.MemberETag(target));
         var op = commands.New(http, scope, body, session.CharacterId, communityId, "member." + kind); op.SubjectCharacterId = characterId;
         switch (body)
@@ -77,16 +75,7 @@ public sealed partial class SeasonResourceService
             case MemberRestriction restriction:
                 ApiFault.Text(restriction.Reason, 500, false); target.TradingRestricted = restriction.Restricted; op.Reason = restriction.Reason;
                 if (restriction.Restricted) await trades.CancelForAsync(communityId, characterId, "Trading permission disabled.", ct); break;
-            case MemberRemoval removal:
-                ApiFault.Text(removal.Reason, 500); op.Reason = removal.Reason;
-                if (kind == "restore")
-                {
-                    ApiFault.Require(target.Status is "blocked" or "dormant", 409, "member_not_blocked", "Only inactive members can be restored.");
-                    target.Status = "active"; target.Capabilities = [];
-                    op.Summary = "Season membership explicitly restored without previous grants.";
-                }
-                else { target.Status = "blocked"; target.Capabilities = []; await EndMemberAccessAsync(communityId, characterId, ct); }
-                break;
+
         }
         target.Version++; community.Version++;
         var dto = new Member(SessionAccess.View(await db.Characters.SingleAsync(x => x.Id == characterId, ct)), target.Status, false,
@@ -107,36 +96,4 @@ public sealed partial class SeasonResourceService
         SessionAccess.View(await db.Characters.SingleAsync(x => x.Id == m.CharacterId, ct)), m.Status,
         m.CharacterId == g.OwnerCharacterId, m.CharacterId == g.OwnerCharacterId ? SeasonAccess.GrantableActions : m.Capabilities,
         m.TradingRestricted, m.Version, SeasonAccess.MemberETag(m), m.Description);
-    public async Task<IResult> MembershipAsync(HttpContext h, Guid communityId, Guid characterId, MemberRemoval body, string kind, CancellationToken ct)
-    {
-        var actor = (await sessions.GetAsync(h, ct)).CharacterId;
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
-        await CommandStore.LockAsync(db, ["character:" + actor, "character:" + characterId, "season:" + communityId], ct);
-        var scope = "character:" + actor;
-        var replay = await commands.ReplayAsync(h, scope, body, ct);
-        if (replay != null) return commands.Replay(replay);
-        var (community, _) = await access.RequireAsync(communityId, actor, ct);
-        ApiFault.Require(actor != characterId || kind != "remove", 409, "automatic_season_membership", "Season membership is automatic. Ask the owner about membership access.");
-        if (actor != characterId || kind != "remove") SeasonAccess.Owner(community, actor);
-        ApiFault.Require(characterId != community.OwnerCharacterId, 409, "owner_protected", "Transfer ownership before removing the current owner.");
-        var target = await access.TargetAsync(communityId, characterId, false, ct);
-        CommandStore.Match(h, SeasonAccess.MemberETag(target));
-        ApiFault.Text(body.Reason, 500, actor != characterId || kind != "remove");
-        if (kind == "unblock")
-        {
-            ApiFault.Require(target.Status == "blocked", 409, "member_not_blocked", "Member is not blocked."); target.Status = "dormant";
-        }
-        else
-        {
-            ApiFault.Require(kind == "block" || target.Status == "active", 409, "membership_inactive", "Membership is already inactive.");
-            target.Status = kind == "block" ? "blocked" : "dormant"; target.Capabilities = [];
-            await EndMemberAccessAsync(communityId, characterId, ct);
-        }
-        target.Version++; community.Version++;
-        var op = commands.New(h, scope, body, actor, communityId, "member." + kind); op.SubjectCharacterId = characterId;
-        op.Reason = body.Reason; op.Summary = kind == "remove" ? "Membership ended; invited rejoining is allowed." : kind == "block" ? "Member blocked from rejoining." : "Block lifted; membership remains inactive.";
-        h.Response.Headers.ETag = SeasonAccess.MemberETag(target);
-        var result = await commands.SaveAsync(h, op, new CommandResult<Member>(op.Id, await MemberViewAsync(community, target, ct)), ct);
-        await tx.CommitAsync(ct); return result;
-    }
 }

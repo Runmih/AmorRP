@@ -1,7 +1,7 @@
 # Documentation index
 
 Current guides describe the implemented project.
-Current plugin/server source is [0.4.0.2 — Seasons only](delivery/release-0.4.0.2.md).
+Current plugin/server source is [0.4.0.3 — Seasons only](delivery/release-0.4.0.3.md).
 There is no community mode, enable variable or old API fallback. The matching
 Windows artifact is promoted to the main feed after both source workflows pass.
 The home stack retains only the Lodestone administrator identity setting for season

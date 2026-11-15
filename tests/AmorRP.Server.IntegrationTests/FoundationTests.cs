@@ -134,8 +134,6 @@ public sealed partial class FoundationTests : PostgresTestDatabase
         using var f = Factory(); await Migrate(f); using var owner = f.CreateClient(); var ownerToken = await Login(owner, "130"); var a = await Create(owner, "A");
         using var member = f.CreateClient(); var memberToken = await Login(member, "131"); await Enroll(member, a);
         using var outsider = f.CreateClient(); var outsiderToken = await Login(outsider, "132"); await Enroll(outsider, a);
-        var outsideMembership = await Member(owner, a, outsiderToken.Character.Id);
-        await Command<Member>(owner, HttpMethod.Delete, $"/api/v2/seasons/{a.Id}/members/{outsiderToken.Character.Id}", new MemberRemoval("Outside this season"), outsideMembership.Etag);
         var adjustment = new CurrencyAdjustment(memberToken.Character.Id, "1000", "Starting balance");
         using var denied = Request(HttpMethod.Post, $"/api/v2/seasons/{a.Id}/currency/adjustments", adjustment); Assert.Equal(HttpStatusCode.Forbidden, (await member.SendAsync(denied, TestContext.Current.CancellationToken)).StatusCode);
         var roster = await Member(owner, a, memberToken.Character.Id);
@@ -144,7 +142,7 @@ public sealed partial class FoundationTests : PostgresTestDatabase
         using var mint = Request(HttpMethod.Post, $"/api/v2/seasons/{a.Id}/currency/adjustments", adjustment, key); Assert.Equal(HttpStatusCode.OK, (await member.SendAsync(mint, TestContext.Current.CancellationToken)).StatusCode);
         using var retry = Request(HttpMethod.Post, $"/api/v2/seasons/{a.Id}/currency/adjustments", adjustment, key); Assert.Equal(HttpStatusCode.OK, (await member.SendAsync(retry, TestContext.Current.CancellationToken)).StatusCode);
         using var mismatch = Request(HttpMethod.Post, $"/api/v2/seasons/{a.Id}/currency/adjustments", adjustment with { Delta = "5" }, key); Assert.Equal(HttpStatusCode.Conflict, (await member.SendAsync(mismatch, TestContext.Current.CancellationToken)).StatusCode);
-        using var cross = Request(HttpMethod.Post, $"/api/v2/seasons/{a.Id}/currency/adjustments", new CurrencyAdjustment(outsiderToken.Character.Id, "1", "Cross-community attempt")); Assert.Equal(HttpStatusCode.NotFound, (await member.SendAsync(cross, TestContext.Current.CancellationToken)).StatusCode);
+        using var cross = Request(HttpMethod.Post, $"/api/v2/seasons/{a.Id}/currency/adjustments", new CurrencyAdjustment(Guid.NewGuid(), "1", "Unknown target")); Assert.Equal(HttpStatusCode.NotFound, (await member.SendAsync(cross, TestContext.Current.CancellationToken)).StatusCode);
         var debits = Enumerable.Range(0,2).Select(async _ => { using var req = Request(HttpMethod.Post, $"/api/v2/seasons/{a.Id}/currency/adjustments", adjustment with { Delta = "-750", Reason = "Purchase" }); return await member.SendAsync(req, TestContext.Current.CancellationToken); }).ToArray();
         var results = await Task.WhenAll(debits); Assert.Single(results, x => x.IsSuccessStatusCode); Assert.Single(results, x => x.StatusCode == HttpStatusCode.Conflict); foreach(var r in results) r.Dispose();
         Assert.Equal("250", (await member.GetFromJsonAsync<BalancePage>($"/api/v2/seasons/{a.Id}/balances", TestContext.Current.CancellationToken))!.Items.Single().Owned);
@@ -157,17 +155,14 @@ public sealed partial class FoundationTests : PostgresTestDatabase
         Assert.Equal(1000, ledger.Single(x => x.Delta == 1000).AfterBalance); Assert.Equal(250, ledger.Single(x => x.Delta == -750).AfterBalance);
     }
     [Fact]
-    public async Task Removal_restore_rejoin_preserves_balance_clears_grants_and_policy_changes_wait_until_monday()
+    public async Task Revoking_permissions_preserves_balance_and_policy_changes_wait_until_monday()
     {
         using var f = Factory(); await Migrate(f); using var owner = f.CreateClient(); await Login(owner, "140"); var community = await Create(owner);
         using var member = f.CreateClient(); var tokens = await Login(member, "141"); var invitation = community; await Enroll(member, invitation);
         await Command<Balance>(owner, HttpMethod.Post, $"/api/v2/seasons/{community.Id}/currency/adjustments", new CurrencyAdjustment(tokens.Character.Id, "7", "Gift"));
         var target = await Member(owner, community, tokens.Character.Id);
         target = await Command<Member>(owner, HttpMethod.Put, $"/api/v2/seasons/{community.Id}/members/{tokens.Character.Id}/capabilities", new MemberCapabilities(["currency.manage"]), target.Etag);
-        target = await Command<Member>(owner, HttpMethod.Post, $"/api/v2/seasons/{community.Id}/members/{tokens.Character.Id}/removal", new MemberRemoval("Removed"), target.Etag);
-        Assert.Equal(HttpStatusCode.NotFound, (await member.GetAsync($"/api/v2/seasons/{community.Id}", TestContext.Current.CancellationToken)).StatusCode);
-        Assert.Empty((await member.GetFromJsonAsync<SeasonPage>("/api/v2/seasons", TestContext.Current.CancellationToken))!.Items);
-        await Command<Member>(owner, HttpMethod.Post, $"/api/v2/seasons/{community.Id}/members/{tokens.Character.Id}/restoration", new MemberRemoval("Restored eligibility"), target.Etag);
+        await Command<Member>(owner, HttpMethod.Put, $"/api/v2/seasons/{community.Id}/members/{tokens.Character.Id}/capabilities", new MemberCapabilities([]), target.Etag);
         var joined = await Enroll(member, invitation); Assert.Equal("7", joined.MyBalance.Owned); Assert.Empty(joined.MyCapabilities);
         using var policies = await owner.GetAsync($"/api/v2/seasons/{community.Id}/policies", TestContext.Current.CancellationToken);
         var changed = await Command<SeasonPolicies>(owner, HttpMethod.Put, $"/api/v2/seasons/{community.Id}/policies", new PolicyEdit(20, 9), policies.Headers.ETag!.ToString());

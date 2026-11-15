@@ -79,9 +79,7 @@ public sealed partial class FoundationTests
         using (var invalid = await UploadCommunityImage(owner, path, [1, 2, 3, 4], LogoTag(current))) Assert.Equal(HttpStatusCode.UnsupportedMediaType, invalid.StatusCode);
         using (var oversized = await UploadCommunityImage(owner, path, new byte[2097153], LogoTag(current))) Assert.Equal(HttpStatusCode.RequestEntityTooLarge, oversized.StatusCode);
         using (var dimensions = await UploadCommunityImage(owner, path, LogoBytes(2049, 1), LogoTag(current))) Assert.Equal(HttpStatusCode.UnprocessableEntity, dimensions.StatusCode);
-        var membership = await Member(owner, community, memberId);
-        await Command<Member>(owner, HttpMethod.Delete, $"/api/v2/seasons/{community.Id}/members/{memberId}", new MemberRemoval("Leave"), membership.Etag);
-        Assert.Equal(HttpStatusCode.NotFound, (await member.GetAsync(path, ct)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await member.GetAsync(path, ct)).StatusCode);
         await using var scope = factory.Services.CreateAsyncScope(); var db = scope.ServiceProvider.GetRequiredService<AmorDbContext>();
         Assert.Single(await db.MediaAssets.ToArrayAsync(ct)); Assert.Equal(2, (await db.Seasons.SingleAsync(ct)).LogoVersion);
     }

@@ -27,10 +27,10 @@ public sealed partial class SeasonsPanel
         requests.ChangeView(); reads.Clear(); ClearTradeViews();
         icons.Clear(); logos.Clear(); community = null; members = []; policies = null; transfer = null;
         ClearMemberDescription(); memberSelection = null; memberDraftEtag = null; memberSearch = ""; policyDraftVersion = editCommunityVersion = editCurrencyVersion = 0; membersCursor = null;
-        policyDraftLoaded = false; showInactive = false;
+        policyDraftLoaded = false;
         ClearHomeViews(); editDescription = editCurrencyName = ""; iconPath = "";
         ClearMemberBalance();
-        removalReason = reason = delta = ""; tradingAllowed = true; grantDefinitions = false;
+        reason = delta = ""; tradingAllowed = true; grantDefinitions = false;
         ClearInventoryViews();
         ClearAuthorizationViews();
     }

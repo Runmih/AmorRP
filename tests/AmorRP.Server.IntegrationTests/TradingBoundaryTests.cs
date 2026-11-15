@@ -14,14 +14,12 @@ namespace AmorRP.Server.IntegrationTests;
 public sealed partial class FoundationTests
 {
     [Fact]
-    public async Task Trade_invitation_race_claims_both_participants_once_and_cross_community_targets_are_rejected()
+    public async Task Trade_invitation_race_claims_both_participants_once_and_unknown_targets_are_rejected()
     {
         using var f = Factory(); await Migrate(f); using var a = f.CreateClient(); await Login(a, "410"); var g = await Create(a);
         using var b = f.CreateClient(); var bb = await Login(b, "411"); await Enroll(b, g);
         using var other = f.CreateClient(); var outsider = await Login(other, "412");
-        var outsideMembership = await Member(a, g, outsider.Character.Id);
-        await Command<Member>(a, HttpMethod.Delete, $"/api/v2/seasons/{g.Id}/members/{outsider.Character.Id}", new MemberRemoval("Removed"), outsideMembership.Etag);
-        using var foreign = Request(HttpMethod.Post, $"/api/v2/seasons/{g.Id}/trades", new TradeCreate(outsider.Character.Id)); Assert.Equal(HttpStatusCode.NotFound, (await a.SendAsync(foreign, TestContext.Current.CancellationToken)).StatusCode);
+        using var foreign = Request(HttpMethod.Post, $"/api/v2/seasons/{g.Id}/trades", new TradeCreate(Guid.NewGuid())); Assert.Equal(HttpStatusCode.NotFound, (await a.SendAsync(foreign, TestContext.Current.CancellationToken)).StatusCode);
         var responses = await Task.WhenAll(Enumerable.Range(0, 4).Select(async _ => { using var request = Request(HttpMethod.Post, $"/api/v2/seasons/{g.Id}/trades", new TradeCreate(bb.Character.Id)); return await a.SendAsync(request, TestContext.Current.CancellationToken); }));
         Assert.Single(responses, x => x.IsSuccessStatusCode); Assert.Equal(3, responses.Count(x => x.StatusCode == HttpStatusCode.Conflict)); foreach (var response in responses) response.Dispose();
         await using var scope = f.Services.CreateAsyncScope(); var db = scope.ServiceProvider.GetRequiredService<AmorDbContext>();

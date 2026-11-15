@@ -54,6 +54,8 @@ public sealed partial class SeasonResourceService(AmorDbContext db, SessionAcces
             CurrentLetters = body.WeeklyLetters, NextLetters = body.WeeklyLetters };
         var member = new MembershipRow { CommunityId = community.Id, CharacterId = session.CharacterId };
         db.Seasons.Add(community); AmorRP.Server.Features.Catalog.CatalogService.Seed(db, community.Id); db.Memberships.Add(member);
+        await db.SaveChangesAsync(ct);
+        await SeasonMemberships.EnrollAsync(db, null, community.Id, ct);
         var op = commands.New(http, scope, body, session.CharacterId, community.Id, "season.create");
         http.Response.Headers.ETag = CommandStore.ETag("season", community.Id, community.Version);
         var result = await commands.SaveAsync(http, op, new CommandResult<Season>(op.Id, await access.ViewAsync(community, member, time.GetUtcNow(), ct)), ct);
@@ -112,14 +114,5 @@ public sealed partial class SeasonResourceService(AmorDbContext db, SessionAcces
     }
     private void ValidatePolicy(int points, int letters) => ApiFault.Require(points >= 0 && points <= policy.Value.MaxWeeklyPotionPoints && letters >= 0 && letters <= policy.Value.MaxWeeklyLetters,
         422, "invalid_request", "Weekly limits exceed supported bounds.");
-    private async Task EndMemberAccessAsync(Guid community, Guid member, CancellationToken ct)
-    {
-        foreach (var trust in await db.GroupTrusts.Where(x => x.CommunityId == community && x.CharacterId == member && x.Trusted).ToArrayAsync(ct))
-        { trust.Trusted = false; trust.Version++; }
-        foreach (var groupMember in await db.GroupMemberships.Where(x => x.CommunityId == community && x.CharacterId == member).ToArrayAsync(ct))
-        { groupMember.Capabilities = []; groupMember.PermissionVersion = Guid.CreateVersion7(); }
-        await trades.CancelForAsync(community, member, "Membership ended or trading was restricted.", ct);
-        foreach (var transfer in await db.OwnershipTransfers.Where(x => x.CommunityId == community && x.ToCharacterId == member && x.Status == "proposed").ToArrayAsync(ct)) transfer.Status = "cancelled";
-    }
 
 }

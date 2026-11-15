@@ -2,11 +2,11 @@
 
 ## Current product versions
 
-Plugin/server source **0.4.0.2**, Amor RP API **v2**, Dalamud API **15**.
-The client requires server **0.4.0.2** and the server advertises minimum client
-**0.4.0.2**. There is one seasonal model with automatic membership and explicit
+Plugin/server source **0.4.0.3**, Amor RP API **v2**, Dalamud API **15**.
+The client requires server **0.4.0.3** and the server advertises minimum client
+**0.4.0.3**. There is one seasonal model with automatic membership and explicit
 `seasons.create` permission; no mode switch or older-server fallback is shipped.
-See [the replacement and upgrade guide](../delivery/release-0.4.0.2.md).
+See [the replacement and upgrade guide](../delivery/release-0.4.0.3.md).
 XIVAuth's external API remains **v1**. The published plugin version is recorded in
 repo.json after both matching source workflows pass.
 

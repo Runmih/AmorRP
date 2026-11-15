@@ -1,7 +1,7 @@
 # API contract and endpoint catalog
 
 The current implementation has one model: **Seasons**, with RP groups inside each
-season. The matching plugin/server baseline is 0.4.0.2. The application's API is
+season. The matching plugin/server baseline is 0.4.0.3. The application's API is
 v2; XIVAuth separately uses its own API v1. No old application routes or community
 mode are exposed. [OpenAPI](openapi.yaml) records implemented and planned operations.
 
@@ -14,9 +14,11 @@ mode are exposed. [OpenAPI](openapi.yaml) records implemented and planned operat
   Individual season/group roles do not grant global creation authority.
 - Creation returns a draft. Activation and archival are administrator-only,
   versioned, idempotent transitions. One season is active at a time.
-- Verified characters automatically join the active season. Removals and blocks
-  persist until explicitly restored. New seasons do not inherit assets or scoped
-  grants from previous seasons. Archives retain authorized read access.
+- Every verified character belongs to every non-deleted season automatically,
+  including drafts and archives. Season membership has no join, leave, removal,
+  block or restore commands. User bans belong to separate account moderation.
+  New seasons do not inherit assets or scoped grants; archives stay read-only.
+  Shared season access does not grant another player's private records or items.
 - IDs are UUIDs, monetary amounts are bounded whole-number decimal strings, and
   all scoped resources use seasonId. Internal historical database names remain
   mapped to the same data; they do not expose another product model.
@@ -53,12 +55,10 @@ mode are exposed. [OpenAPI](openapi.yaml) records implemented and planned operat
 | PATCH | `/api/v2/seasons/{seasonId}` | Edit season name/description | Owner; season.moderate can change description only |
 | GET | `/api/v2/seasons/{seasonId}/policies` | Current and next weekly policies | Active member |
 | PUT | `/api/v2/seasons/{seasonId}/policies` | Schedule next-week limits | Owner |
-| GET | `/api/v2/seasons/{seasonId}/members` | Consented own-season roster; owner may include dormant members | Active member |
+| GET | `/api/v2/seasons/{seasonId}/members` | All verified players in the season | Active member |
 | PUT | `/api/v2/seasons/{seasonId}/members/{characterId}/capabilities` | Replace individually granted actions | Owner; members.gameplay.manage can change Trading and items.potion.create only |
 | PUT | `/api/v2/seasons/{seasonId}/members/{characterId}/trade-restriction` | Restrict/restore both trade directions and cancel affected trades | Owner; active nonowner |
-| POST | `/api/v2/seasons/{seasonId}/members/{characterId}/removal` | Remove/block member and cancel affected trades | Owner; active nonowner |
-| POST | `/api/v2/seasons/{seasonId}/members/{characterId}/restoration` | Allow blocked character to rejoin; does not grant a slot or permissions | Owner; blocked member |
-| GET | `/api/v2/seasons/{seasonId}/members/{characterId}/holdings` | Minimal holding summaries for authorized removal; no letter bodies | Self read, or inventory.remove for summaries; owner may inspect inactive summaries; no private bodies |
+| GET | `/api/v2/seasons/{seasonId}/members/{characterId}/holdings` | Minimal holding summaries for authorized removal; no letter bodies | Self read, or inventory.remove for summaries; no private bodies |
 | GET | `/api/v2/seasons/{seasonId}/members/{characterId}/balances` | Balances for authorized currency adjustment | Self read, or currency.manage for another active member |
 | POST | `/api/v2/seasons/{seasonId}/ownership-transfers` | Propose transfer to active member | Owner |
 | GET | `/api/v2/seasons/{seasonId}/ownership-transfers/{transferId}` | Read transfer status | Current owner or proposed recipient |
@@ -94,7 +94,7 @@ mode are exposed. [OpenAPI](openapi.yaml) records implemented and planned operat
 | POST | `/api/v2/seasons/{seasonId}/inventory/{holdingId}/use` | Consume one available potion and return literal chat text | Current holder; active member; potion type |
 | POST | `/api/v2/seasons/{seasonId}/inventory/{holdingId}/discard` | Discard own available quantity; no quota refund | Current holder; active member |
 | POST | `/api/v2/seasons/{seasonId}/inventory/removals` | Remove another active member holding with reason | Owner or inventory.remove; target active |
-| GET | `/api/v2/seasons/{seasonId}/trades` | Own trades, pending invitations and recent outcomes | Existing season membership; only own participant trades, including terminal recovery after removal |
+| GET | `/api/v2/seasons/{seasonId}/trades` | Own trades, pending invitations and recent outcomes | Verified player; only own participant trades, including terminal recovery |
 | POST | `/api/v2/seasons/{seasonId}/trades` | Invite same-season unrestricted character to trade | Active unrestricted member; same for target |
 | GET | `/api/v2/seasons/{seasonId}/trades/{tradeId}` | Read own trade and recover outcome | Participant; terminal status remains available after removal |
 | POST | `/api/v2/seasons/{seasonId}/trades/{tradeId}/accept` | Recipient accepts unexpired invitation | Recipient; both active/unrestricted |
@@ -117,10 +117,7 @@ mode are exposed. [OpenAPI](openapi.yaml) records implemented and planned operat
 | POST | `/api/v2/feasibility/login-attempts/{attemptId}/exchange` | Exchange temporary attempt for five-minute probe session | LoginAttempt |
 | GET | `/api/v2/feasibility/identity` | Check temporary authenticated reconnect | Session |
 | DELETE | `/api/v2/feasibility/session` | Revoke temporary probe session | Session |
-| GET | `/api/v2/seasons/{seasonId}/members/{characterId}` | Read current member and ETag | Active member; only owner reads inactive summaries |
-| DELETE | `/api/v2/seasons/{seasonId}/members/{characterId}` | Leave or remove membership; allow invited rejoining | Self or owner; owner membership protected |
-| PUT | `/api/v2/seasons/{seasonId}/members/{characterId}/block` | Block known member and cancel trades | Owner; owner membership protected |
-| DELETE | `/api/v2/seasons/{seasonId}/members/{characterId}/block` | Unblock; retain inactive membership | Owner; blocked nonowner only |
+| GET | `/api/v2/seasons/{seasonId}/members/{characterId}` | Read current member and ETag | Verified player |
 | PATCH | `/api/v2/seasons/{seasonId}/members/{characterId}/holdings/{holdingId}` | Reduce owned quantity without allowance refund | Self or inventory.remove; mandatory reason and active target for administration |
 | DELETE | `/api/v2/seasons/{seasonId}/members/{characterId}/holdings/{holdingId}` | Discard entire unreserved holding | Self or inventory.remove; mandatory reason and active target for administration |
 | PATCH | `/api/v2/seasons/{seasonId}/members/{characterId}/description` | Edit own season character description | Active member, self only |

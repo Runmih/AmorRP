@@ -11,7 +11,7 @@ public sealed partial class SeasonsPanel
         var query = more ? appliedMemberSearch : memberSearch.Trim();
         if (!more && query.Length == 0) { ClearMemberSearch(); return; }
         var cursor = more ? (query.Length > 0 ? memberSearchCursor : membersCursor) : null;
-        var path = $"api/v2/seasons/{community.Id}/members?search={Uri.EscapeDataString(query)}" + (Owner && showInactive ? "&includeDormant=true" : "")
+        var path = $"api/v2/seasons/{community.Id}/members?search={Uri.EscapeDataString(query)}"
             + (cursor != null ? "&cursor=" + Uri.EscapeDataString(cursor) : "");
         var id = community.Id; var token = session.AccessToken;
         Start(async ct => {

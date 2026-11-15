@@ -36,10 +36,9 @@ public sealed partial class SeasonsPanel(IPlayerState player, Configuration conf
     private readonly SeasonImageCache logos = new(textures, "season logo");
     private DateTimeOffset lastRefresh, nextRefresh;
     private int syncFailures;
-    private bool showInactive, serviceCompatible;
+    private bool serviceCompatible;
     private string? memberDraftEtag;
     private int policyDraftVersion, editCommunityVersion, editCurrencyVersion;
-    private string removalReason = "";
     private string editDescription = "", editCurrencyName = "";
     private PublicLimits? serviceLimits;
     private string status = "Sign in with XIVAuth to access your seasons.";
@@ -175,7 +174,7 @@ public sealed partial class SeasonsPanel(IPlayerState player, Configuration conf
                 ImGui.BeginDisabled(origin == null || localName.Length == 0 || localWorld.Length == 0);
                 if (ImGui.Button("Log in with XIVAuth")) BeginLogin(localName, localWorld, worldId);
                 ImGui.EndDisabled();
-                Wrapped("Signing in automatically joins the active season. Its members can see your verified character name, home world and membership.");
+                Wrapped("Signing in automatically includes you in every season. Other players can see your verified character name and home world.");
                 if (localName.Length == 0 || localWorld.Length == 0) Wrapped("Log into your FFXIV character first.");
                 DrawLoginFeedback();
             }
@@ -307,9 +306,9 @@ public sealed partial class SeasonsPanel(IPlayerState player, Configuration conf
     private void Mutate(string method, string path, object? body, string? etag = null, bool signOut = false)
     {
         if (session == null || origin == null || WriteBlocked) return;
-        if (SeasonReadOnly && path.StartsWith("api/v2/seasons/", StringComparison.Ordinal)) return;
-        requests.ChangeData();
         var command = new CommandRequest(method, path, body == null ? null : JsonSerializer.Serialize(body, FoundationClient.Json), etag);
+        if (!SeasonSelection.CanSubmit(community, command)) return;
+        requests.ChangeData();
         var pending = new PendingCommand { Origin = origin.AbsoluteUri, CharacterId = session.Character.Id, Key = Guid.CreateVersion7(), ProtectedRequest = PendingCommand.Protect(command) };
         configuration.PendingCommands.Add(pending); save(); ExecutePending(pending, signOut);
     }
@@ -334,9 +333,9 @@ public sealed partial class SeasonsPanel(IPlayerState player, Configuration conf
         nextRefresh = DateTimeOffset.UtcNow.AddMinutes(1);
         StartSync(async ct => {
             var capability = await client.GetAsync<CapabilitiesResponse>(uri, "api/v2/capabilities", token, ct);
-            if (capability.ApiVersion != "2" || !Version.TryParse(capability.ServerVersion, out var serverVersion) || serverVersion < new Version(0, 4, 0, 2)
+            if (capability.ApiVersion != "2" || !Version.TryParse(capability.ServerVersion, out var serverVersion) || serverVersion < new Version(0, 4, 0, 3)
                 || !Version.TryParse(capability.MinimumClientVersion, out var minimumClient) || minimumClient > typeof(SeasonsPanel).Assembly.GetName().Version)
-                throw new InvalidOperationException($"Amor RP requires server 0.4.0.2 or newer. The connected server reports {capability.ServerVersion}. Update the server and plugin together.");
+                throw new InvalidOperationException($"Amor RP requires server 0.4.0.3 or newer. The connected server reports {capability.ServerVersion}. Update the server and plugin together.");
             if (capability.Maintenance) throw new InvalidOperationException(capability.Message);
             var list = new List<Season>(); string? cursor = null;
             do

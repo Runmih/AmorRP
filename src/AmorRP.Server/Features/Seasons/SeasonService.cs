@@ -29,28 +29,8 @@ public sealed class SeasonService(AmorDbContext db, SessionAccess sessions, Comm
     public async Task RequireAdministratorAsync(Guid actor, CancellationToken ct) =>
         ApiFault.Require(await IsAdministratorAsync(actor, ct), 403, "season_administrator_required", "Only a configured server administrator may manage seasons.");
 
-    // Call with the community lock held. Missing memberships are enrolled; moderation decisions
-    // (dormant/blocked rows) are never undone by signing in or refreshing.
-    private async Task EnrollAsync(Guid season, Guid? actor, CancellationToken ct) =>
-        await db.Database.ExecuteSqlInterpolatedAsync($"""
-            INSERT INTO memberships ("CommunityId", "CharacterId", "Status", "ReadAnnouncementIds", "Description", "Capabilities", "TradingRestricted", "Version", "LastCollectionAttempt", "CollectionPending", "Owned", "Reserved", "BalanceVersion")
-            SELECT {season}, "Id", 'active', ARRAY[]::uuid[], '', ARRAY[]::text[], false, 1, 0, false, 0, 0, 1
-            FROM characters WHERE ({actor}::uuid IS NULL OR "Id" = {actor})
-            ON CONFLICT ("CommunityId", "CharacterId") DO NOTHING
-            """, ct);
-
-    public async Task EnsureMembershipAsync(Guid actor, CancellationToken ct)
-    {
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
-        await CommandStore.LockAsync(db, ["season-lifecycle"], ct);
-        var active = await db.Seasons.Where(x => x.SeasonState == "active" && !x.Deleted).Select(x => (Guid?)x.Id).SingleOrDefaultAsync(ct);
-        if (active.HasValue)
-        {
-            await CommandStore.LockAsync(db, ["season:" + active], ct);
-            await EnrollAsync(active.Value, actor, ct);
-        }
-        await tx.CommitAsync(ct);
-    }
+    public Task EnsureMembershipAsync(Guid actor, CancellationToken ct) =>
+        SeasonMemberships.EnrollAsync(db, actor, null, ct);
 
     public async Task<IResult> ContextAsync(HttpContext http, CancellationToken ct)
     {
@@ -145,7 +125,7 @@ public sealed class SeasonService(AmorDbContext db, SessionAccess sessions, Comm
             // Flush the former active state before setting the new one (unique active-season index).
             await db.SaveChangesAsync(ct);
             season.SeasonState = "active"; season.Version++;
-            await EnrollAsync(id, null, ct);
+            await SeasonMemberships.EnrollAsync(db, null, id, ct);
         }
         else await ArchiveAsync(season, ct);
         var op = commands.New(http, scope, body, session.CharacterId, id, activate ? "season.activate" : "season.archive");

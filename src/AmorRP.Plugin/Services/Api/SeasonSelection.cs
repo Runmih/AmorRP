@@ -17,5 +17,9 @@ internal static class SeasonSelection
         return seasons.FirstOrDefault(x => x.Id == selected) ?? seasons.FirstOrDefault(x => x.Id == active) ?? seasons.FirstOrDefault();
     }
 
+    public static bool CanSubmit(Season? season, CommandRequest command) =>
+        !ReadOnly(season) || !command.Path.StartsWith("api/v2/seasons/", StringComparison.Ordinal)
+        || command.Operation.Kind is CommandKind.ActivateSeason or CommandKind.ArchiveSeason or CommandKind.SetSeasonCreationPermission;
+
     public static bool ReadOnly(Season? season) => season != null && season.SeasonState != "active";
 }

@@ -4,8 +4,7 @@ using Dalamud.Bindings.ImGui;
 
 namespace AmorRP.Plugin.Features.Seasons;
 
-// Separate windows give Join and Create independent position,
-// focus, size and open/close state while sharing the verified character context.
+// Season preparation has its own position, focus, size and open/close state.
 public sealed class SeasonFormWindow(string title, Action draw, Func<bool> canDraw, Vector2 initialSize, Action opened) : Window(title)
 {
     public override bool DrawConditions() => canDraw();

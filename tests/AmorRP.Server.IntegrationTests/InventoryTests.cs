@@ -87,15 +87,14 @@ public sealed partial class FoundationTests
         Assert.Equal(9, (await c.GetFromJsonAsync<Quotas>($"/api/v2/seasons/{g.Id}/quotas", TestContext.Current.CancellationToken))!.Items.Single(x => x.Kind == "potion_points").Used);
     }
     [Fact]
-    public async Task Per_character_quota_survives_leave_rejoin_and_rolls_to_scheduled_week()
+    public async Task Per_character_quota_survives_permission_changes_and_rolls_to_scheduled_week()
     {
         using var f = Factory(); await Migrate(f); using var owner = f.CreateClient(); await Login(owner, "302"); var g = await Create(owner); var recipe = await Recipe(owner, g, 12);
         using var a = f.CreateClient(); var ta = await Login(a, "303"); using var b = f.CreateClient(); var tb = await Login(b, "304"); var inv = g; await Enroll(a, inv); await Enroll(b, inv); await GrantPotions(owner, g, ta.Character.Id); await GrantPotions(owner, g, tb.Character.Id);
         await Command<ProductionResult>(a, HttpMethod.Post, $"/api/v2/seasons/{g.Id}/inventory/potions", new PotionCreate(recipe.Id, 1, 1));
         Assert.Equal(12, (await b.GetFromJsonAsync<Quotas>($"/api/v2/seasons/{g.Id}/quotas", TestContext.Current.CancellationToken))!.Items.Single(x => x.Kind == "potion_points").Remaining);
         var membership = await Member(owner, g, ta.Character.Id);
-        membership = await Command<Member>(owner, HttpMethod.Delete, $"/api/v2/seasons/{g.Id}/members/{ta.Character.Id}", new MemberRemoval("Removed for test"), membership.Etag);
-        await Command<Member>(owner, HttpMethod.Post, $"/api/v2/seasons/{g.Id}/members/{ta.Character.Id}/restoration", new MemberRemoval("Restored for test"), membership.Etag);
+        await Command<Member>(owner, HttpMethod.Put, $"/api/v2/seasons/{g.Id}/members/{ta.Character.Id}/capabilities", new MemberCapabilities([]), membership.Etag);
         await Enroll(a, g); await GrantPotions(owner, g, ta.Character.Id);
         Assert.Equal(0, (await a.GetFromJsonAsync<Quotas>($"/api/v2/seasons/{g.Id}/quotas", TestContext.Current.CancellationToken))!.Items.Single(x => x.Kind == "potion_points").Remaining);
         await Command<SeasonPolicies>(owner, HttpMethod.Put, $"/api/v2/seasons/{g.Id}/policies", new PolicyEdit(24, 2), $"\"policy:{g.Id:N}:1\"");
@@ -142,20 +141,6 @@ public sealed partial class FoundationTests
         Assert.Equal(1, (await member.GetFromJsonAsync<HoldingDetails>($"/api/v2/seasons/{a.Id}/inventory/{created.Holding.Id}", TestContext.Current.CancellationToken))!.Holding.Quantity);
         var b = await Create(owner, "Next season");
         using var foreign = Request(HttpMethod.Post, $"/api/v2/seasons/{b.Id}/inventory/potions", new PotionCreate(recipe.Id, 1, 1)); Assert.Equal(HttpStatusCode.NotFound, (await owner.SendAsync(foreign, TestContext.Current.CancellationToken)).StatusCode);
-    }
-    [Fact]
-    public async Task Removal_requires_reason_and_only_success_logs_and_revokes_access_with_assets_retained()
-    {
-        using var f = Factory(); await Migrate(f); using var owner = f.CreateClient(); await Login(owner, "309"); var g = await Create(owner); using var member = f.CreateClient(); var tm = await Login(member, "310"); await Enroll(member, g);
-        var cat = (await member.GetFromJsonAsync<CategoryPage>($"/api/v2/seasons/{g.Id}/categories", TestContext.Current.CancellationToken))!.Items.Single(x => x.AllowedTypeIds.Contains("letter"));
-        var item = await Command<ProductionResult>(member, HttpMethod.Post, $"/api/v2/seasons/{g.Id}/inventory/letters", new LetterCreate(cat.Id, "Keep", "Private"));
-        var row = await Member(owner, g, tm.Character.Id);
-        using var bad = Request(HttpMethod.Post, $"/api/v2/seasons/{g.Id}/members/{tm.Character.Id}/removal", new MemberRemoval(""), etag: row.Etag); using var rejected = await owner.SendAsync(bad, TestContext.Current.CancellationToken);
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, rejected.StatusCode); Assert.Contains("requestId", await rejected.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
-        using var kick = Request(HttpMethod.Post, $"/api/v2/seasons/{g.Id}/members/{tm.Character.Id}/removal", new MemberRemoval("M3 kick check"), etag: row.Etag); Assert.Equal(HttpStatusCode.OK, (await owner.SendAsync(kick, TestContext.Current.CancellationToken)).StatusCode);
-        Assert.DoesNotContain((await owner.GetFromJsonAsync<MemberPage>($"/api/v2/seasons/{g.Id}/members", TestContext.Current.CancellationToken))!.Items, x => x.Character.Id == tm.Character.Id);
-        Assert.Equal(HttpStatusCode.NotFound, (await member.GetAsync($"/api/v2/seasons/{g.Id}/inventory", TestContext.Current.CancellationToken)).StatusCode);
-        await using var scope = f.Services.CreateAsyncScope(); var db = scope.ServiceProvider.GetRequiredService<AmorDbContext>(); Assert.Equal(1, await db.Operations.CountAsync(x => x.Kind == "member.remove", TestContext.Current.CancellationToken)); Assert.Equal(1, (await db.Holdings.SingleAsync(x => x.Id == item.Holding.Id, TestContext.Current.CancellationToken)).Quantity);
     }
     [Theory]
     [InlineData(SKEncodedImageFormat.Png)] [InlineData(SKEncodedImageFormat.Jpeg)] [InlineData(SKEncodedImageFormat.Webp)]

@@ -15,7 +15,7 @@ public sealed partial class FoundationTests
         (await client.GetFromJsonAsync<Member>($"/api/v2/seasons/{community.Id}/members/{characterId}", TestContext.Current.CancellationToken))!;
 
     [Fact]
-    public async Task Descriptions_are_self_edited_community_scoped_and_visible_only_through_authorized_membership()
+    public async Task Descriptions_are_self_edited_season_scoped_and_visible_to_all_verified_players()
     {
         using var factory = Factory(); await Migrate(factory);
         using var owner = factory.CreateClient(); var ownerIdentity = await Login(owner, "760"); var community = await Create(owner);
@@ -31,18 +31,12 @@ public sealed partial class FoundationTests
             using var rejected = await attempt.Item1.SendAsync(request, TestContext.Current.CancellationToken);
             Assert.Equal(HttpStatusCode.Forbidden, rejected.StatusCode);
         }
-        var beforeRemoval = await Member(owner, community, identity.Character.Id);
-        await Command<Member>(owner, HttpMethod.Delete, $"/api/v2/seasons/{community.Id}/members/{identity.Character.Id}", new MemberRemoval("Removed"), beforeRemoval.Etag);
-        using (var stale = Request(HttpMethod.Patch, $"/api/v2/seasons/{community.Id}/members/{identity.Character.Id}/description", new MemberDescriptionEdit("After removal"), etag: saved.Etag))
-            Assert.Equal(HttpStatusCode.NotFound, (await member.SendAsync(stale, TestContext.Current.CancellationToken)).StatusCode);
-        var dormant = await Member(owner, community, identity.Character.Id);
-        await Command<Member>(owner, HttpMethod.Post, $"/api/v2/seasons/{community.Id}/members/{identity.Character.Id}/restoration", new MemberRemoval("Restored"), dormant.Etag);
         Assert.Equal(saved.Description, (await ReadProfile(member, community, identity.Character.Id)).Description);
         var otherCommunity = await Create(member, "Different RP setting");
         Assert.Equal("", (await ReadProfile(member, otherCommunity, identity.Character.Id)).Description);
         using var stranger = factory.CreateClient(); await Login(stranger, "762");
         using var hidden = await stranger.GetAsync($"/api/v2/seasons/{community.Id}/members/{identity.Character.Id}", TestContext.Current.CancellationToken);
-        Assert.Equal(HttpStatusCode.NotFound, hidden.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, hidden.StatusCode);
     }
 
     [Fact]

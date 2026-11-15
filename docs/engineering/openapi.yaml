@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Amor RP Seasons API
-  version: 1.0.0-draft
+  version: 0.4.0.3
   description: Seasons are the sole shared economy model, with RP groups inside each season. Creation requires seasons.create.
     No community mode, enable flag, older-server fallback or old API aliases are exposed. The external XIVAuth provider
     uses its own API v1.
@@ -844,7 +844,7 @@ paths:
       operationId: listCommunities
       tags:
       - Seasons
-      summary: Current character active seasons
+      summary: List shared seasons for the verified player
       security:
       - Session: []
       responses:
@@ -1197,7 +1197,7 @@ paths:
       operationId: listMembers
       tags:
       - Membership
-      summary: Consented own-season roster; owner may include dormant members
+      summary: List all verified players in the season
       security:
       - Session: []
       responses:
@@ -1252,11 +1252,6 @@ paths:
           minimum: 1
           maximum: 100
           default: 50
-      - name: includeDormant
-        in: query
-        required: false
-        schema: *id001
-        description: Owner only; others cannot enumerate dormant members.
       - name: search
         in: query
         required: false
@@ -1278,7 +1273,7 @@ paths:
           description: Replace individually granted actions
           content:
             application/json:
-              schema: &id007
+              schema:
                 $ref: '#/components/schemas/SetMemberCapabilitiesResult'
           headers:
             Idempotency-Replayed:
@@ -1411,150 +1406,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/MemberRestriction'
-  /api/v2/seasons/{seasonId}/members/{characterId}/removal:
-    post:
-      operationId: removeMember
-      tags:
-      - Membership
-      summary: Remove/block member and cancel affected trades
-      security:
-      - Session: []
-      responses:
-        '200':
-          description: Remove/block member and cancel affected trades
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RemoveMemberResult'
-          headers:
-            Idempotency-Replayed:
-              schema: *id001
-              description: True means original response; never automatically repeat chat.
-        '400':
-          $ref: '#/components/responses/Problem'
-        '401':
-          $ref: '#/components/responses/Problem'
-        '403':
-          $ref: '#/components/responses/Problem'
-        '404':
-          $ref: '#/components/responses/Problem'
-        '409':
-          $ref: '#/components/responses/Problem'
-        '412':
-          $ref: '#/components/responses/Problem'
-        '413':
-          $ref: '#/components/responses/Problem'
-        '422':
-          $ref: '#/components/responses/Problem'
-        '428':
-          $ref: '#/components/responses/Problem'
-        '429':
-          $ref: '#/components/responses/Problem'
-        '500':
-          $ref: '#/components/responses/Problem'
-        '503':
-          $ref: '#/components/responses/Problem'
-      x-authorization-policy: Owner; active nonowner
-      x-implementation-status: implemented
-      parameters:
-      - name: seasonId
-        in: path
-        required: true
-        schema: *id002
-      - name: characterId
-        in: path
-        required: true
-        schema: *id002
-      - name: Idempotency-Key
-        in: header
-        required: true
-        schema:
-          type: string
-          format: uuid
-        description: UUIDv7. Same logical request retains key; see API guide for replay and age rules.
-      - name: If-Match
-        in: header
-        required: true
-        schema:
-          type: string
-        description: ETag from the current resource GET.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/MemberRemoval'
-      deprecated: true
-      description: 'M3 compatibility: deliberately retains remove-and-block behavior. M4 clients use DELETE membership
-        and separate PUT block.'
-  /api/v2/seasons/{seasonId}/members/{characterId}/restoration:
-    post:
-      operationId: restoreMember
-      tags:
-      - Membership
-      summary: Allow blocked character to rejoin; does not grant a slot or permissions
-      security:
-      - Session: []
-      responses:
-        '200':
-          description: Allow blocked character to rejoin; does not grant a slot or permissions
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RestoreMemberResult'
-          headers:
-            Idempotency-Replayed:
-              schema: *id001
-              description: True means original response; never automatically repeat chat.
-        '400':
-          $ref: '#/components/responses/Problem'
-        '401':
-          $ref: '#/components/responses/Problem'
-        '403':
-          $ref: '#/components/responses/Problem'
-        '404':
-          $ref: '#/components/responses/Problem'
-        '409':
-          $ref: '#/components/responses/Problem'
-        '412':
-          $ref: '#/components/responses/Problem'
-        '413':
-          $ref: '#/components/responses/Problem'
-        '422':
-          $ref: '#/components/responses/Problem'
-        '428':
-          $ref: '#/components/responses/Problem'
-        '429':
-          $ref: '#/components/responses/Problem'
-        '500':
-          $ref: '#/components/responses/Problem'
-        '503':
-          $ref: '#/components/responses/Problem'
-      x-authorization-policy: Owner; blocked member
-      x-implementation-status: implemented
-      parameters:
-      - name: seasonId
-        in: path
-        required: true
-        schema: *id002
-      - name: characterId
-        in: path
-        required: true
-        schema: *id002
-      - name: Idempotency-Key
-        in: header
-        required: true
-        schema:
-          type: string
-          format: uuid
-        description: UUIDv7. Same logical request retains key; see API guide for replay and age rules.
-      - name: If-Match
-        in: header
-        required: true
-        schema:
-          type: string
-        description: ETag from the current resource GET.
-      deprecated: true
   /api/v2/seasons/{seasonId}/members/{characterId}/holdings:
     get:
       operationId: listAdministrativeHoldings
@@ -3089,7 +2940,7 @@ paths:
       - name: revision
         in: query
         required: false
-        schema: &id012
+        schema: &id010
           type: integer
           format: int32
           minimum: 1
@@ -5246,284 +5097,6 @@ paths:
                 $ref: '#/components/schemas/Problem'
       x-authorization-policy: Active member; only owner reads inactive summaries
       x-implementation-status: implemented
-    delete:
-      operationId: deleteMembership
-      tags:
-      - Membership
-      summary: Leave or remove membership; allow invited rejoining
-      security:
-      - bearerAuth: []
-      parameters:
-      - name: seasonId
-        in: path
-        required: true
-        schema: *id006
-      - name: characterId
-        in: path
-        required: true
-        schema: *id006
-      - name: Idempotency-Key
-        in: header
-        required: true
-        schema: *id006
-      - name: If-Match
-        in: header
-        required: true
-        schema: &id008
-          type: string
-      responses:
-        '200':
-          description: Leave or remove membership; allow invited rejoining
-          content:
-            application/json:
-              schema: *id007
-        '401':
-          description: Safe application/problem+json with code and requestId
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-        '403':
-          description: Safe application/problem+json with code and requestId
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-        '404':
-          description: Safe application/problem+json with code and requestId
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-        '409':
-          description: Safe application/problem+json with code and requestId
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-        '412':
-          description: Safe application/problem+json with code and requestId
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-        '422':
-          description: Safe application/problem+json with code and requestId
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-        '428':
-          description: Safe application/problem+json with code and requestId
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-        '429':
-          description: Safe application/problem+json with code and requestId
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-        '503':
-          description: Safe application/problem+json with code and requestId
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-      x-authorization-policy: Self or owner; owner membership protected
-      x-implementation-status: implemented
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/MemberRemoval'
-  /api/v2/seasons/{seasonId}/members/{characterId}/block:
-    put:
-      operationId: blockMember
-      tags:
-      - Membership
-      summary: Block known member and cancel trades
-      security:
-      - bearerAuth: []
-      parameters:
-      - name: seasonId
-        in: path
-        required: true
-        schema: *id006
-      - name: characterId
-        in: path
-        required: true
-        schema: *id006
-      - name: Idempotency-Key
-        in: header
-        required: true
-        schema: *id006
-      - name: If-Match
-        in: header
-        required: true
-        schema: *id008
-      responses:
-        '200':
-          description: Block known member and cancel trades
-          content:
-            application/json:
-              schema: *id007
-        '401':
-          description: Safe application/problem+json with code and requestId
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-        '403':
-          description: Safe application/problem+json with code and requestId
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-        '404':
-          description: Safe application/problem+json with code and requestId
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-        '409':
-          description: Safe application/problem+json with code and requestId
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-        '412':
-          description: Safe application/problem+json with code and requestId
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-        '422':
-          description: Safe application/problem+json with code and requestId
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-        '428':
-          description: Safe application/problem+json with code and requestId
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-        '429':
-          description: Safe application/problem+json with code and requestId
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-        '503':
-          description: Safe application/problem+json with code and requestId
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-      x-authorization-policy: Owner; owner membership protected
-      x-implementation-status: implemented
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/MemberRemoval'
-    delete:
-      operationId: unblockMember
-      tags:
-      - Membership
-      summary: Unblock; retain inactive membership
-      security:
-      - bearerAuth: []
-      parameters:
-      - name: seasonId
-        in: path
-        required: true
-        schema: *id006
-      - name: characterId
-        in: path
-        required: true
-        schema: *id006
-      - name: Idempotency-Key
-        in: header
-        required: true
-        schema: *id006
-      - name: If-Match
-        in: header
-        required: true
-        schema: *id008
-      responses:
-        '200':
-          description: Unblock; retain inactive membership
-          content:
-            application/json:
-              schema: *id007
-        '401':
-          description: Safe application/problem+json with code and requestId
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-        '403':
-          description: Safe application/problem+json with code and requestId
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-        '404':
-          description: Safe application/problem+json with code and requestId
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-        '409':
-          description: Safe application/problem+json with code and requestId
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-        '412':
-          description: Safe application/problem+json with code and requestId
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-        '422':
-          description: Safe application/problem+json with code and requestId
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-        '428':
-          description: Safe application/problem+json with code and requestId
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-        '429':
-          description: Safe application/problem+json with code and requestId
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-        '503':
-          description: Safe application/problem+json with code and requestId
-          content:
-            application/problem+json:
-              schema:
-                $ref: '#/components/schemas/Problem'
-      x-authorization-policy: Owner; blocked nonowner only
-      x-implementation-status: implemented
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/MemberRemoval'
   /api/v2/seasons/{seasonId}/members/{characterId}/holdings/{holdingId}:
     patch:
       operationId: reduceHolding
@@ -6052,7 +5625,7 @@ paths:
       - name: seasonId
         in: path
         required: true
-        schema: &id009
+        schema: &id007
           type: string
           format: uuid
       - name: cursor
@@ -6110,11 +5683,11 @@ paths:
       - name: seasonId
         in: path
         required: true
-        schema: *id009
+        schema: *id007
       - name: Idempotency-Key
         in: header
         required: true
-        schema: *id009
+        schema: *id007
       responses:
         '201':
           description: Success
@@ -6166,11 +5739,11 @@ paths:
       - name: seasonId
         in: path
         required: true
-        schema: *id009
+        schema: *id007
       - name: groupId
         in: path
         required: true
-        schema: *id009
+        schema: *id007
       responses:
         '200':
           description: Success
@@ -6215,15 +5788,15 @@ paths:
       - name: seasonId
         in: path
         required: true
-        schema: *id009
+        schema: *id007
       - name: groupId
         in: path
         required: true
-        schema: *id009
+        schema: *id007
       - name: Idempotency-Key
         in: header
         required: true
-        schema: *id009
+        schema: *id007
       - name: If-Match
         in: header
         required: true
@@ -6279,15 +5852,15 @@ paths:
       - name: seasonId
         in: path
         required: true
-        schema: *id009
+        schema: *id007
       - name: groupId
         in: path
         required: true
-        schema: *id009
+        schema: *id007
       - name: Idempotency-Key
         in: header
         required: true
-        schema: *id009
+        schema: *id007
       - name: If-Match
         in: header
         required: true
@@ -6338,11 +5911,11 @@ paths:
       - name: seasonId
         in: path
         required: true
-        schema: *id009
+        schema: *id007
       - name: groupId
         in: path
         required: true
-        schema: *id009
+        schema: *id007
       responses:
         '200':
           description: Normalized image
@@ -6388,15 +5961,15 @@ paths:
       - name: seasonId
         in: path
         required: true
-        schema: *id009
+        schema: *id007
       - name: groupId
         in: path
         required: true
-        schema: *id009
+        schema: *id007
       - name: Idempotency-Key
         in: header
         required: true
-        schema: *id009
+        schema: *id007
       - name: If-Match
         in: header
         required: true
@@ -6458,15 +6031,15 @@ paths:
       - name: seasonId
         in: path
         required: true
-        schema: *id009
+        schema: *id007
       - name: groupId
         in: path
         required: true
-        schema: *id009
+        schema: *id007
       - name: Idempotency-Key
         in: header
         required: true
-        schema: *id009
+        schema: *id007
       - name: If-Match
         in: header
         required: true
@@ -8335,20 +7908,20 @@ components:
         type:
           type: string
           format: uri
-        title: &id010
+        title: &id008
           type: string
           description: Plain text; named service limits and Unicode text-element checks also apply.
         status:
           type: integer
           format: int32
-        detail: *id010
-        code: *id010
-        requestId: *id010
+        detail: *id008
+        code: *id008
+        requestId: *id008
         errors:
           type: object
           additionalProperties:
             type: array
-            items: *id010
+            items: *id008
       required:
       - type
       - title
@@ -8360,14 +7933,14 @@ components:
       type: object
       properties:
         id: *id002
-        displayName: &id011
+        displayName: &id009
           type: string
           minLength: 1
           maxLength: 80
         homeWorldId:
           type: string
-        homeWorldName: *id011
-        verifiedAt: &id013
+        homeWorldName: *id009
+        verifiedAt: &id011
           type: string
           format: date-time
         status:
@@ -8504,8 +8077,8 @@ components:
     ItemTypeInfo:
       type: object
       properties:
-        id: *id010
-        typeDataVersion: *id012
+        id: *id008
+        typeDataVersion: *id010
         canUse: *id001
         stackable: *id001
       required:
@@ -8524,7 +8097,7 @@ components:
         minimumClientVersion:
           type: string
         maintenance: *id001
-        message: *id010
+        message: *id008
         supportedTypes:
           type: array
           items:
@@ -8564,7 +8137,7 @@ components:
     LoginStart:
       type: object
       properties:
-        displayName: *id011
+        displayName: *id009
         homeWorldId:
           type: string
           minLength: 1
@@ -8593,7 +8166,7 @@ components:
         attemptCredential:
           type: string
           description: 'Secret: header only after creation, never logged.'
-        expiresAt: *id013
+        expiresAt: *id011
         pollIntervalSeconds:
           type: integer
           format: int32
@@ -8633,7 +8206,7 @@ components:
           - failed
           - cancelled
           - expired
-        expiresAt: *id013
+        expiresAt: *id011
         failureCode:
           type: string
           nullable: true
@@ -8653,10 +8226,10 @@ components:
           $ref: '#/components/schemas/Character'
         accessToken:
           type: string
-        accessExpiresAt: *id013
+        accessExpiresAt: *id011
         refreshToken:
           type: string
-        refreshExpiresAt: *id013
+        refreshExpiresAt: *id011
       required:
       - sessionId
       - character
@@ -8678,9 +8251,9 @@ components:
       type: object
       properties:
         id: *id002
-        createdAt: *id013
-        lastUsedAt: *id013
-        expiresAt: *id013
+        createdAt: *id011
+        lastUsedAt: *id011
+        expiresAt: *id011
         isCurrent: *id001
       required:
       - id
@@ -8694,7 +8267,7 @@ components:
       properties:
         id: *id002
         seasonId: *id002
-        name: *id011
+        name: *id009
         symbol:
           type: string
           maxLength: 16
@@ -8705,7 +8278,7 @@ components:
           format: uuid
           nullable: true
           description: M3 season-scoped asset reference; omitted by M2, null when no custom icon.
-        version: *id012
+        version: *id010
       required:
       - id
       - seasonId
@@ -8721,14 +8294,14 @@ components:
           default: '0'
         currencyId: *id002
         characterId: *id002
-        owned: &id014
+        owned: &id012
           type: string
           description: Nonnegative whole units, within signed 64-bit range.
           pattern: ^(0|[1-9][0-9]*)$
           maxLength: 19
-        reserved: *id014
-        available: *id014
-        version: *id012
+        reserved: *id012
+        available: *id012
+        version: *id010
       required:
       - currencyId
       - characterId
@@ -8762,7 +8335,7 @@ components:
     CurrencyEdit:
       type: object
       properties:
-        name: *id011
+        name: *id009
         symbol:
           type: string
           maxLength: 16
@@ -8781,7 +8354,7 @@ components:
           description: Nonzero signed whole units, checked against signed 64-bit range.
           pattern: ^-?[1-9][0-9]*$
           maxLength: 20
-        reason: &id015
+        reason: &id014
           type: string
           minLength: 1
           maxLength: 500
@@ -8801,10 +8374,10 @@ components:
           - archived
           default: draft
         id: *id002
-        name: *id011
-        description: *id010
+        name: *id009
+        description: *id008
         ownerCharacterId: *id002
-        version: *id012
+        version: *id010
         currency:
           $ref: '#/components/schemas/Currency'
         myCapabilities:
@@ -8842,11 +8415,11 @@ components:
     SeasonCreate:
       type: object
       properties:
-        name: *id011
+        name: *id009
         description:
           type: string
           maxLength: 300
-        currencyName: *id011
+        currencyName: *id009
         currencySymbol:
           type: string
           maxLength: 16
@@ -8876,7 +8449,7 @@ components:
     SeasonEdit:
       type: object
       properties:
-        name: *id011
+        name: *id009
         description:
           type: string
           maxLength: 300
@@ -8907,9 +8480,9 @@ components:
       type: object
       properties:
         seasonId: *id002
-        version: *id012
-        currentPeriodStart: *id013
-        nextResetAt: *id013
+        version: *id010
+        currentPeriodStart: *id011
+        nextResetAt: *id011
         current:
           $ref: '#/components/schemas/PolicyValues'
         next:
@@ -8959,7 +8532,7 @@ components:
           items:
             type: string
         tradingRestricted: *id001
-        version: *id012
+        version: *id010
         etag:
           type: string
           description: Server-supplied member concurrency token, also available in roster rows.
@@ -9002,13 +8575,6 @@ components:
       - restricted
       - reason
       additionalProperties: false
-    MemberRemoval:
-      type: object
-      properties:
-        reason: *id015
-      required:
-      - reason
-      additionalProperties: false
     OwnershipProposal:
       type: object
       properties:
@@ -9030,7 +8596,7 @@ components:
           - accepted
           - cancelled
           - expired
-        expiresAt: *id013
+        expiresAt: *id011
       required:
       - id
       - seasonId
@@ -9044,13 +8610,13 @@ components:
       properties:
         id: *id002
         seasonId: *id002
-        name: *id011
+        name: *id009
         allowedTypeIds:
           type: array
           items:
             type: string
         retired: *id001
-        version: *id012
+        version: *id010
       required:
       - id
       - seasonId
@@ -9062,7 +8628,7 @@ components:
     CategoryEdit:
       type: object
       properties:
-        name: *id011
+        name: *id009
         allowedTypeIds:
           type: array
           items:
@@ -9102,11 +8668,11 @@ components:
           - meal
           - drink
           - dessert
-        revision: *id012
-        typeDataVersion: *id012
-        name: *id011
+        revision: *id010
+        typeDataVersion: *id010
+        name: *id009
         categoryId: *id002
-        description: *id010
+        description: *id008
         enabled: *id001
         retired: *id001
         potion:
@@ -9154,7 +8720,7 @@ components:
           - meal
           - drink
           - dessert
-        name: *id011
+        name: *id009
         categoryId: *id002
         description:
           type: string
@@ -9190,7 +8756,7 @@ components:
           - book
           - letter
           - note
-        name: *id011
+        name: *id009
         categoryId: *id002
         quantity:
           type: integer
@@ -9204,7 +8770,7 @@ components:
           type: integer
           format: int32
           minimum: 0
-        version: *id012
+        version: *id010
         definitionId:
           type: string
           format: uuid
@@ -9240,9 +8806,9 @@ components:
         author:
           $ref: '#/components/schemas/Character'
         categoryId: *id002
-        title: *id011
-        body: *id010
-        version: *id012
+        title: *id009
+        body: *id008
+        version: *id010
         locked: *id001
         firstTradedAt:
           type: string
@@ -9284,8 +8850,8 @@ components:
         kind:
           type: string
           description: potion_points (Alchemy), cooking_points, or letters (Writing); extensible identifier.
-        periodStart: *id013
-        resetAt: *id013
+        periodStart: *id011
+        resetAt: *id011
         limit:
           type: integer
           format: int32
@@ -9324,8 +8890,8 @@ components:
       type: object
       properties:
         definitionId: *id002
-        expectedDefinitionRevision: *id012
-        quantity: &id016
+        expectedDefinitionRevision: *id010
+        quantity: &id013
           type: integer
           format: int32
           minimum: 1
@@ -9339,7 +8905,7 @@ components:
       type: object
       properties:
         categoryId: *id002
-        title: *id011
+        title: *id009
         body:
           type: string
           maxLength: 500
@@ -9358,7 +8924,7 @@ components:
     LetterEdit:
       type: object
       properties:
-        title: *id011
+        title: *id009
         body:
           type: string
           maxLength: 500
@@ -9380,7 +8946,7 @@ components:
     ConsumptionRequest:
       type: object
       properties:
-        expectedHoldingVersion: *id012
+        expectedHoldingVersion: *id010
         chatConsent:
           type: boolean
           description: Existing once-per-startup chat permission, automatically supplied by the client. Never requires
@@ -9400,7 +8966,7 @@ components:
       properties:
         holding:
           $ref: '#/components/schemas/Holding'
-        message: *id010
+        message: *id008
         destination:
           type: string
         chatDelivery:
@@ -9417,8 +8983,8 @@ components:
     DiscardRequest:
       type: object
       properties:
-        quantity: *id016
-        expectedHoldingVersion: *id012
+        quantity: *id013
+        expectedHoldingVersion: *id010
       required:
       - quantity
       - expectedHoldingVersion
@@ -9428,9 +8994,9 @@ components:
       properties:
         targetCharacterId: *id002
         holdingId: *id002
-        quantity: *id016
-        expectedHoldingVersion: *id012
-        reason: *id015
+        quantity: *id013
+        expectedHoldingVersion: *id010
+        reason: *id014
       required:
       - targetCharacterId
       - holdingId
@@ -9474,7 +9040,7 @@ components:
     TradeOfferWrite:
       type: object
       properties:
-        expectedTradeRevision: &id017
+        expectedTradeRevision: &id015
           type: integer
           format: int32
           minimum: 1
@@ -9499,7 +9065,7 @@ components:
     TradeRevisionRequest:
       type: object
       properties:
-        expectedTradeRevision: *id012
+        expectedTradeRevision: *id010
       required:
       - expectedTradeRevision
       additionalProperties: false
@@ -9518,7 +9084,7 @@ components:
           - completed
           - cancelled
           - expired
-        revision: *id017
+        revision: *id015
         expiresAt:
           type: string
           format: date-time
@@ -9526,7 +9092,7 @@ components:
           $ref: '#/components/schemas/TradeOffer'
         recipient:
           $ref: '#/components/schemas/TradeOffer'
-        endReason: &id018
+        endReason: &id016
           type: string
           nullable: true
         completionOperationId:
@@ -9557,8 +9123,8 @@ components:
           type: string
           format: uuid
           nullable: true
-        occurredAt: *id013
-        summary: *id010
+        occurredAt: *id011
+        summary: *id008
         reason:
           type: string
           nullable: true
@@ -9594,7 +9160,7 @@ components:
           description: Required for asset commands; null only for anonymous login bootstrap receipts.
           format: uuid
           nullable: true
-        occurredAt: *id013
+        occurredAt: *id011
         resourceIds:
           type: array
           items: *id002
@@ -9635,12 +9201,12 @@ components:
           - ready
           - completed
           - rejected
-        createdAt: *id013
+        createdAt: *id011
         expiresAt:
           type: string
           format: date-time
           nullable: true
-        message: *id010
+        message: *id008
       required:
       - id
       - kind
@@ -9652,7 +9218,7 @@ components:
     DeletionRequest:
       type: object
       properties:
-        confirmCharacterName: *id011
+        confirmCharacterName: *id009
       required:
       - confirmCharacterName
       additionalProperties: false
@@ -9660,7 +9226,7 @@ components:
       type: object
       properties:
         seasonId: *id002
-        communityNameSnapshot: *id010
+        communityNameSnapshot: *id008
         status:
           type: string
         ownCapabilities:
@@ -9694,7 +9260,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/HistoryEntry'
-        exportedAt: *id013
+        exportedAt: *id011
       required:
       - character
       - seasons
@@ -9838,7 +9404,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Trade'
-        nextCursor: *id018
+        nextCursor: *id016
       required:
       - items
       - nextCursor
@@ -10285,11 +9851,12 @@ components:
       type: object
       properties:
         holdingId: *id006
-        quantity: *id017
-        typeId: *id008
-        name: *id008
-        description: *id018
-        useMessage: *id018
+        quantity: *id015
+        typeId: &id017
+          type: string
+        name: *id017
+        description: *id016
+        useMessage: *id016
         author:
           $ref: '#/components/schemas/Character'
           nullable: true
@@ -10314,7 +9881,7 @@ components:
       type: object
       properties:
         holdingId: *id006
-        quantity: *id017
+        quantity: *id015
       required:
       - holdingId
       - quantity
@@ -10322,12 +9889,12 @@ components:
     HoldingChange:
       type: object
       properties:
-        expectedHoldingVersion: *id017
+        expectedHoldingVersion: *id015
         remainingQuantity:
           type: integer
           format: int32
           minimum: 0
-        reason: *id018
+        reason: *id016
       required:
       - expectedHoldingVersion
       - remainingQuantity
@@ -10335,8 +9902,8 @@ components:
     HoldingDeletion:
       type: object
       properties:
-        expectedHoldingVersion: *id017
-        reason: *id018
+        expectedHoldingVersion: *id015
+        reason: *id016
       required:
       - expectedHoldingVersion
       additionalProperties: false
@@ -10560,8 +10127,8 @@ components:
             - treasury.records
             - treasury.withdraw
             - treasury.bill
-        id: *id009
-        seasonId: *id009
+        id: *id007
+        seasonId: *id007
         name:
           type: string
           maxLength: 80
@@ -10584,7 +10151,7 @@ components:
           - open
           - closed
           - password
-        ownerCharacterId: &id019
+        ownerCharacterId: &id018
           type: string
           format: uuid
         isMember:
@@ -10642,7 +10209,7 @@ components:
     GroupResult:
       type: object
       properties:
-        operationId: *id009
+        operationId: *id007
         result:
           $ref: '#/components/schemas/Group'
       required:
@@ -10682,7 +10249,7 @@ components:
       - reward
       - version
       properties:
-        groupId: *id019
+        groupId: *id018
         groupName:
           type: string
           maxLength: 80
@@ -10706,19 +10273,19 @@ components:
       - startsAt
       - endsAt
       properties:
-        title: &id020
+        title: &id019
           type: string
           maxLength: 40
-        description: &id021
+        description: &id020
           type: string
           maxLength: 100
-        location: &id022
+        location: &id021
           type: string
           maxLength: 100
-        startsAt: &id023
+        startsAt: &id022
           type: string
           format: date-time
-        endsAt: &id024
+        endsAt: &id023
           type: string
           format: date-time
     GroupEvent:
@@ -10735,17 +10302,17 @@ components:
       - endsAt
       - version
       properties:
-        id: *id019
-        seasonId: *id019
-        groupId: *id019
+        id: *id018
+        seasonId: *id018
+        groupId: *id018
         groupName:
           type: string
           maxLength: 80
-        title: *id020
-        description: *id021
-        location: *id022
-        startsAt: *id023
-        endsAt: *id024
+        title: *id019
+        description: *id020
+        location: *id021
+        startsAt: *id022
+        endsAt: *id023
         version:
           type: integer
     GroupAnnouncementWrite:
@@ -10768,7 +10335,7 @@ components:
       - message
       - publishedAt
       properties:
-        id: *id019
+        id: *id018
         title:
           type: string
           maxLength: 120
@@ -10803,7 +10370,7 @@ components:
         etag:
           type: string
           nullable: true
-        characterId: *id019
+        characterId: *id018
         name:
           type: string
           maxLength: 80

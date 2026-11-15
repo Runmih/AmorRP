@@ -30,9 +30,9 @@ public sealed partial class SeasonsPanel
             : "This season is not active. Items and finances can change only in the active season.");
     }
 
-    private void DrawNoSeason() => Wrapped(seasonContext?.ActiveSeasonId == null
-        ? "No season is active yet. A server administrator can activate one from Season management."
-        : "Your membership in the active season is unavailable. Contact its owner if you were removed or blocked.");
+    private void DrawNoSeason() => Wrapped(seasonContext == null
+        ? "Loading seasons…"
+        : "No seasons are available yet. A server administrator can create one from Season management.");
 
     private void DrawSeasonManagement()
     {

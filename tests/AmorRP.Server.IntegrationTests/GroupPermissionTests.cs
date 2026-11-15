@@ -107,10 +107,8 @@ public sealed partial class FoundationTests
         using var deniedEscalation = await owner.SendAsync(escalation, ct); Assert.Equal(HttpStatusCode.UnprocessableEntity, deniedEscalation.StatusCode);
     }
 
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task Leaving_a_group_or_community_clears_staff_grants_before_rejoining(bool leaveCommunity)
+    [Fact]
+    public async Task Leaving_a_group_clears_staff_grants_before_rejoining()
     {
         var ct = TestContext.Current.CancellationToken;
         using var factory = Factory(); await Migrate(factory); using var owner = factory.CreateClient(); await Login(owner, "1130"); var community = await Create(owner);
@@ -118,19 +116,8 @@ public sealed partial class FoundationTests
         var path = $"/api/v2/seasons/{community.Id}/groups/{group.Id}";
         using var staff = factory.CreateClient(); var id = (await Login(staff, "1131")).Character.Id; var invitation = community; await Enroll(staff, invitation);
         await GroupAction(staff, HttpMethod.Post, path + "/join", new GroupJoin()); var before = await GrantStaff(owner, path, id, GroupCapabilities.Events);
-        if (leaveCommunity)
-        {
-            var member = await Member(owner, community, id);
-            await Command<Member>(owner, HttpMethod.Delete, $"/api/v2/seasons/{community.Id}/members/{id}", new MemberRemoval("Removed"), member.Etag);
-            member = await Member(owner, community, id);
-            await Command<Member>(owner, HttpMethod.Post, $"/api/v2/seasons/{community.Id}/members/{id}/restoration", new MemberRemoval("Restored explicitly"), member.Etag);
-            await Enroll(staff, invitation);
-        }
-        else
-        {
-            await GroupAction(staff, HttpMethod.Delete, path + "/membership");
-            await GroupAction(staff, HttpMethod.Post, path + "/join", new GroupJoin());
-        }
+        await GroupAction(staff, HttpMethod.Delete, path + "/membership");
+        await GroupAction(staff, HttpMethod.Post, path + "/join", new GroupJoin());
         Assert.Empty((await staff.GetFromJsonAsync<GroupProfile>(path, ct))!.MyCapabilities!);
         using var stale = Request(HttpMethod.Put, path + "/members/" + id + "/capabilities", new GroupStaffEdit([GroupCapabilities.Events]), etag: before.Etag);
         using var denied = await owner.SendAsync(stale, ct); Assert.Equal(HttpStatusCode.PreconditionFailed, denied.StatusCode);

@@ -50,7 +50,7 @@ public sealed class CommandStore(AmorDbContext db, SecretVault vault, TimeProvid
             ApiFault.Require(community.SeasonState == "active",
                 409, "season_read_only", "This season is read-only. Select the active season to make changes.");
         }
-        if (operation.Kind is "group.create" or "announcement.create" or "season.create" or "invitation.create" or "ownership.propose" or "login.start" or "category.create" or "definition.create" or "potion.create" or "letter.create") operation.ResponseStatus = 201;
+        if (operation.Kind is "group.create" or "announcement.create" or "season.create" or "ownership.propose" or "login.start" or "category.create" or "definition.create" or "potion.create" or "letter.create") operation.ResponseStatus = 201;
         var json = JsonSerializer.Serialize(response, Json);
         operation.ProtectedResponse = vault.Protect(json, "operation:" + operation.Id);
         operation.ETag = context.Response.Headers.ETag;

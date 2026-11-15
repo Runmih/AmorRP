@@ -14,7 +14,7 @@ public sealed partial class SeasonsPanel
     private DateTimeOffset lastPost;
     private void DrawConsumables()
     {
-        if (community == null) { Wrapped("Use Join or Create season above to get started."); return; }
+        if (community == null) { DrawNoSeason(); return; }
         var shown = compact;
         foreach (var item in shown)
         {

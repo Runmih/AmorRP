@@ -1,7 +1,7 @@
 # Current handoff — Seasons only and explicit creation permission
 
-Use main of Runmih/AmorRP. Plugin/server source is 0.4.0.2; minimum client/server
-is 0.4.0.2. Read [the current replacement guide](release-0.4.0.2.md) and repository
+Use main of Runmih/AmorRP. Plugin/server source is 0.4.0.3; minimum client/server
+is 0.4.0.3. Read [the current replacement guide](release-0.4.0.3.md) and repository
 [agent instructions](../../AGENTS.md). Seasons replace Communities outright. Do not
 add legacy modes, enable flags, fallback product flows or API aliases unless the
 maintainer explicitly requests them. Existing data migrates to seasons without

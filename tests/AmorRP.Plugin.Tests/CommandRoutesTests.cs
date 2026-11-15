@@ -33,15 +33,15 @@ public sealed class CommandRoutesTests
         Assert.Equal(CommandHandler.GroupProfile, Resolve("DELETE", "groups/{id}/logo").Handler);
         Assert.Equal(CommandHandler.GroupProfile, Resolve("DELETE", "groups/{id}").Handler);
         Assert.Equal(CommandHandler.Home, Resolve("POST", "announcements").Handler);
-        Assert.Equal(CommandHandler.Member, Resolve("DELETE", "members/{id}").Handler);
+        Assert.Equal(CommandKind.Unknown, Resolve("DELETE", "members/{id}").Kind);
         Assert.Equal(CommandHandler.Inventory, Resolve("PATCH", "members/{id}/holdings/{id}").Handler);
     }
 
     [Theory]
     [InlineData("POST", "trades/{id}/final-confirm", (int)CommandKind.FinalConfirmTrade)]
     [InlineData("POST", "trades/{id}/confirm", (int)CommandKind.ConfirmTrade)]
-    [InlineData("PUT", "members/{id}/block", (int)CommandKind.BlockMember)]
-    [InlineData("DELETE", "members/{id}/block", (int)CommandKind.UnblockMember)]
+    [InlineData("PUT", "members/{id}/block", (int)CommandKind.Unknown)]
+    [InlineData("DELETE", "members/{id}/block", (int)CommandKind.Unknown)]
     [InlineData("PUT", "groups/{id}/favorite", (int)CommandKind.FavoriteGroup)]
     [InlineData("DELETE", "groups/{id}/favorite", (int)CommandKind.UnfavoriteGroup)]
     public void Verb_and_full_route_distinguish_similar_actions(string method, string path, int expected) =>

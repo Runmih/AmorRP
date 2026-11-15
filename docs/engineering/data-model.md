@@ -1,5 +1,16 @@
 # Data model and transaction boundaries
 
+Current 0.4.0.3 direction: every verified player belongs to every non-deleted
+season automatically, including drafts and archives. No season join, leave,
+removal, block or restoration actions exist. Account bans are separate from
+season membership. The migration restores former inactive/blocked season rows
+without restoring old grants and fills missing memberships without resetting
+assets. Archives remain read-only; private items, personal financial history,
+RP-group permissions and owner-only audit remain access-controlled. See the
+[current release guide](../delivery/release-0.4.0.3.md). Earlier dated review
+findings below describe the implementation at the time of that review.
+
+
 Proposed product schema. M0 has an infrastructure bootstrap migration; M1 identity
 probes are memory-only. M2 implements identity/session/community/currency; M3 adds catalog revisions, holdings,
 letters, quota snapshots and currency assets. M4 adds written subtypes, persistent

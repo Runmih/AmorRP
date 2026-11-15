@@ -155,7 +155,7 @@ public sealed partial class FoundationTests
     }
 
     [Fact]
-    public async Task Trust_departure_and_financial_reads_do_not_grant_cross_group_or_moderator_private_access()
+    public async Task Trust_revocation_and_financial_reads_do_not_grant_cross_group_or_moderator_private_access()
     {
         var ct = TestContext.Current.CancellationToken;
         using var f = Factory(); await Migrate(f); using var admin = f.CreateClient(); await Login(admin, "1370"); var c = await Create(admin);
@@ -165,7 +165,7 @@ public sealed partial class FoundationTests
         using (var denied = await admin.GetAsync(BillPath(c, g), ct)) Assert.Equal(HttpStatusCode.Forbidden, denied.StatusCode);
         using (var denied = await admin.GetAsync($"/api/v2/seasons/{c.Id}/bills/{bill.Id}/payments", ct)) Assert.Equal(HttpStatusCode.Forbidden, denied.StatusCode);
         Assert.Single((await payer.GetFromJsonAsync<BillPaymentPage>($"/api/v2/seasons/{c.Id}/bills/{bill.Id}/payments", ct))!.Items);
-        var member = await Member(admin, c, id); await Command<Member>(admin, HttpMethod.Delete, $"/api/v2/seasons/{c.Id}/members/{id}", new MemberRemoval("Left"), member.Etag); member = await Member(admin, c, id); await Command<Member>(admin, HttpMethod.Post, $"/api/v2/seasons/{c.Id}/members/{id}/restoration", new MemberRemoval("Restored"), member.Etag); await Enroll(payer, invitation);
+        await TrustBilling(payer, c, g, false);
         Assert.False((await payer.GetFromJsonAsync<GroupProfile>(TreasuryPath(c, g)[..^9], ct))!.IsTrusted);
         using var req = Request(HttpMethod.Post, BillPath(c, g), new BillCreate(Guid.CreateVersion7(), id, "1", "Room")); using var deniedBill = await owner.SendAsync(req, ct); Assert.Equal(HttpStatusCode.Forbidden, deniedBill.StatusCode);
     }

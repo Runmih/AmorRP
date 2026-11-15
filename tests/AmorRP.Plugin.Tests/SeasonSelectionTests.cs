@@ -7,6 +7,19 @@ namespace AmorRP.Plugin.Tests;
 
 public sealed class SeasonSelectionTests
 {
+    [Theory]
+    [InlineData("draft")]
+    [InlineData("archived")]
+    public void Inactive_seasons_allow_lifecycle_and_global_permission_commands_but_not_gameplay(string state)
+    {
+        var season = Season(state);
+        Assert.True(SeasonSelection.CanSubmit(season, new("POST", $"api/v2/seasons/{season.Id}/activation", "{}", null)));
+        Assert.True(SeasonSelection.CanSubmit(season, new("POST", $"api/v2/seasons/{season.Id}/archive", "{}", null)));
+        Assert.True(SeasonSelection.CanSubmit(season, new("PUT", $"api/v2/seasons/creation-permissions/{Guid.NewGuid()}", "{}", null)));
+        Assert.False(SeasonSelection.CanSubmit(season, new("POST", $"api/v2/seasons/{season.Id}/inventory/potions", "{}", null)));
+        Assert.False(SeasonSelection.CanSubmit(season, new("PATCH", $"api/v2/seasons/{season.Id}", "{}", null)));
+    }
+
     [Fact]
     public void Creation_controls_require_the_explicit_global_permission()
     {

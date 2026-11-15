@@ -116,7 +116,7 @@ public sealed partial class SeasonsPanel
     }
     private void DrawInventory()
     {
-        if (community == null) { Wrapped("Join or create a season first."); return; }
+        if (community == null) { DrawNoSeason(); return; }
         DrawRefreshState(inventoryRefresh, "Inventory");
         if (!inventoryRefresh.HasLoaded && holdings.Length == 0) return;
         if (loadedInventoryTab != inventoryTab) { loadedInventoryTab = inventoryTab; filterType = ""; filterCategory = 0; ApplyInventoryFilters(); }

@@ -23,7 +23,6 @@ public sealed partial class FoundationTests
     {
         using var factory = Factory().WithWebHostBuilder(b =>
         {
-            b.UseSetting("ServicePolicy:OwnedCommunities", "1");
             b.UseSetting("ServicePolicy:MaxRetainedSeasonsPerCreator", "1");
         });
         await Migrate(factory); using var owner = factory.CreateClient(); var creator = await Login(owner, "753");
@@ -102,9 +101,11 @@ public sealed partial class FoundationTests
         Assert.True(upgraded.Deleted); Assert.Equal(9, upgraded.Version); Assert.Equal(currency, upgraded.CurrencyId);
         var fallback = await db.Seasons.SingleAsync(x => x.Id == legacy, ct);
         Assert.Equal(owner, fallback.CreatedByCharacterId); Assert.False(fallback.Deleted);
-        Assert.Equal(42, (await db.Memberships.SingleAsync(ct)).Owned);
-        Assert.Equal("", (await db.Memberships.SingleAsync(ct)).Description);
-        Assert.Empty((await db.Memberships.SingleAsync(ct)).ReadAnnouncementIds);
+        var retained = await db.Memberships.SingleAsync(x => x.CommunityId == legacy && x.CharacterId == owner, ct);
+        Assert.Equal(42, retained.Owned); Assert.Equal("", retained.Description); Assert.Empty(retained.ReadAnnouncementIds);
+        var included = await db.Memberships.SingleAsync(x => x.CommunityId == legacy && x.CharacterId == creator, ct);
+        Assert.Equal(0, included.Owned); Assert.Equal("active", included.Status);
+        Assert.DoesNotContain(await db.Memberships.ToArrayAsync(ct), x => x.CommunityId == community);
         Assert.Equal(0, upgraded.AnnouncementSequence);
         Assert.Empty(await db.Announcements.ToArrayAsync(ct));
         Assert.Equal("retained receipt", (await db.Operations.SingleAsync(ct)).ProtectedResponse);
@@ -115,7 +116,6 @@ public sealed partial class FoundationTests
     {
         using var factory = Factory().WithWebHostBuilder(b =>
         {
-            b.UseSetting("ServicePolicy:OwnedCommunities", "1");
             b.UseSetting("ServicePolicy:MaxRetainedSeasonsPerCreator", "2");
         });
         await Migrate(factory); using var client = factory.CreateClient(); await Login(client, "750");

@@ -77,7 +77,7 @@ public sealed partial class AmorDbContext(DbContextOptions<AmorDbContext> option
         modelBuilder.Entity<MembershipRow>(e => {
             e.ToTable("memberships", t => {
                 t.HasCheckConstraint("ck_membership_balance", "\"Owned\" >= 0 AND \"Reserved\" >= 0 AND \"Reserved\" <= \"Owned\"");
-                t.HasCheckConstraint("ck_membership_status", "\"Status\" IN ('active', 'dormant', 'blocked')");
+                t.HasCheckConstraint("ck_membership_status", "\"Status\" = 'active'");
             });
             e.HasKey(x => new { x.CommunityId, x.CharacterId }); e.HasIndex(x => new { x.CharacterId, x.Status });
             e.HasOne<CommunityRow>().WithMany().HasForeignKey(x => x.CommunityId).OnDelete(DeleteBehavior.Restrict);

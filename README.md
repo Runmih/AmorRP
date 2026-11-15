@@ -2,7 +2,7 @@
 
 Amor RP is a Dalamud plugin for Final Fantasy XIV, with the goal of bringing roleplay venues and communities together.
 
-Join the active RP season automatically, organise groups within it, manage fictional currency and inventories, craft Alchemy and Cooking items, write books, letters and notes, trade, post requests and organise group events. Characters with season creation permission can prepare drafts; server administrators activate seasons, and each new season has a separate economy and preserves the previous season as an archive.
+Access every RP season automatically, organise groups within it, manage fictional currency and inventories, craft Alchemy and Cooking items, write books, letters and notes, trade, post requests and organise group events. Characters with season creation permission can prepare drafts; server administrators activate seasons, and each new season has a separate economy and preserves the previous season as an archive.
 
 ## Installation
 
