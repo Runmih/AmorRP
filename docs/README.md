@@ -2,7 +2,8 @@
 
 Current guides describe the implemented project.
 The current plugin/server source is [0.4.0.0 — seasons and administration](delivery/release-0.4.0.0.md).
-The home-server migration and administrator configuration precede plugin-feed promotion.
+The plugin also supports the existing 0.3.0.0 backend; seasonal features require
+the home-server migration and administrator configuration.
 The main feed is promoted after the matching Windows and server checks pass.
 Home-server cutover: [Portainer + Nginx Proxy Manager](delivery/home-server.md). Backend feature release:
 [0.3.0.0 — trusted billing and automatic debt repayment](delivery/release-0.3.0.0.md).

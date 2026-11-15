@@ -5,6 +5,11 @@ RP groups remain inside their season. Only a server administrator may create or
 activate seasons. Verified characters automatically join the single active season;
 players no longer create communities, enter invitation codes or leave seasons.
 
+The 0.4.0.0 plugin also supports the existing 0.3.0.0 server. Until the server
+advertises `seasonsEnabled: true`, it retains legacy community behavior and does
+not request the new season endpoints. Plugin installation can precede the server
+upgrade; the seasonal behavior above requires the configured 0.4.0.0 server.
+
 ## Administration and identity
 
 Set `SeasonPolicy__Enabled=true` and
@@ -76,8 +81,10 @@ current home-server installation. The following newly created season starts fres
 3. Update the stack with image re-pull disabled. Check `/health/ready`, then
    `/api/v2/capabilities`: server/minimum client **0.4.0.0**, API **2**,
    `seasonsEnabled: true`.
-4. Promote the exact successful Windows plugin artifact to the stable feed after
-   server readiness is confirmed. Sign in as the configured character, open the
+4. Install/update the plugin to 0.4.0.0 from the stable feed. Plugin publication uses
+   the exact Windows artifact from successful matching CI; it does not require the
+   home server to have been upgraded first. Once server readiness and seasonal
+   configuration are confirmed, sign in as the configured character, open the
    management cog → **Seasons**, and activate the existing community by name.
 5. A second verified character should join automatically. Confirm its roster,
    inventory, crafting, writing and trade access. Prepare and activate a fresh test

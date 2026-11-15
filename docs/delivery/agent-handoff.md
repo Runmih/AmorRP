@@ -2,8 +2,10 @@
 
 Use main of Runmih/AmorRP. Plugin/server source is 0.4.0.0; seasonal mode requires
 minimum client 0.4.0.0. Read [the season release and migration guide](release-0.4.0.0.md).
-The private home server must be updated/configured before promoting its matching
-Windows artifact to the stable feed. This workspace cannot deploy that private host.
+The plugin is compatible with server 0.3.0.0 and enables seasons only when advertised
+by the server. Publish its matching verified Windows artifact to the stable feed;
+the private home server update/configuration is required for seasonal behavior.
+This workspace cannot deploy that private host.
 Do not embed the administrator's real Lodestone ID in public source or docs.
 Publish the exact Windows artifact after matching CI passes; repo.json records the
 published version. Read [the workspace notes](release-0.3.0.5.md). Browsing uses one
