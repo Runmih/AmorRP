@@ -1,7 +1,7 @@
 # Hosting and release policy
 
 Maintainer decisions recorded 2026-10-29, with cutover status updated 2026-11-07.
-Current plugin release is 0.3.0.1; the server remains 0.3.0.0.
+Current plugin release is 0.3.0.2; the server remains 0.3.0.0.
 On 2026-11-05 the maintainer reported the
 Ubuntu/Docker/Portainer/NPM/DuckDNS infrastructure ready and authorized a fresh database
 because Render test data is unavailable. The [concrete cutover guide](../delivery/home-server.md)

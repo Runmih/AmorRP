@@ -1,11 +1,11 @@
-# Current handoff — inventory companion candidate
+# Current handoff — inventory companion
 
-Use main of Runmih/AmorRP. Plugin source is 0.3.0.2 (candidate), published plugin
-0.3.0.1, server/minimum client 0.3.0.0. The home-server cutover is deployed; S03
+Use main of Runmih/AmorRP. Plugin is 0.3.0.2, server/minimum client 0.3.0.0.
+The home-server cutover is deployed; S03
 billing acceptance remains pending. Read [the inventory companion notes](release-0.3.0.2.md),
 [current versions](../engineering/versions.md) and [expansion progress](../planning/README.md).
 The companion uses real existing items/finances; Supplies/Documents are future empty
-states. Verify native placement in game and the Windows artifact before publication.
+states. Native placement and full item/finance behavior still need in-game acceptance.
 The sections below are historical records and do not override these versions.
 
 # Historical testing update — 0.0.6.17

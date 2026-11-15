@@ -1,8 +1,8 @@
-# Amor RP 0.3.0.2 — inventory companion (candidate)
+# Amor RP 0.3.0.2 — inventory companion
 
-This plugin-only candidate adds a dedicated RP inventory panel to the right of the
-game's inventory. The published feed remains 0.3.0.1 until the verified Windows
-artifact is promoted through the existing publication workflow. Server and minimum
+This plugin-only update adds a dedicated RP inventory panel to the right of the
+game's inventory. The main feed publishes the verified Windows artifact with its
+source commit, build URL and SHA-256 recorded alongside the package. Server and minimum
 client remain 0.3.0.0; no backend deployment, migration or hosting change is required.
 
 ## Interface
@@ -35,16 +35,21 @@ Font size follows Dalamud's UI settings while the outer geometry follows game sc
 
 ## Verification and publication
 
-The candidate builds against the pinned API 15 reference with no warnings/errors.
+The plugin builds against the pinned API 15 reference with no warnings/errors.
 All 149 plugin/helper tests pass. New checks cover right-side placement,
 scale/viewport changes, limited space, invalid geometry, family filters, escaped
 search, unsupported-family refusal and whole-unit amounts beyond an individual
 wallet's range. These do not render native game windows or prove live placement.
 
-Before feed publication, run the existing Windows package and server/contracts
-workflows for the final source and publish the unchanged Windows artifact with its
-provenance. Do not overwrite the published 0.3.0.1 package. A locally built candidate
-is not evidence of successful Windows CI or in-game acceptance.
+Feed publication requires successful Windows package and server/contracts workflows
+for the package's source commit, followed by the unchanged Windows artifact and its
+provenance. The prior 0.3.0.1 package remains immutable. These checks are separate
+from the in-game acceptance steps below.
+
+Publication evidence: Windows [run 43719892076](https://github.com/Runmih/AmorRP/actions/runs/43719892076)
+and server/contracts [run 43719892003](https://github.com/Runmih/AmorRP/actions/runs/43719892003),
+both for source `30075b054ee168d3998db4f3f3f967b62bcbcfd5`. The unchanged inner Windows
+ZIP has SHA-256 `69a6026efc5c31961d3c1b9a8a1662fa9ef1fbf5c12c7aa2d33190b49db82df6`.
 
 ## In-game acceptance
 
@@ -66,4 +71,4 @@ is not evidence of successful Windows CI or in-game acceptance.
    community selector and compact consumables still work.
 
 The four billing/debt acceptance checks from [0.3.0.0](release-0.3.0.0.md) remain
-pending. This interface candidate does not mark S03 or later features accepted.
+pending. This interface update does not mark S03 or later features accepted.

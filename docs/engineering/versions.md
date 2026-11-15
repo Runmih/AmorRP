@@ -2,11 +2,8 @@
 
 ## Current product versions
 
-Plugin source candidate **0.3.0.2** adds the inventory companion. The published feed
-remains **0.3.0.1** until its verified Windows package is promoted. Backend and
-minimum-client versions are unchanged; see [candidate notes](../delivery/release-0.3.0.2.md).
-
-Plugin **0.3.0.1**, server **0.3.0.0**, Amor RP API **v2**, minimum client **0.3.0.0**.
+Plugin **0.3.0.2**, server **0.3.0.0**, Amor RP API **v2**, minimum client **0.3.0.0**.
+Plugin 0.3.0.2 adds the inventory companion; see [release notes](../delivery/release-0.3.0.2.md).
 The plugin requires server 0.3.0.0. Deploy the TrustedBilling migration before
 using billing. Existing balances/permissions are preserved; debt and character trust
 start off. Treasury approval remains required for a group to bill. XIVAuth's external API remains **v1** and Dalamud API remains **15**.
