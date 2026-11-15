@@ -59,3 +59,18 @@ from former dormant/blocked rows, absent membership commands, personal record
 privacy, lifecycle submission while browsing inactive seasons and existing feature
 regressions. Publish the exact Windows artifact after matching server and Windows
 CI succeed; automated checks do not replace the manual in-game checks above.
+
+## Published package
+
+The stable feed publishes **0.4.0.3** from source
+`b366dba53992d587d0d7f5ea7689e11f8b3c2458`, using the exact
+[successful Windows artifact](https://github.com/Runmih/AmorRP/actions/runs/43760674724).
+The matching [server/contracts workflow](https://github.com/Runmih/AmorRP/actions/runs/43760674739)
+passed **190 server integration, 181 plugin helper and 1 contract tests**, migration
+model consistency, documentation, deployment/startup checks and the server image build.
+The artifact archive matches GitHub's digest. The immutable inner package SHA-256
+is `6046304196e2a5d3b8a66c429b6294ad8204e2f587a21429fbee435536ff0108`.
+The package manifest reports 0.4.0.3 and Dalamud API 15.
+
+The home server requires its manual Portainer image update; automated checks do
+not substitute for the in-game checks listed above.
