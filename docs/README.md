@@ -1,7 +1,8 @@
 # Documentation index
 
 Current guides describe the implemented project.
-The current plugin/server source is [0.4.0.0 — seasons and administration](delivery/release-0.4.0.0.md).
+The current plugin source is [0.4.0.1 — focused settings](delivery/release-0.4.0.1.md);
+server source is [0.4.0.0 — seasons and administration](delivery/release-0.4.0.0.md).
 The plugin also supports the existing 0.3.0.0 backend; seasonal features require
 the home-server migration and administrator configuration.
 The main feed is promoted after the matching Windows and server checks pass.

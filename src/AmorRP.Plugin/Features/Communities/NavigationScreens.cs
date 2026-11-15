@@ -45,24 +45,4 @@ public sealed partial class CommunitiesPanel
         if (!includeWriting && !CanCraftPotions && !CanCraftCooking && !CanDefinePotions && !CanDefineCooking)
             Wrapped("Ask the community owner or an authorized moderator for Alchemy or Cooking access. Writing is available in the separate writing log.");
     }
-    private void DrawSettings()
-    {
-        if (!ImGui.BeginTabBar("SettingsSubtabs")) return;
-        if (ImGui.BeginTabItem("General"))
-        {
-            var show = configuration.ShowLauncher;
-            if (ImGui.Checkbox("Show quick launcher", ref show)) { configuration.ShowLauncher = show; save(); SetLauncherVisible?.Invoke(show); }
-            var attachedInterfaces = configuration.ShowAttachedInterfaces;
-            if (ImGui.Checkbox("Show attached panels and HUDs", ref attachedInterfaces))
-            { configuration.ShowAttachedInterfaces = attachedInterfaces; save(); }
-            var inventoryCompanion = configuration.ShowInventoryCompanion;
-            if (ImGui.Checkbox("Show RP inventory beside game inventory", ref inventoryCompanion))
-            { configuration.ShowInventoryCompanion = inventoryCompanion; save(); }
-            var events = configuration.ShowFavoriteEvents;
-            if (ImGui.Checkbox("Show favorite events HUD", ref events)) { configuration.ShowFavoriteEvents = events; save(); SetFavoriteEventsVisible?.Invoke(events); }
-            ImGui.TextWrapped("The HUD shows favorite groups' events for the next five days. Drag its header to move it; click an event for details.");
-            ImGui.EndTabItem();
-        }
-        ImGui.EndTabBar();
-    }
 }

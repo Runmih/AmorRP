@@ -112,7 +112,11 @@ public sealed partial class CommunitiesPanel
             if (ImGui.SmallButton("View group") && communityGroups.FirstOrDefault(x => x.Id == item.GroupId) is { } group)
             {
                 if (communityBrowser) { requestedDirectoryGroup = group.Id; requestedCommunityPage = CommunityBrowserPage.Groups; }
-                else { SelectGroup(group); mainSection = MainSection.Groups; }
+                else
+                {
+                    requestedDirectoryGroup = group.Id; requestedCommunityPage = CommunityBrowserPage.Groups;
+                    OpenWorkspace(AmorRP.Plugin.Features.Shell.WorkspaceKind.Community);
+                }
             }
             ImGui.PopID();
         }

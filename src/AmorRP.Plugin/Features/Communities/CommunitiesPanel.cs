@@ -12,8 +12,6 @@ using AmorRP.Plugin.Services.Api;
 using AmorRP.Plugin.Services.Identity;
 using AmorRP.Plugin.Features.Shell;
 using Dalamud.Bindings.ImGui;
-using Dalamud.Interface;
-using Dalamud.Interface.Components;
 using Dalamud.Plugin.Services;
 
 namespace AmorRP.Plugin.Features.Communities;
@@ -27,8 +25,6 @@ public sealed partial class CommunitiesPanel(IPlayerState player, Configuration 
     private long viewGeneration => requests.ViewGeneration;
     private long dataGeneration => requests.DataGeneration;
     private readonly Queue<(Func<CancellationToken, Task<Action>> Run, string Message)> reads = new();
-    private enum MainSection { Home, Inventory, Crafting, Groups, Noticeboard, Members, Settings }
-    private MainSection mainSection = MainSection.Inventory;
     private bool WriteBlocked => !serviceCompatible || currentCommand != null || configuration.PendingCommands.Any(x => x.Origin == origin?.AbsoluteUri && x.CharacterId == session?.Character.Id);
     private bool SessionRenewalInProgress => session != null && saved?.PendingRefreshKey != null && Busy;
     private bool ActionButton(string label, bool mutation = true)
@@ -89,6 +85,11 @@ public sealed partial class CommunitiesPanel(IPlayerState player, Configuration 
         if (refreshNeeded && !Busy && !SyncBusy && session != null && session.AccessExpiresAt > DateTimeOffset.UtcNow)
         { refreshNeeded = false; Refresh(); }
         busy = Busy;
+        if (!compactMode && !inventoryMode && !writingMode && workspace == null)
+        {
+            DrawSettingsWindow(busy, localName, localWorld, world.RowId);
+            return;
+        }
         if (compactMode && session == null) { Wrapped("Open /amorrp to sign in and select your character."); return; }
         if (!compactMode && session == null) { DrawLogin(busy, localName, localWorld, world.RowId); DrawSharedDialogsOnce(); return; }
         var pending = configuration.PendingCommands.FirstOrDefault(x => x.Origin == origin?.AbsoluteUri && x.CharacterId == session?.Character.Id);
@@ -103,40 +104,7 @@ public sealed partial class CommunitiesPanel(IPlayerState player, Configuration 
         DrawCommunitySelection();
         var feedbackHeight = ActionFeedbackHeight(pending);
         ImGui.BeginChild("ProductContent", new System.Numerics.Vector2(0, feedbackHeight > 0 ? -feedbackHeight - ImGui.GetStyle().ItemSpacing.Y : 0), false);
-        if (compactMode) { DrawConsumables(); ImGui.EndChild(); DrawActionFeedback(pending); return; }
-        ImGui.Separator();
-        ImGui.PushStyleColor(ImGuiCol.Header, new System.Numerics.Vector4(0.33f, 0.23f, 0.49f, 0.85f));
-        ImGui.BeginChild("MainNavigation", new System.Numerics.Vector2(ImGui.GetFrameHeight() + ImGui.CalcTextSize("Inventory").X + ImGui.GetStyle().ItemSpacing.X * 3 + ImGui.GetStyle().WindowPadding.X * 2, 0), true);
-        foreach (var section in Enum.GetValues<MainSection>())
-        {
-            var icon = section switch
-            {
-                MainSection.Home => FontAwesomeIcon.Home,
-                MainSection.Inventory => FontAwesomeIcon.Boxes,
-                MainSection.Crafting => FontAwesomeIcon.Hammer,
-                MainSection.Groups => FontAwesomeIcon.Sitemap,
-                MainSection.Members => FontAwesomeIcon.Users,
-                _ => FontAwesomeIcon.Cog
-            };
-            if (ImGuiComponents.IconButton("NavIcon" + section, icon, new System.Numerics.Vector2(ImGui.GetFrameHeight()))) mainSection = section;
-            if (section == MainSection.Home && UnreadAnnouncements > 0) DrawAnnouncementBadge();
-            ImGui.SameLine();
-            if (ImGui.Selectable(section.ToString(), mainSection == section, ImGuiSelectableFlags.None, new System.Numerics.Vector2(0, ImGui.GetFrameHeight()))) mainSection = section;
-        }
-        ImGui.EndChild(); ImGui.PopStyleColor(); ImGui.SameLine();
-        ImGui.BeginChild("SectionContent", new System.Numerics.Vector2(0, 0), false);
-        ImGui.PushItemWidth(-1);
-        switch (mainSection)
-        {
-            case MainSection.Home: DrawHome(); break;
-            case MainSection.Inventory: DrawInventoryTabs(); break;
-            case MainSection.Crafting: DrawCraftingTabs(); break;
-            case MainSection.Groups: DrawCommunityGroups(); break;
-            case MainSection.Noticeboard: DrawNoticeboard(); break;
-            case MainSection.Members: DrawMembers(); break;
-            case MainSection.Settings: DrawSettings(); break;
-        }
-        ImGui.PopItemWidth(); ImGui.EndChild();
+        DrawConsumables();
         ImGui.EndChild();
         DrawActionFeedback(pending); DrawSharedDialogsOnce();
     }
@@ -387,7 +355,7 @@ public sealed partial class CommunitiesPanel(IPlayerState player, Configuration 
             return () => {
                 var changedCommunity = community?.Id != active?.Id;
                 if (active?.SeasonState == "archived") { writingLogComposing = false; editingLetter = null; }
-                serviceCompatible = true; serviceLimits = capability.Limits;
+                serviceCompatible = true; serviceLimits = capability.Limits; connectedServerVersion = capability.ServerVersion;
                 seasonContext = seasons; previouslyActiveSeason = observedActive; observedSeason = true;
                 if (lastRefresh == default && !initialAllowancesEdited) { initialPoints = capability.Limits.DefaultPotionPoints; initialLetters = capability.Limits.DefaultLettersPerWeek; }
                 if (changedCommunity) { ClearCommunityViews(); ClearMemberSearch(); }
@@ -408,7 +376,7 @@ public sealed partial class CommunitiesPanel(IPlayerState player, Configuration 
         requests.Reset(); currentCommand = null;
     }
     private void Clear()
-    { ResetSeasons(); ClearFavoriteEvents(); ClearMemberSearch(); personalNote = savedPersonalNote = noteKey = ""; ClearAnnouncementNotifications(); ClearTradeInbox(); ResetCommunityForms(); ResetLogin(); loginFeedback = loginDiagnostic = ""; syncFailures = 0; scope = ""; serviceCompatible = false; ClearWork(); origin = null; session = null; saved = null; selected = null; community = null; communities = []; members = []; invitations = []; transfer = null; refreshNeeded = false; createdCode = ""; contextTarget = null; contextLookup = null; ClearTransientFeedback(); connectionError = connectionDiagnostic = ""; lastRefresh = default; nextRefresh = default; ClearCommunityViews(); }
+    { connectedServerVersion = null; ResetSeasons(); ClearFavoriteEvents(); ClearMemberSearch(); personalNote = savedPersonalNote = noteKey = ""; ClearAnnouncementNotifications(); ClearTradeInbox(); ResetCommunityForms(); ResetLogin(); loginFeedback = loginDiagnostic = ""; syncFailures = 0; scope = ""; serviceCompatible = false; ClearWork(); origin = null; session = null; saved = null; selected = null; community = null; communities = []; members = []; invitations = []; transfer = null; refreshNeeded = false; createdCode = ""; contextTarget = null; contextLookup = null; ClearTransientFeedback(); connectionError = connectionDiagnostic = ""; lastRefresh = default; nextRefresh = default; ClearCommunityViews(); }
     private static void Wrapped(string message) { ImGui.PushTextWrapPos(); ImGui.TextUnformatted(message); ImGui.PopTextWrapPos(); }
     public void Dispose() { ResetCommunityRefreshes(); ClearFavoriteEvents(); ClearMemberSearch(); personalNote = savedPersonalNote = noteKey = ""; ClearAnnouncementNotifications(); ClearTradeInbox(); ClearWork(); requests.Dispose(); icons.Dispose(); logos.Dispose(); groupLogos.Dispose(); client.Dispose(); }
 }

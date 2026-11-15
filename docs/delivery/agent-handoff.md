@@ -1,7 +1,10 @@
-# Current handoff — seasons and server administration
+# Current handoff — focused plugin settings
 
-Use main of Runmih/AmorRP. Plugin/server source is 0.4.0.0; seasonal mode requires
+Use main of Runmih/AmorRP. Plugin source is 0.4.0.1, server source is 0.4.0.0; seasonal mode requires
 minimum client 0.4.0.0. Read [the season release and migration guide](release-0.4.0.0.md).
+The former main menu is Settings with Interface, Account and About tabs; see the
+[settings patch](release-0.4.0.1.md). Local preferences work signed out. Feature
+windows retain their own entry points; no replacement launcher settings icon is added.
 The plugin is compatible with server 0.3.0.0 and enables seasons only when advertised
 by the server. Publish its matching verified Windows artifact to the stable feed;
 the private home server update/configuration is required for seasonal behavior.

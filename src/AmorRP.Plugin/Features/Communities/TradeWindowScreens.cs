@@ -9,8 +9,12 @@ public sealed partial class CommunitiesPanel
     {
         if (session == null || community == null)
         {
-            Wrapped("Sign in and select the shared community in the main window first.");
-            if (ImGui.Button("Open Amor RP")) OpenMainWindow?.Invoke();
+            Wrapped(session == null ? "Sign in from Settings to trade." : "Select the shared season in the Season window to trade.");
+            if (ImGui.Button(session == null ? "Open Settings" : "Open Season"))
+            {
+                if (session == null) { requestedAccountSettings = true; OpenSettingsWindow?.Invoke(); }
+                else OpenWorkspace(AmorRP.Plugin.Features.Shell.WorkspaceKind.Community);
+            }
             return;
         }
         Wrapped("Community: " + community.Name);

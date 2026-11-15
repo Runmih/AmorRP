@@ -12,12 +12,13 @@ public sealed class MainWindow : Window, IDisposable
     private readonly AmorRP.Plugin.Features.Communities.CommunitiesPanel communities;
 
     public MainWindow(IPlayerState playerState, IPartyList party, Configuration configuration, Action save, ITextureProvider textures)
-        : base("Amor RP###AmorRPMain")
+        : base("Amor RP — Settings###AmorRPMain")
     {
         communities = new(playerState, configuration, save, party, textures);
-        Size = new Vector2(960, 680);
+        Size = new Vector2(660, 500);
         SizeCondition = ImGuiCond.FirstUseEver;
-        communities.OpenMainWindow = () => IsOpen = true;
+        SizeConstraints = new WindowSizeConstraints { MinimumSize = new(460, 360), MaximumSize = new(float.MaxValue) };
+        communities.OpenSettingsWindow = () => IsOpen = true;
         communities.OpenWritingLogWindow = () => OpenWritingLog?.Invoke();
         communities.OpenWorkspaceWindow = kind => OpenWorkspace?.Invoke(kind);
         communities.OpenTradeWindow = () => OpenTrade?.Invoke();

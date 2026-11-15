@@ -22,9 +22,10 @@ public sealed partial class CommunitiesPanel
     public void FocusUnreadAnnouncements()
     {
         if (UnreadAnnouncements == 0) return;
-        mainSection = MainSection.Home;
         var first = communities.OrderByDescending(g => g.Id == community?.Id).FirstOrDefault(g => announcementUnread.GetValueOrDefault(g.Id) > 0);
         if (first != null && first.Id != community?.Id && ActiveTrade == null && !WriteBlocked) SwitchCommunity(first);
+        requestedCommunityPage = CommunityBrowserPage.Overview;
+        OpenWorkspace(AmorRP.Plugin.Features.Shell.WorkspaceKind.Community);
     }
     private void InvalidateAnnouncements() { announcementEpoch++; nextAnnouncementPoll = default; }
     private void ClearSelectedAnnouncements()

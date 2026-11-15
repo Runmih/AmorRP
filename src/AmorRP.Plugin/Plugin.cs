@@ -69,7 +69,7 @@ public sealed class Plugin : IDalamudPlugin
         windows.AddWindow(joinCommunityWindow);
         windows.AddWindow(createCommunityWindow);
         windows.AddWindow(launcherWindow);
-        commands.AddHandler(Command, new CommandInfo(OnCommand) { HelpMessage = "/amorrp → Main Menu" });
+        commands.AddHandler(Command, new CommandInfo(OnCommand) { HelpMessage = "/amorrp → Settings" });
         pluginInterface.UiBuilder.Draw += Draw;
         pluginInterface.UiBuilder.OpenMainUi += Open;
         pluginInterface.UiBuilder.OpenConfigUi += Open;
@@ -86,6 +86,7 @@ public sealed class Plugin : IDalamudPlugin
     {
         switch (arguments.Trim().ToLowerInvariant())
         {
+            case "settings": Open(); break;
             case "compact": compactWindow.Toggle(); break;
             case "trade": mainWindow.OpenTradeFromLauncher(); break;
             case "writing": mainWindow.OpenWritingLogFromLauncher(); break;

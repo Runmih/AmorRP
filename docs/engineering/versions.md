@@ -2,9 +2,12 @@
 
 ## Current product versions
 
-Plugin **0.3.0.5**, server **0.3.0.0**, Amor RP API **v2**, minimum client **0.3.0.0**.
-Plugin 0.3.0.5 adds crafting and management workspaces plus a tabbed Community browser;
-see [release notes](../delivery/release-0.3.0.5.md).
+Plugin **0.4.0.1**, server source **0.4.0.0**, Amor RP API **v2**.
+The plugin's former main menu is now Settings; feature windows remain separate.
+See [settings notes](../delivery/release-0.4.0.1.md) and
+[season administration](../delivery/release-0.4.0.0.md).
+Seasonal mode requires client/server **0.4.0.0** or newer and server configuration.
+The plugin also supports server **0.3.0.0** in legacy community mode.
 The published version is recorded in repo.json after the matching CI checks pass.
 The plugin requires server 0.3.0.0. Deploy the TrustedBilling migration before
 using billing. Existing balances/permissions are preserved; debt and character trust

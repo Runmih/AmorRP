@@ -28,7 +28,7 @@ public sealed partial class CommunitiesPanel
     private Guid? popupForTrade;
     private int? requestedTradeTab = 0;
     public Action? OpenTradeWindow { get; set; }
-    public Action? OpenMainWindow { get; set; }
+    public Action? OpenSettingsWindow { get; set; }
     private static bool Active(Trade t) => t.State is "invited" or "open" or "confirming";
     private Trade? ActiveTrade => trades.FirstOrDefault(Active);
     // Incoming invitations reserve no assets and need not pin the active community.
