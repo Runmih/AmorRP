@@ -37,3 +37,9 @@ tests, documentation checks and both CI workflows for the published source. Game
 checks: open Settings signed out; toggle/save all Interface preferences; sign in and
 out from Account; check/copy About versions; open the dedicated feature windows;
 and check trade's signed-out link and normal pending-action recovery.
+
+The stable feed publishes 0.4.0.1 from source `7dc704e`, using the exact
+[successful Windows artifact](https://github.com/Runmih/AmorRP/actions/runs/43738230571).
+All 195 helper tests, package/documentation checks and the matching
+[server/contracts workflow](https://github.com/Runmih/AmorRP/actions/runs/43738230655)
+passed. In-game layout and interaction acceptance remains separate.
