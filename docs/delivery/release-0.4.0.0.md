@@ -95,6 +95,32 @@ is explicitly enabled. Archived rows remain read-only even if the rollout switch
 later disabled. Disabling the switch is not a schema rollback. Do not run an older
 server against a newer database; restore a coordinated backup if rollback is needed.
 
+### Server 0.4.0.0 still allows ordinary community creation
+
+The server version alone does not enable seasons. Portainer's stack-variable list
+supplies Compose substitution values; entries do not automatically become API
+container environment variables. In the stack editor, retain the existing settings
+and ensure these lines are inside the existing `services.api.environment` mapping:
+
+```yaml
+SeasonPolicy__Enabled: "true"
+SeasonPolicy__AdministratorLodestoneIds__0: ${AMORRP_ADMIN_LODESTONE_ID:?Enter the administrator Lodestone character ID}
+```
+
+Set `AMORRP_ADMIN_LODESTONE_ID` in Portainer's variables list, then **Update the
+stack** so the API container is recreated with the settings. Restarting an existing
+container does not apply changed environment variables. In the running API
+container's environment, confirm only the two `SeasonPolicy__...` values; do not
+copy or share the full environment, which also contains credentials.
+
+After reconnecting, Settings → About should say **Seasons enabled**. The public
+`/api/v2/capabilities` response must contain `"seasonsEnabled": true`; a false value
+means ordinary community creation remains enabled by legacy mode. If it is true
+and an unlisted character can still create a season, investigate the authenticated
+character's verified Lodestone identity and the effective administrator allowlist.
+Signing into the administrator character is needed for season lifecycle actions,
+not for enabling this server configuration.
+
 ## Plugin behavior and game checks
 
 The launcher retains its writing, crafting, season browsing, group management,
