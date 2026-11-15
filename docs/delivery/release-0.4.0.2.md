@@ -76,3 +76,18 @@ refresh, creating/activating a draft and reading the previous season's archive.
 
 This supersedes earlier compatibility guidance. Do not add a mode, fallback or old
 flow without an explicit maintainer request; see [AGENTS.md](../../AGENTS.md).
+
+## Published package
+
+The stable feed publishes **0.4.0.2** from source
+`5adf0240bc005dfc687511586c7d1db3f5a5809e`, using the exact
+[successful Windows artifact](https://github.com/Runmih/AmorRP/actions/runs/43751981669).
+The matching [server/contracts workflow](https://github.com/Runmih/AmorRP/actions/runs/43751981687)
+passed all **190 server integration, 179 plugin helper and 1 contract tests**,
+model consistency, documentation, deployment/startup checks and the server image build.
+The downloaded artifact archive matches GitHub's digest. The immutable inner
+package SHA-256 is `bf96f1b5035586391be2106c09ce29ec8dce4317f172cf64c68b63426f5e0153`.
+The package manifest reports 0.4.0.2 and Dalamud API 15.
+
+The home server still requires its manual Portainer image update. Automated checks
+do not substitute for the in-game acceptance steps above.
