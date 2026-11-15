@@ -2,19 +2,13 @@
 
 ## Current product versions
 
-Plugin **0.4.0.1**, server source **0.4.0.0**, Amor RP API **v2**.
-The plugin's former main menu is now Settings; feature windows remain separate.
-See [settings notes](../delivery/release-0.4.0.1.md) and
-[season administration](../delivery/release-0.4.0.0.md).
-Seasonal mode requires client/server **0.4.0.0** or newer and server configuration.
-The plugin also supports server **0.3.0.0** in legacy community mode.
-The published version is recorded in repo.json after the matching CI checks pass.
-The plugin requires server 0.3.0.0. Deploy the TrustedBilling migration before
-using billing. Existing balances/permissions are preserved; debt and character trust
-start off. Treasury approval remains required for a group to bill. XIVAuth's external API remains **v1** and Dalamud API remains **15**.
-
-Release-specific changes and verification are in [0.3.0.0](../delivery/release-0.3.0.0.md).
-Historical milestone records appear after current compatibility/maintenance guidance.
+Plugin/server source **0.4.0.2**, Amor RP API **v2**, Dalamud API **15**.
+The client requires server **0.4.0.2** and the server advertises minimum client
+**0.4.0.2**. There is one seasonal model with automatic membership and explicit
+`seasons.create` permission; no mode switch or older-server fallback is shipped.
+See [the replacement and upgrade guide](../delivery/release-0.4.0.2.md).
+XIVAuth's external API remains **v1**. The published plugin version is recorded in
+repo.json after both matching source workflows pass.
 
 ## Home-server cutover
 

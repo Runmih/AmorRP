@@ -2,7 +2,7 @@ using AmorRP.Contracts.Common;
 using AmorRP.Contracts.Inventory;
 using AmorRP.Core.Items;
 using AmorRP.Server.Features.Authentication;
-using AmorRP.Server.Features.Communities;
+using AmorRP.Server.Features.Seasons;
 using AmorRP.Server.Infrastructure.Persistence;
 using AmorRP.Server.Infrastructure.Security;
 using AmorRP.Server.Options;
@@ -11,7 +11,7 @@ using Microsoft.Extensions.Options;
 
 namespace AmorRP.Server.Features.Catalog;
 
-public sealed class CatalogService(AmorDbContext db, SessionAccess sessions, CommunityAccess communities,
+public sealed class CatalogService(AmorDbContext db, SessionAccess sessions, SeasonAccess communities,
     CommandStore commands, PageCursor cursors, IOptions<ServicePolicyOptions> policy)
 {
     public static Category View(CategoryRow row) => new(row.Id, row.CommunityId, row.Name, row.AllowedTypeIds, row.Retired, row.Version);
@@ -46,8 +46,8 @@ public sealed class CatalogService(AmorDbContext db, SessionAccess sessions, Com
     public async Task<IResult> CategoryCommandAsync(HttpContext h, Guid communityId, Guid? id, CategoryEdit? body, CancellationToken ct)
     {
         var actor = (await sessions.GetAsync(h, ct)).CharacterId; await using var tx = await db.Database.BeginTransactionAsync(ct);
-        await CommandStore.LockAsync(db, ["character:" + actor, "community:" + communityId], ct);
-        var (community, _) = await communities.RequireAsync(communityId, actor, ct); CommunityAccess.Owner(community, actor);
+        await CommandStore.LockAsync(db, ["character:" + actor, "season:" + communityId], ct);
+        var (community, _) = await communities.RequireAsync(communityId, actor, ct); SeasonAccess.Owner(community, actor);
         var scope = "character:" + actor; var replay = await commands.ReplayAsync(h, scope, body, ct); if (replay != null) return commands.Replay(replay);
         ApiFault.Require(await db.Categories.CountAsync(x => x.CommunityId == communityId, ct) < policy.Value.MaxCategoriesPerCommunity || id.HasValue, 409, "catalog_full", "Category limit reached.");
         var row = id.HasValue ? await db.Categories.SingleOrDefaultAsync(x => x.CommunityId == communityId && x.Id == id, ct) : new CategoryRow { CommunityId = communityId };
@@ -87,11 +87,11 @@ public sealed class CatalogService(AmorDbContext db, SessionAccess sessions, Com
     public async Task<IResult> DefinitionCommandAsync(HttpContext h, Guid communityId, Guid? id, DefinitionWrite? body, CancellationToken ct)
     {
         var actor = (await sessions.GetAsync(h, ct)).CharacterId; await using var tx = await db.Database.BeginTransactionAsync(ct);
-        await CommandStore.LockAsync(db, ["character:" + actor, "community:" + communityId], ct);
+        await CommandStore.LockAsync(db, ["character:" + actor, "season:" + communityId], ct);
         var (community, member) = await communities.RequireAsync(communityId, actor, ct);
         var row = id.HasValue ? await db.Definitions.SingleOrDefaultAsync(x => x.CommunityId == communityId && x.Id == id, ct) : new DefinitionRow { CommunityId = communityId };
         ApiFault.Require(row != null, 404, "not_found", "Definition not found.");
-        CommunityAccess.Action(community, member, CraftingTypes.RecipePermission(id.HasValue ? row!.TypeId : body?.TypeId ?? "potion"));
+        SeasonAccess.Action(community, member, CraftingTypes.RecipePermission(id.HasValue ? row!.TypeId : body?.TypeId ?? "potion"));
         var scope = "character:" + actor; var replay = await commands.ReplayAsync(h, scope, body, ct); if (replay != null) return commands.Replay(replay);
         ApiFault.Require(id.HasValue || await db.Definitions.CountAsync(x => x.CommunityId == communityId, ct) < policy.Value.MaxDefinitionsPerCommunity, 409, "catalog_full", "Definition limit reached.");
         if (id.HasValue) CommandStore.Match(h, CommandStore.ETag("definition", row!.Id, row.Revision));

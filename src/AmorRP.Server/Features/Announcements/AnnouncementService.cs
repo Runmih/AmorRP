@@ -2,18 +2,18 @@ using AmorRP.Contracts.Announcements;
 using AmorRP.Contracts.Common;
 using AmorRP.Core.Items;
 using AmorRP.Server.Features.Authentication;
-using AmorRP.Server.Features.Communities;
+using AmorRP.Server.Features.Seasons;
 using AmorRP.Server.Infrastructure.Persistence;
 using AmorRP.Server.Infrastructure.Security;
 using Microsoft.EntityFrameworkCore;
 namespace AmorRP.Server.Features.Announcements;
 
-public sealed class AnnouncementService(AmorDbContext db, SessionAccess sessions, CommunityAccess access, CommandStore commands, TimeProvider time)
+public sealed class AnnouncementService(AmorDbContext db, SessionAccess sessions, SeasonAccess access, CommandStore commands, TimeProvider time)
 {
     public async Task<IResult> UnreadAsync(HttpContext h, CancellationToken ct)
     {
         var actor = (await sessions.GetAsync(h, ct)).CharacterId;
-        var members = await (from m in db.Memberships.AsNoTracking() join g in db.Communities on m.CommunityId equals g.Id
+        var members = await (from m in db.Memberships.AsNoTracking() join g in db.Seasons on m.CommunityId equals g.Id
             where m.CharacterId == actor && m.Status == "active" && !g.Deleted select m).ToArrayAsync(ct);
         var ids = members.Select(x => x.CommunityId).ToArray();
         var posts = await db.Announcements.AsNoTracking().Where(x => ids.Contains(x.CommunityId)).Select(x => new { x.CommunityId, x.Id }).ToArrayAsync(ct);
@@ -43,9 +43,9 @@ public sealed class AnnouncementService(AmorDbContext db, SessionAccess sessions
     {
         var actor = (await sessions.GetAsync(h, ct)).CharacterId;
         await using var tx = await db.Database.BeginTransactionAsync(ct);
-        await CommandStore.LockAsync(db, ["character:" + actor, "community:" + communityId], ct);
+        await CommandStore.LockAsync(db, ["character:" + actor, "season:" + communityId], ct);
         var (community, member) = await access.RequireAsync(communityId, actor, ct);
-        CommunityAccess.Action(community, member, "announcements.manage");
+        SeasonAccess.Action(community, member, "announcements.manage");
         var error = PlainText.Error(body.Title, AnnouncementCreate.MaximumTitleCharacters)
             ?? PlainText.Error(body.Body, AnnouncementCreate.MaximumBodyCharacters, multiline: true);
         ApiFault.Require(error == null, 422, "invalid_announcement", error ?? "Invalid announcement.");
@@ -68,7 +68,7 @@ public sealed class AnnouncementService(AmorDbContext db, SessionAccess sessions
         var actor = (await sessions.GetAsync(h, ct)).CharacterId;
         ApiFault.Require(Guid.TryParse(h.Request.Headers["Idempotency-Key"], out var key) && key.Version == 7, 400, "invalid_operation_key", "A UUIDv7 Idempotency-Key is required.");
         await using var tx = await db.Database.BeginTransactionAsync(ct);
-        await CommandStore.LockAsync(db, ["character:" + actor, "community:" + communityId], ct);
+        await CommandStore.LockAsync(db, ["character:" + actor, "season:" + communityId], ct);
         var (_, member) = await access.RequireAsync(communityId, actor, ct);
         var current = await db.Announcements.Where(x => x.CommunityId == communityId).Select(x => x.Id).ToArrayAsync(ct);
         ApiFault.Require(current.Contains(announcementId), 404, "not_found", "Announcement is no longer available.");

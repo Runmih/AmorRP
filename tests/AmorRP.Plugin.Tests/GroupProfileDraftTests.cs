@@ -1,5 +1,5 @@
 using AmorRP.Contracts.Groups;
-using AmorRP.Plugin.Features.Communities;
+using AmorRP.Plugin.Features.Seasons;
 using Xunit;
 using GroupProfile = AmorRP.Contracts.Groups.Group;
 

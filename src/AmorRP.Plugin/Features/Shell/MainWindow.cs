@@ -9,7 +9,7 @@ namespace AmorRP.Plugin.Features.Shell;
 
 public sealed class MainWindow : Window, IDisposable
 {
-    private readonly AmorRP.Plugin.Features.Communities.CommunitiesPanel communities;
+    private readonly AmorRP.Plugin.Features.Seasons.SeasonsPanel communities;
 
     public MainWindow(IPlayerState playerState, IPartyList party, Configuration configuration, Action save, ITextureProvider textures)
         : base("Amor RP — Settings###AmorRPMain")
@@ -22,9 +22,7 @@ public sealed class MainWindow : Window, IDisposable
         communities.OpenWritingLogWindow = () => OpenWritingLog?.Invoke();
         communities.OpenWorkspaceWindow = kind => OpenWorkspace?.Invoke(kind);
         communities.OpenTradeWindow = () => OpenTrade?.Invoke();
-        communities.OpenJoinCommunity = () => OpenJoinCommunity?.Invoke();
         communities.OpenCreateCommunity = () => OpenCreateCommunity?.Invoke();
-        communities.CloseJoinCommunity = () => CloseJoinCommunity?.Invoke();
         communities.CloseCreateCommunity = () => CloseCreateCommunity?.Invoke();
         communities.SetFavoriteEventsVisible = visible => SetFavoriteEventsVisible?.Invoke(visible);
         communities.SetLauncherVisible = visible => SetLauncherVisible?.Invoke(visible);
@@ -50,12 +48,9 @@ public sealed class MainWindow : Window, IDisposable
     public void DrawTrade() => communities.DrawTradeWindow();
     public void TradeOpened() => communities.TradeWindowOpened();
     public void TradeClosed() => communities.TradeWindowClosed();
-    public Action? OpenJoinCommunity { get; set; }
     public Action? OpenCreateCommunity { get; set; }
-    public Action? CloseJoinCommunity { get; set; }
     public Action? CloseCreateCommunity { get; set; }
     public bool CanDrawCommunityForms => communities.CanDrawCommunityForms;
-    public void DrawJoinCommunity() => communities.DrawJoinCommunity();
     public void DrawCreateCommunity() => communities.DrawCreateCommunity();
     public void DrawCompact() => communities.Draw(ProductServer.Origin, compactMode: true);
     public void DrawInventoryCompanion() => communities.Draw(ProductServer.Origin, inventoryMode: true);

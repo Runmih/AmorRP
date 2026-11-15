@@ -1,14 +1,18 @@
-# Current handoff — focused plugin settings
+# Current handoff — Seasons only and explicit creation permission
 
-Use main of Runmih/AmorRP. Plugin source is 0.4.0.1, server source is 0.4.0.0; seasonal mode requires
-minimum client 0.4.0.0. Read [the season release and migration guide](release-0.4.0.0.md).
-The former main menu is Settings with Interface, Account and About tabs; see the
-[settings patch](release-0.4.0.1.md). Local preferences work signed out. Feature
-windows retain their own entry points; no replacement launcher settings icon is added.
-The plugin is compatible with server 0.3.0.0 and enables seasons only when advertised
-by the server. Publish its matching verified Windows artifact to the stable feed;
-the private home server update/configuration is required for seasonal behavior.
-This workspace cannot deploy that private host.
+Use main of Runmih/AmorRP. Plugin/server source is 0.4.0.2; minimum client/server
+is 0.4.0.2. Read [the current replacement guide](release-0.4.0.2.md) and repository
+[agent instructions](../../AGENTS.md). Seasons replace Communities outright. Do not
+add legacy modes, enable flags, fallback product flows or API aliases unless the
+maintainer explicitly requests them. Existing data migrates to seasons without
+resetting IDs/assets. Canonical API routes are /api/v2/seasons.
+
+The administrator identity variable remains. Administrators receive seasons.create
+automatically; other verified characters need an explicit grant. Creation buttons
+are hidden without that permission. Server authorization is mandatory. Season
+activation/archive and global permission delegation remain administrator-only.
+The Settings window is Interface/Account/About; feature windows stay independent.
+
 Do not embed the administrator's real Lodestone ID in public source or docs.
 Publish the exact Windows artifact after matching CI passes; repo.json records the
 published version. Read [the workspace notes](release-0.3.0.5.md). Browsing uses one
@@ -132,7 +136,7 @@ The original and square generated icon live in Assets/Branding; the publisher
 validates/copies the bundled PNG and content-hashed IconUrl together with the feed.
 
 Plugin **0.0.6.3** adds Join/Create community buttons beside the dropdown. Each opens
-an independent registered CommunityFormWindow; forms live in CommunityFormScreens.cs
+an independent registered SeasonFormWindow; forms live in SeasonFormScreens.cs
 instead of Settings. Successful normal/recovered commands reset/close only the
 matching form. Scope changes close/reset both; drafts survive normal refresh.
 This is a plugin-only update with the same API/schema and server compatibility.
@@ -218,7 +222,7 @@ correction; new tests cover durable isolation, lifecycle, retries, concurrency,
 rotation, cleanup and migration. Batch deployment with the other review fixes.
 
 Security review finding 4 is fixed in **server 0.0.6.6**. HistoryService in
-Features/History/HistoryEndpoints.cs now uses CommunityAccess.RequireAsync for both
+Features/History/HistoryEndpoints.cs now uses SeasonAccess.RequireAsync for both
 feeds, requiring active membership/non-deleted community before cursor processing;
 audit additionally requires owner. Dormant/blocked rows and old cursors no longer
 grant community history, including later moderation reasons. The API/OpenAPI promise
@@ -379,7 +383,7 @@ picker and resource layout; HomeProfileScreens owns inline drafts/ETags. The
 announcement composer is inline Title/Message/Publish for CanAnnounce. General
 Moderation scope is unchanged; community name/logo stay owner-only. No edit icon.
 
-CommunityLogoService and StaticImageUpload reuse the existing authorized media flow;
+SeasonLogoService and StaticImageUpload reuse the existing authorized media flow;
 logos have independent version/FK and Purpose=community_logo. Currency rows retain
 Purpose=currency and original 128px/128KiB database bounds. Upgrades preserve old
 assets; explicit downgrade removes only the new logo assets to restore old bounds.

@@ -45,7 +45,7 @@ with tempfile.TemporaryDirectory(prefix="amorrp-home-check-") as directory:
     assert setting["ReverseProxy__KnownProxies__0"] == "172.30.0.3" and setting["ReverseProxy__ForwardLimit"] == "1"
     assert not any("KnownNetworks" in key for key in setting)
     assert setting["AMORRP_MIGRATE_ON_START"] == "true" and setting["XivAuth__DurableEnabled"] == "true"
-    assert setting["SeasonPolicy__Enabled"] == "true" and setting["SeasonPolicy__AdministratorLodestoneIds__0"] == "90001"
+    assert "SeasonPolicy__Enabled" not in setting and setting["SeasonPolicy__AdministratorLodestoneIds__0"] == "90001"
     assert setting["XivAuth__DurableCallbackUrl"] == "https://api.example.invalid/auth/xivauth/callback"
     assert values["AMORRP_DB_PASSWORD"] in setting["ConnectionStrings__Database"]
     assert setting["SecretVault__Keys__primary"] == values["AMORRP_VAULT_KEY"]

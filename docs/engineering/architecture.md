@@ -1,6 +1,6 @@
 # Architecture
 
-This describes the implemented system for plugin/server 0.3.0.0. Older milestone
+This describes the implemented system for plugin/server 0.4.0.2. Older milestone
 plans and release records describe their own checkpoints; they are not the current
 source map. See [repository layout](repository-layout.md) for file navigation and
 [versions](versions.md) for dependency pins and protocol boundaries.
@@ -26,8 +26,8 @@ flowchart LR
 | --- | --- | --- |
 | Plugin | ImGui views, drafts, request coordination, protected local settings, game adapters | Core, Contracts, Dalamud |
 | Server | HTTP authorization, feature rules, transactions, persistence, provider adapter, workers | Core, Contracts, ASP.NET Core, EF/Npgsql |
-| Core | Pure text/chat validation, crafting type classification, community capacity policy | No application project references |
-| Contracts | Transport records, shared field limits and legacy wire conversion | No application project references |
+| Core | Pure text/chat validation, crafting type classification, season scope rules | No application project references |
+| Contracts | Transport records, shared field limits | No application project references |
 
 The server and plugin do not reference each other. Core does **not** currently own
 all use cases, inventory accounting or trade transitions. Those rules live beside
@@ -37,12 +37,12 @@ layer is not a prerequisite for maintaining this structure.
 ## Server ownership and consistency
 
 Feature endpoints bind concrete requests and call feature services. Services check
-current sessions, active community membership and the capability required by the
+current sessions, active season membership and the capability required by the
 action. Group-private member lists and announcements additionally require group
-membership; community moderation does not bypass that check. GroupAuthorization
+membership; season moderation does not bypass that check. GroupAuthorization
 combines enabled group features with group-owner authority or individual staff grants.
-Community owners approve features; only group owners edit staff grants. Content writes
-check authorization under the community transaction lock, including before replay.
+Season owners approve features; only group owners edit staff grants. Content writes
+check authorization under the season transaction lock, including before replay.
 
 The database is authoritative for balances, reservations, inventory, quotas and
 permissions. Commands use advisory locks across server replicas, expected versions,
@@ -50,14 +50,14 @@ constraints and atomic transactions. `CommandStore` records request fingerprints
 and protected responses for deduplication and recovery. A client timeout cannot be
 interpreted as proof that a command failed.
 
-Group treasury transfers use that same community transaction lock. `TreasuryLedger`
+Group treasury transfers use that same season transaction lock. `TreasuryLedger`
 validates and changes the two account balances and inserts an immutable movement;
 `CommandStore` saves the command and response in the same transaction. `CurrencyAccounts`
 owns character balance mutations for treasury, adjustments and net trade settlement.
-`GroupLifecycle` handles treasury settlement for both group and community deletion.
+`GroupLifecycle` handles treasury settlement for group disbanding.
 It always pays the registered group owner, including retained inactive accounts;
 overflow stays on the deleted group for owner-only collection. Approval never grants
-community administrators private group access. Group treasuries cannot reserve or
+season administrators private group access. Group treasuries cannot reserve or
 trade coins yet, so their reserved amount is explicitly zero.
 
 Trading separates the short locked expiry transaction from consistent read-only
@@ -76,7 +76,7 @@ capacity guarantee. See [authentication](authentication.md).
 
 ## Plugin requests and state
 
-`CommunitiesPanel` owns the selected verified character/community, view data and
+`SeasonsPanel` owns the selected verified character/season, view data and
 editors. Its partial files share that state; they are not independently instantiated
 controllers. The shell and game/media adapters have their own lifecycle boundaries.
 
@@ -89,13 +89,13 @@ nodes. Placement and query/amount helpers have no Dalamud dependency.
 
 The writing log also has independent library/selection/read state while sharing
 identity, generations and commands. WritingLogReader requests summaries separately
-from selected contents and checks community/holder/holding/written-item identity.
+from selected contents and checks season/holder/holding/written-item identity.
 BackgroundRefresh prevents late scope responses; missing or denied owned reads clear
 private contents. Inventory mutation invalidation requires rechecking a displayed
 body. The pure HTTP reader is linked into the plugin helper tests.
 
-Four WorkspaceWindow instances present crafting, private group operations, community
-administration and the tabbed Community browser. They reuse the same authenticated
+Four WorkspaceWindow instances present crafting, private group operations, season
+administration and the tabbed Season browser. They reuse the same authenticated
 coordinator/context and feature services; no parallel sessions or client-side authority
 are introduced. WorkspaceAccess is the tested visibility/filter policy. Read views
 explicitly suppress editing, while server permissions continue to guard commands.
@@ -106,12 +106,12 @@ depending on a filtered list index.
 `RequestCoordinator` owns the foreground and core-refresh task lanes, cancellation,
 view generation and data generation. Network work returns callbacks; the UI thread
 collects current results and applies them. A character/scope reset cancels both
-lanes and rejects their late results, including failures. Community changes invalidate
+lanes and rejects their late results, including failures. Season changes invalidate
 view results. Mutations and accepted tokens invalidate older core/feature reads.
 A core response waits while renewal is in progress, then is checked against the
 accepted-token generation before its status can affect the session.
 
-Core refresh reads capabilities and the character's community list. Secondary
+Core refresh reads capabilities and the character's season list. Secondary
 features have separate `BackgroundRefresh<T>` instances with independent loading,
 retry and error state. A failed events or media read does not discard a successful
 inventory read. Trade and announcement pollers remain separate. Favorite events
@@ -120,7 +120,7 @@ refresh independently and feed a five-day UTC HUD while the main menu is closed.
 `CommandRoutes` maps exact HTTP verbs and route shapes to named operations, result
 handlers and refresh targets. `CommandCompletionScreens` dispatches to the matching
 handler rather than trying every feature parser. Unknown routes do not select a
-result parser. Recovered results for another community cannot overwrite the current
+result parser. Recovered results for another season cannot overwrite the current
 editor. Stored pending requests retain their original method/path/body/ETag for
 server replay; dispatch conversion does not rewrite that wire identity.
 
@@ -135,7 +135,7 @@ explicit user intent; replayed use receipts do not automatically resend chat.
 Contract tests check project dependency boundaries. Plugin helper tests compile the
 same production transport, draft, refresh and request-coordination sources without
 Dalamud. They exercise cancellation, delayed results, token rotation, replay and
-cross-community recovery. Server tests use disposable PostgreSQL databases and
+cross-season recovery. Server tests use disposable PostgreSQL databases and
 provider fakes, including a deliberately stalled provider for concurrency checks.
 No additional hosted testing server is required.
 
@@ -154,11 +154,11 @@ Amor RP's current API is `/api/v2`; XIVAuth independently uses `/api/v1/characte
 The remaining v1 wire adapter and persisted request/receipt conversion are described
 in [API](api.md). This maintenance release changes neither protocol.
 
-## Billing — 0.3.0.0
+## Billing — 0.4.0.2
 
 BillingService owns trust/authority checks, durable bill identity, debt policy and
 financial reads. DebtSettlement owns the only character-to-creditor collection path,
-inside the existing community transaction lock. CurrencyAccounts still validates
+inside the existing season transaction lock. CurrencyAccounts still validates
 ordinary debits. Adjustments, treasury credits and trade completion/release explicitly
 invoke settlement before building their response. Trade completion honors previously
 reserved offers, then collects the remaining/newly received funds.

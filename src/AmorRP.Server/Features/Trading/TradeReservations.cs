@@ -21,7 +21,7 @@ public sealed class TradeReservations(AmorDbContext db, TimeProvider time, AmorR
             if (amount != 0) { member.Reserved -= amount; member.BalanceVersion++; }
         }
         db.TradeSlots.RemoveRange(await db.TradeSlots.Where(x => x.CommunityId == t.CommunityId && x.TradeId == t.Id).ToArrayAsync(ct));
-        (await db.Communities.SingleAsync(x => x.Id == t.CommunityId, ct)).InventoryVersion++;
+        (await db.Seasons.SingleAsync(x => x.Id == t.CommunityId, ct)).InventoryVersion++;
     }
     public async Task EndAsync(TradeRow t, string state, string reason, CancellationToken ct)
     {

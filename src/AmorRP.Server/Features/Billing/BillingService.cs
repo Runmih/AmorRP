@@ -5,7 +5,7 @@ using AmorRP.Contracts.Currency;
 using AmorRP.Contracts.Groups;
 using AmorRP.Core.Items;
 using AmorRP.Server.Features.Authentication;
-using AmorRP.Server.Features.Communities;
+using AmorRP.Server.Features.Seasons;
 using AmorRP.Server.Features.Currency;
 using AmorRP.Server.Features.Groups;
 using AmorRP.Server.Infrastructure.Persistence;
@@ -13,14 +13,14 @@ using AmorRP.Server.Infrastructure.Security;
 using Microsoft.EntityFrameworkCore;
 namespace AmorRP.Server.Features.Billing;
 
-public sealed partial class BillingService(AmorDbContext db, SessionAccess sessions, CommunityAccess communities, CommandStore commands, DebtSettlement settlement, PageCursor pages, TimeProvider time)
+public sealed partial class BillingService(AmorDbContext db, SessionAccess sessions, SeasonAccess communities, CommandStore commands, DebtSettlement settlement, PageCursor pages, TimeProvider time)
 {
     private static string Units(long value) => value.ToString(CultureInfo.InvariantCulture);
     private static Bill View(BillRow b) => new(b.Id, b.CommunityId, b.GroupId, b.GroupName, b.IssuerCharacterId, b.IssuerName, b.CharacterId, b.CharacterName, b.Service, Units(b.Amount), Units(b.Collected), Units(b.Amount - b.Collected), b.CreatedAt);
     private async Task<GroupRow> GroupAsync(Guid communityId, Guid groupId, CancellationToken ct)
     {
         var group = await db.Groups.SingleOrDefaultAsync(x => x.CommunityId == communityId && x.Id == groupId, ct);
-        ApiFault.Require(group != null, 404, "not_found", "Group not found in this community."); return group!;
+        ApiFault.Require(group != null, 404, "not_found", "Group not found in this season."); return group!;
     }
     public async Task<IResult> CreateAsync(HttpContext h, Guid communityId, Guid groupId, BillCreate body, CancellationToken ct)
     {
@@ -29,7 +29,7 @@ public sealed partial class BillingService(AmorDbContext db, SessionAccess sessi
         WholeUnits.TryNormalize(body.Amount, out _, out var amount); ApiFault.Require(amount > 0, 422, "invalid_bill", "Enter a positive whole number of coins.");
         var actor = (await sessions.GetAsync(h, ct)).CharacterId;
         await using var tx = await db.Database.BeginTransactionAsync(ct);
-        await CommandStore.LockAsync(db, ["character:" + actor, "community:" + communityId], ct);
+        await CommandStore.LockAsync(db, ["character:" + actor, "season:" + communityId], ct);
         var (community, _) = await communities.RequireAsync(communityId, actor, ct);
         var group = await GroupAsync(communityId, groupId, ct);
         ApiFault.Require(!group.Deleted, 404, "not_found", "This group has disbanded.");
@@ -49,7 +49,7 @@ public sealed partial class BillingService(AmorDbContext db, SessionAccess sessi
             ApiFault.Require(!await db.Bills.AnyAsync(x => x.CommunityId == communityId && x.GroupId == groupId && x.IssuerCharacterId == actor && x.CharacterId == body.CharacterId && x.CreatedAt > cutoff, ct),
                 409, "billing_cooldown", "Wait 30 seconds before charging this customer again. The previous bill is in the records.");
             await settlement.CollectAsync(payer, "billing.prepare", body.BillId, ct);
-            ApiFault.Require(community.AllowDebt || CurrencyAccounts.Available(payer) >= amount, 409, "billing_insufficient_funds", "The customer cannot afford this bill. No coins were charged; this community does not allow new debt.");
+            ApiFault.Require(community.AllowDebt || CurrencyAccounts.Available(payer) >= amount, 409, "billing_insufficient_funds", "The customer cannot afford this bill. No coins were charged; this season does not allow new debt.");
             var paidNow = Math.Min(CurrencyAccounts.Available(payer), amount);
             ApiFault.Require(paidNow <= long.MaxValue - group.TreasuryOwned, 409, "balance_overflow", "The group's treasury is full. Withdraw coins before billing.");
             var characters = await db.Characters.Where(x => x.Id == actor || x.Id == body.CharacterId).ToDictionaryAsync(x => x.Id, ct);
@@ -71,8 +71,8 @@ public sealed partial class BillingService(AmorDbContext db, SessionAccess sessi
             var (community, _) = await communities.RequireAsync(communityId, actor, ct);
             return Results.Json(new BillingPolicy(community.AllowDebt, community.BillingPolicyVersion, CommandStore.ETag("billing-policy", communityId, community.BillingPolicyVersion)));
         }
-        await using var tx = await db.Database.BeginTransactionAsync(ct); await CommandStore.LockAsync(db, ["character:" + actor, "community:" + communityId], ct);
-        var (target, _) = await communities.RequireAsync(communityId, actor, ct); CommunityAccess.Owner(target, actor);
+        await using var tx = await db.Database.BeginTransactionAsync(ct); await CommandStore.LockAsync(db, ["character:" + actor, "season:" + communityId], ct);
+        var (target, _) = await communities.RequireAsync(communityId, actor, ct); SeasonAccess.Owner(target, actor);
         var scope = "character:" + actor; var replay = await commands.ReplayAsync(h, scope, body, ct); if (replay != null) return commands.Replay(replay);
         CommandStore.Match(h, CommandStore.ETag("billing-policy", communityId, target.BillingPolicyVersion));
         target.AllowDebt = body.AllowDebt; target.BillingPolicyVersion++;

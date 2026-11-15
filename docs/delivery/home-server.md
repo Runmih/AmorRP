@@ -1,10 +1,10 @@
 # Home-server cutover with Portainer and Nginx Proxy Manager
 
-**Current stack:** server 0.4.0.0 supports seasons and requires private Portainer
-variable `AMORRP_ADMIN_LODESTONE_ID`. For an existing installation, follow the
-[coordinated season upgrade](release-0.4.0.0.md#existing-installation-upgrade), retaining
-the original database, password and vault key. The dated cutover narrative below
-records the earlier 0.3 host move; it is not a fresh-install instruction for updates.
+**Current stack:** server 0.4.0.2 uses Seasons unconditionally. Keep private Portainer
+variable `AMORRP_ADMIN_LODESTONE_ID`; remove the obsolete mode switch. Follow the
+[replacement and migration guide](release-0.4.0.2.md) for an existing installation.
+Retain the original database, password and vault key. The dated narrative below
+records the earlier host move; it is not the current seasonal feature specification.
 
 Prepared 2026-11-05 for the maintainer's fresh installation. The maintainer reports
 that the Render test database is unavailable and explicitly chose a fresh database;
@@ -84,7 +84,7 @@ sudo apt-get install -y git python3
 sudo install -d -m 700 -o "$(id -u)" -g "$(id -g)" /opt/amorrp
 git clone --depth 1 --branch main https://github.com/Runmih/AmorRP.git /opt/amorrp/source
 cd /opt/amorrp/source
-sudo docker build --file deploy/Dockerfile --tag amorrp-server:0.4.0.0 .
+sudo docker build --file deploy/Dockerfile --tag amorrp-server:0.4.0.2 .
 ```
 
 Run this once for initial deployment. It builds on Ubuntu using the pinned SDK and
@@ -95,7 +95,7 @@ There is no new registry account, registry password or public image to manage.
 Record `git rev-parse HEAD` and the image ID for the deployment:
 
 ```sh
-sudo docker image inspect amorrp-server:0.4.0.0 --format '{{.Id}}'
+sudo docker image inspect amorrp-server:0.4.0.2 --format '{{.Id}}'
 ```
 
 ## 3. Create private settings and configure XIVAuth
@@ -186,7 +186,7 @@ https://YOUR_PUBLIC_HOSTNAME/api/v2/capabilities
 ```
 
 Readiness must return `status: ok`; the current seasonal stack reports API 2, server
-and minimum client 0.4.0.0, and `seasonsEnabled: true`.
+and minimum client 0.4.0.2.
 The root `/` may return 404 because this is an API; that does not indicate a failure.
 Readiness is cached and can take several seconds to become healthy after startup.
 

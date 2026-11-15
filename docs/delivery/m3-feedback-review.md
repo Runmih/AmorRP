@@ -30,7 +30,7 @@ are no longer open blockers. The interface is not accepted as the final layout.
 
 ## Potion-production investigation
 
-Owner authority is implicit in both `CommunityAccess.Action` and the plugin's owner
+Owner authority is implicit in both `SeasonAccess.Action` and the plugin's owner
 check. Owners do not grant themselves capabilities. They still spend their own
 weekly allowance. An authorized member may create copies, not edit recipe
 definitions. A usable enabled recipe and enough current-period points are also

@@ -345,7 +345,7 @@ and blocking, even after a new owner moderation reason was recorded. Previously
 documented own-history-after-leaving access had no departure cutoff and therefore
 was not a safe historical-receipt boundary.
 
-Server 0.0.6.6 makes both history feeds use CommunityAccess.RequireAsync: current active
+Server 0.0.6.6 makes both history feeds use SeasonAccess.RequireAsync: current active
 membership and a non-deleted community. Audit additionally requires ownership.
 Authorization runs before parsing/using page cursors. Departure/removal/block,
 unblocking without rejoin and community deletion deny the feed with 404; stored rows

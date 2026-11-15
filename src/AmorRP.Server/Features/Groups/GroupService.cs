@@ -4,7 +4,7 @@ using AmorRP.Contracts.Common;
 using AmorRP.Contracts.Groups;
 using AmorRP.Core.Items;
 using AmorRP.Server.Features.Authentication;
-using AmorRP.Server.Features.Communities;
+using AmorRP.Server.Features.Seasons;
 using AmorRP.Server.Features.Media;
 using AmorRP.Server.Infrastructure.Persistence;
 using AmorRP.Server.Infrastructure.Security;
@@ -14,7 +14,7 @@ using Microsoft.Extensions.Options;
 
 namespace AmorRP.Server.Features.Groups;
 
-public sealed partial class GroupService(AmorDbContext db, SessionAccess sessions, CommunityAccess communities, CommandStore commands, PageCursor pages, IOptions<ServicePolicyOptions> policy, GroupLifecycle lifecycle)
+public sealed partial class GroupService(AmorDbContext db, SessionAccess sessions, SeasonAccess communities, CommandStore commands, PageCursor pages, IOptions<ServicePolicyOptions> policy, GroupLifecycle lifecycle)
 {
     private readonly HashSet<Guid> joined = [], favorites = [];
     private readonly Dictionary<Guid, GroupTrustRow> viewerTrusts = [];
@@ -38,12 +38,12 @@ public sealed partial class GroupService(AmorDbContext db, SessionAccess session
     private async Task<GroupRow> RequireAsync(Guid communityId, Guid groupId, CancellationToken ct)
     {
         var row = await db.Groups.SingleOrDefaultAsync(x => x.CommunityId == communityId && x.Id == groupId && !x.Deleted, ct);
-        ApiFault.Require(row != null, 404, "not_found", "Group was not found in this community."); return row!;
+        ApiFault.Require(row != null, 404, "not_found", "Group was not found in this season."); return row!;
     }
     public async Task<IResult> ListAsync(HttpContext h, Guid communityId, CancellationToken ct)
     {
         var actor = (await sessions.GetAsync(h, ct)).CharacterId; await communities.RequireAsync(communityId, actor, ct); await LoadViewerAsync(actor, communityId, ct);
-        var scope = $"community-groups:{communityId}:{actor}"; var (limit, after) = pages.Read(h, scope);
+        var scope = $"season-groups:{communityId}:{actor}"; var (limit, after) = pages.Read(h, scope);
         var query = db.Groups.AsNoTracking().Where(x => x.CommunityId == communityId && !x.Deleted);
         if (after.HasValue) query = query.Where(x => x.Id.CompareTo(after.Value) > 0);
         var rows = await query.OrderBy(x => x.Id).Take(limit + 1).ToArrayAsync(ct);
@@ -59,23 +59,23 @@ public sealed partial class GroupService(AmorDbContext db, SessionAccess session
     {
         var actor = (await sessions.GetAsync(h, ct)).CharacterId;
         await using var tx = await db.Database.BeginTransactionAsync(ct);
-        await CommandStore.LockAsync(db, ["character:" + actor, "community:" + communityId], ct);
-        var (community, member) = await communities.RequireAsync(communityId, actor, ct); if (groupId == null) CommunityAccess.Action(community, member, "groups.create");
+        await CommandStore.LockAsync(db, ["character:" + actor, "season:" + communityId], ct);
+        var (community, member) = await communities.RequireAsync(communityId, actor, ct); if (groupId == null) SeasonAccess.Action(community, member, "groups.create");
         await LoadViewerAsync(actor, communityId, ct);
         var scope = "character:" + actor; var replay = await commands.ReplayAsync(h, scope, body, ct); if (replay != null) return commands.Replay(replay);
         GroupRow row;
         if (!groupId.HasValue)
         {
             ApiFault.Require(body != null, 422, "invalid_request", "Enter a group name and description.");
-            ApiFault.Require(await db.Groups.CountAsync(x => x.CommunityId == communityId, ct) < 100, 409, "group_limit_reached", "This community has reached its group creation limit.");
-            ApiFault.Require(await db.Groups.CountAsync(x => x.OwnerCharacterId == actor && !x.Deleted && db.Communities.Any(c => c.Id == x.CommunityId && !c.Deleted), ct) < 3, 409, "owned_groups_limit", "You can own at most 3 groups across all communities.");
+            ApiFault.Require(await db.Groups.CountAsync(x => x.CommunityId == communityId, ct) < 100, 409, "group_limit_reached", "This season has reached its group creation limit.");
+            ApiFault.Require(await db.Groups.CountAsync(x => x.CommunityId == communityId && x.OwnerCharacterId == actor && !x.Deleted, ct) < 3, 409, "owned_groups_limit", "You can own at most 3 groups in this season.");
             row = new GroupRow { CommunityId = communityId, OwnerCharacterId = actor }; db.Groups.Add(row);
             var ownerMembership = new GroupMembershipRow { CommunityId = communityId, GroupId = row.Id, CharacterId = actor };
             db.GroupMemberships.Add(ownerMembership); viewerMemberships[row.Id] = ownerMembership; joined.Add(row.Id);
         }
         else {
             row = await RequireAsync(communityId, groupId.Value, ct);
-            if (body == null && row.OwnerCharacterId != actor) CommunityAccess.Action(community, member, "groups.manage");
+            if (body == null && row.OwnerCharacterId != actor) SeasonAccess.Action(community, member, "groups.manage");
             else GroupActivityService.Owner(row, actor);
             CommandStore.Match(h, View(row).Etag);
         }
@@ -116,7 +116,7 @@ public sealed partial class GroupService(AmorDbContext db, SessionAccess session
         GroupActivityService.Owner(await RequireAsync(communityId, groupId, ct), actor);
         var incoming = upload.Value ? await StaticImageUpload.ReadAsync(h, policy.Value.MaxCommunityLogoBytes, 2048, 512, 1048576, ct) : null;
         await using var tx = await db.Database.BeginTransactionAsync(ct);
-        await CommandStore.LockAsync(db, ["character:" + actor, "community:" + communityId], ct);
+        await CommandStore.LockAsync(db, ["character:" + actor, "season:" + communityId], ct);
         await db.Entry(initial).ReloadAsync(ct);
         await db.Entry(initialMember).ReloadAsync(ct);
         var (community, member) = await communities.RequireAsync(communityId, actor, ct);

@@ -11,11 +11,11 @@ namespace AmorRP.Plugin.Tests;
 
 public sealed class WritingLogReaderTests
 {
-    private static readonly Guid Community = Guid.NewGuid(), Actor = Guid.NewGuid();
-    private static Holding Written(string title = "A private journal") => new(Guid.NewGuid(), Community, Actor,
+    private static readonly Guid Season = Guid.NewGuid(), Actor = Guid.NewGuid();
+    private static Holding Written(string title = "A private journal") => new(Guid.NewGuid(), Season, Actor,
         "book", title, Guid.NewGuid(), 1, 0, 1, 1, null, null, Guid.NewGuid());
     private static HoldingDetails Details(Holding item) => new(item, Letter: new(item.LetterId!.Value,
-        Community, new Character(Guid.NewGuid(), "Other Author", "1", "World", DateTimeOffset.UtcNow, "verified"),
+        Season, new Character(Guid.NewGuid(), "Other Author", "1", "World", DateTimeOffset.UtcNow, "verified"),
         item.CategoryId, item.Name, "A private body that is not part of the list.", 1, true, DateTimeOffset.UtcNow, item.TypeId));
     private static HttpResponseMessage Json(object value) => new(HttpStatusCode.OK)
         { Content = JsonContent.Create(value, options: FoundationClient.Json) };
@@ -28,7 +28,7 @@ public sealed class WritingLogReaderTests
             ? new HoldingPage([second], null, "2") : new HoldingPage([first], "next+page/", "1")));
         using var client = new FoundationClient(handler, TimeSpan.FromSeconds(2));
         var query = new InventoryCompanionQuery { Section = InventoryCompanionSection.Writing, Search = "Tea & books", Sort = 1 }.Build();
-        var result = await WritingLogReader.ReadAsync(client, new("https://example.com/"), "token", Community,
+        var result = await WritingLogReader.ReadAsync(client, new("https://example.com/"), "token", Season,
             Actor, query, null, 2, TestContext.Current.CancellationToken);
 
         Assert.Equal(new[] { first.Id, second.Id }, result.Page.Items.Select(x => x.Id));
@@ -47,7 +47,7 @@ public sealed class WritingLogReaderTests
         using var handler = new Replies(request => Json(request.RequestUri!.AbsolutePath.EndsWith(selected.Id.ToString())
             ? (object)details : new HoldingPage([Written("Another title")], "later", "1")));
         using var client = new FoundationClient(handler, TimeSpan.FromSeconds(2));
-        var result = await WritingLogReader.ReadAsync(client, new("https://example.com/"), "token", Community,
+        var result = await WritingLogReader.ReadAsync(client, new("https://example.com/"), "token", Season,
             Actor, "sort=name&typeIds=book,letter,note", selected.Id, 0, TestContext.Current.CancellationToken);
         Assert.Equal(details.Letter!.Body, result.Selected!.Letter!.Body);
         Assert.NotEqual(Actor, result.Selected.Letter.Author.Id);
@@ -55,7 +55,7 @@ public sealed class WritingLogReaderTests
     }
 
     [Theory]
-    [InlineData("community")]
+    [InlineData("season")]
     [InlineData("character")]
     [InlineData("type")]
     [InlineData("quantity")]
@@ -69,7 +69,7 @@ public sealed class WritingLogReaderTests
         var selected = Written(); var details = Details(selected);
         details = mismatch switch
         {
-            "community" => details with { Holding = selected with { CommunityId = Guid.NewGuid() } },
+            "season" => details with { Holding = selected with { CommunityId = Guid.NewGuid() } },
             "character" => details with { Holding = selected with { CharacterId = Guid.NewGuid() } },
             "type" => details with { Holding = selected with { TypeId = "potion" } },
             "quantity" => details with { Holding = selected with { Quantity = 0 } },
@@ -83,7 +83,7 @@ public sealed class WritingLogReaderTests
             ? (object)details : new HoldingPage([selected], null, "1")));
         using var client = new FoundationClient(handler, TimeSpan.FromSeconds(2));
         await Assert.ThrowsAsync<InvalidOperationException>(() => WritingLogReader.ReadAsync(client, new("https://example.com/"), "token",
-            Community, Actor, "sort=name&typeIds=book,letter,note", selected.Id, 0, TestContext.Current.CancellationToken));
+            Season, Actor, "sort=name&typeIds=book,letter,note", selected.Id, 0, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -95,11 +95,11 @@ public sealed class WritingLogReaderTests
                 ? new(HttpStatusCode.NotFound) { Content = JsonContent.Create(new { code = "not_found", title = "No longer held" }) }
                 : Json(Details(selected)));
         using var client = new FoundationClient(handler, TimeSpan.FromSeconds(2));
-        var first = await WritingLogReader.ReadAsync(client, new("https://example.com/"), "token", Community,
+        var first = await WritingLogReader.ReadAsync(client, new("https://example.com/"), "token", Season,
             Actor, "sort=name&typeIds=book,letter,note", selected.Id, 0, TestContext.Current.CancellationToken);
         Assert.NotNull(first.Selected);
         removed = true;
-        var after = await WritingLogReader.ReadAsync(client, new("https://example.com/"), "token", Community,
+        var after = await WritingLogReader.ReadAsync(client, new("https://example.com/"), "token", Season,
             Actor, "sort=name&typeIds=book,letter,note", selected.Id, 0, TestContext.Current.CancellationToken);
         Assert.Null(after.Selected);
     }
@@ -113,7 +113,7 @@ public sealed class WritingLogReaderTests
         using var handler = new Replies(_ => Json(new HoldingPage([item], null, "1")));
         using var client = new FoundationClient(handler, TimeSpan.FromSeconds(2));
         await Assert.ThrowsAsync<InvalidOperationException>(() => WritingLogReader.ReadAsync(client, new("https://example.com/"), "token",
-            Community, Actor, "sort=name&typeIds=book,letter,note", null, 0, TestContext.Current.CancellationToken));
+            Season, Actor, "sort=name&typeIds=book,letter,note", null, 0, TestContext.Current.CancellationToken));
         Assert.Single(handler.Paths);
     }
 

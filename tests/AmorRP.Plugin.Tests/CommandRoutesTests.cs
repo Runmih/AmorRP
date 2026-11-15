@@ -9,7 +9,7 @@ public sealed class CommandRoutesTests
 {
     private const string Id = "11111111-1111-4111-8111-111111111111";
     private static CommandOperation Resolve(string method, string suffix) =>
-        new CommandRequest(method, $"api/v2/communities/{Id}/" + suffix.Replace("{id}", Id), null, null).Operation;
+        new CommandRequest(method, $"api/v2/seasons/{Id}/" + suffix.Replace("{id}", Id), null, null).Operation;
 
     [Fact]
     public void Every_registered_route_has_one_match_and_every_operation_is_registered()
@@ -64,9 +64,9 @@ public sealed class CommandRoutesTests
     {
         foreach (var suffix in new[] { "deposits", "withdrawals", "return" })
         {
-            var request = new CommandRequest("POST", $"api/v2/communities/{Id}/groups/{Id}/treasury/" + suffix, null, null);
+            var request = new CommandRequest("POST", $"api/v2/seasons/{Id}/groups/{Id}/treasury/" + suffix, null, null);
             Assert.Equal(CommandHandler.Treasury, request.Operation.Handler);
-            Assert.Equal(RefreshTargets.Community, request.Operation.Refresh);
+            Assert.Equal(RefreshTargets.Season, request.Operation.Refresh);
             Assert.True(request.AppliesToGroup(Guid.Parse(Id)));
             Assert.False(request.AppliesToGroup(Guid.NewGuid()));
         }
@@ -78,34 +78,34 @@ public sealed class CommandRoutesTests
     [Fact]
     public void Billing_replies_keep_their_typed_handler_and_group_target()
     {
-        var bill = new CommandRequest("POST", $"api/v2/communities/{Id}/groups/{Id}/bills", null, null);
+        var bill = new CommandRequest("POST", $"api/v2/seasons/{Id}/groups/{Id}/bills", null, null);
         Assert.Equal(CommandHandler.Billing, bill.Operation.Handler); Assert.False(bill.AppliesToGroup(Guid.NewGuid()));
         Assert.Equal(CommandHandler.GroupProfile, Resolve("PUT", "groups/{id}/trust").Handler);
         Assert.Equal(CommandHandler.BillingPolicy, Resolve("PUT", "billing-policy").Handler);
-        Assert.Equal(RefreshTargets.Community, bill.Operation.Refresh);
+        Assert.Equal(RefreshTargets.Season, bill.Operation.Refresh);
     }
 
     [Fact]
     public void Refresh_targets_are_scoped_to_the_affected_features()
     {
         Assert.Equal(RefreshTargets.Groups, Resolve("PUT", "groups/{id}/notice").Refresh);
-        Assert.Equal(RefreshTargets.Groups | RefreshTargets.Community, Resolve("DELETE", "groups/{id}").Refresh);
-        Assert.Equal(RefreshTargets.Community | RefreshTargets.Inventory, Resolve("PUT", "trades/{id}/offers/mine").Refresh);
-        Assert.Equal(RefreshTargets.Community | RefreshTargets.Members, Resolve("PUT", "members/{id}/capabilities").Refresh);
-        Assert.Equal(RefreshTargets.Community | RefreshTargets.CommunityLogo, Resolve("PUT", "logo").Refresh);
-        Assert.Equal(RefreshTargets.Community | RefreshTargets.CurrencyIcon, Resolve("PUT", "currency/icon").Refresh);
+        Assert.Equal(RefreshTargets.Groups | RefreshTargets.Season, Resolve("DELETE", "groups/{id}").Refresh);
+        Assert.Equal(RefreshTargets.Season | RefreshTargets.Inventory, Resolve("PUT", "trades/{id}/offers/mine").Refresh);
+        Assert.Equal(RefreshTargets.Season | RefreshTargets.Members, Resolve("PUT", "members/{id}/capabilities").Refresh);
+        Assert.Equal(RefreshTargets.Season | RefreshTargets.CommunityLogo, Resolve("PUT", "logo").Refresh);
+        Assert.Equal(RefreshTargets.Season | RefreshTargets.CurrencyIcon, Resolve("PUT", "currency/icon").Refresh);
     }
 
     [Fact]
     public void Restored_requests_keep_their_wire_identity_and_need_no_new_saved_fields()
     {
-        var legacy = new CommandRequest("POST", $"api/v1/groups/{Id}/trades", "{\"targetCharacterId\":\"" + Id + "\"}", "\"old\"");
+        var legacy = new CommandRequest("POST", $"api/v2/seasons/{Id}/trades", "{\"targetCharacterId\":\"" + Id + "\"}", "\"old\"");
         var serialized = JsonSerializer.Serialize(legacy, FoundationClient.Json);
         var restored = JsonSerializer.Deserialize<CommandRequest>(serialized, FoundationClient.Json)!;
         Assert.Equal(CommandKind.CreateTrade, restored.Operation.Kind);
         Assert.Equal(legacy, restored);
         Assert.DoesNotContain("operation", serialized, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("api/v1/groups/", serialized);
-        Assert.Equal($"api/v2/communities/{Id}/trades", restored.CurrentShape().Path);
+        Assert.Contains("api/v2/seasons/", serialized);
+        Assert.Equal($"api/v2/seasons/{Id}/trades", restored.CurrentShape().Path);
     }
 }

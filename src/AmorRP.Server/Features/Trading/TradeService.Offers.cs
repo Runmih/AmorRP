@@ -10,9 +10,9 @@ public sealed partial class TradeService
 {
     private async Task SetOfferAsync(TradeRow row, Guid actor, TradeOfferWrite body, CancellationToken ct)
     {
-        var community = await db.Communities.SingleAsync(x => x.Id == row.CommunityId, ct);
+        var community = await db.Seasons.SingleAsync(x => x.Id == row.CommunityId, ct);
         ApiFault.Require(body.CurrencyId == community.CurrencyId && AmorRP.Contracts.Currency.WholeUnits.TryNormalize(body.CurrencyAmount, out _, out _),
-            422, "invalid_quantity", "Specify this community's currency and a nonnegative whole-unit amount.");
+            422, "invalid_quantity", "Specify this season's currency and a nonnegative whole-unit amount.");
         ApiFault.Require(body.Items != null && body.Items.Length <= policy.Value.MaxTradeLinesPerSide
             && body.Items.All(x => x.Quantity > 0) && body.Items.Select(x => x.HoldingId).Distinct().Count() == body.Items.Length,
             422, "invalid_offer", "Offer contains too many, repeated or invalid item lines.");
@@ -32,7 +32,7 @@ public sealed partial class TradeService
         foreach (var line in body.Items!)
         {
             var holding = await db.Holdings.SingleOrDefaultAsync(x => x.CommunityId == row.CommunityId && x.Id == line.HoldingId && x.CharacterId == actor && x.Quantity > 0, ct);
-            ApiFault.Require(holding != null, 404, "not_found", "An offered item is no longer owned in this community.");
+            ApiFault.Require(holding != null, 404, "not_found", "An offered item is no longer owned in this season.");
             ApiFault.Require(line.Quantity <= holding!.Quantity - holding.Reserved, 409, "insufficient_available_quantity", "Insufficient unreserved item quantity.");
             holding.Reserved += line.Quantity; holding.Version++;
             var snapshot = previous.SingleOrDefault(x => x.HoldingId == line.HoldingId);

@@ -330,7 +330,7 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(16)
                         .HasColumnType("character varying(16)")
-                        .HasDefaultValue("legacy");
+                        .HasDefaultValue("draft");
 
                     b.Property<int>("Version")
                         .HasColumnType("integer");
@@ -355,6 +355,8 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                     b.ToTable("communities", null, t =>
                         {
                             t.HasCheckConstraint("ck_community_policy", "\"CurrentPotionPoints\" >= 0 AND \"CurrentLetters\" >= 0 AND \"NextPotionPoints\" >= 0 AND \"NextLetters\" >= 0");
+
+                            t.HasCheckConstraint("ck_season_state", "\"SeasonState\" IN ('draft', 'active', 'archived')");
                         });
                 });
 
@@ -1141,6 +1143,22 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("AmorRP.Server.Infrastructure.Persistence.SeasonCreationPermissionRow", b =>
+                {
+                    b.Property<Guid>("CharacterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("CanCreate")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("integer");
+
+                    b.HasKey("CharacterId");
+
+                    b.ToTable("season_creation_permissions", (string)null);
+                });
+
             modelBuilder.Entity("AmorRP.Server.Infrastructure.Persistence.SessionRow", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1708,6 +1726,15 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                     b.HasOne("AmorRP.Server.Infrastructure.Persistence.MembershipRow", null)
                         .WithMany()
                         .HasForeignKey("CommunityId", "CharacterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AmorRP.Server.Infrastructure.Persistence.SeasonCreationPermissionRow", b =>
+                {
+                    b.HasOne("AmorRP.Server.Infrastructure.Persistence.CharacterRow", null)
+                        .WithMany()
+                        .HasForeignKey("CharacterId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });

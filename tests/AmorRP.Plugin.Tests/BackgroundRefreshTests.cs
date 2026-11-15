@@ -19,7 +19,7 @@ public sealed class BackgroundRefreshTests
         using var inventory = new BackgroundRefresh<HoldingPage>(TimeSpan.FromMinutes(1));
         var uri = new Uri("https://server.example/");
         var eventsTask = client.GetAsync<FavoriteEvents>(uri, "api/v2/me/favorite-group-events", "test-token", TestContext.Current.CancellationToken);
-        var inventoryTask = client.GetAsync<HoldingPage>(uri, "api/v2/communities/c/inventory", "test-token", TestContext.Current.CancellationToken);
+        var inventoryTask = client.GetAsync<HoldingPage>(uri, "api/v2/seasons/c/inventory", "test-token", TestContext.Current.CancellationToken);
         events.Start(Now, 1, CancellationToken.None, _ => eventsTask);
         inventory.Start(Now, 1, CancellationToken.None, _ => inventoryTask);
 

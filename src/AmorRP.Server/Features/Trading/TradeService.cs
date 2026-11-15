@@ -2,7 +2,7 @@ using System.Data;
 using AmorRP.Contracts.Common;
 using AmorRP.Contracts.Trading;
 using AmorRP.Server.Features.Authentication;
-using AmorRP.Server.Features.Communities;
+using AmorRP.Server.Features.Seasons;
 using AmorRP.Server.Infrastructure.Persistence;
 using AmorRP.Server.Infrastructure.Security;
 using AmorRP.Server.Options;
@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 namespace AmorRP.Server.Features.Trading;
 
-public sealed partial class TradeService(AmorDbContext db, SessionAccess sessions, CommunityAccess communities,
+public sealed partial class TradeService(AmorDbContext db, SessionAccess sessions, SeasonAccess communities,
     CommandStore commands, TradeReservations reservations, PageCursor pages, TimeProvider time,
     IOptions<ServicePolicyOptions> policy, AmorRP.Server.Features.Billing.DebtSettlement settlement)
 {
@@ -21,7 +21,7 @@ public sealed partial class TradeService(AmorDbContext db, SessionAccess session
         ApiFault.Require(await db.Memberships.AnyAsync(x => x.CommunityId == communityId && x.CharacterId == actor, ct), 404, "not_found", "Trades not found.");
         await using (var expiry = await db.Database.BeginTransactionAsync(ct))
         {
-            await CommandStore.LockAsync(db, ["community:" + communityId], ct);
+            await CommandStore.LockAsync(db, ["season:" + communityId], ct);
             await reservations.ExpireAsync(communityId, ct); await db.SaveChangesAsync(ct);
             await expiry.CommitAsync(ct);
         }
@@ -48,7 +48,7 @@ public sealed partial class TradeService(AmorDbContext db, SessionAccess session
     {
         var actor = (await sessions.GetAsync(h, ct)).CharacterId;
         await using var tx = await db.Database.BeginTransactionAsync(ct);
-        await CommandStore.LockAsync(db, ["character:" + actor, "community:" + communityId], ct);
+        await CommandStore.LockAsync(db, ["character:" + actor, "season:" + communityId], ct);
         var scope = "character:" + actor;
         var replay = await commands.ReplayAsync(h, scope, body, ct);
         if (replay != null)
@@ -60,7 +60,7 @@ public sealed partial class TradeService(AmorDbContext db, SessionAccess session
         // Commit expiry even when the submitted command will be rejected as stale.
         await db.SaveChangesAsync(ct); await tx.CommitAsync(ct);
         await using var commandTx = await db.Database.BeginTransactionAsync(ct);
-        await CommandStore.LockAsync(db, ["character:" + actor, "community:" + communityId], ct);
+        await CommandStore.LockAsync(db, ["character:" + actor, "season:" + communityId], ct);
         db.ChangeTracker.Clear();
         // Another replica may have committed the same key while this request expired trades.
         replay = await commands.ReplayAsync(h, scope, body, ct); if (replay != null) return commands.Replay(replay);
@@ -69,11 +69,11 @@ public sealed partial class TradeService(AmorDbContext db, SessionAccess session
         {
             var (g, m) = await communities.RequireAsync(communityId, actor, ct);
             var recipient = ((TradeCreate)body).RecipientCharacterId;
-            ApiFault.Require(recipient != actor, 422, "invalid_target", "Choose another community member.");
+            ApiFault.Require(recipient != actor, 422, "invalid_target", "Choose another season member.");
             var other = await communities.TargetAsync(communityId, recipient, true, ct);
             ApiFault.Require(!m.TradingRestricted && !other.TradingRestricted, 403, "trading_restricted", "Trading is restricted for one participant.");
             ApiFault.Require(!await db.TradeSlots.AnyAsync(x => x.CommunityId == communityId && (x.CharacterId == actor || x.CharacterId == recipient), ct),
-                409, "trade_busy", "One participant already has a pending trade in this community.");
+                409, "trade_busy", "One participant already has a pending trade in this season.");
             row = new TradeRow { CommunityId = communityId, InitiatorId = actor, RecipientId = recipient, ExpiresAt = time.GetUtcNow().AddSeconds(policy.Value.TradeLifetimeSeconds) };
             db.Trades.Add(row); db.TradeSlots.AddRange(new TradeSlotRow { CommunityId = communityId, CharacterId = actor, TradeId = row.Id }, new TradeSlotRow { CommunityId = communityId, CharacterId = recipient, TradeId = row.Id });
         }

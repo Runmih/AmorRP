@@ -1,25 +1,25 @@
 using AmorRP.Contracts.Auth;
-using AmorRP.Contracts.Communities;
+using AmorRP.Contracts.Seasons;
 using AmorRP.Contracts.Currency;
 using AmorRP.Contracts.History;
 using AmorRP.Contracts.Common;
 using AmorRP.Server.Features.Authentication;
-using AmorRP.Server.Features.Communities;
+using AmorRP.Server.Features.Seasons;
 using AmorRP.Server.Infrastructure.Persistence;
 using AmorRP.Server.Infrastructure.Security;
 using Microsoft.EntityFrameworkCore;
 
 namespace AmorRP.Server.Features.History;
 
-public sealed class HistoryService(AmorDbContext db, SessionAccess sessions, CommunityAccess communities, PageCursor pages)
+public sealed class HistoryService(AmorDbContext db, SessionAccess sessions, SeasonAccess communities, PageCursor pages)
 {
-    public async Task<IResult> ListAsync(HttpContext http, Guid communityId, bool audit, CancellationToken ct)
+    public async Task<IResult> ListAsync(HttpContext http, Guid seasonId, bool audit, CancellationToken ct)
     {
         var session = await sessions.GetAsync(http, ct);
-        var (community, _) = await communities.RequireAsync(communityId, session.CharacterId, ct);
-        if (audit) CommunityAccess.Owner(community, session.CharacterId);
-        var scope = $"history:{communityId}:{session.CharacterId}:{audit}"; var (limit, after) = pages.Read(http, scope);
-        var query = db.Operations.Where(x => x.CommunityId == communityId && (audit || x.ActorCharacterId == session.CharacterId || x.SubjectCharacterId == session.CharacterId));
+        var (community, _) = await communities.RequireAsync(seasonId, session.CharacterId, ct);
+        if (audit) SeasonAccess.Owner(community, session.CharacterId);
+        var scope = $"history:{seasonId}:{session.CharacterId}:{audit}"; var (limit, after) = pages.Read(http, scope);
+        var query = db.Operations.Where(x => x.CommunityId == seasonId && (audit || x.ActorCharacterId == session.CharacterId || x.SubjectCharacterId == session.CharacterId));
         if (after.HasValue) query = query.Where(x => x.Id.CompareTo(after.Value) < 0);
         var rows = await query.OrderByDescending(x => x.Id).Take(limit+1).ToArrayAsync(ct);
         var entries = new List<HistoryEntry>();
@@ -45,8 +45,8 @@ public static class HistoryEndpoints
 {
     public static void MapHistoryEndpoints(this WebApplication app)
     {
-        app.MapGet("/api/v2/communities/{communityId}/history", (HttpContext h, Guid communityId, HistoryService s, CancellationToken ct) => s.ListAsync(h, communityId, false, ct));
-        app.MapGet("/api/v2/communities/{communityId}/audit", (HttpContext h, Guid communityId, HistoryService s, CancellationToken ct) => s.ListAsync(h, communityId, true, ct));
+        app.MapGet("/api/v2/seasons/{seasonId}/history", (HttpContext h, Guid seasonId, HistoryService s, CancellationToken ct) => s.ListAsync(h, seasonId, false, ct));
+        app.MapGet("/api/v2/seasons/{seasonId}/audit", (HttpContext h, Guid seasonId, HistoryService s, CancellationToken ct) => s.ListAsync(h, seasonId, true, ct));
         app.MapGet("/api/v2/operations/{operationId}", (HttpContext h, Guid operationId, HistoryService s, CancellationToken ct) => s.OperationAsync(h, operationId, false, ct));
         app.MapGet("/api/v2/operation-keys/{idempotencyKey}", (HttpContext h, Guid idempotencyKey, HistoryService s, CancellationToken ct) => s.OperationAsync(h, idempotencyKey, true, ct));
     }

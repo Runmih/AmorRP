@@ -5,7 +5,7 @@ public sealed class CommunityRow
     public Guid Id { get; set; } = Guid.CreateVersion7();
     public string Name { get; set; } = "";
     public string Description { get; set; } = "";
-    public string SeasonState { get; set; } = "legacy";
+    public string SeasonState { get; set; } = "draft";
     public Guid OwnerCharacterId { get; set; }
     public Guid CreatedByCharacterId { get; set; }
     public long AnnouncementSequence { get; set; }

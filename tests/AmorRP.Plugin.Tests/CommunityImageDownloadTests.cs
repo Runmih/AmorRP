@@ -13,7 +13,7 @@ public sealed class CommunityImageDownloadTests
         var body = new CountingStream(new byte[4096]);
         using var handler = new ImageHandler(body, declared);
         using var client = new FoundationClient(handler, TimeSpan.FromSeconds(2));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => client.GetImageAsync(new("https://example.com/"), "api/v2/communities/id/logo", "token", 128, TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => client.GetImageAsync(new("https://example.com/"), "api/v2/seasons/id/logo", "token", 128, TestContext.Current.CancellationToken));
         Assert.True(body.BytesRead <= 129);
         Assert.Equal("Bearer token", handler.Authorization);
     }

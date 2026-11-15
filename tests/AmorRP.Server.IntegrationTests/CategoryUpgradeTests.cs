@@ -43,7 +43,7 @@ public sealed partial class FoundationTests
             Assert.Equal(before.Name, after.Name); Assert.Equal(before.AllowedTypeIds, after.AllowedTypeIds);
             Assert.Equal(before.Version, after.Version); Assert.Equal(before.Retired, after.Retired);
         }
-        Assert.Equal(4, (await db.Communities.SingleAsync(ct)).InventoryVersion);
+        Assert.Equal(4, (await db.Seasons.SingleAsync(ct)).InventoryVersion);
     }
 
     [Fact]
@@ -51,9 +51,9 @@ public sealed partial class FoundationTests
     {
         using var factory = Factory(); await Migrate(factory);
         using var owner = factory.CreateClient(); await Login(owner, "741"); var community = await Create(owner);
-        var defaults = (await owner.GetFromJsonAsync<CategoryPage>($"/api/v2/communities/{community.Id}/categories", TestContext.Current.CancellationToken))!.Items;
+        var defaults = (await owner.GetFromJsonAsync<CategoryPage>($"/api/v2/seasons/{community.Id}/categories", TestContext.Current.CancellationToken))!.Items;
         Assert.Equal(new[] { "book", "letter", "note" }, defaults.Single(x => x.Name == "Books").AllowedTypeIds);
-        var category = await Command<Category>(owner, HttpMethod.Post, $"/api/v2/communities/{community.Id}/categories", new CategoryEdit("Owner letters", ["letter"]));
+        var category = await Command<Category>(owner, HttpMethod.Post, $"/api/v2/seasons/{community.Id}/categories", new CategoryEdit("Owner letters", ["letter"]));
         // Simulate the old applied migration. A newer binary does not re-run a
         // migration already in history, nor guess which later policies to undo.
         await using (var scope = factory.Services.CreateAsyncScope())
@@ -62,23 +62,23 @@ public sealed partial class FoundationTests
             await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE categories SET \"AllowedTypeIds\" = ARRAY['letter','book','note']::text[], \"Version\" = \"Version\" + 1 WHERE \"CommunityId\" = {community.Id} AND \"Id\" = {category.Id};", TestContext.Current.CancellationToken);
             await db.Database.MigrateAsync(TestContext.Current.CancellationToken);
         }
-        var existing = await Command<ProductionResult>(owner, HttpMethod.Post, $"/api/v2/communities/{community.Id}/inventory/letters", new LetterCreate(category.Id, "Existing book", "Retained body", "book"));
-        using var current = await owner.GetAsync($"/api/v2/communities/{community.Id}/categories/{category.Id}", TestContext.Current.CancellationToken);
-        using var member = factory.CreateClient(); await Login(member, "742"); await Join(member, await Invite(owner, community));
-        using var forbidden = Request(HttpMethod.Patch, $"/api/v2/communities/{community.Id}/categories/{category.Id}", new CategoryEdit(category.Name, ["letter"]), etag: current.Headers.ETag!.ToString());
+        var existing = await Command<ProductionResult>(owner, HttpMethod.Post, $"/api/v2/seasons/{community.Id}/inventory/letters", new LetterCreate(category.Id, "Existing book", "Retained body", "book"));
+        using var current = await owner.GetAsync($"/api/v2/seasons/{community.Id}/categories/{category.Id}", TestContext.Current.CancellationToken);
+        using var member = factory.CreateClient(); await Login(member, "742"); await Enroll(member, community);
+        using var forbidden = Request(HttpMethod.Patch, $"/api/v2/seasons/{community.Id}/categories/{category.Id}", new CategoryEdit(category.Name, ["letter"]), etag: current.Headers.ETag!.ToString());
         using var denied = await member.SendAsync(forbidden, TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.Forbidden, denied.StatusCode);
-        var repaired = await Command<Category>(owner, HttpMethod.Patch, $"/api/v2/communities/{community.Id}/categories/{category.Id}", new CategoryEdit(category.Name, ["letter"]), current.Headers.ETag!.ToString());
+        var repaired = await Command<Category>(owner, HttpMethod.Patch, $"/api/v2/seasons/{community.Id}/categories/{category.Id}", new CategoryEdit(category.Name, ["letter"]), current.Headers.ETag!.ToString());
         Assert.Equal(category.Id, repaired.Id); Assert.Equal(category.Name, repaired.Name); Assert.Equal(new[] { "letter" }, repaired.AllowedTypeIds);
         Assert.Equal(category.Version + 2, repaired.Version);
         foreach (var type in new[] { "book", "note" })
         {
-            using var create = Request(HttpMethod.Post, $"/api/v2/communities/{community.Id}/inventory/letters", new LetterCreate(category.Id, "Blocked new type", "", type));
+            using var create = Request(HttpMethod.Post, $"/api/v2/seasons/{community.Id}/inventory/letters", new LetterCreate(category.Id, "Blocked new type", "", type));
             using var rejected = await owner.SendAsync(create, TestContext.Current.CancellationToken);
             Assert.Equal(HttpStatusCode.UnprocessableEntity, rejected.StatusCode);
         }
-        var written = (await owner.GetFromJsonAsync<Letter>($"/api/v2/communities/{community.Id}/letters/{existing.Holding.LetterId}", TestContext.Current.CancellationToken))!;
+        var written = (await owner.GetFromJsonAsync<Letter>($"/api/v2/seasons/{community.Id}/letters/{existing.Holding.LetterId}", TestContext.Current.CancellationToken))!;
         Assert.Equal("book", written.TypeId); Assert.Equal("Retained body", written.Body);
-        await Command<ProductionResult>(owner, HttpMethod.Post, $"/api/v2/communities/{community.Id}/inventory/letters", new LetterCreate(category.Id, "Allowed letter", "", "letter"));
+        await Command<ProductionResult>(owner, HttpMethod.Post, $"/api/v2/seasons/{community.Id}/inventory/letters", new LetterCreate(category.Id, "Allowed letter", "", "letter"));
     }
 }

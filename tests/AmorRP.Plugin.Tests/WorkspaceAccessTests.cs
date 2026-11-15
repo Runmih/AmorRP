@@ -1,4 +1,4 @@
-using AmorRP.Contracts.Communities;
+using AmorRP.Contracts.Seasons;
 using AmorRP.Contracts.Currency;
 using AmorRP.Contracts.Groups;
 using AmorRP.Plugin.Features.Shell;
@@ -10,7 +10,7 @@ namespace AmorRP.Plugin.Tests;
 public sealed class WorkspaceAccessTests
 {
     private static readonly Guid Actor = Guid.NewGuid(), Other = Guid.NewGuid(), CommunityId = Guid.NewGuid();
-    private static Community Scope(params string[] capabilities) => new(CommunityId, "Community", "", Other, 1,
+    private static Season Scope(params string[] capabilities) => new(CommunityId, "Season", "", Other, 1,
         new Currency(Guid.NewGuid(), CommunityId, "Coins", "C", 1), capabilities, false,
         new Balance(Guid.NewGuid(), Actor, "0", "0", "0", 1), null);
     private static GroupProfile Group(bool member = true, params string[] actions) => new(Guid.NewGuid(), CommunityId,
@@ -18,7 +18,7 @@ public sealed class WorkspaceAccessTests
         EnabledFeatures: [..GroupCapabilities.DefaultFeatures, GroupCapabilities.Treasury], MyCapabilities: actions);
 
     [Theory]
-    [InlineData("community.moderate")]
+    [InlineData("season.moderate")]
     [InlineData("announcements.manage")]
     [InlineData("members.gameplay.manage")]
     [InlineData("currency.manage")]

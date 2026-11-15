@@ -3,7 +3,7 @@ using AmorRP.Contracts.Inventory;
 using AmorRP.Core.Items;
 using AmorRP.Server.Features.Authentication;
 using AmorRP.Server.Features.Catalog;
-using AmorRP.Server.Features.Communities;
+using AmorRP.Server.Features.Seasons;
 using AmorRP.Server.Infrastructure.Persistence;
 using AmorRP.Server.Infrastructure.Security;
 using AmorRP.Server.Options;
@@ -12,7 +12,7 @@ using Microsoft.Extensions.Options;
 
 namespace AmorRP.Server.Features.Inventory;
 
-public sealed partial class InventoryService(AmorDbContext db, SessionAccess sessions, CommunityAccess communities,
+public sealed partial class InventoryService(AmorDbContext db, SessionAccess sessions, SeasonAccess communities,
     CatalogService catalog, CommandStore commands, PageCursor cursors, TimeProvider time, IOptions<ServicePolicyOptions> policy)
 {
     public static Holding View(HoldingRow x) => new(x.Id, x.CommunityId, x.CharacterId, x.TypeId, x.Name, x.CategoryId,
@@ -20,10 +20,10 @@ public sealed partial class InventoryService(AmorDbContext db, SessionAccess ses
     private static Quota View(QuotaRow x) => new(x.Kind, x.PeriodStart, x.PeriodStart.AddDays(7), x.Limit, x.Used, x.Limit - x.Used);
     private async Task<QuotaRow> QuotaAsync(CommunityRow community, Guid actor, string kind, CancellationToken ct)
     {
-        var period = CommunityAccess.Period(time.GetUtcNow());
+        var period = SeasonAccess.Period(time.GetUtcNow());
         return await db.Quotas.SingleOrDefaultAsync(x => x.CommunityId == community.Id && x.CharacterId == actor && x.Kind == kind && x.PeriodStart == period, ct)
             ?? new QuotaRow { CommunityId = community.Id, CharacterId = actor, Kind = kind, PeriodStart = period,
-                Limit = kind == "cooking_points" ? CommunityAccess.Policies(community, time.GetUtcNow()).Current.CookingPoints : kind == "potion_points" ? CommunityAccess.Policies(community, time.GetUtcNow()).Current.PotionPoints : CommunityAccess.Policies(community, time.GetUtcNow()).Current.Letters };
+                Limit = kind == "cooking_points" ? SeasonAccess.Policies(community, time.GetUtcNow()).Current.CookingPoints : kind == "potion_points" ? SeasonAccess.Policies(community, time.GetUtcNow()).Current.PotionPoints : SeasonAccess.Policies(community, time.GetUtcNow()).Current.Letters };
     }
     private async Task<QuotaRow> SpendAsync(CommunityRow community, Guid actor, string kind, int cost, CancellationToken ct)
     {
@@ -49,7 +49,7 @@ public sealed partial class InventoryService(AmorDbContext db, SessionAccess ses
     public async Task<IResult> ListAsync(HttpContext h, Guid communityId, Guid? target, CancellationToken ct)
     {
         var actor = (await sessions.GetAsync(h, ct)).CharacterId; var (community, member) = await communities.RequireAsync(communityId, actor, ct);
-        if (target.HasValue && target != actor) { CommunityAccess.Action(community, member, "inventory.remove"); await communities.TargetAsync(communityId, target.Value, community.OwnerCharacterId != actor, ct); }
+        if (target.HasValue && target != actor) { SeasonAccess.Action(community, member, "inventory.remove"); await communities.TargetAsync(communityId, target.Value, community.OwnerCharacterId != actor, ct); }
         var owner = target ?? actor;
         var type = h.Request.Query["typeId"].ToString(); var search = h.Request.Query["search"].ToString();
         var typesText = h.Request.Query["typeIds"].ToString();
@@ -98,14 +98,14 @@ public sealed partial class InventoryService(AmorDbContext db, SessionAccess ses
     public async Task<IResult> ProduceAsync(HttpContext h, Guid communityId, object body, CancellationToken ct)
     {
         var actor = (await sessions.GetAsync(h, ct)).CharacterId; await using var tx = await db.Database.BeginTransactionAsync(ct);
-        await CommandStore.LockAsync(db, ["character:" + actor, "community:" + communityId], ct);
+        await CommandStore.LockAsync(db, ["character:" + actor, "season:" + communityId], ct);
         var (community, member) = await communities.RequireAsync(communityId, actor, ct);
         DefinitionRow? productionDefinition = null;
         if (body is PotionCreate requested)
         {
             productionDefinition = await db.Definitions.SingleOrDefaultAsync(x => x.CommunityId == communityId && x.Id == requested.DefinitionId, ct);
             ApiFault.Require(productionDefinition != null, 404, "not_found", "Recipe unavailable.");
-            CommunityAccess.Action(community, member, CraftingTypes.CraftPermission(productionDefinition!.TypeId));
+            SeasonAccess.Action(community, member, CraftingTypes.CraftPermission(productionDefinition!.TypeId));
         }
         var scope = "character:" + actor; var replay = await commands.ReplayAsync(h, scope, body, ct); if (replay != null) return commands.Replay(replay);
         HoldingRow holding; QuotaRow quota;
@@ -114,7 +114,7 @@ public sealed partial class InventoryService(AmorDbContext db, SessionAccess ses
             Quantity(potion.Quantity, creation: true);
             var row = productionDefinition;
             ApiFault.Require(row != null && !row.Retired, 404, "not_found", "Potion definition unavailable.");
-            CommunityAccess.Action(community, member, CraftingTypes.CraftPermission(row!.TypeId));
+            SeasonAccess.Action(community, member, CraftingTypes.CraftPermission(row!.TypeId));
             ApiFault.Require(row!.Revision == potion.ExpectedDefinitionRevision, 409, "definition_changed", "Potion recipe changed. Review the current cost and message.");
             var rev = await db.DefinitionRevisions.SingleAsync(x => x.CommunityId == communityId && x.DefinitionId == row.Id && x.Revision == row.Revision, ct);
             ApiFault.Require(rev.Enabled, 409, "definition_unavailable", "Potion production is disabled."); await catalog.RequireCategoryAsync(communityId, rev.CategoryId, row.TypeId, ct);
@@ -142,12 +142,12 @@ public sealed partial class InventoryService(AmorDbContext db, SessionAccess ses
     public async Task<IResult> ChangeAsync(HttpContext h, Guid communityId, Guid? id, object body, CancellationToken ct, Guid? targetCharacterId = null)
     {
         var actor = (await sessions.GetAsync(h, ct)).CharacterId; await using var tx = await db.Database.BeginTransactionAsync(ct);
-        await CommandStore.LockAsync(db, ["character:" + actor, "community:" + communityId], ct);
+        await CommandStore.LockAsync(db, ["character:" + actor, "season:" + communityId], ct);
         var (community, member) = await communities.RequireAsync(communityId, actor, ct);
         var target = targetCharacterId ?? (body is InventoryRemoval removal ? removal.TargetCharacterId : actor);
         var removalReason = body switch { HoldingChange x => x.Reason, HoldingDeletion x => x.Reason, InventoryRemoval x => x.Reason, _ => null };
-        if (target != actor) { CommunityAccess.Action(community, member, "inventory.remove"); ApiFault.Text(removalReason, 500); await communities.TargetAsync(communityId, target, true, ct); }
-        if (body is InventoryRemoval rm) { CommunityAccess.Action(community, member, "inventory.remove"); ApiFault.Text(rm.Reason, 500); await communities.TargetAsync(communityId, target, true, ct); }
+        if (target != actor) { SeasonAccess.Action(community, member, "inventory.remove"); ApiFault.Text(removalReason, 500); await communities.TargetAsync(communityId, target, true, ct); }
+        if (body is InventoryRemoval rm) { SeasonAccess.Action(community, member, "inventory.remove"); ApiFault.Text(rm.Reason, 500); await communities.TargetAsync(communityId, target, true, ct); }
         var scope = "character:" + actor; var replay = await commands.ReplayAsync(h, scope, body, ct); if (replay != null) return commands.Replay(replay);
         var holding = await HoldingAsync(communityId, target, id ?? ((InventoryRemoval)body).HoldingId, ct);
         var version = body switch { ConsumptionRequest b => b.ExpectedHoldingVersion, DiscardRequest b => b.ExpectedHoldingVersion, InventoryRemoval b => b.ExpectedHoldingVersion, HoldingChange b => b.ExpectedHoldingVersion, HoldingDeletion b => b.ExpectedHoldingVersion, _ => 0 };

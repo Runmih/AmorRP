@@ -25,15 +25,15 @@ public sealed partial class FoundationTests
             services.ConfigureDbContext<AmorDbContext>(options => options.AddInterceptors(probe))));
         await Migrate(factory); using var owner = factory.CreateClient(); await Login(owner, "720");
         var community = await Create(owner); using var member = factory.CreateClient(); var other = await Login(member, "721");
-        await Join(member, await Invite(owner, community));
+        await Enroll(member, community);
         var recipe = await Recipe(owner, community);
-        var potion = (await Command<ProductionResult>(owner, HttpMethod.Post, $"/api/v2/communities/{community.Id}/inventory/potions", new PotionCreate(recipe.Id, 1, 3))).Holding;
-        var trade = await Command<Trade>(owner, HttpMethod.Post, $"/api/v2/communities/{community.Id}/trades", new TradeCreate(other.Character.Id));
+        var potion = (await Command<ProductionResult>(owner, HttpMethod.Post, $"/api/v2/seasons/{community.Id}/inventory/potions", new PotionCreate(recipe.Id, 1, 3))).Holding;
+        var trade = await Command<Trade>(owner, HttpMethod.Post, $"/api/v2/seasons/{community.Id}/trades", new TradeCreate(other.Character.Id));
         trade = await TradeCommand(member, community, trade, "accept");
         trade = await Offer(owner, community, trade, "0", new TradeLine(potion.Id, 1));
 
         probe.Arm();
-        var path = $"/api/v2/communities/{community.Id}/trades" + (list ? "?limit=100" : $"/{trade.Id}");
+        var path = $"/api/v2/seasons/{community.Id}/trades" + (list ? "?limit=100" : $"/{trade.Id}");
         var reading = member.GetAsync(path, TestContext.Current.CancellationToken);
         var lockAvailable = false;
         Trade? updated = null;
@@ -43,7 +43,7 @@ public sealed partial class FoundationTests
             await using var connection = new NpgsqlConnection(Connection); await connection.OpenAsync(TestContext.Current.CancellationToken);
             await using var tx = await connection.BeginTransactionAsync(TestContext.Current.CancellationToken);
             await using var check = new NpgsqlCommand("SELECT pg_try_advisory_xact_lock(hashtextextended(@resource, 0))", connection, tx);
-            check.Parameters.AddWithValue("resource", "community:" + community.Id);
+            check.Parameters.AddWithValue("resource", "season:" + community.Id);
             lockAvailable = (bool)(await check.ExecuteScalarAsync(TestContext.Current.CancellationToken))!;
             await tx.RollbackAsync(TestContext.Current.CancellationToken);
             if (lockAvailable)
@@ -53,7 +53,7 @@ public sealed partial class FoundationTests
         finally { probe.Resume(); }
         using var response = await reading.WaitAsync(TimeSpan.FromSeconds(15), TestContext.Current.CancellationToken);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.True(lockAvailable, "Trade response projection still holds the community-wide write lock.");
+        Assert.True(lockAvailable, "Trade response projection still holds the season-wide write lock.");
         var snapshot = list ? (await response.Content.ReadFromJsonAsync<TradePage>(TestContext.Current.CancellationToken))!.Items.Single()
             : (await response.Content.ReadFromJsonAsync<Trade>(TestContext.Current.CancellationToken))!;
         Assert.Equal(trade.Revision, snapshot.Revision);
@@ -70,15 +70,15 @@ public sealed partial class FoundationTests
     {
         using var factory = Factory(); await Migrate(factory);
         using var owner = factory.CreateClient(); var identity = await Login(owner, "722"); var community = await Create(owner);
-        using var member = factory.CreateClient(); var other = await Login(member, "723"); await Join(member, await Invite(owner, community));
+        using var member = factory.CreateClient(); var other = await Login(member, "723"); await Enroll(member, community);
         var recipe = await Recipe(owner, community);
-        var potion = (await Command<ProductionResult>(owner, HttpMethod.Post, $"/api/v2/communities/{community.Id}/inventory/potions", new PotionCreate(recipe.Id, 1, 3))).Holding;
-        await Command<Balance>(owner, HttpMethod.Post, $"/api/v2/communities/{community.Id}/currency/adjustments", new CurrencyAdjustment(identity.Character.Id, "10", "Seed"));
-        var trade = await Command<Trade>(owner, HttpMethod.Post, $"/api/v2/communities/{community.Id}/trades", new TradeCreate(other.Character.Id));
+        var potion = (await Command<ProductionResult>(owner, HttpMethod.Post, $"/api/v2/seasons/{community.Id}/inventory/potions", new PotionCreate(recipe.Id, 1, 3))).Holding;
+        await Command<Balance>(owner, HttpMethod.Post, $"/api/v2/seasons/{community.Id}/currency/adjustments", new CurrencyAdjustment(identity.Character.Id, "10", "Seed"));
+        var trade = await Command<Trade>(owner, HttpMethod.Post, $"/api/v2/seasons/{community.Id}/trades", new TradeCreate(other.Character.Id));
         trade = await TradeCommand(member, community, trade, "accept");
         trade = await Offer(owner, community, trade, "5", new TradeLine(potion.Id, 2));
         clock.UtcNow = clock.UtcNow.AddMinutes(11);
-        var path = $"/api/v2/communities/{community.Id}/trades" + (list ? "?cursor=invalid" : $"/{Guid.NewGuid()}");
+        var path = $"/api/v2/seasons/{community.Id}/trades" + (list ? "?cursor=invalid" : $"/{Guid.NewGuid()}");
         using var response = await member.GetAsync(path, TestContext.Current.CancellationToken);
         Assert.Equal(list ? HttpStatusCode.UnprocessableEntity : HttpStatusCode.NotFound, response.StatusCode);
         await using var scope = factory.Services.CreateAsyncScope(); var db = scope.ServiceProvider.GetRequiredService<AmorDbContext>();
@@ -95,29 +95,29 @@ public sealed partial class FoundationTests
         using var factory = Factory().WithWebHostBuilder(b => b.ConfigureServices(services =>
             services.ConfigureDbContext<AmorDbContext>(options => options.AddInterceptors(counter))));
         await Migrate(factory); using var owner = factory.CreateClient(); await Login(owner, "724"); var community = await Create(owner);
-        using var member = factory.CreateClient(); var other = await Login(member, "725"); await Join(member, await Invite(owner, community));
+        using var member = factory.CreateClient(); var other = await Login(member, "725"); await Enroll(member, community);
         var recipe = await Recipe(owner, community);
-        var potion = (await Command<ProductionResult>(owner, HttpMethod.Post, $"/api/v2/communities/{community.Id}/inventory/potions", new PotionCreate(recipe.Id, 1, 3))).Holding;
-        var books = (await member.GetFromJsonAsync<CategoryPage>($"/api/v2/communities/{community.Id}/categories", TestContext.Current.CancellationToken))!.Items.Single(x => x.Name == "Books");
+        var potion = (await Command<ProductionResult>(owner, HttpMethod.Post, $"/api/v2/seasons/{community.Id}/inventory/potions", new PotionCreate(recipe.Id, 1, 3))).Holding;
+        var books = (await member.GetFromJsonAsync<CategoryPage>($"/api/v2/seasons/{community.Id}/categories", TestContext.Current.CancellationToken))!.Items.Single(x => x.Name == "Books");
         const string privateBody = "PRIVATE BODY NOT IN TRADE";
-        var letter = (await Command<ProductionResult>(member, HttpMethod.Post, $"/api/v2/communities/{community.Id}/inventory/letters", new LetterCreate(books.Id, "Sealed batch letter", privateBody, "letter"))).Holding;
+        var letter = (await Command<ProductionResult>(member, HttpMethod.Post, $"/api/v2/seasons/{community.Id}/inventory/letters", new LetterCreate(books.Id, "Sealed batch letter", privateBody, "letter"))).Holding;
         var ids = new List<Guid>();
         for (var i = 0; i < 3; i++)
         {
-            var trade = await Command<Trade>(owner, HttpMethod.Post, $"/api/v2/communities/{community.Id}/trades", new TradeCreate(other.Character.Id));
+            var trade = await Command<Trade>(owner, HttpMethod.Post, $"/api/v2/seasons/{community.Id}/trades", new TradeCreate(other.Character.Id));
             trade = await TradeCommand(member, community, trade, "accept");
             trade = await Offer(owner, community, trade, "0", new TradeLine(potion.Id, i + 1));
             trade = await Offer(member, community, trade, "0", new TradeLine(letter.Id, 1));
             trade = await TradeCommand(owner, community, trade, "cancel"); ids.Add(trade.Id);
         }
         counter.Start();
-        using var response = await member.GetAsync($"/api/v2/communities/{community.Id}/trades?limit=2", TestContext.Current.CancellationToken);
+        using var response = await member.GetAsync($"/api/v2/seasons/{community.Id}/trades?limit=2", TestContext.Current.CancellationToken);
         var page = (await response.Content.ReadFromJsonAsync<TradePage>(TestContext.Current.CancellationToken))!;
         Assert.Equal(4, counter.Stop());
         Assert.Equal(2, page.Items.Length); Assert.NotNull(page.NextCursor);
         Assert.DoesNotContain(privateBody, await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
         counter.Start();
-        var next = (await member.GetFromJsonAsync<TradePage>($"/api/v2/communities/{community.Id}/trades?limit=2&cursor={Uri.EscapeDataString(page.NextCursor!)}", TestContext.Current.CancellationToken))!;
+        var next = (await member.GetFromJsonAsync<TradePage>($"/api/v2/seasons/{community.Id}/trades?limit=2&cursor={Uri.EscapeDataString(page.NextCursor!)}", TestContext.Current.CancellationToken))!;
         Assert.Equal(4, counter.Stop());
         Assert.Single(next.Items); Assert.Null(next.NextCursor);
         var all = page.Items.Concat(next.Items).ToArray();

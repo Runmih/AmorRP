@@ -7,11 +7,12 @@ public sealed partial class AmorDbContext(DbContextOptions<AmorDbContext> option
     public DbSet<InfrastructureState> InfrastructureStates => Set<InfrastructureState>();
 
     public DbSet<CharacterRow> Characters => Set<CharacterRow>();
+    public DbSet<SeasonCreationPermissionRow> SeasonCreationPermissions => Set<SeasonCreationPermissionRow>();
     public DbSet<LoginRow> Logins => Set<LoginRow>();
     public DbSet<SessionRow> Sessions => Set<SessionRow>();
     public DbSet<UsedRefreshRow> UsedRefreshTokens => Set<UsedRefreshRow>();
     public DbSet<GroupRow> Groups => Set<GroupRow>();
-    public DbSet<CommunityRow> Communities => Set<CommunityRow>();
+    public DbSet<CommunityRow> Seasons => Set<CommunityRow>();
     public DbSet<MembershipRow> Memberships => Set<MembershipRow>();
     public DbSet<InvitationRow> Invitations => Set<InvitationRow>();
     public DbSet<OwnershipRow> OwnershipTransfers => Set<OwnershipRow>();
@@ -19,6 +20,10 @@ public sealed partial class AmorDbContext(DbContextOptions<AmorDbContext> option
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<SeasonCreationPermissionRow>(e => {
+            e.ToTable("season_creation_permissions"); e.HasKey(x => x.CharacterId);
+            e.HasOne<CharacterRow>().WithMany().HasForeignKey(x => x.CharacterId).OnDelete(DeleteBehavior.Restrict);
+        });
         modelBuilder.Entity<GroupRow>(e => {
             e.Property(x => x.EnabledFeatures).HasDefaultValue(AmorRP.Contracts.Groups.GroupCapabilities.DefaultFeatures.ToArray());
             e.ToTable("groups", t => t.HasCheckConstraint("ck_group_treasury", "\"TreasuryOwned\" >= 0")); e.HasKey(x => new { x.CommunityId, x.Id });
@@ -58,7 +63,8 @@ public sealed partial class AmorDbContext(DbContextOptions<AmorDbContext> option
             e.HasOne<SessionRow>().WithMany().HasForeignKey(x => x.SessionId).OnDelete(DeleteBehavior.Cascade);
         });
         modelBuilder.Entity<CommunityRow>(e => {
-            e.Property(x => x.SeasonState).HasMaxLength(16).HasDefaultValue("legacy");
+            e.Property(x => x.SeasonState).HasMaxLength(16).HasDefaultValue("draft");
+            e.ToTable("communities", t => t.HasCheckConstraint("ck_season_state", "\"SeasonState\" IN ('draft', 'active', 'archived')"));
             e.HasIndex(x => x.SeasonState).IsUnique().HasFilter("\"SeasonState\" = 'active'");
             e.ToTable("communities", t => t.HasCheckConstraint("ck_community_policy", "\"CurrentPotionPoints\" >= 0 AND \"CurrentLetters\" >= 0 AND \"NextPotionPoints\" >= 0 AND \"NextLetters\" >= 0"));
             e.HasKey(x => x.Id); e.HasIndex(x => x.CurrencyId).IsUnique();

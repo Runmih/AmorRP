@@ -1,7 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using AmorRP.Contracts.Common;
-using AmorRP.Contracts.Communities;
+using AmorRP.Contracts.Seasons;
 using AmorRP.Contracts.Groups;
 using AmorRP.Server.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -31,13 +31,13 @@ public sealed partial class FoundationTests
         using var factory = Factory(); await Migrate(factory);
         using var communityOwner = factory.CreateClient(); await Login(communityOwner, "1100"); var community = await Create(communityOwner);
         using var owner = factory.CreateClient(); var ownerId = (await Login(owner, "1101")).Character.Id;
-        var invitation = await Invite(communityOwner, community); await Join(owner, invitation);
+        var invitation = community; await Enroll(owner, invitation);
         await GrantHome(communityOwner, community, ownerId, "groups.create");
-        var group = await Command<GroupProfile>(owner, HttpMethod.Post, $"/api/v2/communities/{community.Id}/groups", new GroupWrite("Delegated", ""));
-        var path = $"/api/v2/communities/{community.Id}/groups/{group.Id}";
+        var group = await Command<GroupProfile>(owner, HttpMethod.Post, $"/api/v2/seasons/{community.Id}/groups", new GroupWrite("Delegated", ""));
+        var path = $"/api/v2/seasons/{community.Id}/groups/{group.Id}";
         Assert.Equal(GroupCapabilities.DefaultFeatures.Order(), group.EnabledFeatures!.Order());
         Assert.Equal(GroupCapabilities.DefaultFeatures.Order(), group.MyCapabilities!.Order());
-        using var staff = factory.CreateClient(); var staffId = (await Login(staff, "1102")).Character.Id; await Join(staff, invitation);
+        using var staff = factory.CreateClient(); var staffId = (await Login(staff, "1102")).Character.Id; await Enroll(staff, invitation);
         await GroupAction(staff, HttpMethod.Post, path + "/join", new GroupJoin());
         await GrantStaff(owner, path, staffId, GroupCapabilities.DefaultFeatures.ToArray());
         var view = (await staff.GetFromJsonAsync<GroupProfile>(path, ct))!;
@@ -55,7 +55,7 @@ public sealed partial class FoundationTests
         using var approval = Request(HttpMethod.Put, path + "/features", new GroupFeaturesEdit([]), etag: group.Etag);
         using var deniedApproval = await owner.SendAsync(approval, ct); Assert.Equal(HttpStatusCode.Forbidden, deniedApproval.StatusCode);
         using var privateDenied = await communityOwner.GetAsync(path + "/private", ct); Assert.Equal(HttpStatusCode.Forbidden, privateDenied.StatusCode);
-        Assert.Empty((await staff.GetFromJsonAsync<Community>($"/api/v2/communities/{community.Id}", ct))!.MyCapabilities);
+        Assert.Empty((await staff.GetFromJsonAsync<Season>($"/api/v2/seasons/{community.Id}", ct))!.MyCapabilities);
     }
 
     [Fact]
@@ -63,9 +63,9 @@ public sealed partial class FoundationTests
     {
         var ct = TestContext.Current.CancellationToken;
         using var factory = Factory(); await Migrate(factory); using var owner = factory.CreateClient(); await Login(owner, "1110"); var community = await Create(owner);
-        var group = await Command<GroupProfile>(owner, HttpMethod.Post, $"/api/v2/communities/{community.Id}/groups", new GroupWrite("Features", ""));
-        var path = $"/api/v2/communities/{community.Id}/groups/{group.Id}";
-        using var staff = factory.CreateClient(); var id = (await Login(staff, "1111")).Character.Id; await Join(staff, await Invite(owner, community));
+        var group = await Command<GroupProfile>(owner, HttpMethod.Post, $"/api/v2/seasons/{community.Id}/groups", new GroupWrite("Features", ""));
+        var path = $"/api/v2/seasons/{community.Id}/groups/{group.Id}";
+        using var staff = factory.CreateClient(); var id = (await Login(staff, "1111")).Character.Id; await Enroll(staff, community);
         await GroupAction(staff, HttpMethod.Post, path + "/join", new GroupJoin()); await GrantStaff(owner, path, id, GroupCapabilities.Notice);
         var key = Guid.CreateVersion7(); var body = new NoticeWrite("Notice", "Keep original", "");
         using (var request = Request(HttpMethod.Put, path + "/notice", body, key))
@@ -88,10 +88,10 @@ public sealed partial class FoundationTests
     {
         var ct = TestContext.Current.CancellationToken;
         using var factory = Factory(); await Migrate(factory); using var owner = factory.CreateClient(); await Login(owner, "1120"); var community = await Create(owner);
-        var root = $"/api/v2/communities/{community.Id}/groups";
+        var root = $"/api/v2/seasons/{community.Id}/groups";
         var a = await Command<GroupProfile>(owner, HttpMethod.Post, root, new GroupWrite("A", ""));
         var b = await Command<GroupProfile>(owner, HttpMethod.Post, root, new GroupWrite("B", ""));
-        using var staff = factory.CreateClient(); var id = (await Login(staff, "1121")).Character.Id; await Join(staff, await Invite(owner, community));
+        using var staff = factory.CreateClient(); var id = (await Login(staff, "1121")).Character.Id; await Enroll(staff, community);
         foreach (var group in new[] { a, b }) await GroupAction(staff, HttpMethod.Post, root + "/" + group.Id + "/join", new GroupJoin());
         await GrantStaff(owner, root + "/" + a.Id, id, GroupCapabilities.Announcements);
         foreach (var suffix in new[] { "/notice", "/events" })
@@ -114,15 +114,17 @@ public sealed partial class FoundationTests
     {
         var ct = TestContext.Current.CancellationToken;
         using var factory = Factory(); await Migrate(factory); using var owner = factory.CreateClient(); await Login(owner, "1130"); var community = await Create(owner);
-        var group = await Command<GroupProfile>(owner, HttpMethod.Post, $"/api/v2/communities/{community.Id}/groups", new GroupWrite("Membership", ""));
-        var path = $"/api/v2/communities/{community.Id}/groups/{group.Id}";
-        using var staff = factory.CreateClient(); var id = (await Login(staff, "1131")).Character.Id; var invitation = await Invite(owner, community); await Join(staff, invitation);
+        var group = await Command<GroupProfile>(owner, HttpMethod.Post, $"/api/v2/seasons/{community.Id}/groups", new GroupWrite("Membership", ""));
+        var path = $"/api/v2/seasons/{community.Id}/groups/{group.Id}";
+        using var staff = factory.CreateClient(); var id = (await Login(staff, "1131")).Character.Id; var invitation = community; await Enroll(staff, invitation);
         await GroupAction(staff, HttpMethod.Post, path + "/join", new GroupJoin()); var before = await GrantStaff(owner, path, id, GroupCapabilities.Events);
         if (leaveCommunity)
         {
             var member = await Member(owner, community, id);
-            await Command<Member>(owner, HttpMethod.Delete, $"/api/v2/communities/{community.Id}/members/{id}", new MemberRemoval("Removed"), member.Etag);
-            await Join(staff, invitation);
+            await Command<Member>(owner, HttpMethod.Delete, $"/api/v2/seasons/{community.Id}/members/{id}", new MemberRemoval("Removed"), member.Etag);
+            member = await Member(owner, community, id);
+            await Command<Member>(owner, HttpMethod.Post, $"/api/v2/seasons/{community.Id}/members/{id}/restoration", new MemberRemoval("Restored explicitly"), member.Etag);
+            await Enroll(staff, invitation);
         }
         else
         {
@@ -139,9 +141,9 @@ public sealed partial class FoundationTests
     {
         var ct = TestContext.Current.CancellationToken;
         using var factory = Factory(); await Migrate(factory); using var owner = factory.CreateClient(); await Login(owner, "1140"); var community = await Create(owner);
-        var group = await Command<GroupProfile>(owner, HttpMethod.Post, $"/api/v2/communities/{community.Id}/groups", new GroupWrite("Receipts", ""));
-        var path = $"/api/v2/communities/{community.Id}/groups/{group.Id}";
-        using var staff = factory.CreateClient(); var id = (await Login(staff, "1141")).Character.Id; await Join(staff, await Invite(owner, community));
+        var group = await Command<GroupProfile>(owner, HttpMethod.Post, $"/api/v2/seasons/{community.Id}/groups", new GroupWrite("Receipts", ""));
+        var path = $"/api/v2/seasons/{community.Id}/groups/{group.Id}";
+        using var staff = factory.CreateClient(); var id = (await Login(staff, "1141")).Character.Id; await Enroll(staff, community);
         await GroupAction(staff, HttpMethod.Post, path + "/join", new GroupJoin()); var before = await StaffRow(owner, path, id);
         var key = Guid.CreateVersion7(); var endpoint = path + "/members/" + id + "/capabilities";
         for (var i = 0; i < 2; i++)
@@ -160,7 +162,7 @@ public sealed partial class FoundationTests
     {
         var ct = TestContext.Current.CancellationToken;
         using var factory = Factory(); await Migrate(factory); using var owner = factory.CreateClient(); await Login(owner, "1150"); var community = await Create(owner);
-        var group = await Command<GroupProfile>(owner, HttpMethod.Post, $"/api/v2/communities/{community.Id}/groups", new GroupWrite("Existing", "Retain profile"));
+        var group = await Command<GroupProfile>(owner, HttpMethod.Post, $"/api/v2/seasons/{community.Id}/groups", new GroupWrite("Existing", "Retain profile"));
         await using var scope = factory.Services.CreateAsyncScope(); var db = scope.ServiceProvider.GetRequiredService<AmorDbContext>();
         await db.GetService<IMigrator>().MigrateAsync("20261017154807_CommunityGroupActivitiesAndCrafting", ct);
         db.ChangeTracker.Clear(); await db.Database.MigrateAsync(ct);

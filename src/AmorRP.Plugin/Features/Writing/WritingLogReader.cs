@@ -12,7 +12,7 @@ internal static class WritingLogReader
     public static async Task<WritingLogSnapshot> ReadAsync(FoundationClient client, Uri origin, string token,
         Guid communityId, Guid characterId, string query, Guid? selected, int requestedCount, CancellationToken ct)
     {
-        var prefix = $"api/v2/communities/{communityId}/inventory";
+        var prefix = $"api/v2/seasons/{communityId}/inventory";
         var page = await client.GetAsync<HoldingPage>(origin, prefix + "?" + query, token, ct);
         var items = page.Items.ToList();
         while (items.Count < requestedCount && page.NextCursor != null)

@@ -46,7 +46,7 @@ public sealed partial class FoundationTests
             VALUES ({community}, {actor}, 'active', ARRAY[]::text[], false, 1, 12345, 0, 1);
             """, ct);
         await db.Database.MigrateAsync(ct);
-        Assert.Equal(currency, (await db.Communities.SingleAsync(ct)).CurrencyId);
+        Assert.Equal(currency, (await db.Seasons.SingleAsync(ct)).CurrencyId);
         Assert.Equal(12345, (await db.Memberships.SingleAsync(ct)).Owned);
         Assert.Equal(new[] { "Alchemy", "Consumables", "Cooking", "Correspondence" }, await db.Categories.OrderBy(x => x.Name).Select(x => x.Name).ToArrayAsync(ct));
         Assert.Empty(await db.Database.GetPendingMigrationsAsync(ct));
@@ -72,7 +72,7 @@ public sealed partial class FoundationTests
         var item = await db.Holdings.SingleAsync(ct); Assert.Equal(holding, item.Id); Assert.Equal(actor, item.CharacterId); Assert.Equal(letter, item.LetterId);
         var retained = await db.Categories.SingleAsync(x => x.Id == category, ct); Assert.Equal(category, retained.Id); Assert.Equal("Correspondence", retained.Name);
         Assert.Equal(new[] { "letter" }, retained.AllowedTypeIds); Assert.Equal(1, retained.Version);
-        Assert.Equal(3, (await db.Quotas.SingleAsync(ct)).Used); Assert.Equal(456, (await db.Memberships.SingleAsync(ct)).Owned); Assert.Equal(currency, (await db.Communities.SingleAsync(ct)).CurrencyId);
+        Assert.Equal(3, (await db.Quotas.SingleAsync(ct)).Used); Assert.Equal(456, (await db.Memberships.SingleAsync(ct)).Owned); Assert.Equal(currency, (await db.Seasons.SingleAsync(ct)).CurrencyId);
     }
 
     [Fact]
@@ -100,6 +100,6 @@ public sealed partial class FoundationTests
         Assert.Equal(20, retained.InitiatorCurrency); Assert.Equal(expires, retained.ExpiresAt);
         Assert.False(retained.InitiatorConfirmed); Assert.False(retained.RecipientConfirmed); Assert.False(retained.InitiatorFinalConfirmed); Assert.False(retained.RecipientFinalConfirmed);
         var owner = await db.Memberships.SingleAsync(x => x.CharacterId == actor, ct); Assert.Equal(50, owner.Owned); Assert.Equal(20, owner.Reserved);
-        Assert.Equal(2, await db.TradeSlots.CountAsync(ct)); Assert.Equal(currency, (await db.Communities.SingleAsync(ct)).CurrencyId);
+        Assert.Equal(2, await db.TradeSlots.CountAsync(ct)); Assert.Equal(currency, (await db.Seasons.SingleAsync(ct)).CurrencyId);
     }
 }

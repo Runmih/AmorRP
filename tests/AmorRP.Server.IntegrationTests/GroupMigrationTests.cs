@@ -15,7 +15,7 @@ public sealed partial class FoundationTests
     {
         var ct = TestContext.Current.CancellationToken;
         using var f = Factory(); await Migrate(f); using var owner = f.CreateClient(); var actor = (await Login(owner, "1040")).Character.Id; var c = await Create(owner);
-        var g = await Command<GroupProfile>(owner, HttpMethod.Post, $"/api/v2/communities/{c.Id}/groups", new GroupWrite("Existing profile", "Retain this"));
+        var g = await Command<GroupProfile>(owner, HttpMethod.Post, $"/api/v2/seasons/{c.Id}/groups", new GroupWrite("Existing profile", "Retain this"));
         await using var scope = f.Services.CreateAsyncScope(); var db = scope.ServiceProvider.GetRequiredService<AmorDbContext>();
         var categories = await db.Categories.AsNoTracking().ToArrayAsync(ct);
         await db.GetService<IMigrator>().MigrateAsync("20261017002828_CommunitiesAndGroups", ct);
@@ -38,7 +38,7 @@ public sealed partial class FoundationTests
         var ct = TestContext.Current.CancellationToken;
         using var f = Factory(); await Migrate(f); using var owner = f.CreateClient(); await Login(owner, "1041"); var c = await Create(owner);
         var tasks = Enumerable.Range(0, 4).Select(async i => {
-            using var request = Request(HttpMethod.Post, $"/api/v2/communities/{c.Id}/groups", new GroupWrite("Group " + i, ""));
+            using var request = Request(HttpMethod.Post, $"/api/v2/seasons/{c.Id}/groups", new GroupWrite("Group " + i, ""));
             using var response = await owner.SendAsync(request, ct); return response.StatusCode;
         });
         var results = await Task.WhenAll(tasks);
@@ -52,9 +52,9 @@ public sealed partial class FoundationTests
     {
         var ct = TestContext.Current.CancellationToken;
         using var f = Factory(); await Migrate(f); using var owner = f.CreateClient(); await Login(owner, "1042"); var c = await Create(owner);
-        using var member = f.CreateClient(); var id = (await Login(member, "1043")).Character.Id; await Join(member, await Invite(owner, c));
+        using var member = f.CreateClient(); var id = (await Login(member, "1043")).Character.Id; await Enroll(member, c);
         await GrantHome(owner, c, id, "groups.create");
-        await Command<GroupProfile>(password ? owner : member, HttpMethod.Post, $"/api/v2/communities/{c.Id}/groups", new GroupWrite("Private policy", "", password ? "password" : "open", password ? "secret" : null));
+        await Command<GroupProfile>(password ? owner : member, HttpMethod.Post, $"/api/v2/seasons/{c.Id}/groups", new GroupWrite("Private policy", "", password ? "password" : "open", password ? "secret" : null));
         await using var scope = f.Services.CreateAsyncScope(); var db = scope.ServiceProvider.GetRequiredService<AmorDbContext>();
         var rejected = await Assert.ThrowsAsync<Npgsql.PostgresException>(() => db.GetService<IMigrator>().MigrateAsync("20261017002828_CommunitiesAndGroups", ct));
         Assert.Equal("P0001", rejected.SqlState);

@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 namespace AmorRP.Server.Infrastructure.Persistence;
 
 // Locks are database-wide across server replicas, never process-local semaphores.
-public sealed class CommandStore(AmorDbContext db, SecretVault vault, TimeProvider time, Microsoft.Extensions.Options.IOptions<AmorRP.Server.Options.SeasonPolicyOptions> seasons)
+public sealed class CommandStore(AmorDbContext db, SecretVault vault, TimeProvider time)
 {
     public static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
     public static async Task LockAsync(AmorDbContext db, IEnumerable<string> resources, CancellationToken ct)
@@ -17,7 +17,7 @@ public sealed class CommandStore(AmorDbContext db, SecretVault vault, TimeProvid
     {
         var text = context.Request.Headers["Idempotency-Key"].ToString();
         ApiFault.Require(Guid.TryParse(text, out var key) && key.Version == 7, 400, "invalid_operation_key", "A UUIDv7 Idempotency-Key is required.");
-        var hash = SecretVault.Hash(context.Request.Method + " " + context.Request.Path + "\n" + context.Request.Headers.IfMatch + "\n" + AmorRP.Server.Infrastructure.Compatibility.LegacyApi.BodyJson(context, body));
+        var hash = SecretVault.Hash(context.Request.Method + " " + context.Request.Path + "\n" + context.Request.Headers.IfMatch + "\n" + JsonSerializer.Serialize(body, Json));
         var prior = await db.Operations.SingleOrDefaultAsync(x => x.Scope == scope && x.Key == key, ct);
         if (prior != null)
         {
@@ -33,31 +33,24 @@ public sealed class CommandStore(AmorDbContext db, SecretVault vault, TimeProvid
         return null;
     }
     public IResult Replay(OperationRow row) => Results.Content(ReplayJson(row), "application/json", statusCode: row.ResponseStatus);
-    private string ReplayJson(OperationRow row)
-    {
-        var json = vault.Unprotect(row.ProtectedResponse, "operation:" + row.Id);
-        // Only pre-community receipts need conversion. Current receipts can contain
-        // both communityId and the actual child groupId (for example treasury movements).
-        return json.Contains("\"groupId\"", StringComparison.Ordinal) && !json.Contains("\"communityId\"", StringComparison.Ordinal)
-            ? AmorRP.Contracts.Common.LegacyCommunityJson.ToCurrent(json) : json;
-    }
+    private string ReplayJson(OperationRow row) => vault.Unprotect(row.ProtectedResponse, "operation:" + row.Id);
     public OperationRow New(HttpContext context, string scope, object? body, Guid? actor, Guid? community, string kind) => new()
     {
         Scope = scope, Key = Guid.Parse(context.Request.Headers["Idempotency-Key"].ToString()),
-        RequestHash = SecretVault.Hash(context.Request.Method + " " + context.Request.Path + "\n" + context.Request.Headers.IfMatch + "\n" + AmorRP.Server.Infrastructure.Compatibility.LegacyApi.BodyJson(context, body)),
+        RequestHash = SecretVault.Hash(context.Request.Method + " " + context.Request.Path + "\n" + context.Request.Headers.IfMatch + "\n" + JsonSerializer.Serialize(body, Json)),
         ActorCharacterId = actor, CommunityId = community, Kind = kind, Summary = kind, OccurredAt = time.GetUtcNow()
     };
     public async Task<IResult> SaveAsync(HttpContext context, OperationRow operation, object response, CancellationToken ct)
     {
         // All fresh community commands commit here inside their community transaction/lock.
         // Replays bypass this gate and recover their original receipt without changing assets.
-        if (operation.CommunityId is { } id && operation.Kind is not ("community.create" or "season.activate" or "season.archive"))
+        if (operation.CommunityId is { } id && operation.Kind is not ("season.create" or "season.activate" or "season.archive"))
         {
-            var community = await db.Communities.SingleAsync(x => x.Id == id, ct);
-            ApiFault.Require(community.SeasonState != "archived" && (!seasons.Value.Enabled || community.SeasonState == "active"),
+            var community = await db.Seasons.SingleAsync(x => x.Id == id, ct);
+            ApiFault.Require(community.SeasonState == "active",
                 409, "season_read_only", "This season is read-only. Select the active season to make changes.");
         }
-        if (operation.Kind is "group.create" or "announcement.create" or "community.create" or "invitation.create" or "ownership.propose" or "login.start" or "category.create" or "definition.create" or "potion.create" or "letter.create") operation.ResponseStatus = 201;
+        if (operation.Kind is "group.create" or "announcement.create" or "season.create" or "invitation.create" or "ownership.propose" or "login.start" or "category.create" or "definition.create" or "potion.create" or "letter.create") operation.ResponseStatus = 201;
         var json = JsonSerializer.Serialize(response, Json);
         operation.ProtectedResponse = vault.Protect(json, "operation:" + operation.Id);
         operation.ETag = context.Response.Headers.ETag;
@@ -69,7 +62,7 @@ public sealed class CommandStore(AmorDbContext db, SecretVault vault, TimeProvid
     {
         var requested = context.Request.Headers.IfMatch.ToString();
         ApiFault.Require(requested.Length > 0, 428, "precondition_required", "Refresh the resource and supply its ETag.");
-        ApiFault.Require((AmorRP.Server.Infrastructure.Compatibility.LegacyApi.IsLegacy(context) ? AmorRP.Contracts.Common.LegacyCommunityJson.ETag(requested, legacy: false) : requested) == etag, 412, "version_mismatch", "Resource changed. Refresh before editing.");
+        ApiFault.Require(requested == etag, 412, "version_mismatch", "Resource changed. Refresh before editing.");
     }
     public static string ETag(string kind, Guid id, int version) => $"\"{kind}:{id:N}:{version}\"";
 }

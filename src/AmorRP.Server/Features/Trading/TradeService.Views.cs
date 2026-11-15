@@ -17,7 +17,7 @@ public sealed partial class TradeService
     private async Task<Trade[]> ViewsAsync(Guid communityId, TradeRow[] rows, CancellationToken ct)
     {
         if (rows.Length == 0) return [];
-        var currencyId = await db.Communities.Where(x => x.Id == communityId).Select(x => x.CurrencyId).SingleAsync(ct);
+        var currencyId = await db.Seasons.Where(x => x.Id == communityId).Select(x => x.CurrencyId).SingleAsync(ct);
         var tradeIds = rows.Select(x => x.Id).ToArray();
         var lines = await db.TradeLines.AsNoTracking().Where(x => x.CommunityId == communityId && tradeIds.Contains(x.TradeId))
             .OrderBy(x => x.HoldingId).ToArrayAsync(ct);

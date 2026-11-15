@@ -1,16 +1,11 @@
 # Documentation index
 
 Current guides describe the implemented project.
-The current plugin source is [0.4.0.1 — focused settings](delivery/release-0.4.0.1.md);
-server source is [0.4.0.0 — seasons and administration](delivery/release-0.4.0.0.md).
-The plugin also supports the existing 0.3.0.0 backend; seasonal features require
-the home-server migration and administrator configuration.
-The main feed is promoted after the matching Windows and server checks pass.
-Home-server cutover: [Portainer + Nginx Proxy Manager](delivery/home-server.md). Backend feature release:
-[0.3.0.0 — trusted billing and automatic debt repayment](delivery/release-0.3.0.0.md).
-The inventory companion is plugin-only. Billing requires server 0.3.0.0;
-its migration preserves existing groups and
-owner features. Amor RP API v2 and XIVAuth API v1 remain unchanged.
+Current plugin/server source is [0.4.0.2 — Seasons only](delivery/release-0.4.0.2.md).
+There is no community mode, enable variable or old API fallback. The matching
+Windows artifact is promoted to the main feed after both source workflows pass.
+The home stack retains only the Lodestone administrator identity setting for season
+administration. See the [home-server guide](delivery/home-server.md).
 
 Start with [architecture](engineering/architecture.md), the
 [source map](engineering/repository-layout.md), [authentication](engineering/authentication.md)

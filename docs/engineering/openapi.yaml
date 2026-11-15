@@ -1,9 +1,10 @@
 openapi: 3.0.3
 info:
-  title: Amor RP proposed 1.0 API
+  title: Amor RP Seasons API
   version: 1.0.0-draft
-  description: API v2 uses communities for the shared economy and groups for profiles within a community. API v1 remains available
-    for stable client compatibility.
+  description: Seasons are the sole shared economy model, with RP groups inside each season. Creation requires seasons.create.
+    No community mode, enable flag, older-server fallback or old API aliases are exposed. The external XIVAuth provider
+    uses its own API v1.
 servers:
 - url: https://api.example.invalid
   description: Placeholder; configure real trusted backend URL.
@@ -11,10 +12,8 @@ tags:
 - name: Service
 - name: Authentication
 - name: Character
-- name: Communities
 - name: Seasons
 - name: Membership
-- name: Invitations
 - name: Ownership
 - name: Currency
 - name: Categories
@@ -25,19 +24,22 @@ tags:
 - name: Recovery
 - name: Data lifecycle
 - name: Events
-- name: Community Groups
+- name: Season Groups
 paths:
   /api/v2/seasons/context:
     get:
       operationId: getSeasonContext
-      tags: [Seasons]
+      tags:
+      - Seasons
       summary: Active season and authenticated administrator capabilities
-      security: [{Session: []}]
+      security:
+      - Session: []
       x-authorization-policy: Verified character session; lifecycle summaries are administrator-only
       x-implementation-status: implemented
       responses:
         '200':
-          description: Enrolls a missing active-season membership without undoing moderation; returns authenticated season context
+          description: Enrolls a missing active-season membership without undoing moderation; returns authenticated
+            season context
           content:
             application/json:
               schema:
@@ -47,15 +49,32 @@ paths:
   /api/v2/seasons/{seasonId}/activation:
     post:
       operationId: activateSeason
-      tags: [Seasons]
-      summary: Activate a draft or legacy community and archive the previous season
-      security: [{Session: []}]
-      x-authorization-policy: Server-configured provider-verified Lodestone administrator allowlist; exact name and current ETag required
+      tags:
+      - Seasons
+      summary: Activate a draft season and archive the current season
+      security:
+      - Session: []
+      x-authorization-policy: Server-configured provider-verified Lodestone administrator allowlist; exact name
+        and current ETag required
       x-implementation-status: implemented
       parameters:
-      - {name: seasonId, in: path, required: true, schema: {type: string, format: uuid}}
-      - {name: Idempotency-Key, in: header, required: true, schema: {type: string, format: uuid}}
-      - {name: If-Match, in: header, required: true, schema: {type: string}}
+      - name: seasonId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: If-Match
+        in: header
+        required: true
+        schema:
+          type: string
       requestBody:
         required: true
         content:
@@ -64,7 +83,8 @@ paths:
               $ref: '#/components/schemas/SeasonTransition'
       responses:
         '200':
-          description: Durable lifecycle receipt; exactly one active season, fresh membership enrollment and no cross-season transfers
+          description: Durable lifecycle receipt; exactly one active season, fresh membership enrollment and no
+            cross-season transfers
           content:
             application/json:
               schema:
@@ -78,15 +98,32 @@ paths:
   /api/v2/seasons/{seasonId}/archive:
     post:
       operationId: archiveSeason
-      tags: [Seasons]
+      tags:
+      - Seasons
       summary: Freeze the active season without deleting its assets or records
-      security: [{Session: []}]
-      x-authorization-policy: Server-configured provider-verified Lodestone administrator allowlist; exact name and current ETag required
+      security:
+      - Session: []
+      x-authorization-policy: Server-configured provider-verified Lodestone administrator allowlist; exact name
+        and current ETag required
       x-implementation-status: implemented
       parameters:
-      - {name: seasonId, in: path, required: true, schema: {type: string, format: uuid}}
-      - {name: Idempotency-Key, in: header, required: true, schema: {type: string, format: uuid}}
-      - {name: If-Match, in: header, required: true, schema: {type: string}}
+      - name: seasonId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: If-Match
+        in: header
+        required: true
+        schema:
+          type: string
       requestBody:
         required: true
         content:
@@ -133,8 +170,8 @@ paths:
       tags:
       - Service
       summary: Cached database and startup readiness; failure uses 503
-      description: One background probe per process, refreshed 5 seconds after completion by default. Initially unavailable;
-        HTTP requests never initiate database probes. Responses use Cache-Control no-store.
+      description: One background probe per process, refreshed 5 seconds after completion by default. Initially
+        unavailable; HTTP requests never initiate database probes. Responses use Cache-Control no-store.
       security: []
       responses:
         '200':
@@ -378,8 +415,8 @@ paths:
       summary: Pair verified browser approval and redeem once for session
       security:
       - LoginAttempt: []
-      description: Requires both the attempt credential and the one-time code displayed only on the verified browser page.
-        Approval or polling alone cannot redeem. Five incorrect guesses by default permanently fail that attempt.
+      description: Requires both the attempt credential and the one-time code displayed only on the verified browser
+        page. Approval or polling alone cannot redeem. Five incorrect guesses by default permanently fail that attempt.
       requestBody:
         required: true
         content:
@@ -499,10 +536,10 @@ paths:
         required: false
         schema:
           type: string
-      description: Noncached HTML status only; no session tokens or provider errors rendered to browser. Successful verification
-        attempts tab closure after eight seconds with keep-open/manual-close controls and a browser-blocked fallback. Failures
-        stay open. Nonced same-origin assets only. The page removes the OAuth query from its history entry. code or error
-        follows actual provider contract.
+      description: Noncached HTML status only; no session tokens or provider errors rendered to browser. Successful
+        verification attempts tab closure after eight seconds with keep-open/manual-close controls and a browser-blocked
+        fallback. Failures stay open. Nonced same-origin assets only. The page removes the OAuth query from its
+        history entry. code or error follows actual provider contract.
   /auth/assets/login-background-{contentHash}.jpg:
     get:
       operationId: loginBackground
@@ -802,21 +839,21 @@ paths:
           type: string
           format: uuid
         description: UUIDv7. Same logical request retains key; see API guide for replay and age rules.
-  /api/v2/communities:
+  /api/v2/seasons:
     get:
       operationId: listCommunities
       tags:
-      - Communities
-      summary: Current character active communities
+      - Seasons
+      summary: Current character active seasons
       security:
       - Session: []
       responses:
         '200':
-          description: Current character active communities
+          description: Current character active seasons
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CommunityPage'
+                $ref: '#/components/schemas/SeasonPage'
         '400':
           $ref: '#/components/responses/Problem'
         '401':
@@ -861,17 +898,17 @@ paths:
     post:
       operationId: createCommunity
       tags:
-      - Communities
-      summary: Create isolated community and defaults within caps
+      - Seasons
+      summary: Create a season draft
       security:
       - Session: []
       responses:
         '201':
-          description: Create isolated community and defaults within caps
+          description: Create isolated season and defaults within caps
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CreateCommunityResult'
+                $ref: '#/components/schemas/CreateSeasonResult'
           headers:
             Idempotency-Replayed:
               schema: *id001
@@ -900,7 +937,8 @@ paths:
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
-      x-authorization-policy: Session
+      x-authorization-policy: Authenticated seasons.create permission; configured Lodestone administrators receive
+        it automatically
       x-implementation-status: implemented
       parameters:
       - name: Idempotency-Key
@@ -915,81 +953,22 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CommunityCreate'
-  /api/v2/communities/join:
-    post:
-      operationId: joinCommunity
-      tags:
-      - Communities
-      summary: Accept invitation within membership caps
-      security:
-      - Session: []
-      responses:
-        '200':
-          description: Accept invitation within membership caps
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/JoinCommunityResult'
-          headers:
-            Idempotency-Replayed:
-              schema: *id001
-              description: True means original response; never automatically repeat chat.
-        '400':
-          $ref: '#/components/responses/Problem'
-        '401':
-          $ref: '#/components/responses/Problem'
-        '403':
-          $ref: '#/components/responses/Problem'
-        '404':
-          $ref: '#/components/responses/Problem'
-        '409':
-          $ref: '#/components/responses/Problem'
-        '412':
-          $ref: '#/components/responses/Problem'
-        '413':
-          $ref: '#/components/responses/Problem'
-        '422':
-          $ref: '#/components/responses/Problem'
-        '428':
-          $ref: '#/components/responses/Problem'
-        '429':
-          $ref: '#/components/responses/Problem'
-        '500':
-          $ref: '#/components/responses/Problem'
-        '503':
-          $ref: '#/components/responses/Problem'
-      x-authorization-policy: Session
-      x-implementation-status: implemented
-      parameters:
-      - name: Idempotency-Key
-        in: header
-        required: true
-        schema:
-          type: string
-          format: uuid
-        description: UUIDv7. Same logical request retains key; see API guide for replay and age rules.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/JoinCommunity'
-  /api/v2/communities/{communityId}:
+              $ref: '#/components/schemas/SeasonCreate'
+  /api/v2/seasons/{seasonId}:
     get:
       operationId: getCommunity
       tags:
-      - Communities
-      summary: Community and own permissions/balance
+      - Seasons
+      summary: Season and own permissions/balance
       security:
       - Session: []
       responses:
         '200':
-          description: Community and own permissions/balance
+          description: Season and own permissions/balance
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Community'
+                $ref: '#/components/schemas/Season'
           headers:
             ETag:
               schema:
@@ -1022,24 +1001,24 @@ paths:
       x-authorization-policy: Active member
       x-implementation-status: implemented
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id002
     patch:
       operationId: editCommunity
       tags:
-      - Communities
-      summary: Edit community name/description
+      - Seasons
+      summary: Edit season name/description
       security:
       - Session: []
       responses:
         '200':
-          description: Edit community name/description
+          description: Edit season name/description
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/EditCommunityResult'
+                $ref: '#/components/schemas/EditSeasonResult'
           headers:
             Idempotency-Replayed:
               schema: *id001
@@ -1068,10 +1047,10 @@ paths:
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
-      x-authorization-policy: Owner; community.moderate can change description only
+      x-authorization-policy: Owner; season.moderate can change description only
       x-implementation-status: implemented
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id002
@@ -1093,139 +1072,12 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CommunityEdit'
-  /api/v2/communities/{communityId}/leave:
-    post:
-      operationId: leaveCommunity
-      tags:
-      - Communities
-      summary: Leave; cancel trades and make holdings dormant
-      security:
-      - Session: []
-      responses:
-        '200':
-          description: Leave; cancel trades and make holdings dormant
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Receipt'
-          headers:
-            Idempotency-Replayed:
-              schema: *id001
-              description: True means original response; never automatically repeat chat.
-        '400':
-          $ref: '#/components/responses/Problem'
-        '401':
-          $ref: '#/components/responses/Problem'
-        '403':
-          $ref: '#/components/responses/Problem'
-        '404':
-          $ref: '#/components/responses/Problem'
-        '409':
-          $ref: '#/components/responses/Problem'
-        '412':
-          $ref: '#/components/responses/Problem'
-        '413':
-          $ref: '#/components/responses/Problem'
-        '422':
-          $ref: '#/components/responses/Problem'
-        '428':
-          $ref: '#/components/responses/Problem'
-        '429':
-          $ref: '#/components/responses/Problem'
-        '500':
-          $ref: '#/components/responses/Problem'
-        '503':
-          $ref: '#/components/responses/Problem'
-      x-authorization-policy: Active member except owner
-      x-implementation-status: implemented
-      parameters:
-      - name: communityId
-        in: path
-        required: true
-        schema: *id002
-      - name: Idempotency-Key
-        in: header
-        required: true
-        schema:
-          type: string
-          format: uuid
-        description: UUIDv7. Same logical request retains key; see API guide for replay and age rules.
-      deprecated: true
-  /api/v2/communities/{communityId}/deletion:
-    post:
-      operationId: deleteCommunity
-      tags:
-      - Communities
-      summary: Soft delete community with exact-name confirmation
-      security:
-      - Session: []
-      responses:
-        '200':
-          description: Soft delete community with exact-name confirmation
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Receipt'
-          headers:
-            Idempotency-Replayed:
-              schema: *id001
-              description: True means original response; never automatically repeat chat.
-        '400':
-          $ref: '#/components/responses/Problem'
-        '401':
-          $ref: '#/components/responses/Problem'
-        '403':
-          $ref: '#/components/responses/Problem'
-        '404':
-          $ref: '#/components/responses/Problem'
-        '409':
-          $ref: '#/components/responses/Problem'
-        '412':
-          $ref: '#/components/responses/Problem'
-        '413':
-          $ref: '#/components/responses/Problem'
-        '422':
-          $ref: '#/components/responses/Problem'
-        '428':
-          $ref: '#/components/responses/Problem'
-        '429':
-          $ref: '#/components/responses/Problem'
-        '500':
-          $ref: '#/components/responses/Problem'
-        '503':
-          $ref: '#/components/responses/Problem'
-      x-authorization-policy: Owner
-      x-implementation-status: implemented
-      parameters:
-      - name: communityId
-        in: path
-        required: true
-        schema: *id002
-      - name: Idempotency-Key
-        in: header
-        required: true
-        schema:
-          type: string
-          format: uuid
-        description: UUIDv7. Same logical request retains key; see API guide for replay and age rules.
-      - name: If-Match
-        in: header
-        required: true
-        schema:
-          type: string
-        description: ETag from the current resource GET.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CommunityDeletion'
-  /api/v2/communities/{communityId}/policies:
+              $ref: '#/components/schemas/SeasonEdit'
+  /api/v2/seasons/{seasonId}/policies:
     get:
       operationId: getPolicies
       tags:
-      - Communities
+      - Seasons
       summary: Current and next weekly policies
       security:
       - Session: []
@@ -1235,7 +1087,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CommunityPolicies'
+                $ref: '#/components/schemas/SeasonPolicies'
           headers:
             ETag:
               schema:
@@ -1268,14 +1120,14 @@ paths:
       x-authorization-policy: Active member
       x-implementation-status: implemented
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id002
     put:
       operationId: editPolicies
       tags:
-      - Communities
+      - Seasons
       summary: Schedule next-week limits
       security:
       - Session: []
@@ -1317,7 +1169,7 @@ paths:
       x-authorization-policy: Owner
       x-implementation-status: implemented
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id002
@@ -1340,17 +1192,17 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/PolicyEdit'
-  /api/v2/communities/{communityId}/members:
+  /api/v2/seasons/{seasonId}/members:
     get:
       operationId: listMembers
       tags:
       - Membership
-      summary: Consented own-community roster; owner may include dormant members
+      summary: Consented own-season roster; owner may include dormant members
       security:
       - Session: []
       responses:
         '200':
-          description: Consented own-community roster; owner may include dormant members
+          description: Consented own-season roster; owner may include dormant members
           content:
             application/json:
               schema:
@@ -1382,7 +1234,7 @@ paths:
       x-authorization-policy: Active member
       x-implementation-status: implemented
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id002
@@ -1411,9 +1263,9 @@ paths:
         schema:
           type: string
           maxLength: 200
-        description: Case-insensitive literal name or home-world substring, applied before pagination. Cursors are bound to
-          the search.
-  /api/v2/communities/{communityId}/members/{characterId}/capabilities:
+        description: Case-insensitive literal name or home-world substring, applied before pagination. Cursors are
+          bound to the search.
+  /api/v2/seasons/{seasonId}/members/{characterId}/capabilities:
     put:
       operationId: setMemberCapabilities
       tags:
@@ -1459,7 +1311,7 @@ paths:
       x-authorization-policy: Owner; members.gameplay.manage can change Trading and items.potion.create only
       x-implementation-status: implemented
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id002
@@ -1486,7 +1338,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/MemberCapabilities'
-  /api/v2/communities/{communityId}/members/{characterId}/trade-restriction:
+  /api/v2/seasons/{seasonId}/members/{characterId}/trade-restriction:
     put:
       operationId: setTradeRestriction
       tags:
@@ -1532,7 +1384,7 @@ paths:
       x-authorization-policy: Owner; active nonowner
       x-implementation-status: implemented
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id002
@@ -1559,7 +1411,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/MemberRestriction'
-  /api/v2/communities/{communityId}/members/{characterId}/removal:
+  /api/v2/seasons/{seasonId}/members/{characterId}/removal:
     post:
       operationId: removeMember
       tags:
@@ -1605,7 +1457,7 @@ paths:
       x-authorization-policy: Owner; active nonowner
       x-implementation-status: implemented
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id002
@@ -1633,9 +1485,9 @@ paths:
             schema:
               $ref: '#/components/schemas/MemberRemoval'
       deprecated: true
-      description: 'M3 compatibility: deliberately retains remove-and-block behavior. M4 clients use DELETE membership and
-        separate PUT block.'
-  /api/v2/communities/{communityId}/members/{characterId}/restoration:
+      description: 'M3 compatibility: deliberately retains remove-and-block behavior. M4 clients use DELETE membership
+        and separate PUT block.'
+  /api/v2/seasons/{seasonId}/members/{characterId}/restoration:
     post:
       operationId: restoreMember
       tags:
@@ -1681,7 +1533,7 @@ paths:
       x-authorization-policy: Owner; blocked member
       x-implementation-status: implemented
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id002
@@ -1703,7 +1555,7 @@ paths:
           type: string
         description: ETag from the current resource GET.
       deprecated: true
-  /api/v2/communities/{communityId}/members/{characterId}/holdings:
+  /api/v2/seasons/{seasonId}/members/{characterId}/holdings:
     get:
       operationId: listAdministrativeHoldings
       tags:
@@ -1742,11 +1594,11 @@ paths:
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
-      x-authorization-policy: Self read, or inventory.remove for summaries; owner may inspect inactive summaries; no private
-        bodies
+      x-authorization-policy: Self read, or inventory.remove for summaries; owner may inspect inactive summaries;
+        no private bodies
       x-implementation-status: implemented
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id002
@@ -1774,7 +1626,7 @@ paths:
         schema:
           type: string
         description: Comma separated supported types; mutually exclusive with typeId. Books uses book,letter,note.
-  /api/v2/communities/{communityId}/members/{characterId}/balances:
+  /api/v2/seasons/{seasonId}/members/{characterId}/balances:
     get:
       operationId: listAdministrativeBalances
       tags:
@@ -1816,7 +1668,7 @@ paths:
       x-authorization-policy: Self read, or currency.manage for another active member
       x-implementation-status: implemented
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id002
@@ -1838,190 +1690,7 @@ paths:
           minimum: 1
           maximum: 100
           default: 50
-  /api/v2/communities/{communityId}/invitations:
-    get:
-      operationId: listInvitations
-      tags:
-      - Invitations
-      summary: Invitation metadata without secret codes
-      security:
-      - Session: []
-      responses:
-        '200':
-          description: Invitation metadata without secret codes
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/InvitationPage'
-        '400':
-          $ref: '#/components/responses/Problem'
-        '401':
-          $ref: '#/components/responses/Problem'
-        '403':
-          $ref: '#/components/responses/Problem'
-        '404':
-          $ref: '#/components/responses/Problem'
-        '409':
-          $ref: '#/components/responses/Problem'
-        '412':
-          $ref: '#/components/responses/Problem'
-        '413':
-          $ref: '#/components/responses/Problem'
-        '422':
-          $ref: '#/components/responses/Problem'
-        '428':
-          $ref: '#/components/responses/Problem'
-        '429':
-          $ref: '#/components/responses/Problem'
-        '500':
-          $ref: '#/components/responses/Problem'
-        '503':
-          $ref: '#/components/responses/Problem'
-      x-authorization-policy: Owner
-      x-implementation-status: implemented
-      parameters:
-      - name: communityId
-        in: path
-        required: true
-        schema: *id002
-      - name: cursor
-        in: query
-        required: false
-        schema:
-          type: string
-      - name: limit
-        in: query
-        required: false
-        schema:
-          type: integer
-          format: int32
-          minimum: 1
-          maximum: 100
-          default: 50
-    post:
-      operationId: createInvitation
-      tags:
-      - Invitations
-      summary: Create permanent invitation; return nine-character code once
-      security:
-      - Session: []
-      responses:
-        '201':
-          description: Create permanent invitation; return nine-character code once
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CreateInvitationResult'
-          headers:
-            Idempotency-Replayed:
-              schema: *id001
-              description: True means original response; never automatically repeat chat.
-        '400':
-          $ref: '#/components/responses/Problem'
-        '401':
-          $ref: '#/components/responses/Problem'
-        '403':
-          $ref: '#/components/responses/Problem'
-        '404':
-          $ref: '#/components/responses/Problem'
-        '409':
-          $ref: '#/components/responses/Problem'
-        '412':
-          $ref: '#/components/responses/Problem'
-        '413':
-          $ref: '#/components/responses/Problem'
-        '422':
-          $ref: '#/components/responses/Problem'
-        '428':
-          $ref: '#/components/responses/Problem'
-        '429':
-          $ref: '#/components/responses/Problem'
-        '500':
-          $ref: '#/components/responses/Problem'
-        '503':
-          $ref: '#/components/responses/Problem'
-      x-authorization-policy: Owner
-      x-implementation-status: implemented
-      parameters:
-      - name: communityId
-        in: path
-        required: true
-        schema: *id002
-      - name: Idempotency-Key
-        in: header
-        required: true
-        schema:
-          type: string
-          format: uuid
-        description: UUIDv7. Same logical request retains key; see API guide for replay and age rules.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/InvitationCreate'
-  /api/v2/communities/{communityId}/invitations/{invitationId}:
-    delete:
-      operationId: revokeInvitation
-      tags:
-      - Invitations
-      summary: Revoke invitation
-      security:
-      - Session: []
-      responses:
-        '200':
-          description: Revoke invitation
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Receipt'
-          headers:
-            Idempotency-Replayed:
-              schema: *id001
-              description: True means original response; never automatically repeat chat.
-        '400':
-          $ref: '#/components/responses/Problem'
-        '401':
-          $ref: '#/components/responses/Problem'
-        '403':
-          $ref: '#/components/responses/Problem'
-        '404':
-          $ref: '#/components/responses/Problem'
-        '409':
-          $ref: '#/components/responses/Problem'
-        '412':
-          $ref: '#/components/responses/Problem'
-        '413':
-          $ref: '#/components/responses/Problem'
-        '422':
-          $ref: '#/components/responses/Problem'
-        '428':
-          $ref: '#/components/responses/Problem'
-        '429':
-          $ref: '#/components/responses/Problem'
-        '500':
-          $ref: '#/components/responses/Problem'
-        '503':
-          $ref: '#/components/responses/Problem'
-      x-authorization-policy: Owner
-      x-implementation-status: implemented
-      parameters:
-      - name: communityId
-        in: path
-        required: true
-        schema: *id002
-      - name: invitationId
-        in: path
-        required: true
-        schema: *id002
-      - name: Idempotency-Key
-        in: header
-        required: true
-        schema:
-          type: string
-          format: uuid
-        description: UUIDv7. Same logical request retains key; see API guide for replay and age rules.
-  /api/v2/communities/{communityId}/ownership-transfers:
+  /api/v2/seasons/{seasonId}/ownership-transfers:
     post:
       operationId: proposeOwnership
       tags:
@@ -2067,7 +1736,7 @@ paths:
       x-authorization-policy: Owner
       x-implementation-status: implemented
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id002
@@ -2084,7 +1753,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/OwnershipProposal'
-  /api/v2/communities/{communityId}/ownership-transfers/{transferId}:
+  /api/v2/seasons/{seasonId}/ownership-transfers/{transferId}:
     get:
       operationId: getOwnershipTransfer
       tags:
@@ -2131,7 +1800,7 @@ paths:
       x-authorization-policy: Current owner or proposed recipient
       x-implementation-status: implemented
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id002
@@ -2139,7 +1808,7 @@ paths:
         in: path
         required: true
         schema: *id002
-  /api/v2/communities/{communityId}/ownership-transfers/{transferId}/accept:
+  /api/v2/seasons/{seasonId}/ownership-transfers/{transferId}/accept:
     post:
       operationId: acceptOwnership
       tags:
@@ -2185,7 +1854,7 @@ paths:
       x-authorization-policy: Proposed recipient; active member
       x-implementation-status: implemented
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id002
@@ -2200,7 +1869,7 @@ paths:
           type: string
           format: uuid
         description: UUIDv7. Same logical request retains key; see API guide for replay and age rules.
-  /api/v2/communities/{communityId}/ownership-transfers/{transferId}/cancel:
+  /api/v2/seasons/{seasonId}/ownership-transfers/{transferId}/cancel:
     post:
       operationId: cancelOwnership
       tags:
@@ -2246,7 +1915,7 @@ paths:
       x-authorization-policy: Owner or proposed recipient
       x-implementation-status: implemented
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id002
@@ -2261,17 +1930,17 @@ paths:
           type: string
           format: uuid
         description: UUIDv7. Same logical request retains key; see API guide for replay and age rules.
-  /api/v2/communities/{communityId}/currency:
+  /api/v2/seasons/{seasonId}/currency:
     get:
       operationId: getCurrency
       tags:
       - Currency
-      summary: Community currency definition
+      summary: Season currency definition
       security:
       - Session: []
       responses:
         '200':
-          description: Community currency definition
+          description: Season currency definition
           content:
             application/json:
               schema:
@@ -2308,7 +1977,7 @@ paths:
       x-authorization-policy: Active member
       x-implementation-status: implemented
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id002
@@ -2354,10 +2023,10 @@ paths:
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
-      x-authorization-policy: Owner; community.moderate can change name only
+      x-authorization-policy: Owner; season.moderate can change name only
       x-implementation-status: implemented
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id002
@@ -2380,17 +2049,17 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CurrencyEdit'
-  /api/v2/communities/{communityId}/currency/icon:
+  /api/v2/seasons/{seasonId}/currency/icon:
     get:
       operationId: getCurrencyIcon
       tags:
       - Currency
-      summary: Read the community currency icon
+      summary: Read the season currency icon
       security:
       - Session: []
       responses:
         '200':
-          description: Read the community currency icon
+          description: Read the season currency icon
           content:
             image/png:
               schema:
@@ -2432,24 +2101,25 @@ paths:
       x-delivery-milestone: M3
       parameters:
       - &id003
-        name: communityId
+        name: seasonId
         in: path
         required: true
         schema:
           type: string
           format: uuid
-      description: Normalized static PNG. Requires current membership; 404 when no custom icon or no access. The plugin uses
-        a bundled default icon when absent. Use Authorization headers, never credential-bearing URLs or a public media directory.
+      description: Normalized static PNG. Requires current membership; 404 when no custom icon or no access. The
+        plugin uses a bundled default icon when absent. Use Authorization headers, never credential-bearing URLs
+        or a public media directory.
     put:
       operationId: replaceCurrencyIcon
       tags:
       - Currency
-      summary: Upload or replace the community currency icon
+      summary: Upload or replace the season currency icon
       security:
       - Session: []
       responses:
         '200':
-          description: Upload or replace the community currency icon
+          description: Upload or replace the season currency icon
           content:
             application/json:
               schema:
@@ -2501,19 +2171,20 @@ paths:
         schema:
           type: string
           format: uuid
-        description: UUIDv7. Same logical request retains key; upload fingerprint includes validated file content and If-Match,
-          not the multipart boundary.
+        description: UUIDv7. Same logical request retains key; upload fingerprint includes validated file content
+          and If-Match, not the multipart boundary.
       - &id005
         name: If-Match
         in: header
         required: true
         schema:
           type: string
-        description: Current currency ETag from GET /api/v2/communities/{communityId}/currency.
-      description: Static PNG, JPEG/JPG or WebP only, verified by bounded decoding; both dimensions at most 128 pixels. Reject
-        animation, malformed images and external URLs. Recommended encoded-file ceiling 256 KiB, configurable and advertised.
-        Use a separately bounded multipart allowance rather than the JSON limit. Normalize to metadata-free PNG, persist in
-        PostgreSQL, update currency version and audit atomically; currency ID and balances remain unchanged.
+        description: Current currency ETag from GET /api/v2/seasons/{seasonId}/currency.
+      description: Static PNG, JPEG/JPG or WebP only, verified by bounded decoding; both dimensions at most 128
+        pixels. Reject animation, malformed images and external URLs. Recommended encoded-file ceiling 256 KiB,
+        configurable and advertised. Use a separately bounded multipart allowance rather than the JSON limit. Normalize
+        to metadata-free PNG, persist in PostgreSQL, update currency version and audit atomically; currency ID and
+        balances remain unchanged.
       requestBody:
         required: true
         content:
@@ -2576,20 +2247,20 @@ paths:
       - *id003
       - *id004
       - *id005
-      description: Clear the custom icon with an audited idempotent operation; the plugin falls back to its bundled default.
-        Preserve currency ID and balances. Authorize before returning a replay; retain only media needed under the documented
-        recovery/retention policy.
-  /api/v2/communities/{communityId}/logo:
+      description: Clear the custom icon with an audited idempotent operation; the plugin falls back to its bundled
+        default. Preserve currency ID and balances. Authorize before returning a replay; retain only media needed
+        under the documented recovery/retention policy.
+  /api/v2/seasons/{seasonId}/logo:
     get:
       operationId: getCommunityLogo
       tags:
-      - Communities
-      summary: Read the private community logo
+      - Seasons
+      summary: Read the private season logo
       security:
       - Session: []
       responses:
         '200':
-          description: Read the private community logo
+          description: Read the private season logo
           content:
             image/png:
               schema:
@@ -2599,7 +2270,7 @@ paths:
             ETag:
               schema:
                 type: string
-              description: 'Independent community-logo ETag: "community-logo:{communityId:N}:{logoVersion}".'
+              description: 'Independent season-logo ETag: "season-logo:{communityId:N}:{logoVersion}".'
         '400':
           $ref: '#/components/responses/Problem'
         '401':
@@ -2630,33 +2301,33 @@ paths:
       x-implementation-status: implemented
       x-delivery-milestone: M5
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema:
           type: string
           format: uuid
-      description: Active members only. Missing custom logo returns 404; the plugin shows a placeholder. Normalized PNG with
-        no-store and nosniff. Credentials remain in headers.
+      description: Active members only. Missing custom logo returns 404; the plugin shows a placeholder. Normalized
+        PNG with no-store and nosniff. Credentials remain in headers.
     put:
       operationId: replaceCommunityLogo
       tags:
-      - Communities
-      summary: Upload or replace the community logo
+      - Seasons
+      summary: Upload or replace the season logo
       security:
       - Session: []
       responses:
         '200':
-          description: Upload or replace the community logo
+          description: Upload or replace the season logo
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/EditCommunityResult'
+                $ref: '#/components/schemas/EditSeasonResult'
           headers:
             ETag:
               schema:
                 type: string
-              description: 'Independent community-logo ETag: "community-logo:{communityId:N}:{logoVersion}".'
+              description: 'Independent season-logo ETag: "season-logo:{communityId:N}:{logoVersion}".'
             Idempotency-Replayed:
               schema:
                 type: boolean
@@ -2691,7 +2362,7 @@ paths:
       x-implementation-status: implemented
       x-delivery-milestone: M5
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema:
@@ -2703,44 +2374,45 @@ paths:
         schema:
           type: string
           format: uuid
-        description: UUIDv7. Same logical request retains key; upload fingerprint includes validated file content and If-Match,
-          not the multipart boundary.
+        description: UUIDv7. Same logical request retains key; upload fingerprint includes validated file content
+          and If-Match, not the multipart boundary.
       - name: If-Match
         in: header
         required: true
         schema:
           type: string
-        description: Current independent community-logo ETag, derived from Community.logoVersion (initially 1) or the logo
-          response.
-      description: Owner only, authorized before decoding and again under the community lock. One static PNG/JPG/WebP, at
-        most 2 MiB encoded and 2048 pixels per source side. Reject animation/malformed images. Normalize to metadata-free
-        PNG, fit proportionally within 512x512 without upscaling, at most 1 MiB stored. Audited, idempotent and atomically
-        replaced; old logo bytes removed. Independent logo version preserves community profile/currency ETags.
+        description: Current independent season-logo ETag, derived from Season.logoVersion (initially 1) or the
+          logo response.
+      description: Owner only, authorized before decoding and again under the season lock. One static PNG/JPG/WebP,
+        at most 2 MiB encoded and 2048 pixels per source side. Reject animation/malformed images. Normalize to metadata-free
+        PNG, fit proportionally within 512x512 without upscaling, at most 1 MiB stored. Audited, idempotent and
+        atomically replaced; old logo bytes removed. Independent logo version preserves season profile/currency
+        ETags.
       requestBody:
         required: true
         content:
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/CommunityLogoUpload'
+              $ref: '#/components/schemas/SeasonLogoUpload'
     delete:
       operationId: removeCommunityLogo
       tags:
-      - Communities
-      summary: Remove the community logo
+      - Seasons
+      summary: Remove the season logo
       security:
       - Session: []
       responses:
         '200':
-          description: Remove the community logo
+          description: Remove the season logo
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/EditCommunityResult'
+                $ref: '#/components/schemas/EditSeasonResult'
           headers:
             ETag:
               schema:
                 type: string
-              description: 'Independent community-logo ETag: "community-logo:{communityId:N}:{logoVersion}".'
+              description: 'Independent season-logo ETag: "season-logo:{communityId:N}:{logoVersion}".'
             Idempotency-Replayed:
               schema:
                 type: boolean
@@ -2775,7 +2447,7 @@ paths:
       x-implementation-status: implemented
       x-delivery-milestone: M5
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema:
@@ -2787,18 +2459,18 @@ paths:
         schema:
           type: string
           format: uuid
-        description: UUIDv7. Same logical request retains key; upload fingerprint includes validated file content and If-Match,
-          not the multipart boundary.
+        description: UUIDv7. Same logical request retains key; upload fingerprint includes validated file content
+          and If-Match, not the multipart boundary.
       - name: If-Match
         in: header
         required: true
         schema:
           type: string
-        description: Current independent community-logo ETag, derived from Community.logoVersion (initially 1) or the logo
-          response.
-      description: Owner only. Audited idempotent removal restores the placeholder and removes old logo bytes; currency icons
-        and other assets remain unchanged.
-  /api/v2/communities/{communityId}/balances:
+        description: Current independent season-logo ETag, derived from Season.logoVersion (initially 1) or the
+          logo response.
+      description: Owner only. Audited idempotent removal restores the placeholder and removes old logo bytes; currency
+        icons and other assets remain unchanged.
+  /api/v2/seasons/{seasonId}/balances:
     get:
       operationId: getOwnBalances
       tags:
@@ -2840,7 +2512,7 @@ paths:
       x-authorization-policy: Active member
       x-implementation-status: implemented
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id002
@@ -2858,7 +2530,7 @@ paths:
           minimum: 1
           maximum: 100
           default: 50
-  /api/v2/communities/{communityId}/currency/adjustments:
+  /api/v2/seasons/{seasonId}/currency/adjustments:
     post:
       operationId: adjustCurrency
       tags:
@@ -2904,7 +2576,7 @@ paths:
       x-authorization-policy: Owner or currency.manage; target active
       x-implementation-status: implemented
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id002
@@ -2921,17 +2593,17 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CurrencyAdjustment'
-  /api/v2/communities/{communityId}/categories:
+  /api/v2/seasons/{seasonId}/categories:
     get:
       operationId: listCategories
       tags:
       - Categories
-      summary: Community categories including retired labels
+      summary: Season categories including retired labels
       security:
       - Session: []
       responses:
         '200':
-          description: Community categories including retired labels
+          description: Season categories including retired labels
           content:
             application/json:
               schema:
@@ -2963,7 +2635,7 @@ paths:
       x-authorization-policy: Active member
       x-implementation-status: implemented
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id002
@@ -3026,7 +2698,7 @@ paths:
       x-authorization-policy: Owner
       x-implementation-status: implemented
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id002
@@ -3043,7 +2715,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CategoryEdit'
-  /api/v2/communities/{communityId}/categories/{categoryId}:
+  /api/v2/seasons/{seasonId}/categories/{categoryId}:
     get:
       operationId: getCategory
       tags:
@@ -3090,7 +2762,7 @@ paths:
       x-authorization-policy: Active member
       x-implementation-status: implemented
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id002
@@ -3143,7 +2815,7 @@ paths:
       x-authorization-policy: Owner
       x-implementation-status: implemented
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id002
@@ -3170,7 +2842,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CategoryEdit'
-  /api/v2/communities/{communityId}/categories/{categoryId}/retirement:
+  /api/v2/seasons/{seasonId}/categories/{categoryId}/retirement:
     post:
       operationId: retireCategory
       tags:
@@ -3216,7 +2888,7 @@ paths:
       x-authorization-policy: Owner
       x-implementation-status: implemented
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id002
@@ -3237,7 +2909,7 @@ paths:
         schema:
           type: string
         description: ETag from the current resource GET.
-  /api/v2/communities/{communityId}/item-definitions:
+  /api/v2/seasons/{seasonId}/item-definitions:
     get:
       operationId: listDefinitions
       tags:
@@ -3279,7 +2951,7 @@ paths:
       x-authorization-policy: Active member
       x-implementation-status: implemented
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id002
@@ -3342,7 +3014,7 @@ paths:
       x-authorization-policy: Owner or items.potion.define
       x-implementation-status: implemented
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id002
@@ -3359,7 +3031,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/DefinitionWrite'
-  /api/v2/communities/{communityId}/item-definitions/{definitionId}:
+  /api/v2/seasons/{seasonId}/item-definitions/{definitionId}:
     get:
       operationId: getDefinition
       tags:
@@ -3406,7 +3078,7 @@ paths:
       x-authorization-policy: Active member
       x-implementation-status: implemented
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id002
@@ -3466,7 +3138,7 @@ paths:
       x-authorization-policy: Owner or items.potion.define
       x-implementation-status: implemented
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id002
@@ -3493,7 +3165,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/DefinitionWrite'
-  /api/v2/communities/{communityId}/item-definitions/{definitionId}/retirement:
+  /api/v2/seasons/{seasonId}/item-definitions/{definitionId}/retirement:
     post:
       operationId: retireDefinition
       tags:
@@ -3539,7 +3211,7 @@ paths:
       x-authorization-policy: Owner or items.potion.define
       x-implementation-status: implemented
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id002
@@ -3560,7 +3232,7 @@ paths:
         schema:
           type: string
         description: ETag from the current resource GET.
-  /api/v2/communities/{communityId}/quotas:
+  /api/v2/seasons/{seasonId}/quotas:
     get:
       operationId: getQuotas
       tags:
@@ -3607,11 +3279,11 @@ paths:
       x-authorization-policy: Active member
       x-implementation-status: implemented
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id002
-  /api/v2/communities/{communityId}/inventory:
+  /api/v2/seasons/{seasonId}/inventory:
     get:
       operationId: listInventory
       tags:
@@ -3653,7 +3325,7 @@ paths:
       x-authorization-policy: Active member
       x-implementation-status: implemented
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id002
@@ -3701,7 +3373,7 @@ paths:
         schema:
           type: string
         description: Comma separated supported types; mutually exclusive with typeId. Books uses book,letter,note.
-  /api/v2/communities/{communityId}/inventory/{holdingId}:
+  /api/v2/seasons/{seasonId}/inventory/{holdingId}:
     get:
       operationId: getHolding
       tags:
@@ -3748,7 +3420,7 @@ paths:
       x-authorization-policy: Current holder; active member
       x-implementation-status: implemented
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id002
@@ -3756,7 +3428,7 @@ paths:
         in: path
         required: true
         schema: *id002
-  /api/v2/communities/{communityId}/inventory/potions:
+  /api/v2/seasons/{seasonId}/inventory/potions:
     post:
       operationId: createPotions
       tags:
@@ -3802,7 +3474,7 @@ paths:
       x-authorization-policy: Owner or items.potion.create
       x-implementation-status: implemented
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id002
@@ -3819,7 +3491,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/PotionCreate'
-  /api/v2/communities/{communityId}/inventory/letters:
+  /api/v2/seasons/{seasonId}/inventory/letters:
     post:
       operationId: createLetter
       tags:
@@ -3865,7 +3537,7 @@ paths:
       x-authorization-policy: Active member
       x-implementation-status: implemented
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id002
@@ -3882,7 +3554,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/LetterCreate'
-  /api/v2/communities/{communityId}/letters/{letterId}:
+  /api/v2/seasons/{seasonId}/letters/{letterId}:
     get:
       operationId: readLetter
       tags:
@@ -3929,7 +3601,7 @@ paths:
       x-authorization-policy: Current holder; active member
       x-implementation-status: implemented
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id002
@@ -3982,7 +3654,7 @@ paths:
       x-authorization-policy: Author and current holder
       x-implementation-status: implemented
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id002
@@ -4009,7 +3681,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/LetterEdit'
-  /api/v2/communities/{communityId}/inventory/{holdingId}/use:
+  /api/v2/seasons/{seasonId}/inventory/{holdingId}/use:
     post:
       operationId: useHolding
       tags:
@@ -4055,7 +3727,7 @@ paths:
       x-authorization-policy: Current holder; active member; potion type
       x-implementation-status: implemented
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id002
@@ -4076,7 +3748,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/ConsumptionRequest'
-  /api/v2/communities/{communityId}/inventory/{holdingId}/discard:
+  /api/v2/seasons/{seasonId}/inventory/{holdingId}/discard:
     post:
       operationId: discardHolding
       tags:
@@ -4122,7 +3794,7 @@ paths:
       x-authorization-policy: Current holder; active member
       x-implementation-status: implemented
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id002
@@ -4143,7 +3815,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/DiscardRequest'
-  /api/v2/communities/{communityId}/inventory/removals:
+  /api/v2/seasons/{seasonId}/inventory/removals:
     post:
       operationId: removeHolding
       tags:
@@ -4189,7 +3861,7 @@ paths:
       x-authorization-policy: Owner or inventory.remove; target active
       x-implementation-status: implemented
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id002
@@ -4206,7 +3878,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/InventoryRemoval'
-  /api/v2/communities/{communityId}/trades:
+  /api/v2/seasons/{seasonId}/trades:
     get:
       operationId: listTrades
       tags:
@@ -4245,11 +3917,11 @@ paths:
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
-      x-authorization-policy: Existing community membership; only own participant trades, including terminal recovery after
-        removal
+      x-authorization-policy: Existing season membership; only own participant trades, including terminal recovery
+        after removal
       x-implementation-status: implemented
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id002
@@ -4276,12 +3948,12 @@ paths:
       operationId: startTrade
       tags:
       - Trading
-      summary: Invite same-community unrestricted character to trade
+      summary: Invite same-season unrestricted character to trade
       security:
       - Session: []
       responses:
         '201':
-          description: Invite same-community unrestricted character to trade
+          description: Invite same-season unrestricted character to trade
           content:
             application/json:
               schema:
@@ -4317,7 +3989,7 @@ paths:
       x-authorization-policy: Active unrestricted member; same for target
       x-implementation-status: implemented
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id002
@@ -4334,7 +4006,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/TradeCreate'
-  /api/v2/communities/{communityId}/trades/{tradeId}:
+  /api/v2/seasons/{seasonId}/trades/{tradeId}:
     get:
       operationId: getTrade
       tags:
@@ -4381,7 +4053,7 @@ paths:
       x-authorization-policy: Participant; terminal status remains available after removal
       x-implementation-status: implemented
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id002
@@ -4389,7 +4061,7 @@ paths:
         in: path
         required: true
         schema: *id002
-  /api/v2/communities/{communityId}/trades/{tradeId}/accept:
+  /api/v2/seasons/{seasonId}/trades/{tradeId}/accept:
     post:
       operationId: acceptTrade
       tags:
@@ -4435,7 +4107,7 @@ paths:
       x-authorization-policy: Recipient; both active/unrestricted
       x-implementation-status: implemented
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id002
@@ -4456,7 +4128,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/TradeRevisionRequest'
-  /api/v2/communities/{communityId}/trades/{tradeId}/offers/mine:
+  /api/v2/seasons/{seasonId}/trades/{tradeId}/offers/mine:
     put:
       operationId: setTradeOffer
       tags:
@@ -4502,7 +4174,7 @@ paths:
       x-authorization-policy: Participant; both active/unrestricted
       x-implementation-status: implemented
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id002
@@ -4523,7 +4195,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/TradeOfferWrite'
-  /api/v2/communities/{communityId}/trades/{tradeId}/confirm:
+  /api/v2/seasons/{seasonId}/trades/{tradeId}/confirm:
     post:
       operationId: confirmTrade
       tags:
@@ -4569,7 +4241,7 @@ paths:
       x-authorization-policy: Participant; both active/unrestricted
       x-implementation-status: implemented
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id002
@@ -4590,7 +4262,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/TradeRevisionRequest'
-  /api/v2/communities/{communityId}/trades/{tradeId}/final-confirm:
+  /api/v2/seasons/{seasonId}/trades/{tradeId}/final-confirm:
     post:
       operationId: finalConfirmTrade
       tags:
@@ -4636,7 +4308,7 @@ paths:
       x-authorization-policy: Participant; both active/unrestricted
       x-implementation-status: implemented
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id002
@@ -4657,7 +4329,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/TradeRevisionRequest'
-  /api/v2/communities/{communityId}/trades/{tradeId}/cancel:
+  /api/v2/seasons/{seasonId}/trades/{tradeId}/cancel:
     post:
       operationId: cancelTrade
       tags:
@@ -4703,7 +4375,7 @@ paths:
       x-authorization-policy: Participant; never undo completed trade
       x-implementation-status: implemented
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id002
@@ -4724,17 +4396,17 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/TradeRevisionRequest'
-  /api/v2/communities/{communityId}/history:
+  /api/v2/seasons/{seasonId}/history:
     get:
       operationId: getHistory
       tags:
       - History
-      summary: Personal community operation history
+      summary: Personal season operation history
       security:
       - Session: []
       responses:
         '200':
-          description: Personal community operation history
+          description: Personal season operation history
           content:
             application/json:
               schema:
@@ -4763,10 +4435,10 @@ paths:
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
-      x-authorization-policy: Active member of a non-deleted community; own actor/subject entries
+      x-authorization-policy: Active member of a non-deleted season; own actor/subject entries
       x-implementation-status: implemented
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id002
@@ -4784,17 +4456,17 @@ paths:
           minimum: 1
           maximum: 100
           default: 50
-  /api/v2/communities/{communityId}/audit:
+  /api/v2/seasons/{seasonId}/audit:
     get:
       operationId: getAudit
       tags:
       - History
-      summary: Administrative community history without private content
+      summary: Administrative season history without private content
       security:
       - Session: []
       responses:
         '200':
-          description: Administrative community history without private content
+          description: Administrative season history without private content
           content:
             application/json:
               schema:
@@ -4826,7 +4498,7 @@ paths:
       x-authorization-policy: Owner
       x-implementation-status: implemented
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id002
@@ -5007,12 +4679,12 @@ paths:
       operationId: requestDeletion
       tags:
       - Data lifecycle
-      summary: Request deletion; resolve community ownership first
+      summary: Request deletion; resolve season ownership first
       security:
       - Session: []
       responses:
         '202':
-          description: Request deletion; resolve community ownership first
+          description: Request deletion; resolve season ownership first
           content:
             application/json:
               schema:
@@ -5200,10 +4872,10 @@ paths:
           $ref: '#/components/responses/Problem'
         '426':
           description: WebSocket upgrade required
-      x-authorization-policy: Session; active community member
+      x-authorization-policy: Session; active season member
       x-implementation-status: planned
       parameters:
-      - name: communityId
+      - name: seasonId
         in: query
         required: true
         schema: *id002
@@ -5213,16 +4885,16 @@ paths:
         schema:
           type: string
           pattern: ^[0-9]+$
-      description: HTTP description of WebSocket upgrade. Message protocol is in api.md; ordinary GET without upgrade returns
-        426.
+      description: HTTP description of WebSocket upgrade. Message protocol is in api.md; ordinary GET without upgrade
+        returns 426.
   /api/v2/feasibility/login-attempts:
     post:
       operationId: startIdentityProbe
       tags:
       - Feasibility
       summary: Start temporary XIVAuth feasibility login
-      description: M1 isolated, single-instance probe. State is memory-only and bounded; restart requires re-login. Not the
-        durable authentication contract. Disabled until XIVAuth is configured.
+      description: M1 isolated, single-instance probe. State is memory-only and bounded; restart requires re-login.
+        Not the durable authentication contract. Disabled until XIVAuth is configured.
       security:
       - LoginBootstrap: []
       responses:
@@ -5271,8 +4943,8 @@ paths:
       tags:
       - Feasibility
       summary: Poll temporary login without session secrets
-      description: M1 isolated, single-instance probe. State is memory-only and bounded; restart requires re-login. Not the
-        durable authentication contract. Disabled until XIVAuth is configured.
+      description: M1 isolated, single-instance probe. State is memory-only and bounded; restart requires re-login.
+        Not the durable authentication contract. Disabled until XIVAuth is configured.
       security:
       - LoginAttempt: []
       responses:
@@ -5314,8 +4986,8 @@ paths:
       tags:
       - Feasibility
       summary: One-use PKCE feasibility callback
-      description: M1 isolated, single-instance probe. State is memory-only and bounded; restart requires re-login. Not the
-        durable authentication contract. Disabled until XIVAuth is configured.
+      description: M1 isolated, single-instance probe. State is memory-only and bounded; restart requires re-login.
+        Not the durable authentication contract. Disabled until XIVAuth is configured.
       security: []
       responses:
         '200':
@@ -5372,8 +5044,8 @@ paths:
       tags:
       - Feasibility
       summary: Exchange temporary attempt for five-minute probe session
-      description: M1 isolated, single-instance probe. State is memory-only and bounded; restart requires re-login. Not the
-        durable authentication contract. Disabled until XIVAuth is configured.
+      description: M1 isolated, single-instance probe. State is memory-only and bounded; restart requires re-login.
+        Not the durable authentication contract. Disabled until XIVAuth is configured.
       security:
       - LoginAttempt: []
       responses:
@@ -5422,8 +5094,8 @@ paths:
       tags:
       - Feasibility
       summary: Check temporary authenticated reconnect
-      description: M1 isolated, single-instance probe. State is memory-only and bounded; restart requires re-login. Not the
-        durable authentication contract. Disabled until XIVAuth is configured.
+      description: M1 isolated, single-instance probe. State is memory-only and bounded; restart requires re-login.
+        Not the durable authentication contract. Disabled until XIVAuth is configured.
       security:
       - Session: []
       responses:
@@ -5458,8 +5130,8 @@ paths:
       tags:
       - Feasibility
       summary: Revoke temporary probe session
-      description: M1 isolated, single-instance probe. State is memory-only and bounded; restart requires re-login. Not the
-        durable authentication contract. Disabled until XIVAuth is configured.
+      description: M1 isolated, single-instance probe. State is memory-only and bounded; restart requires re-login.
+        Not the durable authentication contract. Disabled until XIVAuth is configured.
       security:
       - Session: []
       responses:
@@ -5492,7 +5164,7 @@ paths:
           type: string
           format: uuid
         description: Fresh UUIDv7 (at most ten minutes old). Same key and secret retry credential bind probe replay.
-  /api/v2/communities/{communityId}/members/{characterId}:
+  /api/v2/seasons/{seasonId}/members/{characterId}:
     get:
       operationId: getMember
       tags:
@@ -5501,7 +5173,7 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: &id006
@@ -5582,7 +5254,7 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id006
@@ -5667,7 +5339,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/MemberRemoval'
-  /api/v2/communities/{communityId}/members/{characterId}/block:
+  /api/v2/seasons/{seasonId}/members/{characterId}/block:
     put:
       operationId: blockMember
       tags:
@@ -5676,7 +5348,7 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id006
@@ -5768,7 +5440,7 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id006
@@ -5852,7 +5524,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/MemberRemoval'
-  /api/v2/communities/{communityId}/members/{characterId}/holdings/{holdingId}:
+  /api/v2/seasons/{seasonId}/members/{characterId}/holdings/{holdingId}:
     patch:
       operationId: reduceHolding
       tags:
@@ -5861,7 +5533,7 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id006
@@ -5954,7 +5626,7 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id006
@@ -6039,12 +5711,12 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/HoldingDeletion'
-  /api/v2/communities/{communityId}/members/{characterId}/description:
+  /api/v2/seasons/{seasonId}/members/{characterId}/description:
     patch:
       operationId: editMemberDescription
       tags:
       - Membership
-      summary: Edit own community character description
+      summary: Edit own season character description
       security:
       - Session: []
       responses:
@@ -6086,7 +5758,7 @@ paths:
       x-authorization-policy: Active member, self only
       x-implementation-status: implemented
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema:
@@ -6117,20 +5789,20 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/MemberDescriptionEdit'
-      description: Active character edits only their own community-specific plain-text description, up to 300 Unicode text
-        elements. Empty clears it. Requires the current member ETag and a UUIDv7 operation key. Owners cannot edit another
-        character. No description text is copied to audit summaries.
+      description: Active character edits only their own season-specific plain-text description, up to 300 Unicode
+        text elements. Empty clears it. Requires the current member ETag and a UUIDv7 operation key. Owners cannot
+        edit another character. No description text is copied to audit summaries.
   /api/v2/announcements/unread:
     get:
       operationId: getUnreadAnnouncements
       tags:
       - Announcements
-      summary: Unread announcement counts for active joined communities
+      summary: Unread announcement counts for active joined seasons
       security:
       - Session: []
       responses:
         '200':
-          description: Unread announcement counts for active joined communities
+          description: Unread announcement counts for active joined seasons
           content:
             application/json:
               schema:
@@ -6155,10 +5827,10 @@ paths:
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
-      x-authorization-policy: Session; active memberships in nondeleted communities
+      x-authorization-policy: Session; active memberships in nondeleted seasons
       x-implementation-status: implemented
       parameters: []
-  /api/v2/communities/{communityId}/announcements:
+  /api/v2/seasons/{seasonId}/announcements:
     get:
       operationId: listAnnouncements
       tags:
@@ -6196,7 +5868,7 @@ paths:
       x-authorization-policy: Active member
       x-implementation-status: implemented
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema:
@@ -6239,7 +5911,7 @@ paths:
       x-authorization-policy: Owner or announcements.manage
       x-implementation-status: implemented
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema:
@@ -6258,7 +5930,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/AnnouncementCreate'
-  /api/v2/communities/{communityId}/announcements/{announcementId}:
+  /api/v2/seasons/{seasonId}/announcements/{announcementId}:
     get:
       operationId: getAnnouncement
       tags:
@@ -6296,7 +5968,7 @@ paths:
       x-authorization-policy: Active member
       x-implementation-status: implemented
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema:
@@ -6308,7 +5980,7 @@ paths:
         schema:
           type: string
           format: uuid
-  /api/v2/communities/{communityId}/announcements/{announcementId}/read:
+  /api/v2/seasons/{seasonId}/announcements/{announcementId}/read:
     put:
       operationId: markAnnouncementRead
       tags:
@@ -6346,7 +6018,7 @@ paths:
       x-authorization-policy: Active member; own read state
       x-implementation-status: implemented
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema:
@@ -6365,18 +6037,19 @@ paths:
           type: string
           format: uuid
         description: UUIDv7; read markers are naturally idempotent metadata writes without operation-recovery receipts.
-      description: Marks only this retained announcement read for the authenticated character. Repeated requests add no audit/operation
-        rows and do not change the member permission ETag. No financial command recovery applies.
-  /api/v2/communities/{communityId}/groups:
+      description: Marks only this retained announcement read for the authenticated character. Repeated requests
+        add no audit/operation rows and do not change the member permission ETag. No financial command recovery
+        applies.
+  /api/v2/seasons/{seasonId}/groups:
     get:
       operationId: listCommunityGroups
       tags:
-      - Community Groups
+      - Season Groups
       summary: listCommunityGroups
       security:
       - Session: []
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: &id009
@@ -6424,17 +6097,17 @@ paths:
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
-      x-authorization-policy: Active community member
+      x-authorization-policy: Active season member
       x-implementation-status: implemented
     post:
       operationId: createGroup
       tags:
-      - Community Groups
+      - Season Groups
       summary: createGroup
       security:
       - Session: []
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id009
@@ -6473,7 +6146,7 @@ paths:
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
-      x-authorization-policy: Community owner or groups.create
+      x-authorization-policy: Season owner or groups.create
       x-implementation-status: implemented
       requestBody:
         required: true
@@ -6481,16 +6154,16 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/GroupWrite'
-  /api/v2/communities/{communityId}/groups/{groupId}:
+  /api/v2/seasons/{seasonId}/groups/{groupId}:
     get:
       operationId: readGroup
       tags:
-      - Community Groups
+      - Season Groups
       summary: readGroup
       security:
       - Session: []
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id009
@@ -6529,17 +6202,17 @@ paths:
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
-      x-authorization-policy: Active community member
+      x-authorization-policy: Active season member
       x-implementation-status: implemented
     patch:
       operationId: editGroup
       tags:
-      - Community Groups
+      - Season Groups
       summary: editGroup
       security:
       - Session: []
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id009
@@ -6598,12 +6271,12 @@ paths:
     delete:
       operationId: deleteGroup
       tags:
-      - Community Groups
+      - Season Groups
       summary: deleteGroup
       security:
       - Session: []
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id009
@@ -6651,18 +6324,18 @@ paths:
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
-      x-authorization-policy: Group owner or community Manage Groups (deletion only)
+      x-authorization-policy: Group owner or season Manage Groups (deletion only)
       x-implementation-status: implemented
-  /api/v2/communities/{communityId}/groups/{groupId}/logo:
+  /api/v2/seasons/{seasonId}/groups/{groupId}/logo:
     get:
       operationId: readGroupLogo
       tags:
-      - Community Groups
+      - Season Groups
       summary: readGroupLogo
       security:
       - Session: []
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id009
@@ -6702,17 +6375,17 @@ paths:
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
-      x-authorization-policy: Active community member
+      x-authorization-policy: Active season member
       x-implementation-status: implemented
     put:
       operationId: replaceGroupLogo
       tags:
-      - Community Groups
+      - Season Groups
       summary: replaceGroupLogo
       security:
       - Session: []
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id009
@@ -6777,12 +6450,12 @@ paths:
     delete:
       operationId: removeGroupLogo
       tags:
-      - Community Groups
+      - Season Groups
       summary: removeGroupLogo
       security:
       - Session: []
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema: *id009
@@ -6832,16 +6505,16 @@ paths:
           $ref: '#/components/responses/Problem'
       x-authorization-policy: Group owner only
       x-implementation-status: implemented
-  /api/v2/communities/{communityId}/group-hub:
+  /api/v2/seasons/{seasonId}/group-hub:
     get:
       operationId: readGroupHub
       tags:
-      - Community Groups
+      - Season Groups
       summary: readGroupHub
       security:
       - Session: []
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema:
@@ -6874,13 +6547,13 @@ paths:
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
-      x-authorization-policy: Active community member
+      x-authorization-policy: Active season member
       x-implementation-status: implemented
   /api/v2/me/favorite-group-events:
     get:
       operationId: favoriteGroupEvents
       tags:
-      - Community Groups
+      - Season Groups
       summary: favoriteGroupEvents
       security:
       - Session: []
@@ -6912,18 +6585,18 @@ paths:
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
-      x-authorization-policy: Current verified session; active community memberships
+      x-authorization-policy: Current verified session; active season memberships
       x-implementation-status: implemented
-  /api/v2/communities/{communityId}/groups/{groupId}/private:
+  /api/v2/seasons/{seasonId}/groups/{groupId}/private:
     get:
       operationId: readPrivateGroup
       tags:
-      - Community Groups
+      - Season Groups
       summary: readPrivateGroup
       security:
       - Session: []
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema:
@@ -6962,18 +6635,18 @@ paths:
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
-      x-authorization-policy: Active community and group member; no moderator bypass
+      x-authorization-policy: Active season and group member; no moderator bypass
       x-implementation-status: implemented
-  /api/v2/communities/{communityId}/groups/{groupId}/join:
+  /api/v2/seasons/{seasonId}/groups/{groupId}/join:
     post:
       operationId: joinGroup
       tags:
-      - Community Groups
+      - Season Groups
       summary: joinGroup
       security:
       - Session: []
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema:
@@ -7018,7 +6691,7 @@ paths:
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
-      x-authorization-policy: Active community member; open group or correct password
+      x-authorization-policy: Active season member; open group or correct password
       x-implementation-status: implemented
       requestBody:
         required: true
@@ -7026,16 +6699,16 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/GroupJoin'
-  /api/v2/communities/{communityId}/groups/{groupId}/membership:
+  /api/v2/seasons/{seasonId}/groups/{groupId}/membership:
     delete:
       operationId: leaveGroup
       tags:
-      - Community Groups
+      - Season Groups
       summary: leaveGroup
       security:
       - Session: []
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema:
@@ -7082,16 +6755,16 @@ paths:
           $ref: '#/components/responses/Problem'
       x-authorization-policy: Current group member; group owner cannot leave
       x-implementation-status: implemented
-  /api/v2/communities/{communityId}/groups/{groupId}/favorite:
+  /api/v2/seasons/{seasonId}/groups/{groupId}/favorite:
     put:
       operationId: favoriteGroup
       tags:
-      - Community Groups
+      - Season Groups
       summary: favoriteGroup
       security:
       - Session: []
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema:
@@ -7136,17 +6809,17 @@ paths:
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
-      x-authorization-policy: Active community member
+      x-authorization-policy: Active season member
       x-implementation-status: implemented
     delete:
       operationId: unfavoriteGroup
       tags:
-      - Community Groups
+      - Season Groups
       summary: unfavoriteGroup
       security:
       - Session: []
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema:
@@ -7191,18 +6864,18 @@ paths:
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
-      x-authorization-policy: Active community member
+      x-authorization-policy: Active season member
       x-implementation-status: implemented
-  /api/v2/communities/{communityId}/groups/{groupId}/notice:
+  /api/v2/seasons/{seasonId}/groups/{groupId}/notice:
     put:
       operationId: saveGroupNotice
       tags:
-      - Community Groups
+      - Season Groups
       summary: saveGroupNotice
       security:
       - Session: []
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema:
@@ -7263,12 +6936,12 @@ paths:
     delete:
       operationId: removeGroupNotice
       tags:
-      - Community Groups
+      - Season Groups
       summary: removeGroupNotice
       security:
       - Session: []
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema:
@@ -7320,16 +6993,16 @@ paths:
           $ref: '#/components/responses/Problem'
       x-authorization-policy: Active group member with enabled feature and its owner or staff grant
       x-implementation-status: implemented
-  /api/v2/communities/{communityId}/groups/{groupId}/events:
+  /api/v2/seasons/{seasonId}/groups/{groupId}/events:
     post:
       operationId: createGroupEvent
       tags:
-      - Community Groups
+      - Season Groups
       summary: createGroupEvent
       security:
       - Session: []
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema:
@@ -7382,16 +7055,16 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/EventWrite'
-  /api/v2/communities/{communityId}/groups/{groupId}/events/{eventId}:
+  /api/v2/seasons/{seasonId}/groups/{groupId}/events/{eventId}:
     put:
       operationId: editGroupEvent
       tags:
-      - Community Groups
+      - Season Groups
       summary: editGroupEvent
       security:
       - Session: []
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema:
@@ -7458,12 +7131,12 @@ paths:
     delete:
       operationId: cancelGroupEvent
       tags:
-      - Community Groups
+      - Season Groups
       summary: cancelGroupEvent
       security:
       - Session: []
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema:
@@ -7521,16 +7194,16 @@ paths:
           $ref: '#/components/responses/Problem'
       x-authorization-policy: Active group member with enabled feature and its owner or staff grant
       x-implementation-status: implemented
-  /api/v2/communities/{communityId}/groups/{groupId}/announcements:
+  /api/v2/seasons/{seasonId}/groups/{groupId}/announcements:
     post:
       operationId: postGroupAnnouncement
       tags:
-      - Community Groups
+      - Season Groups
       summary: postGroupAnnouncement
       security:
       - Session: []
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema:
@@ -7583,16 +7256,16 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/GroupAnnouncementWrite'
-  /api/v2/communities/{communityId}/groups/{groupId}/features:
+  /api/v2/seasons/{seasonId}/groups/{groupId}/features:
     put:
       operationId: editGroupFeatures
       tags:
-      - Community Groups
+      - Season Groups
       summary: Save group features
       security:
       - Session: []
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema:
@@ -7646,7 +7319,7 @@ paths:
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
-      x-authorization-policy: Active community owner only; group membership not required; no private content access
+      x-authorization-policy: Active season owner only; group membership not required; no private content access
       x-implementation-status: implemented
       requestBody:
         required: true
@@ -7654,16 +7327,16 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/GroupFeaturesEdit'
-  /api/v2/communities/{communityId}/groups/{groupId}/members/{characterId}/capabilities:
+  /api/v2/seasons/{seasonId}/groups/{groupId}/members/{characterId}/capabilities:
     put:
       operationId: editGroupStaff
       tags:
-      - Community Groups
+      - Season Groups
       summary: Save group staff permissions
       security:
       - Session: []
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema:
@@ -7723,7 +7396,7 @@ paths:
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
-      x-authorization-policy: Active group owner only; active group/community target member; enabled features only
+      x-authorization-policy: Active group owner only; active group/season target member; enabled features only
       x-implementation-status: implemented
       requestBody:
         required: true
@@ -7731,7 +7404,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/GroupStaffEdit'
-  /api/v2/communities/{communityId}/groups/{groupId}/treasury:
+  /api/v2/seasons/{seasonId}/groups/{groupId}/treasury:
     get:
       operationId: getTreasury
       tags:
@@ -7740,7 +7413,7 @@ paths:
       security:
       - Session: []
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema:
@@ -7777,9 +7450,9 @@ paths:
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
-      x-authorization-policy: Active community and group member; treasury enabled
+      x-authorization-policy: Active season and group member; treasury enabled
       x-implementation-status: implemented
-  /api/v2/communities/{communityId}/groups/{groupId}/treasury/records:
+  /api/v2/seasons/{seasonId}/groups/{groupId}/treasury/records:
     get:
       operationId: getTreasuryRecords
       tags:
@@ -7788,7 +7461,7 @@ paths:
       security:
       - Session: []
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema:
@@ -7836,10 +7509,10 @@ paths:
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
-      x-authorization-policy: Active group member with treasury.records and enabled
-        treasury; or former owner of deleted group
+      x-authorization-policy: Active group member with treasury.records and enabled treasury; or former owner of
+        deleted group
       x-implementation-status: implemented
-  /api/v2/communities/{communityId}/groups/{groupId}/treasury/deposits:
+  /api/v2/seasons/{seasonId}/groups/{groupId}/treasury/deposits:
     post:
       operationId: depositTreasury
       tags:
@@ -7848,7 +7521,7 @@ paths:
       security:
       - Session: []
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema:
@@ -7891,8 +7564,7 @@ paths:
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
-      x-authorization-policy: Active community and group member; treasury enabled; own
-        available coins only
+      x-authorization-policy: Active season and group member; treasury enabled; own available coins only
       x-implementation-status: implemented
       requestBody:
         required: true
@@ -7900,7 +7572,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/TreasuryTransfer'
-  /api/v2/communities/{communityId}/groups/{groupId}/treasury/withdrawals:
+  /api/v2/seasons/{seasonId}/groups/{groupId}/treasury/withdrawals:
     post:
       operationId: withdrawTreasury
       tags:
@@ -7909,7 +7581,7 @@ paths:
       security:
       - Session: []
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema:
@@ -7952,8 +7624,7 @@ paths:
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
-      x-authorization-policy: Active group owner or treasury.withdraw staff; treasury
-        enabled; pay caller only
+      x-authorization-policy: Active group owner or treasury.withdraw staff; treasury enabled; pay caller only
       x-implementation-status: implemented
       requestBody:
         required: true
@@ -8006,10 +7677,9 @@ paths:
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
-      x-authorization-policy: Current verified character; own pending disband returns
-        only
+      x-authorization-policy: Current verified character; own pending disband returns only
       x-implementation-status: implemented
-  /api/v2/communities/{communityId}/groups/{groupId}/treasury/return:
+  /api/v2/seasons/{seasonId}/groups/{groupId}/treasury/return:
     post:
       operationId: collectTreasuryReturn
       tags:
@@ -8018,7 +7688,7 @@ paths:
       security:
       - Session: []
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema:
@@ -8061,10 +7731,9 @@ paths:
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
-      x-authorization-policy: Current verified character who owns the deleted group;
-        original retained account
+      x-authorization-policy: Current verified character who owns the deleted group; original retained account
       x-implementation-status: implemented
-  /api/v2/communities/{communityId}/billing-policy:
+  /api/v2/seasons/{seasonId}/billing-policy:
     get:
       operationId: getBillingPolicy
       tags:
@@ -8073,7 +7742,7 @@ paths:
       security:
       - Session: []
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema:
@@ -8108,17 +7777,17 @@ paths:
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
-      x-authorization-policy: Active community member
+      x-authorization-policy: Active season member
       x-implementation-status: implemented
     put:
       operationId: editBillingPolicy
       tags:
       - Currency
-      summary: Save community debt policy
+      summary: Save season debt policy
       security:
       - Session: []
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema:
@@ -8164,7 +7833,7 @@ paths:
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
-      x-authorization-policy: Active community owner only
+      x-authorization-policy: Active season owner only
       x-implementation-status: implemented
       requestBody:
         required: true
@@ -8172,7 +7841,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/BillingPolicyEdit'
-  /api/v2/communities/{communityId}/groups/{groupId}/trust:
+  /api/v2/seasons/{seasonId}/groups/{groupId}/trust:
     put:
       operationId: editGroupBillingTrust
       tags:
@@ -8181,7 +7850,7 @@ paths:
       security:
       - Session: []
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema:
@@ -8233,8 +7902,7 @@ paths:
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
-      x-authorization-policy: Active community character; own trust only; treasury enabled
-        to opt in
+      x-authorization-policy: Active season character; own trust only; treasury enabled to opt in
       x-implementation-status: implemented
       requestBody:
         required: true
@@ -8242,7 +7910,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/GroupTrustEdit'
-  /api/v2/communities/{communityId}/groups/{groupId}/bills:
+  /api/v2/seasons/{seasonId}/groups/{groupId}/bills:
     post:
       operationId: createBill
       tags:
@@ -8251,7 +7919,7 @@ paths:
       security:
       - Session: []
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema:
@@ -8298,8 +7966,7 @@ paths:
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
-      x-authorization-policy: Active group owner or treasury.bill staff; treasury enabled;
-        active trusted customer
+      x-authorization-policy: Active group owner or treasury.bill staff; treasury enabled; active trusted customer
       x-implementation-status: implemented
       requestBody:
         required: true
@@ -8315,7 +7982,7 @@ paths:
       security:
       - Session: []
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema:
@@ -8366,10 +8033,10 @@ paths:
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
-      x-authorization-policy: Active group records staff or owner; billing staff see
-        only their issued bills; deleted group former owner
+      x-authorization-policy: Active group records staff or owner; billing staff see only their issued bills; deleted
+        group former owner
       x-implementation-status: implemented
-  /api/v2/communities/{communityId}/bills/mine:
+  /api/v2/seasons/{seasonId}/bills/mine:
     get:
       operationId: getOwnBills
       tags:
@@ -8378,7 +8045,7 @@ paths:
       security:
       - Session: []
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema:
@@ -8423,10 +8090,9 @@ paths:
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
-      x-authorization-policy: Current verified character with retained community membership;
-        own bills only
+      x-authorization-policy: Current verified character with retained season membership; own bills only
       x-implementation-status: implemented
-  /api/v2/communities/{communityId}/bills/{billId}/payments:
+  /api/v2/seasons/{seasonId}/bills/{billId}/payments:
     get:
       operationId: getBillPayments
       tags:
@@ -8435,7 +8101,7 @@ paths:
       security:
       - Session: []
       parameters:
-      - name: communityId
+      - name: seasonId
         in: path
         required: true
         schema:
@@ -8486,9 +8152,87 @@ paths:
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
-      x-authorization-policy: Payer or issuing character; otherwise authorized group
-        records staff or former owner of deleted group
+      x-authorization-policy: Payer or issuing character; otherwise authorized group records staff or former owner
+        of deleted group
       x-implementation-status: implemented
+  /api/v2/seasons/creation-permissions:
+    get:
+      operationId: listSeasonCreationPermissions
+      tags:
+      - Seasons
+      summary: Search verified characters and their global seasons.create permission
+      security:
+      - Session: []
+      x-authorization-policy: Configured provider-verified Lodestone server administrator; no individual season
+        ownership or staff grant implies global authority
+      x-implementation-status: implemented
+      parameters:
+      - name: search
+        in: query
+        schema:
+          type: string
+          maxLength: 200
+      - name: cursor
+        in: query
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Current global creation permission
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SeasonCreationPermissionPage'
+        '403':
+          $ref: '#/components/responses/Problem'
+  /api/v2/seasons/creation-permissions/{characterId}:
+    put:
+      operationId: setSeasonCreationPermission
+      tags:
+      - Seasons
+      summary: Grant or revoke seasons.create with a reason and current version
+      security:
+      - Session: []
+      x-authorization-policy: Configured provider-verified Lodestone server administrator; no individual season
+        ownership or staff grant implies global authority
+      x-implementation-status: implemented
+      parameters:
+      - name: characterId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: If-Match
+        in: header
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SeasonCreationPermissionEdit'
+      responses:
+        '200':
+          description: Current global creation permission
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SeasonCreationPermissionResult'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
 components:
   securitySchemes:
     Session:
@@ -8499,7 +8243,8 @@ components:
       type: apiKey
       in: header
       name: X-Login-Request-Credential
-      description: Client-generated 256-bit random secret for this login start/retry only. Does not authenticate a character.
+      description: Client-generated 256-bit random secret for this login start/retry only. Does not authenticate
+        a character.
     LoginAttempt:
       type: apiKey
       in: header
@@ -8520,34 +8265,68 @@ components:
   schemas:
     SeasonSummary:
       type: object
-      required: [id, name, state, version]
+      required:
+      - id
+      - name
+      - state
+      - version
       properties:
-        id: {type: string, format: uuid}
-        name: {type: string}
-        state: {type: string, enum: [legacy, draft, active, archived]}
-        version: {type: integer, minimum: 1}
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        state:
+          type: string
+          enum:
+          - draft
+          - active
+          - archived
+        version:
+          type: integer
+          minimum: 1
     SeasonContext:
       type: object
-      required: [enabled, isAdministrator, activeSeasonId, seasons]
+      required:
+      - isAdministrator
+      - activeSeasonId
+      - seasons
+      - myCapabilities
       properties:
-        enabled: {type: boolean}
-        isAdministrator: {type: boolean}
-        activeSeasonId: {type: string, format: uuid, nullable: true}
+        isAdministrator:
+          type: boolean
+        activeSeasonId:
+          type: string
+          format: uuid
+          nullable: true
         seasons:
           type: array
           description: Administrator lifecycle metadata only; never grants private group access
           items:
             $ref: '#/components/schemas/SeasonSummary'
+        myCapabilities:
+          type: array
+          items:
+            type: string
+            enum:
+            - seasons.create
     SeasonTransition:
       type: object
-      required: [confirmName]
+      required:
+      - confirmName
       properties:
-        confirmName: {type: string, maxLength: 80}
+        confirmName:
+          type: string
+          maxLength: 80
     SeasonTransitionResult:
       type: object
-      required: [operationId, result]
+      required:
+      - operationId
+      - result
       properties:
-        operationId: {type: string, format: uuid}
+        operationId:
+          type: string
+          format: uuid
         result:
           $ref: '#/components/schemas/SeasonSummary'
     Problem:
@@ -8607,14 +8386,6 @@ components:
     PublicLimits:
       type: object
       properties:
-        ownedCommunities:
-          type: integer
-          format: int32
-          minimum: 1
-        joinedCommunities:
-          type: integer
-          format: int32
-          minimum: 1
         defaultLettersPerWeek:
           type: integer
           format: int32
@@ -8671,9 +8442,6 @@ components:
         maxWeeklyLetters:
           type: integer
           minimum: 0
-        maxActiveInvitationsPerCommunity:
-          type: integer
-          minimum: 1
         ownershipProposalHours:
           type: integer
           minimum: 1
@@ -8719,8 +8487,6 @@ components:
           type: integer
           default: 512
       required:
-      - ownedCommunities
-      - joinedCommunities
       - defaultLettersPerWeek
       - defaultPotionPoints
       - chatMessageTextElements
@@ -8751,7 +8517,6 @@ components:
     Capabilities:
       type: object
       properties:
-        seasonsEnabled: {type: boolean, default: false}
         apiVersion:
           type: string
         serverVersion:
@@ -8835,8 +8600,8 @@ components:
           minimum: 1
         pairingRequired:
           type: boolean
-          description: Always true for durable login from server 0.0.6.2. False or absent is legacy/feasibility only; new
-            durable clients reject it.
+          description: Always true for durable login from server 0.0.6.2. False or absent is legacy/feasibility
+            only; new durable clients reject it.
       required:
       - attemptId
       - authorizationUrl
@@ -8851,8 +8616,8 @@ components:
           type: string
           maxLength: 64
           writeOnly: true
-          description: Browser-only one-time secret; 16 random hexadecimal characters. Spaces, hyphens and case differences
-            are accepted. Never log or put in a URL. Included in the idempotency request hash.
+          description: Browser-only one-time secret; 16 random hexadecimal characters. Spaces, hyphens and case
+            differences are accepted. Never log or put in a URL. Included in the idempotency request hash.
       required:
       - pairingCode
       additionalProperties: false
@@ -8878,8 +8643,8 @@ components:
       - expiresAt
       - failureCode
       additionalProperties: true
-      description: No session credentials or pairing codes in status response. Verified means browser approval only, not permission
-        to redeem without pairing.
+      description: No session credentials or pairing codes in status response. Verified means browser approval only,
+        not permission to redeem without pairing.
     SessionTokens:
       type: object
       properties:
@@ -8928,7 +8693,7 @@ components:
       type: object
       properties:
         id: *id002
-        communityId: *id002
+        seasonId: *id002
         name: *id011
         symbol:
           type: string
@@ -8939,11 +8704,11 @@ components:
           type: string
           format: uuid
           nullable: true
-          description: M3 community-scoped asset reference; omitted by M2, null when no custom icon.
+          description: M3 season-scoped asset reference; omitted by M2, null when no custom icon.
         version: *id012
       required:
       - id
-      - communityId
+      - seasonId
       - name
       - symbol
       - version
@@ -8972,14 +8737,14 @@ components:
       - available
       - version
       additionalProperties: true
-    CommunityLogoUpload:
+    SeasonLogoUpload:
       type: object
       properties:
         file:
           type: string
           format: binary
-          description: One static PNG/JPG/WebP; at most 2 MiB and 2048px per source side. Proportionally downscaled to at
-            most 512x512 and 1 MiB PNG.
+          description: One static PNG/JPG/WebP; at most 2 MiB and 2048px per source side. Proportionally downscaled
+            to at most 512x512 and 1 MiB PNG.
       required:
       - file
       additionalProperties: false
@@ -8989,8 +8754,8 @@ components:
         file:
           type: string
           format: binary
-          description: One static PNG, JPEG/JPG or WebP; at most 128x128 pixels, recommended maximum encoded size 256 KiB.
-            Actual format and resource bounds are verified before persistence.
+          description: One static PNG, JPEG/JPG or WebP; at most 128x128 pixels, recommended maximum encoded size
+            256 KiB. Actual format and resource bounds are verified before persistence.
       required:
       - file
       additionalProperties: false
@@ -9025,10 +8790,16 @@ components:
       - delta
       - reason
       additionalProperties: false
-    Community:
+    Season:
       type: object
       properties:
-        seasonState: {type: string, enum: [legacy, draft, active, archived], default: legacy}
+        seasonState:
+          type: string
+          enum:
+          - draft
+          - active
+          - archived
+          default: draft
         id: *id002
         name: *id011
         description: *id010
@@ -9068,7 +8839,7 @@ components:
       - myBalance
       - pendingOwnershipTransferId
       additionalProperties: true
-    CommunityCreate:
+    SeasonCreate:
       type: object
       properties:
         name: *id011
@@ -9102,7 +8873,7 @@ components:
       - weeklyPotionPoints
       - weeklyLetters
       additionalProperties: false
-    CommunityEdit:
+    SeasonEdit:
       type: object
       properties:
         name: *id011
@@ -9112,27 +8883,6 @@ components:
       required:
       - name
       - description
-      additionalProperties: false
-    CommunityDeletion:
-      type: object
-      properties:
-        confirmName: *id011
-      required:
-      - confirmName
-      additionalProperties: false
-    JoinCommunity:
-      type: object
-      properties:
-        invitationCode:
-          type: string
-          minLength: 1
-        acceptMemberVisibility:
-          type: boolean
-          enum:
-          - true
-      required:
-      - invitationCode
-      - acceptMemberVisibility
       additionalProperties: false
     PolicyValues:
       type: object
@@ -9153,10 +8903,10 @@ components:
       - potionPoints
       - letters
       additionalProperties: true
-    CommunityPolicies:
+    SeasonPolicies:
       type: object
       properties:
-        communityId: *id002
+        seasonId: *id002
         version: *id012
         currentPeriodStart: *id013
         nextResetAt: *id013
@@ -9165,7 +8915,7 @@ components:
         next:
           $ref: '#/components/schemas/PolicyValues'
       required:
-      - communityId
+      - seasonId
       - version
       - currentPeriodStart
       - nextResetAt
@@ -9215,7 +8965,7 @@ components:
           description: Server-supplied member concurrency token, also available in roster rows.
         description:
           type: string
-          description: Community-specific plain text; at most 300 Unicode text elements. Empty when unset.
+          description: Season-specific plain text; at most 300 Unicode text elements. Empty when unset.
       required:
       - character
       - status
@@ -9236,8 +8986,8 @@ components:
         tradingAllowed:
           type: boolean
           nullable: true
-          description: Optional positive trading permission. Omitted or null preserves the current setting; false cancels
-            open trades and releases reservations in the same transaction. No reason is required.
+          description: Optional positive trading permission. Omitted or null preserves the current setting; false
+            cancels open trades and releases reservations in the same transaction. No reason is required.
       required:
       - capabilities
       additionalProperties: false
@@ -9259,53 +9009,6 @@ components:
       required:
       - reason
       additionalProperties: false
-    InvitationCreate:
-      type: object
-      properties:
-        expiresInHours:
-          type: integer
-          format: int32
-          deprecated: true
-          description: Accepted for legacy clients but ignored; invitations do not expire.
-        maxUses:
-          type: integer
-          format: int32
-          deprecated: true
-          description: Accepted for legacy clients but ignored; invitations have unlimited uses.
-      additionalProperties: false
-    Invitation:
-      type: object
-      properties:
-        id: *id002
-        communityId: *id002
-        expiresAt: *id013
-        maxUses:
-          type: integer
-          format: int32
-        used:
-          type: integer
-          format: int32
-        revoked: *id001
-      required:
-      - id
-      - communityId
-      - expiresAt
-      - maxUses
-      - used
-      - revoked
-      additionalProperties: true
-    InvitationCreated:
-      type: object
-      properties:
-        invitation:
-          $ref: '#/components/schemas/Invitation'
-        invitationCode:
-          type: string
-          description: Nine-character case-insensitive secret returned once; stored as a hash. Valid until revoked.
-      required:
-      - invitation
-      - invitationCode
-      additionalProperties: true
     OwnershipProposal:
       type: object
       properties:
@@ -9317,7 +9020,7 @@ components:
       type: object
       properties:
         id: *id002
-        communityId: *id002
+        seasonId: *id002
         fromCharacterId: *id002
         toCharacterId: *id002
         status:
@@ -9330,7 +9033,7 @@ components:
         expiresAt: *id013
       required:
       - id
-      - communityId
+      - seasonId
       - fromCharacterId
       - toCharacterId
       - status
@@ -9340,7 +9043,7 @@ components:
       type: object
       properties:
         id: *id002
-        communityId: *id002
+        seasonId: *id002
         name: *id011
         allowedTypeIds:
           type: array
@@ -9350,7 +9053,7 @@ components:
         version: *id012
       required:
       - id
-      - communityId
+      - seasonId
       - name
       - allowedTypeIds
       - retired
@@ -9377,7 +9080,8 @@ components:
           minimum: 1
         useMessage:
           type: string
-          description: Literal message. Server enforces discovered 50-text-element default and tested game byte cap.
+          description: Literal message. Server enforces discovered 50-text-element default and tested game byte
+            cap.
       required:
       - creationCost
       - useMessage
@@ -9386,7 +9090,7 @@ components:
       type: object
       properties:
         id: *id002
-        communityId: *id002
+        seasonId: *id002
         typeId:
           type: string
           enum:
@@ -9409,7 +9113,7 @@ components:
           $ref: '#/components/schemas/PotionData'
       required:
       - id
-      - communityId
+      - seasonId
       - typeId
       - revision
       - typeDataVersion
@@ -9420,8 +9124,8 @@ components:
       - retired
       - potion
       additionalProperties: true
-      description: Potion definitions are authored by the owner or a member authorized for items.potion.define; future types
-        use versioned typed payloads.
+      description: Potion definitions are authored by the owner or a member authorized for items.potion.define;
+        future types use versioned typed payloads.
     PotionDataWrite:
       type: object
       properties:
@@ -9470,7 +9174,7 @@ components:
       type: object
       properties:
         id: *id002
-        communityId: *id002
+        seasonId: *id002
         characterId: *id002
         typeId:
           type: string
@@ -9515,7 +9219,7 @@ components:
           nullable: true
       required:
       - id
-      - communityId
+      - seasonId
       - characterId
       - typeId
       - name
@@ -9532,7 +9236,7 @@ components:
       type: object
       properties:
         id: *id002
-        communityId: *id002
+        seasonId: *id002
         author:
           $ref: '#/components/schemas/Character'
         categoryId: *id002
@@ -9552,7 +9256,7 @@ components:
           - note
       required:
       - id
-      - communityId
+      - seasonId
       - author
       - categoryId
       - title
@@ -9605,14 +9309,14 @@ components:
     Quotas:
       type: object
       properties:
-        communityId: *id002
+        seasonId: *id002
         characterId: *id002
         quotas:
           type: array
           items:
             $ref: '#/components/schemas/Quota'
       required:
-      - communityId
+      - seasonId
       - characterId
       - quotas
       additionalProperties: true
@@ -9679,8 +9383,8 @@ components:
         expectedHoldingVersion: *id012
         chatConsent:
           type: boolean
-          description: Existing once-per-startup chat permission, automatically supplied by the client. Never requires a new
-            per-message or per-use consent question.
+          description: Existing once-per-startup chat permission, automatically supplied by the client. Never requires
+            a new per-message or per-use consent question.
           enum:
           - true
         destination:
@@ -9803,7 +9507,7 @@ components:
       type: object
       properties:
         id: *id006
-        communityId: *id006
+        seasonId: *id006
         currencyId: *id006
         state:
           type: string
@@ -9831,7 +9535,7 @@ components:
           nullable: true
       required:
       - id
-      - communityId
+      - seasonId
       - currencyId
       - state
       - revision
@@ -9879,7 +9583,7 @@ components:
       type: object
       properties:
         id: *id002
-        communityId:
+        seasonId:
           type: string
           format: uuid
           nullable: true
@@ -9896,7 +9600,7 @@ components:
           items: *id002
       required:
       - id
-      - communityId
+      - seasonId
       - kind
       - actorCharacterId
       - occurredAt
@@ -9955,7 +9659,7 @@ components:
     ExportMembership:
       type: object
       properties:
-        communityId: *id002
+        seasonId: *id002
         communityNameSnapshot: *id010
         status:
           type: string
@@ -9964,7 +9668,7 @@ components:
           items:
             type: string
       required:
-      - communityId
+      - seasonId
       - communityNameSnapshot
       - status
       - ownCapabilities
@@ -9974,7 +9678,7 @@ components:
       properties:
         character:
           $ref: '#/components/schemas/Character'
-        communities:
+        seasons:
           type: array
           items:
             $ref: '#/components/schemas/ExportMembership'
@@ -9993,52 +9697,21 @@ components:
         exportedAt: *id013
       required:
       - character
-      - communities
+      - seasons
       - holdings
       - quotas
       - history
       - exportedAt
       additionalProperties: true
-      description: Approved character-scoped export; no auth secrets or other holders private content. May stream large arrays.
-    ChangeEvent:
-      type: object
-      properties:
-        sequence:
-          type: string
-          pattern: ^[0-9]+$
-        communityId: *id002
-        type:
-          type: string
-        resourceId:
-          type: string
-          format: uuid
-          nullable: true
-        resourceVersion:
-          type: integer
-          format: int32
-          nullable: true
-        operationId:
-          type: string
-          format: uuid
-          nullable: true
-        occurredAt: *id013
-      required:
-      - sequence
-      - communityId
-      - type
-      - resourceId
-      - resourceVersion
-      - operationId
-      - occurredAt
-      additionalProperties: true
-      description: Recipient-filtered invalidation metadata; no chat action or letter-body delivery.
-    CommunityPage:
+      description: Approved character-scoped export; no auth secrets or other holders private content. May stream
+        large arrays.
+    SeasonPage:
       type: object
       properties:
         items:
           type: array
           items:
-            $ref: '#/components/schemas/Community'
+            $ref: '#/components/schemas/Season'
         nextCursor:
           type: string
           nullable: true
@@ -10060,27 +9733,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Member'
-        nextCursor:
-          type: string
-          nullable: true
-        snapshotVersion:
-          type: string
-        eventCursor:
-          type: string
-          nullable: true
-      required:
-      - items
-      - nextCursor
-      - snapshotVersion
-      - eventCursor
-      additionalProperties: true
-    InvitationPage:
-      type: object
-      properties:
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/Invitation'
         nextCursor:
           type: string
           nullable: true
@@ -10270,32 +9922,22 @@ components:
       - operationId
       - result
       additionalProperties: true
-    CreateCommunityResult:
+    CreateSeasonResult:
       type: object
       properties:
         operationId: *id002
         result:
-          $ref: '#/components/schemas/Community'
+          $ref: '#/components/schemas/Season'
       required:
       - operationId
       - result
       additionalProperties: true
-    JoinCommunityResult:
+    EditSeasonResult:
       type: object
       properties:
         operationId: *id002
         result:
-          $ref: '#/components/schemas/Community'
-      required:
-      - operationId
-      - result
-      additionalProperties: true
-    EditCommunityResult:
-      type: object
-      properties:
-        operationId: *id002
-        result:
-          $ref: '#/components/schemas/Community'
+          $ref: '#/components/schemas/Season'
       required:
       - operationId
       - result
@@ -10305,7 +9947,7 @@ components:
       properties:
         operationId: *id002
         result:
-          $ref: '#/components/schemas/CommunityPolicies'
+          $ref: '#/components/schemas/SeasonPolicies'
       required:
       - operationId
       - result
@@ -10346,16 +9988,6 @@ components:
         operationId: *id002
         result:
           $ref: '#/components/schemas/Member'
-      required:
-      - operationId
-      - result
-      additionalProperties: true
-    CreateInvitationResult:
-      type: object
-      properties:
-        operationId: *id002
-        result:
-          $ref: '#/components/schemas/InvitationCreated'
       required:
       - operationId
       - result
@@ -10758,7 +10390,7 @@ components:
         id:
           type: string
           format: uuid
-        communityId:
+        seasonId:
           type: string
           format: uuid
         title:
@@ -10772,7 +10404,7 @@ components:
           format: date-time
       required:
       - id
-      - communityId
+      - seasonId
       - title
       - body
       - author
@@ -10822,10 +10454,10 @@ components:
       - announcementId
       - unreadCount
       additionalProperties: false
-    CommunityAnnouncementUnread:
+    SeasonAnnouncementUnread:
       type: object
       properties:
-        communityId:
+        seasonId:
           type: string
           format: uuid
         unreadCount:
@@ -10833,18 +10465,18 @@ components:
           minimum: 0
           maximum: 5
       required:
-      - communityId
+      - seasonId
       - unreadCount
       additionalProperties: false
     AnnouncementUnreadPage:
       type: object
       properties:
-        communities:
+        seasons:
           type: array
           items:
-            $ref: '#/components/schemas/CommunityAnnouncementUnread'
+            $ref: '#/components/schemas/SeasonAnnouncementUnread'
       required:
-      - communities
+      - seasons
       additionalProperties: false
     AnnouncementCreateReceipt:
       $ref: '#/components/schemas/Receipt'
@@ -10929,7 +10561,7 @@ components:
             - treasury.withdraw
             - treasury.bill
         id: *id009
-        communityId: *id009
+        seasonId: *id009
         name:
           type: string
           maxLength: 80
@@ -10961,7 +10593,7 @@ components:
           type: boolean
       required:
       - id
-      - communityId
+      - seasonId
       - name
       - description
       - logoAssetId
@@ -11093,7 +10725,7 @@ components:
       type: object
       required:
       - id
-      - communityId
+      - seasonId
       - groupId
       - groupName
       - title
@@ -11104,7 +10736,7 @@ components:
       - version
       properties:
         id: *id019
-        communityId: *id019
+        seasonId: *id019
         groupId: *id019
         groupName:
           type: string
@@ -11236,7 +10868,7 @@ components:
     TreasuryBalance:
       type: object
       properties:
-        communityId:
+        seasonId:
           type: string
           format: uuid
         groupId:
@@ -11254,7 +10886,7 @@ components:
         version:
           type: integer
       required:
-      - communityId
+      - seasonId
       - groupId
       - currencyId
       - owned
@@ -11268,7 +10900,7 @@ components:
         id:
           type: string
           format: uuid
-        communityId:
+        seasonId:
           type: string
           format: uuid
         groupId:
@@ -11308,7 +10940,7 @@ components:
           format: date-time
       required:
       - id
-      - communityId
+      - seasonId
       - groupId
       - operationId
       - actorCharacterId
@@ -11366,13 +10998,13 @@ components:
     TreasuryReturn:
       type: object
       properties:
-        communityId:
+        seasonId:
           type: string
           format: uuid
         groupId:
           type: string
           format: uuid
-        communityName:
+        seasonName:
           type: string
         groupName:
           type: string
@@ -11381,9 +11013,9 @@ components:
         amount:
           type: string
       required:
-      - communityId
+      - seasonId
       - groupId
-      - communityName
+      - seasonName
       - groupName
       - currencyName
       - amount
@@ -11459,7 +11091,7 @@ components:
         id:
           type: string
           format: uuid
-        communityId:
+        seasonId:
           type: string
           format: uuid
         groupId:
@@ -11490,7 +11122,7 @@ components:
           format: date-time
       required:
       - id
-      - communityId
+      - seasonId
       - groupId
       - issuerCharacterId
       - characterId
@@ -11598,5 +11230,61 @@ components:
       - operationId
       - result
       additionalProperties: false
+    SeasonCreationPermission:
+      type: object
+      required:
+      - character
+      - canCreate
+      - isAdministrator
+      - version
+      - etag
+      properties:
+        character:
+          $ref: '#/components/schemas/Character'
+        canCreate:
+          type: boolean
+        isAdministrator:
+          type: boolean
+        version:
+          type: integer
+          minimum: 0
+        etag:
+          type: string
+    SeasonCreationPermissionPage:
+      type: object
+      required:
+      - items
+      - nextCursor
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SeasonCreationPermission'
+        nextCursor:
+          type: string
+          nullable: true
+    SeasonCreationPermissionEdit:
+      type: object
+      required:
+      - canCreate
+      - reason
+      properties:
+        canCreate:
+          type: boolean
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 500
+    SeasonCreationPermissionResult:
+      type: object
+      required:
+      - operationId
+      - result
+      properties:
+        operationId:
+          type: string
+          format: uuid
+        result:
+          $ref: '#/components/schemas/SeasonCreationPermission'
 x-status: planned
 x-defaults-reviewed: '2026-10-06'

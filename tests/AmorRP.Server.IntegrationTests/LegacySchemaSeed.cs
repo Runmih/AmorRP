@@ -26,7 +26,7 @@ public sealed partial class FoundationTests
             var name = property.Name == "CommunityId" ? "GroupId" : property.Name;
             if (!available.Contains(name) || property.PropertyInfo == null) continue;
             var value = property.PropertyInfo.GetValue(row); if (value == null) continue;
-            if (name == "Kind" && value is string kind && kind.StartsWith("community.", StringComparison.Ordinal)) value = "group." + kind[10..];
+            if (name == "Kind" && value is string kind && kind.StartsWith("season.", StringComparison.Ordinal)) value = "group." + kind["season.".Length..];
             var p = command.CreateParameter(); p.ParameterName = "p" + values.Count; p.Value = value; command.Parameters.Add(p);
             names.Add('"' + name + '"'); values.Add("@" + p.ParameterName);
         }

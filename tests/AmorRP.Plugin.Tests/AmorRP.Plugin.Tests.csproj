@@ -7,9 +7,9 @@
     <Compile Include="../../src/AmorRP.Plugin/Services/Ui/FeedbackQueue.cs" Link="Services/Ui/FeedbackQueue.cs" />
     <Compile Include="../../src/AmorRP.Plugin/Services/Api/*.cs" Link="Services/Api/%(Filename)%(Extension)" />
     <Compile Include="../../src/AmorRP.Plugin/Services/Game/ChatCommand.cs" Link="Services/Game/ChatCommand.cs" />
-    <Compile Include="../../src/AmorRP.Plugin/Features/Communities/GroupProfileDraft.cs" Link="Features/Communities/GroupProfileDraft.cs" />
-    <Compile Include="../../src/AmorRP.Plugin/Features/Communities/GroupPermissionDraft.cs" Link="Features/Communities/GroupPermissionDraft.cs" />
-    <Compile Include="../../src/AmorRP.Plugin/Features/Communities/FavoriteEventSchedule.cs" Link="Features/Communities/FavoriteEventSchedule.cs" />
+    <Compile Include="../../src/AmorRP.Plugin/Features/Seasons/GroupProfileDraft.cs" Link="Features/Seasons/GroupProfileDraft.cs" />
+    <Compile Include="../../src/AmorRP.Plugin/Features/Seasons/GroupPermissionDraft.cs" Link="Features/Seasons/GroupPermissionDraft.cs" />
+    <Compile Include="../../src/AmorRP.Plugin/Features/Seasons/FavoriteEventSchedule.cs" Link="Features/Seasons/FavoriteEventSchedule.cs" />
     <Compile Include="../../src/AmorRP.Plugin/Features/Inventory/InventoryAttachmentLayout.cs" Link="Features/Inventory/InventoryAttachmentLayout.cs" />
     <Compile Include="../../src/AmorRP.Plugin/Features/Inventory/InventoryCompanionQuery.cs" Link="Features/Inventory/InventoryCompanionQuery.cs" />
     <Compile Include="../../src/AmorRP.Plugin/Features/Writing/WritingLogReader.cs" Link="Features/Writing/WritingLogReader.cs" />

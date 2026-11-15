@@ -35,7 +35,6 @@ services:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_HTTP_PORTS: "8080"
       AMORRP_MIGRATE_ON_START: "true"
-      SeasonPolicy__Enabled: "true"
       SeasonPolicy__AdministratorLodestoneIds__0: ${AMORRP_ADMIN_LODESTONE_ID:?Enter the verified Lodestone character ID for the server administrator}
       ConnectionStrings__Database: "Host=database;Database=amorrp;Username=amorrp;Password=${AMORRP_DB_PASSWORD:?Database password is required}"
       XivAuth__Enabled: "false"

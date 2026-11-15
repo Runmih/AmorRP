@@ -1,5 +1,5 @@
 using AmorRP.Contracts.Groups;
-using AmorRP.Plugin.Features.Communities;
+using AmorRP.Plugin.Features.Seasons;
 using AmorRP.Plugin.Services.Api;
 using Xunit;
 
@@ -38,7 +38,7 @@ public sealed class GroupPermissionDraftTests
         draft.Refresh("group:member", "v2", []);
         Assert.Empty(draft.Actions); Assert.Equal("v2", draft.ETag);
         var group = Guid.NewGuid();
-        var request = new CommandRequest("PUT", $"api/v2/communities/{Guid.NewGuid()}/groups/{group}/features", "{}", "v1");
+        var request = new CommandRequest("PUT", $"api/v2/seasons/{Guid.NewGuid()}/groups/{group}/features", "{}", "v1");
         Assert.True(request.AppliesToGroup(group)); Assert.False(request.AppliesToGroup(Guid.NewGuid()));
         Assert.False(request.AppliesToGroup(null));
         Assert.Equal("Group features saved.", UserFeedback.Success(request));

@@ -1,6 +1,6 @@
 using AmorRP.Contracts.Common;
 using AmorRP.Contracts.Groups;
-using AmorRP.Server.Features.Communities;
+using AmorRP.Server.Features.Seasons;
 using AmorRP.Server.Infrastructure.Persistence;
 using AmorRP.Server.Infrastructure.Security;
 using Microsoft.EntityFrameworkCore;
@@ -13,9 +13,9 @@ public sealed partial class GroupService
     {
         var actor = (await sessions.GetAsync(h, ct)).CharacterId;
         await using var tx = await db.Database.BeginTransactionAsync(ct);
-        await CommandStore.LockAsync(db, ["character:" + actor, "community:" + communityId], ct);
+        await CommandStore.LockAsync(db, ["character:" + actor, "season:" + communityId], ct);
         var (community, _) = await communities.RequireAsync(communityId, actor, ct);
-        CommunityAccess.Owner(community, actor);
+        SeasonAccess.Owner(community, actor);
         var group = await RequireAsync(communityId, groupId, ct);
         var scope = "character:" + actor;
         var replay = await commands.ReplayAsync(h, scope, body, ct); if (replay != null) return commands.Replay(replay);
@@ -39,7 +39,7 @@ public sealed partial class GroupService
     {
         var actor = (await sessions.GetAsync(h, ct)).CharacterId;
         await using var tx = await db.Database.BeginTransactionAsync(ct);
-        await CommandStore.LockAsync(db, ["character:" + actor, "community:" + communityId], ct);
+        await CommandStore.LockAsync(db, ["character:" + actor, "season:" + communityId], ct);
         await communities.RequireAsync(communityId, actor, ct);
         var group = await RequireAsync(communityId, groupId, ct);
         GroupActivityService.Owner(group, actor);
@@ -49,7 +49,7 @@ public sealed partial class GroupService
         ApiFault.Require(characterId != group.OwnerCharacterId, 409, "group_owner_protected", "Group owner permissions are automatic.");
         var member = await GroupAuthorization.MemberAsync(db, group, characterId, ct);
         CommandStore.Match(h, GroupAuthorization.ETag(member)); GroupAuthorization.Validate(body.Capabilities);
-        ApiFault.Require(body.Capabilities.All(x => GroupCapabilities.Enabled(group.EnabledFeatures, x)), 403, "group_feature_disabled", "The community owner has not enabled that group feature.");
+        ApiFault.Require(body.Capabilities.All(x => GroupCapabilities.Enabled(group.EnabledFeatures, x)), 403, "group_feature_disabled", "The season owner has not enabled that group feature.");
         member.Capabilities = body.Capabilities.Order().ToArray(); member.PermissionVersion = Guid.CreateVersion7();
         var character = await db.Characters.SingleAsync(x => x.Id == characterId, ct);
         var dto = new GroupMember(character.Id, character.DisplayName, character.HomeWorldName, false, member.Capabilities, GroupAuthorization.ETag(member));

@@ -1,6 +1,6 @@
 # Repository layout and navigation
 
-This is the current source map for 0.3.0.0. Plugin and server share a repository,
+This is the current source map for 0.4.0.2. Plugin and server share a repository,
 but build as separate applications. All paths below are relative to the repository.
 See [architecture](architecture.md) for ownership and dependencies.
 
@@ -8,7 +8,7 @@ See [architecture](architecture.md) for ownership and dependencies.
 src/
   AmorRP.Plugin/        Dalamud application
     Features/
-      Communities/      Main feature views, drafts and selected context
+      Seasons/      Main feature views, drafts and selected context
       Shell/            Main window, trade launcher, favorite-events HUD
     Services/
       Api/              HTTP transport, command routes, request coordination
@@ -19,7 +19,7 @@ src/
     Assets/             Bundled coin and plugin branding
   AmorRP.Server/        ASP.NET Core application
     Features/           Feature endpoints, services and workers
-    Infrastructure/     Persistence, security and legacy wire adapter
+    Infrastructure/     Persistence, security
     Options/            Validated deployment policies
   AmorRP.Core/          Pure text, crafting-type and capacity rules
   AmorRP.Contracts/     Request/response records grouped by feature
@@ -43,19 +43,19 @@ repo.json               Public Dalamud repository feed
 | Concern | Main sources |
 | --- | --- |
 | Composition and lifecycle | Plugin `Plugin.cs`; server `Program.cs` |
-| Main view and selected character/community | Plugin `Features/Communities/CommunitiesPanel.cs` |
+| Main view and selected character/season | Plugin `Features/Seasons/SeasonsPanel.cs` |
 | Foreground/core request lifecycle | Plugin `Services/Api/RequestCoordinator.cs` |
-| Independent feature refresh lifecycle | Plugin `Services/Api/BackgroundRefresh.cs`; `Features/Communities/FeatureRefreshScreens.cs` |
-| Command response dispatch and refresh targets | Plugin `Services/Api/CommandRoutes.cs`; `Features/Communities/CommandCompletionScreens.cs`, `QuietUpdates.cs` |
-| Trusted billing, debt collection and receipts | Plugin `Features/Communities/BillingScreens.cs`; server `Features/Billing/`, `Features/Groups/GroupService.Trust.cs`; persistence `BillingModel.cs`, `Entities/BillingRows.cs` |
-| Treasury balances, transfers, records and disband returns | Plugin `Features/Communities/GroupTreasuryScreens.cs`; server `Features/Currency/TreasuryService.cs`, `TreasuryLedger.cs`, `CurrencyAccounts.cs`; `Features/Groups/GroupLifecycle.cs` |
-| Group staff permissions | Plugin `Features/Communities/GroupPermissionScreens.cs`, `GroupPermissionDraft.cs`; server `Features/Groups/GroupAuthorization.cs`, `GroupService.Permissions.cs` |
-| Group profile draft | Plugin `Features/Communities/GroupProfileDraft.cs`, `NestedGroupScreens.cs` |
-| Trade draft and views | Plugin `Services/Api/TradeDraft.cs`; `Features/Communities/TradeScreens.cs`, `TradeWindowScreens.cs` |
-| Favorite events HUD | Plugin `Features/Shell/FavoriteEventsWindow.cs`; `Features/Communities/FavoriteEventsHud.cs`, `FavoriteEventSchedule.cs` |
-| Community profile, announcements and settings | Plugin `HomeProfileScreens.cs`, `AnnouncementScreens.cs`, `CommunitySettingsScreens.cs`, `WeeklyPolicyScreens.cs` under `Features/Communities/` |
+| Independent feature refresh lifecycle | Plugin `Services/Api/BackgroundRefresh.cs`; `Features/Seasons/FeatureRefreshScreens.cs` |
+| Command response dispatch and refresh targets | Plugin `Services/Api/CommandRoutes.cs`; `Features/Seasons/CommandCompletionScreens.cs`, `QuietUpdates.cs` |
+| Trusted billing, debt collection and receipts | Plugin `Features/Seasons/BillingScreens.cs`; server `Features/Billing/`, `Features/Groups/GroupService.Trust.cs`; persistence `BillingModel.cs`, `Entities/BillingRows.cs` |
+| Treasury balances, transfers, records and disband returns | Plugin `Features/Seasons/GroupTreasuryScreens.cs`; server `Features/Currency/TreasuryService.cs`, `TreasuryLedger.cs`, `CurrencyAccounts.cs`; `Features/Groups/GroupLifecycle.cs` |
+| Group staff permissions | Plugin `Features/Seasons/GroupPermissionScreens.cs`, `GroupPermissionDraft.cs`; server `Features/Groups/GroupAuthorization.cs`, `GroupService.Permissions.cs` |
+| Group profile draft | Plugin `Features/Seasons/GroupProfileDraft.cs`, `NestedGroupScreens.cs` |
+| Trade draft and views | Plugin `Services/Api/TradeDraft.cs`; `Features/Seasons/TradeScreens.cs`, `TradeWindowScreens.cs` |
+| Favorite events HUD | Plugin `Features/Shell/FavoriteEventsWindow.cs`; `Features/Seasons/FavoriteEventsHud.cs`, `FavoriteEventSchedule.cs` |
+| Season profile, announcements and settings | Plugin `HomeProfileScreens.cs`, `AnnouncementScreens.cs`, `SeasonSettingsScreens.cs`, `WeeklyPolicyScreens.cs` under `Features/Seasons/` |
 | Authentication and ownership verification | Server `Features/Authentication/AuthenticationService.cs`, `DurableXivAuthProvider.cs`, `SessionAccess.cs` |
-| Community membership and grants | Server `Features/Communities/CommunityAccess.cs`, `CommunityService.*.cs` |
+| Season membership and grants | Server `Features/Seasons/SeasonAccess.cs`, `SeasonResourceService.*.cs` |
 | Group ownership, joins, private content and events | Server `Features/Groups/GroupService.cs`, `GroupActivityService.cs`, `GroupEndpoints.cs` |
 | Recipes, production and holdings | Server `Features/Catalog/`, `Features/Inventory/`; Core `Items/CraftingTypes.cs` |
 | Trade transactions and projection | Server `Features/Trading/TradeService*.cs`, `TradeReservations.cs` |
@@ -64,7 +64,7 @@ repo.json               Public Dalamud repository feed
 | Provider and deployment secrets | Server options and deployment environment; never committed values |
 | Release endpoint and metadata | Plugin `Services/Api/ProductServer.cs`, plugin/server project versions, plugin `AmorRP.json` |
 
-`*Screens.cs` files are parts of one `CommunitiesPanel` class. Splitting a file does
+`*Screens.cs` files are parts of one `SeasonsPanel` class. Splitting a file does
 not by itself isolate its state. Reusable draft/request components own their own
 state and are compiled directly into helper tests.
 

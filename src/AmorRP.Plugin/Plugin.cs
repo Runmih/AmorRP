@@ -23,7 +23,7 @@ public sealed class Plugin : IDalamudPlugin
     private readonly AmorRP.Plugin.Features.Inventory.CompactWindow compactWindow;
     private readonly AmorRP.Plugin.Features.Inventory.InventoryCompanionWindow inventoryCompanionWindow;
     private readonly AmorRP.Plugin.Features.Trading.TradeWindow tradeWindow;
-    private readonly AmorRP.Plugin.Features.Communities.CommunityFormWindow joinCommunityWindow, createCommunityWindow;
+    private readonly AmorRP.Plugin.Features.Seasons.SeasonFormWindow createCommunityWindow;
     private readonly CharacterContext context;
 
     public Plugin(IDalamudPluginInterface pluginInterface, ICommandManager commands, IPlayerState playerState,
@@ -44,11 +44,8 @@ public sealed class Plugin : IDalamudPlugin
         inventoryCompanionWindow = new(gameGui, () => configuration.ShowAttachedInterfaces && configuration.ShowInventoryCompanion && playerState.IsLoaded, mainWindow.DrawInventoryCompanion);
         tradeWindow = new(mainWindow.DrawTrade, mainWindow.TradeOpened, mainWindow.TradeClosed);
         mainWindow.OpenTrade = () => tradeWindow.IsOpen = true;
-        joinCommunityWindow = new("Amor RP — Join community###AmorRPJoinCommunity", mainWindow.DrawJoinCommunity, () => mainWindow.CanDrawCommunityForms, new(520, 360), mainWindow.ClearFeedback);
         createCommunityWindow = new("Amor RP — Prepare season###AmorRPCreateCommunity", mainWindow.DrawCreateCommunity, () => mainWindow.CanDrawCommunityForms, new(560, 660), mainWindow.ClearFeedback);
-        mainWindow.OpenJoinCommunity = () => joinCommunityWindow.IsOpen = true;
         mainWindow.OpenCreateCommunity = () => createCommunityWindow.IsOpen = true;
-        mainWindow.CloseJoinCommunity = () => joinCommunityWindow.IsOpen = false;
         mainWindow.CloseCreateCommunity = () => createCommunityWindow.IsOpen = false;
         launcherWindow = new(mainWindow.OpenWritingLogFromLauncher, mainWindow.OpenTradeFromLauncher, mainWindow.OpenWorkspaceFromLauncher,
             () => mainWindow.PendingTradeRequests, () => mainWindow.UnreadAnnouncements, () => playerState.IsLoaded,
@@ -66,7 +63,6 @@ public sealed class Plugin : IDalamudPlugin
         windows.AddWindow(compactWindow);
         windows.AddWindow(inventoryCompanionWindow);
         windows.AddWindow(tradeWindow);
-        windows.AddWindow(joinCommunityWindow);
         windows.AddWindow(createCommunityWindow);
         windows.AddWindow(launcherWindow);
         commands.AddHandler(Command, new CommandInfo(OnCommand) { HelpMessage = "/amorrp → Settings" });
@@ -93,7 +89,7 @@ public sealed class Plugin : IDalamudPlugin
             case "crafting": mainWindow.OpenWorkspaceFromLauncher(WorkspaceKind.Crafting); break;
             case "groups": mainWindow.OpenWorkspaceFromLauncher(WorkspaceKind.GroupManagement); break;
             case "manage": mainWindow.OpenWorkspaceFromLauncher(WorkspaceKind.CommunityManagement); break;
-            case "season": case "community": mainWindow.OpenWorkspaceFromLauncher(WorkspaceKind.Community); break;
+            case "season": mainWindow.OpenWorkspaceFromLauncher(WorkspaceKind.Season); break;
             case "launcher":
                 configuration.ShowLauncher = !configuration.ShowLauncher; launcherWindow.IsOpen = configuration.ShowLauncher;
                 pluginInterface.SavePluginConfig(configuration); break;

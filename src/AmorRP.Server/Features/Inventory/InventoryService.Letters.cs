@@ -21,7 +21,7 @@ public sealed partial class InventoryService
     {
         var actor = (await sessions.GetAsync(h, ct)).CharacterId;
         await using var tx = edit != null ? await db.Database.BeginTransactionAsync(ct) : null;
-        if (edit != null) await CommandStore.LockAsync(db, ["character:" + actor, "community:" + communityId], ct);
+        if (edit != null) await CommandStore.LockAsync(db, ["character:" + actor, "season:" + communityId], ct);
         var (community, _) = await communities.RequireAsync(communityId, actor, ct);
         var holding = await db.Holdings.SingleOrDefaultAsync(x => x.CommunityId == communityId && x.LetterId == letterId && x.CharacterId == actor && x.Quantity == 1, ct);
         ApiFault.Require(holding != null, 404, "not_found", "Letter not found or no longer owned.");

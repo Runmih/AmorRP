@@ -5,7 +5,7 @@ using Dalamud.Bindings.ImGui;
 namespace AmorRP.Plugin.Services.Media;
 
 // One current community image; scoped to server, character, community and asset revision.
-public sealed class CommunityImageCache(ITextureProvider textures, string label, bool coinFallback = false) : IDisposable
+public sealed class SeasonImageCache(ITextureProvider textures, string label, bool coinFallback = false) : IDisposable
 {
     private string key = "";
     private IDalamudTextureWrap? current;
@@ -18,7 +18,7 @@ public sealed class CommunityImageCache(ITextureProvider textures, string label,
         Clear(); key = candidate;
         if (!custom && coinFallback)
         {
-            using var resource = typeof(CommunityImageCache).Assembly.GetManifestResourceStream("AmorRP.Plugin.Assets.default-coin.png");
+            using var resource = typeof(SeasonImageCache).Assembly.GetManifestResourceStream("AmorRP.Plugin.Assets.default-coin.png");
             using var bytes = new MemoryStream(); resource?.CopyTo(bytes); png = bytes.ToArray();
         }
         if (png is { Length: > 0 }) pending = textures.CreateFromImageAsync(png, "AmorRP " + label, loading.Token);

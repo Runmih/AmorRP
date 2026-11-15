@@ -13,14 +13,13 @@ public sealed class DebtCollectionWorker(IServiceScopeFactory scopes, TimeProvid
             {
                 await using var scope = scopes.CreateAsyncScope(); var db = scope.ServiceProvider.GetRequiredService<AmorDbContext>();
                 var settlement = scope.ServiceProvider.GetRequiredService<DebtSettlement>();
-                var seasons = scope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<AmorRP.Server.Options.SeasonPolicyOptions>>().Value.Enabled;
-                var pending = await db.Memberships.AsNoTracking().Where(x => x.CollectionPending && db.Communities.Any(c => c.Id == x.CommunityId && c.SeasonState != "archived" && (!seasons || c.SeasonState == "active")))
+                var pending = await db.Memberships.AsNoTracking().Where(x => x.CollectionPending && db.Seasons.Any(c => c.Id == x.CommunityId && c.SeasonState == "active"))
                     .OrderBy(x => x.LastCollectionAttempt).ThenBy(x => x.CharacterId).Take(16).Select(x => new { x.CommunityId, x.CharacterId }).ToArrayAsync(ct);
                 foreach (var item in pending)
                 {
                     await using var tx = await db.Database.BeginTransactionAsync(ct);
-                    await CommandStore.LockAsync(db, ["community:" + item.CommunityId], ct);
-                    if (!await db.Communities.AnyAsync(c => c.Id == item.CommunityId && c.SeasonState != "archived" && (!seasons || c.SeasonState == "active"), ct)) continue;
+                    await CommandStore.LockAsync(db, ["season:" + item.CommunityId], ct);
+                    if (!await db.Seasons.AnyAsync(c => c.Id == item.CommunityId && c.SeasonState == "active", ct)) continue;
                     var member = await db.Memberships.SingleAsync(x => x.CommunityId == item.CommunityId && x.CharacterId == item.CharacterId, ct);
                     if (member.CollectionPending) await settlement.CollectAsync(member, "automatic", null, ct);
                     await db.SaveChangesAsync(ct); await tx.CommitAsync(ct); db.ChangeTracker.Clear();

@@ -2,14 +2,14 @@ using AmorRP.Contracts.Common;
 using AmorRP.Contracts.Groups;
 using AmorRP.Core.Items;
 using AmorRP.Server.Features.Authentication;
-using AmorRP.Server.Features.Communities;
+using AmorRP.Server.Features.Seasons;
 using AmorRP.Server.Infrastructure.Persistence;
 using AmorRP.Server.Infrastructure.Security;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 namespace AmorRP.Server.Features.Groups;
 
-public sealed class GroupActivityService(AmorDbContext db, SessionAccess sessions, CommunityAccess communities, CommandStore commands, TimeProvider time, PageCursor pages)
+public sealed class GroupActivityService(AmorDbContext db, SessionAccess sessions, SeasonAccess communities, CommandStore commands, TimeProvider time, PageCursor pages)
 {
     public static void Owner(GroupRow row, Guid actor) => ApiFault.Require(row.OwnerCharacterId == actor, 403, "group_owner_required", "Only this group's owner may perform this action.");
     private async Task<(Guid Actor, GroupRow Group)> RequireAsync(HttpContext h, Guid communityId, Guid groupId, CancellationToken ct)
@@ -39,7 +39,7 @@ public sealed class GroupActivityService(AmorDbContext db, SessionAccess session
         var actor = (await sessions.GetAsync(h, ct)).CharacterId;
         var rows = await (from f in db.GroupFavorites.AsNoTracking()
             join m in db.Memberships on new { f.CommunityId, f.CharacterId } equals new { m.CommunityId, m.CharacterId }
-            join c in db.Communities on f.CommunityId equals c.Id
+            join c in db.Seasons on f.CommunityId equals c.Id
             join g in db.Groups on new { f.CommunityId, Id = f.GroupId } equals new { g.CommunityId, g.Id }
             join e in db.GroupEvents on new { g.CommunityId, GroupId = g.Id } equals new { e.CommunityId, e.GroupId }
             where f.CharacterId == actor && m.Status == "active" && !c.Deleted && c.SeasonState != "archived" && !g.Deleted && e.EndsAt > time.GetUtcNow()
@@ -138,7 +138,7 @@ public sealed class GroupActivityService(AmorDbContext db, SessionAccess session
     {
         var actor = (await sessions.GetAsync(h, ct)).CharacterId;
         await using var tx = await db.Database.BeginTransactionAsync(ct);
-        await CommandStore.LockAsync(db, ["character:" + actor, "community:" + communityId], ct);
+        await CommandStore.LockAsync(db, ["character:" + actor, "season:" + communityId], ct);
         var (_, group) = await RequireAsync(h, communityId, groupId, ct);
         if (capability != null) await GroupAuthorization.ActionAsync(db, group, actor, capability, ct);
         var scope = "character:" + actor;

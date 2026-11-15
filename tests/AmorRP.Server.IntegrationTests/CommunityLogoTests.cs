@@ -1,7 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using AmorRP.Contracts.Common;
-using AmorRP.Contracts.Communities;
+using AmorRP.Contracts.Seasons;
 using AmorRP.Server.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
@@ -24,7 +24,7 @@ public sealed partial class FoundationTests
         using var bitmap = new SKBitmap(width, height); bitmap.Erase(SKColors.Teal);
         using var image = bitmap.Encode(format, 90); return image.ToArray();
     }
-    private static string LogoTag(Community community) => $"\"community-logo:{community.Id:N}:{community.LogoVersion}\"";
+    private static string LogoTag(Season community) => $"\"season-logo:{community.Id:N}:{community.LogoVersion}\"";
 
     [Theory]
     [InlineData(SKEncodedImageFormat.Png)] [InlineData(SKEncodedImageFormat.Jpeg)] [InlineData(SKEncodedImageFormat.Webp)]
@@ -32,31 +32,31 @@ public sealed partial class FoundationTests
     {
         var ct = TestContext.Current.CancellationToken;
         using var factory = Factory(); await Migrate(factory); using var owner = factory.CreateClient(); var token = await Login(owner, "800"); var community = await Create(owner);
-        var key = Guid.CreateVersion7(clock.GetUtcNow()); var path = $"/api/v2/communities/{community.Id}/logo"; var bytes = LogoBytes(1200, 600, format);
+        var key = Guid.CreateVersion7(clock.GetUtcNow()); var path = $"/api/v2/seasons/{community.Id}/logo"; var bytes = LogoBytes(1200, 600, format);
         using var upload = await UploadCommunityImage(owner, path, bytes, LogoTag(community), key); Assert.Equal(HttpStatusCode.OK, upload.StatusCode);
-        var saved = (await upload.Content.ReadFromJsonAsync<CommandResult<Community>>(ct))!.Result;
+        var saved = (await upload.Content.ReadFromJsonAsync<CommandResult<Season>>(ct))!.Result;
         Assert.NotNull(saved.LogoAssetId); Assert.Equal(2, saved.LogoVersion); Assert.Equal(community.Version, saved.Version); Assert.Equal(community.Currency, saved.Currency);
         using var retry = await UploadCommunityImage(owner, path, bytes, LogoTag(community), key);
-        Assert.True(retry.Headers.Contains("Idempotency-Replayed")); Assert.Equal(saved.LogoAssetId, (await retry.Content.ReadFromJsonAsync<CommandResult<Community>>(ct))!.Result.LogoAssetId);
+        Assert.True(retry.Headers.Contains("Idempotency-Replayed")); Assert.Equal(saved.LogoAssetId, (await retry.Content.ReadFromJsonAsync<CommandResult<Season>>(ct))!.Result.LogoAssetId);
         var png = await owner.GetByteArrayAsync(path, ct); using (var bitmap = SKBitmap.Decode(png)) { Assert.Equal(512, bitmap.Width); Assert.Equal(256, bitmap.Height); }
         using var response = await owner.GetAsync(path, ct); Assert.Equal("no-store", response.Headers.CacheControl!.ToString()); Assert.Equal("nosniff", response.Headers.GetValues("X-Content-Type-Options").Single());
         using var restarted = Factory(); using var after = restarted.CreateClient(); after.DefaultRequestHeaders.Authorization = new("Bearer", token.AccessToken);
         Assert.Equal(png, await after.GetByteArrayAsync(path, ct));
         // A profile save does not invalidate the independent logo ETag.
-        var renamed = await Command<Community>(owner, HttpMethod.Patch, $"/api/v2/communities/{community.Id}", new CommunityEdit("New community name", "Profile"), $"\"community:{community.Id:N}:{community.Version}\"");
+        var renamed = await Command<Season>(owner, HttpMethod.Patch, $"/api/v2/seasons/{community.Id}", new SeasonEdit("New community name", "Profile"), $"\"season:{community.Id:N}:{community.Version}\"");
         using var replacement = await UploadCommunityImage(owner, path, LogoBytes(256, 512), LogoTag(saved)); Assert.Equal(HttpStatusCode.OK, replacement.StatusCode);
-        var changed = (await replacement.Content.ReadFromJsonAsync<CommandResult<Community>>(ct))!.Result;
+        var changed = (await replacement.Content.ReadFromJsonAsync<CommandResult<Season>>(ct))!.Result;
         Assert.Equal(renamed.Name, changed.Name); Assert.Equal(3, changed.LogoVersion);
-        using var currency = await UploadCommunityImage(owner, $"/api/v2/communities/{community.Id}/currency/icon", LogoBytes(128, 128), $"\"currency:{community.Currency.Id:N}:1\""); Assert.Equal(HttpStatusCode.OK, currency.StatusCode);
+        using var currency = await UploadCommunityImage(owner, $"/api/v2/seasons/{community.Id}/currency/icon", LogoBytes(128, 128), $"\"currency:{community.Currency.Id:N}:1\""); Assert.Equal(HttpStatusCode.OK, currency.StatusCode);
         await using (var scope = factory.Services.CreateAsyncScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<AmorDbContext>();
             Assert.Equal(2, await db.MediaAssets.CountAsync(ct)); Assert.Single(await db.MediaAssets.Where(x => x.Purpose == "community_logo").ToArrayAsync(ct));
             Assert.False(await db.MediaAssets.AnyAsync(x => x.Id == saved.LogoAssetId, ct));
         }
-        var removed = await Command<Community>(owner, HttpMethod.Delete, path, etag: LogoTag(changed)); Assert.Null(removed.LogoAssetId);
+        var removed = await Command<Season>(owner, HttpMethod.Delete, path, etag: LogoTag(changed)); Assert.Null(removed.LogoAssetId);
         Assert.Equal(HttpStatusCode.NotFound, (await owner.GetAsync(path, ct)).StatusCode);
-        Assert.Equal(HttpStatusCode.OK, (await owner.GetAsync($"/api/v2/communities/{community.Id}/currency/icon", ct)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await owner.GetAsync($"/api/v2/seasons/{community.Id}/currency/icon", ct)).StatusCode);
         await using (var scope = factory.Services.CreateAsyncScope()) Assert.Equal("currency", (await scope.ServiceProvider.GetRequiredService<AmorDbContext>().MediaAssets.SingleAsync(ct)).Purpose);
     }
 
@@ -65,25 +65,25 @@ public sealed partial class FoundationTests
     {
         var ct = TestContext.Current.CancellationToken;
         using var factory = Factory(); await Migrate(factory); using var owner = factory.CreateClient(); await Login(owner, "801"); var community = await Create(owner);
-        using var member = factory.CreateClient(); var memberId = (await Login(member, "802")).Character.Id; await Join(member, await Invite(owner, community));
+        using var member = factory.CreateClient(); var memberId = (await Login(member, "802")).Character.Id; await Enroll(member, community);
         using var outsider = factory.CreateClient(); await Login(outsider, "803");
-        await GrantHome(owner, community, memberId, "community.moderate", "announcements.manage");
-        var path = $"/api/v2/communities/{community.Id}/logo"; var image = LogoBytes(128, 128);
+        await GrantHome(owner, community, memberId, "season.moderate", "announcements.manage");
+        var path = $"/api/v2/seasons/{community.Id}/logo"; var image = LogoBytes(128, 128);
         using (var denied = await UploadCommunityImage(member, path, [1, 2, 3], LogoTag(community))) Assert.Equal(HttpStatusCode.Forbidden, denied.StatusCode);
-        using (var hidden = await UploadCommunityImage(outsider, path, image, LogoTag(community))) Assert.Equal(HttpStatusCode.NotFound, hidden.StatusCode);
+        using (var hidden = await UploadCommunityImage(outsider, path, image, LogoTag(community))) Assert.Equal(HttpStatusCode.Forbidden, hidden.StatusCode);
         using (var uploaded = await UploadCommunityImage(owner, path, image, LogoTag(community))) Assert.Equal(HttpStatusCode.OK, uploaded.StatusCode);
-        var current = (await owner.GetFromJsonAsync<Community>($"/api/v2/communities/{community.Id}", ct))!;
+        var current = (await owner.GetFromJsonAsync<Season>($"/api/v2/seasons/{community.Id}", ct))!;
         Assert.Equal(HttpStatusCode.OK, (await member.GetAsync(path, ct)).StatusCode);
-        Assert.Equal(HttpStatusCode.NotFound, (await outsider.GetAsync(path, ct)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await outsider.GetAsync(path, ct)).StatusCode);
         using (var stale = await UploadCommunityImage(owner, path, image, LogoTag(community))) Assert.Equal(HttpStatusCode.PreconditionFailed, stale.StatusCode);
         using (var invalid = await UploadCommunityImage(owner, path, [1, 2, 3, 4], LogoTag(current))) Assert.Equal(HttpStatusCode.UnsupportedMediaType, invalid.StatusCode);
         using (var oversized = await UploadCommunityImage(owner, path, new byte[2097153], LogoTag(current))) Assert.Equal(HttpStatusCode.RequestEntityTooLarge, oversized.StatusCode);
         using (var dimensions = await UploadCommunityImage(owner, path, LogoBytes(2049, 1), LogoTag(current))) Assert.Equal(HttpStatusCode.UnprocessableEntity, dimensions.StatusCode);
         var membership = await Member(owner, community, memberId);
-        await Command<Member>(member, HttpMethod.Delete, $"/api/v2/communities/{community.Id}/members/{memberId}", new MemberRemoval("Leave"), membership.Etag);
+        await Command<Member>(owner, HttpMethod.Delete, $"/api/v2/seasons/{community.Id}/members/{memberId}", new MemberRemoval("Leave"), membership.Etag);
         Assert.Equal(HttpStatusCode.NotFound, (await member.GetAsync(path, ct)).StatusCode);
         await using var scope = factory.Services.CreateAsyncScope(); var db = scope.ServiceProvider.GetRequiredService<AmorDbContext>();
-        Assert.Single(await db.MediaAssets.ToArrayAsync(ct)); Assert.Equal(2, (await db.Communities.SingleAsync(ct)).LogoVersion);
+        Assert.Single(await db.MediaAssets.ToArrayAsync(ct)); Assert.Equal(2, (await db.Seasons.SingleAsync(ct)).LogoVersion);
     }
 
     [Fact]
@@ -102,7 +102,7 @@ public sealed partial class FoundationTests
             UPDATE groups SET "CurrencyIconAssetId" = {asset} WHERE "Id" = {community};
             """, ct);
         await db.Database.MigrateAsync(ct); db.ChangeTracker.Clear();
-        var upgraded = await db.Communities.SingleAsync(ct); var preserved = await db.MediaAssets.SingleAsync(ct);
+        var upgraded = await db.Seasons.SingleAsync(ct); var preserved = await db.MediaAssets.SingleAsync(ct);
         Assert.Equal("Preserved community", upgraded.Name); Assert.Equal(7, upgraded.Version); Assert.Equal(currency, upgraded.CurrencyId); Assert.Equal(asset, upgraded.CurrencyIconAssetId);
         Assert.Null(upgraded.LogoAssetId); Assert.Equal(1, upgraded.LogoVersion); Assert.Equal("currency", preserved.Purpose); Assert.Equal(png, preserved.Png);
     }

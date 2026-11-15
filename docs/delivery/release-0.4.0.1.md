@@ -1,5 +1,7 @@
 # Amor RP 0.4.0.1 — focused settings window
 
+Historical patch record. The current server/permission model is [0.4.0.2](release-0.4.0.2.md).
+
 The former main menu now opens **Settings**. Its feature sidebar and embedded
 inventory, crafting, groups, members, noticeboard and management pages are removed
 from the window. Those features stay in their dedicated windows and launcher entries.

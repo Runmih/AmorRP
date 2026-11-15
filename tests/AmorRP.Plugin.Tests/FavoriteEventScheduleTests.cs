@@ -1,5 +1,5 @@
 using AmorRP.Contracts.Groups;
-using AmorRP.Plugin.Features.Communities;
+using AmorRP.Plugin.Features.Seasons;
 using Xunit;
 
 namespace AmorRP.Plugin.Tests;

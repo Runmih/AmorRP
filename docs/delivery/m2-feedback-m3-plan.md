@@ -34,7 +34,7 @@ Source inspection identified two concrete problems in the current UI:
   that field, whose input currently sits beside the currency adjustment controls.
   The server requires a nonempty removal reason and returns 422 `invalid_request`
   for an empty/whitespace value. A stale member ETag can separately yield 412.
-- `CommunitiesPanel.Collect` sets the rejection message, then schedules a refresh for
+- `SeasonsPanel.Collect` sets the rejection message, then schedules a refresh for
   most 4xx command failures. `Refresh` immediately changes status to Loading communities
   and ultimately Communities refreshed. The failure therefore disappears from view.
 

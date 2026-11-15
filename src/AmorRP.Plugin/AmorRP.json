@@ -1,8 +1,8 @@
 {
   "Name": "Amor RP",
   "Author": "Runmih",
-  "Punchline": "Bringing FFXIV roleplay venues and communities together.",
-  "Description": "Amor RP brings roleplay venues and communities together with community inventories, fictional currency, Alchemy, Cooking, writing, trading, groups, requests and events.\n\n/amorrp → Settings",
+  "Punchline": "Bringing FFXIV roleplay venues and players together.",
+  "Description": "Amor RP brings roleplay venues and players together through seasons, inventories, fictional currency, Alchemy, Cooking, writing, trading, groups, requests and events.\n\n/amorrp → Settings",
   "RepoUrl": "https://github.com/Runmih/AmorRP",
   "Tags": [
     "roleplay",

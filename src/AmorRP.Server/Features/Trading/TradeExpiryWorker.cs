@@ -20,7 +20,7 @@ public sealed class TradeExpiryWorker(IServiceScopeFactory scopes, TimeProvider 
                 foreach (var community in communities)
                 {
                     await using var tx = await db.Database.BeginTransactionAsync(stoppingToken);
-                    await CommandStore.LockAsync(db, ["community:" + community], stoppingToken);
+                    await CommandStore.LockAsync(db, ["season:" + community], stoppingToken);
                     await reservations.ExpireAsync(community, stoppingToken); await db.SaveChangesAsync(stoppingToken); await tx.CommitAsync(stoppingToken);
                     db.ChangeTracker.Clear();
                 }

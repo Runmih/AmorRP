@@ -1,12 +1,12 @@
 namespace AmorRP.Contracts.Groups;
 
-public sealed record Group(Guid Id, Guid CommunityId, string Name, string Description, Guid? LogoAssetId, int LogoVersion, int Version, string Etag, Guid OwnerCharacterId = default, string JoinMode = "open", bool IsMember = false, bool IsFavorite = false, string[]? EnabledFeatures = null, string[]? MyCapabilities = null, bool IsTrusted = false, int TrustVersion = 0);
+public sealed record Group(Guid Id, [property: System.Text.Json.Serialization.JsonPropertyName("seasonId")] Guid CommunityId, string Name, string Description, Guid? LogoAssetId, int LogoVersion, int Version, string Etag, Guid OwnerCharacterId = default, string JoinMode = "open", bool IsMember = false, bool IsFavorite = false, string[]? EnabledFeatures = null, string[]? MyCapabilities = null, bool IsTrusted = false, int TrustVersion = 0);
 public sealed record GroupWrite(string Name, string Description, string JoinMode = "open", string? Password = null);
 public sealed record GroupPage(Group[] Items, string? NextCursor);
 public sealed record GroupJoin(string? Password = null);
 public sealed record GroupNotice(Guid GroupId, string GroupName, string Title, string Message, string Reward, int Version);
 public sealed record NoticeWrite(string Title, string Message, string Reward);
-public sealed record GroupEvent(Guid Id, Guid CommunityId, Guid GroupId, string GroupName, string Title, string Description, string Location, DateTimeOffset StartsAt, DateTimeOffset EndsAt, int Version);
+public sealed record GroupEvent(Guid Id, [property: System.Text.Json.Serialization.JsonPropertyName("seasonId")] Guid CommunityId, Guid GroupId, string GroupName, string Title, string Description, string Location, DateTimeOffset StartsAt, DateTimeOffset EndsAt, int Version);
 public sealed record EventWrite(string Title, string Description, string Location, DateTimeOffset StartsAt, DateTimeOffset EndsAt);
 public sealed record GroupAnnouncement(Guid Id, string Title, string Message, DateTimeOffset PublishedAt);
 public sealed record AnnouncementWrite(string Title, string Message);

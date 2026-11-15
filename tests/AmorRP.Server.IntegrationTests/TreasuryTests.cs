@@ -1,7 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using AmorRP.Contracts.Common;
-using AmorRP.Contracts.Communities;
+using AmorRP.Contracts.Seasons;
 using AmorRP.Contracts.Currency;
 using AmorRP.Contracts.Groups;
 using AmorRP.Contracts.Trading;
@@ -16,16 +16,16 @@ namespace AmorRP.Server.IntegrationTests;
 
 public sealed partial class FoundationTests
 {
-    private static string TreasuryPath(Community c, GroupProfile g) => $"/api/v2/communities/{c.Id}/groups/{g.Id}/treasury";
-    private async Task<GroupProfile> TreasuryGroup(HttpClient owner, Community c, string name = "Treasury")
+    private static string TreasuryPath(Season c, GroupProfile g) => $"/api/v2/seasons/{c.Id}/groups/{g.Id}/treasury";
+    private async Task<GroupProfile> TreasuryGroup(HttpClient owner, Season c, string name = "Treasury")
     {
-        var group = await Command<GroupProfile>(owner, HttpMethod.Post, $"/api/v2/communities/{c.Id}/groups", new GroupWrite(name, ""));
+        var group = await Command<GroupProfile>(owner, HttpMethod.Post, $"/api/v2/seasons/{c.Id}/groups", new GroupWrite(name, ""));
         Assert.DoesNotContain(GroupCapabilities.Treasury, group.EnabledFeatures!);
-        return await Command<GroupProfile>(owner, HttpMethod.Put, $"/api/v2/communities/{c.Id}/groups/{group.Id}/features", new GroupFeaturesEdit(GroupCapabilities.Features.ToArray()), group.Etag);
+        return await Command<GroupProfile>(owner, HttpMethod.Put, $"/api/v2/seasons/{c.Id}/groups/{group.Id}/features", new GroupFeaturesEdit(GroupCapabilities.Features.ToArray()), group.Etag);
     }
-    private Task<Balance> Fund(HttpClient owner, Community c, Guid character, string amount) =>
-        Command<Balance>(owner, HttpMethod.Post, $"/api/v2/communities/{c.Id}/currency/adjustments", new CurrencyAdjustment(character, amount, "Treasury test funds"));
-    private Task<TreasuryTransferResult> TreasuryMove(HttpClient actor, Community c, GroupProfile g, string amount, bool deposit = true) =>
+    private Task<Balance> Fund(HttpClient owner, Season c, Guid character, string amount) =>
+        Command<Balance>(owner, HttpMethod.Post, $"/api/v2/seasons/{c.Id}/currency/adjustments", new CurrencyAdjustment(character, amount, "Treasury test funds"));
+    private Task<TreasuryTransferResult> TreasuryMove(HttpClient actor, Season c, GroupProfile g, string amount, bool deposit = true) =>
         Command<TreasuryTransferResult>(actor, HttpMethod.Post, TreasuryPath(c, g) + (deposit ? "/deposits" : "/withdrawals"), new TreasuryTransfer(amount, "Test transfer"));
 
     [Fact]
@@ -33,12 +33,12 @@ public sealed partial class FoundationTests
     {
         var ct = TestContext.Current.CancellationToken;
         using var f = Factory(); await Migrate(f); using var admin = f.CreateClient(); await Login(admin, "1200"); var c = await Create(admin);
-        using var owner = f.CreateClient(); var ownerId = (await Login(owner, "1201")).Character.Id; var invite = await Invite(admin, c); await Join(owner, invite);
+        using var owner = f.CreateClient(); var ownerId = (await Login(owner, "1201")).Character.Id; var invite = c; await Enroll(owner, invite);
         await GrantHome(admin, c, ownerId, "groups.create");
-        var group = await Command<GroupProfile>(owner, HttpMethod.Post, $"/api/v2/communities/{c.Id}/groups", new GroupWrite("Staff treasury", "")); var path = TreasuryPath(c, group); var groupPath = path[..^9];
+        var group = await Command<GroupProfile>(owner, HttpMethod.Post, $"/api/v2/seasons/{c.Id}/groups", new GroupWrite("Staff treasury", "")); var path = TreasuryPath(c, group); var groupPath = path[..^9];
         using (var noApproval = await owner.GetAsync(path, ct)) Assert.Equal(HttpStatusCode.Forbidden, noApproval.StatusCode);
         group = await Command<GroupProfile>(admin, HttpMethod.Put, groupPath + "/features", new GroupFeaturesEdit(GroupCapabilities.Features.ToArray()), group.Etag);
-        using var staff = f.CreateClient(); var staffId = (await Login(staff, "1202")).Character.Id; await Join(staff, invite); await GroupAction(staff, HttpMethod.Post, groupPath + "/join", new GroupJoin());
+        using var staff = f.CreateClient(); var staffId = (await Login(staff, "1202")).Character.Id; await Enroll(staff, invite); await GroupAction(staff, HttpMethod.Post, groupPath + "/join", new GroupJoin());
         await Fund(admin, c, staffId, "100");
         var deposited = await TreasuryMove(staff, c, group, "60"); Assert.Equal("40", deposited.CharacterBalance.Owned); Assert.Equal("60", deposited.Treasury.Owned);
         using (var denied = await staff.GetAsync(path + "/records", ct)) Assert.Equal(HttpStatusCode.Forbidden, denied.StatusCode);
@@ -65,9 +65,9 @@ public sealed partial class FoundationTests
     {
         var ct = TestContext.Current.CancellationToken;
         using var f = Factory(); await Migrate(f); using var owner = f.CreateClient(); var ownerId = (await Login(owner, "1210")).Character.Id; var c = await Create(owner); var group = await TreasuryGroup(owner, c); var path = TreasuryPath(c, group);
-        using var peer = f.CreateClient(); var peerId = (await Login(peer, "1211")).Character.Id; await Join(peer, await Invite(owner, c));
+        using var peer = f.CreateClient(); var peerId = (await Login(peer, "1211")).Character.Id; await Enroll(peer, c);
         await Fund(owner, c, ownerId, "100");
-        var trade = await Command<Trade>(owner, HttpMethod.Post, $"/api/v2/communities/{c.Id}/trades", new TradeCreate(peerId)); trade = await TradeCommand(peer, c, trade, "accept"); trade = await Offer(owner, c, trade, "70");
+        var trade = await Command<Trade>(owner, HttpMethod.Post, $"/api/v2/seasons/{c.Id}/trades", new TradeCreate(peerId)); trade = await TradeCommand(peer, c, trade, "accept"); trade = await Offer(owner, c, trade, "70");
         using (var req = Request(HttpMethod.Post, path + "/deposits", new TreasuryTransfer("31")))
         using (var denied = await owner.SendAsync(req, ct)) Assert.Equal(HttpStatusCode.Conflict, denied.StatusCode);
         var body = new TreasuryTransfer("30", "Only available funds"); var key = Guid.CreateVersion7(clock.GetUtcNow()); string? committed = null;
@@ -79,7 +79,7 @@ public sealed partial class FoundationTests
         }
         using (var mismatch = Request(HttpMethod.Post, path + "/deposits", body with { Amount = "1" }, key))
         using (var denied = await owner.SendAsync(mismatch, ct)) Assert.Equal(HttpStatusCode.Conflict, denied.StatusCode);
-        var balance = (await owner.GetFromJsonAsync<BalancePage>($"/api/v2/communities/{c.Id}/balances", ct))!.Items.Single(); Assert.Equal("70", balance.Owned); Assert.Equal("70", balance.Reserved);
+        var balance = (await owner.GetFromJsonAsync<BalancePage>($"/api/v2/seasons/{c.Id}/balances", ct))!.Items.Single(); Assert.Equal("70", balance.Owned); Assert.Equal("70", balance.Reserved);
         await TradeCommand(owner, c, trade, "cancel");
         await using var scope = f.Services.CreateAsyncScope(); var db = scope.ServiceProvider.GetRequiredService<AmorDbContext>();
         Assert.Single(await db.TreasuryEntries.ToArrayAsync(ct)); Assert.Equal(100, await db.Memberships.SumAsync(x => x.Owned, ct) + await db.Groups.SumAsync(x => x.TreasuryOwned, ct));
@@ -102,7 +102,7 @@ public sealed partial class FoundationTests
     {
         var ct = TestContext.Current.CancellationToken;
         using var f = Factory(); await Migrate(f); using var owner = f.CreateClient(); var ownerId = (await Login(owner, "1230")).Character.Id; var c = await Create(owner); var group = await TreasuryGroup(owner, c); var path = TreasuryPath(c, group);
-        using var staff = f.CreateClient(); var staffId = (await Login(staff, "1231")).Character.Id; await Join(staff, await Invite(owner, c)); await GroupAction(staff, HttpMethod.Post, path[..^9] + "/join", new GroupJoin()); await GrantStaff(owner, path[..^9], staffId, GroupCapabilities.TreasuryWithdraw);
+        using var staff = f.CreateClient(); var staffId = (await Login(staff, "1231")).Character.Id; await Enroll(staff, c); await GroupAction(staff, HttpMethod.Post, path[..^9] + "/join", new GroupJoin()); await GrantStaff(owner, path[..^9], staffId, GroupCapabilities.TreasuryWithdraw);
         await Fund(owner, c, ownerId, "100"); await TreasuryMove(owner, c, group, "100");
         using var remove = Request(HttpMethod.Delete, path[..^9], etag: group.Etag); using var withdraw = Request(HttpMethod.Post, path + "/withdrawals", new TreasuryTransfer("25"));
         var replies = await Task.WhenAll(owner.SendAsync(remove, ct), staff.SendAsync(withdraw, ct)); Assert.True(replies[0].IsSuccessStatusCode); Assert.Contains(replies[1].StatusCode, new[] { HttpStatusCode.OK, HttpStatusCode.NotFound }); foreach (var reply in replies) reply.Dispose();
@@ -116,11 +116,11 @@ public sealed partial class FoundationTests
     {
         var ct = TestContext.Current.CancellationToken;
         using var f = Factory(); await Migrate(f); using var admin = f.CreateClient(); var adminToken = await Login(admin, "1240"); var c = await Create(admin);
-        using var owner = f.CreateClient(); var ownerToken = await Login(owner, "1241"); await Join(owner, await Invite(admin, c)); await GrantHome(admin, c, ownerToken.Character.Id, "groups.create");
-        var group = await Command<GroupProfile>(owner, HttpMethod.Post, $"/api/v2/communities/{c.Id}/groups", new GroupWrite("Departed", "")); var path = TreasuryPath(c, group);
+        using var owner = f.CreateClient(); var ownerToken = await Login(owner, "1241"); await Enroll(owner, c); await GrantHome(admin, c, ownerToken.Character.Id, "groups.create");
+        var group = await Command<GroupProfile>(owner, HttpMethod.Post, $"/api/v2/seasons/{c.Id}/groups", new GroupWrite("Departed", "")); var path = TreasuryPath(c, group);
         group = await Command<GroupProfile>(admin, HttpMethod.Put, path[..^9] + "/features", new GroupFeaturesEdit(GroupCapabilities.Features.ToArray()), group.Etag);
         await Fund(admin, c, ownerToken.Character.Id, "90"); await TreasuryMove(owner, c, group, "60");
-        var member = await Member(admin, c, ownerToken.Character.Id); await Command<Member>(admin, HttpMethod.Delete, $"/api/v2/communities/{c.Id}/members/{ownerToken.Character.Id}", new MemberRemoval("Left community"), member.Etag);
+        var member = await Member(admin, c, ownerToken.Character.Id); await Command<Member>(admin, HttpMethod.Delete, $"/api/v2/seasons/{c.Id}/members/{ownerToken.Character.Id}", new MemberRemoval("Left community"), member.Etag);
         var key = Guid.CreateVersion7(clock.GetUtcNow());
         using (var request = Request(HttpMethod.Delete, path[..^9], key: key, etag: group.Etag))
         using (var reply = await admin.SendAsync(request, ct)) Assert.Equal(HttpStatusCode.OK, reply.StatusCode);
@@ -133,27 +133,7 @@ public sealed partial class FoundationTests
         Assert.Single(await db.TreasuryEntries.Where(x => x.Kind == "disband_return").ToArrayAsync(ct));
     }
 
-    [Fact]
-    public async Task Community_deletion_settles_all_groups_to_their_distinct_owners()
-    {
-        var ct = TestContext.Current.CancellationToken;
-        using var f = Factory(); await Migrate(f); using var admin = f.CreateClient(); var adminId = (await Login(admin, "1250")).Character.Id; var c = await Create(admin); var a = await TreasuryGroup(admin, c, "A");
-        using var owner = f.CreateClient(); var ownerId = (await Login(owner, "1251")).Character.Id; await Join(owner, await Invite(admin, c)); await GrantHome(admin, c, ownerId, "groups.create");
-        var b = await Command<GroupProfile>(owner, HttpMethod.Post, $"/api/v2/communities/{c.Id}/groups", new GroupWrite("B", "")); b = await Command<GroupProfile>(admin, HttpMethod.Put, TreasuryPath(c, b)[..^9] + "/features", new GroupFeaturesEdit(GroupCapabilities.Features.ToArray()), b.Etag);
-        await Fund(admin, c, adminId, "100"); await Fund(admin, c, ownerId, "200"); await TreasuryMove(admin, c, a, "100"); await TreasuryMove(owner, c, b, "200");
-        c = (await admin.GetFromJsonAsync<Community>($"/api/v2/communities/{c.Id}", ct))!;
-        var key = Guid.CreateVersion7(clock.GetUtcNow());
-        for (var i = 0; i < 2; i++)
-        {
-            using var req = Request(HttpMethod.Post, $"/api/v2/communities/{c.Id}/deletion", new CommunityDeletion(c.Name), key, $"\"community:{c.Id:N}:{c.Version}\""); using var reply = await admin.SendAsync(req, ct);
-            // The existing deletion endpoint intentionally becomes inaccessible after deletion.
-            Assert.Equal(i == 0 ? HttpStatusCode.OK : HttpStatusCode.NotFound, reply.StatusCode);
-        }
-        await using var scope = f.Services.CreateAsyncScope(); var db = scope.ServiceProvider.GetRequiredService<AmorDbContext>();
-        Assert.All(await db.Groups.ToArrayAsync(ct), x => { Assert.True(x.Deleted); Assert.Equal(0, x.TreasuryOwned); });
-        var accounts = await db.Memberships.ToArrayAsync(ct); Assert.Equal(100, accounts.Single(x => x.CharacterId == adminId).Owned); Assert.Equal(200, accounts.Single(x => x.CharacterId == ownerId).Owned);
-        Assert.Equal(2, await db.TreasuryEntries.CountAsync(x => x.Kind == "disband_return", ct));
-    }
+
 
     [Fact]
     public async Task Balance_overflow_preserves_pending_return_and_collection_is_owner_only_and_replay_safe()
@@ -181,11 +161,12 @@ public sealed partial class FoundationTests
     public async Task Treasury_receipt_pages_and_account_scope_do_not_leak_to_other_groups_or_communities()
     {
         var ct = TestContext.Current.CancellationToken;
-        using var f = Factory(); await Migrate(f); using var owner = f.CreateClient(); var id = (await Login(owner, "1270")).Character.Id; var c = await Create(owner); var group = await TreasuryGroup(owner, c); var second = await TreasuryGroup(owner, c, "Other"); var other = await Create(owner, "Separate economy");
+        using var f = Factory(); await Migrate(f); using var owner = f.CreateClient(); var id = (await Login(owner, "1270")).Character.Id; var c = await Create(owner); var group = await TreasuryGroup(owner, c); var second = await TreasuryGroup(owner, c, "Other");
         await Fund(owner, c, id, "100"); await TreasuryMove(owner, c, group, "60"); await TreasuryMove(owner, c, group, "10", false);
         var path = TreasuryPath(c, group); var page = (await owner.GetFromJsonAsync<TreasuryReceiptPage>(path + "/records?limit=1", ct))!; Assert.Single(page.Items); Assert.NotNull(page.NextCursor);
         var next = (await owner.GetFromJsonAsync<TreasuryReceiptPage>(path + "/records?limit=1&cursor=" + Uri.EscapeDataString(page.NextCursor!), ct))!; Assert.Single(next.Items); Assert.Null(next.NextCursor); Assert.NotEqual(page.Items[0].Id, next.Items[0].Id);
         using (var wrongCursor = await owner.GetAsync(TreasuryPath(c, second) + "/records?cursor=" + Uri.EscapeDataString(page.NextCursor!), ct)) Assert.Equal(HttpStatusCode.UnprocessableEntity, wrongCursor.StatusCode);
+        var other = await Create(owner, "Separate economy");
         using (var cross = Request(HttpMethod.Post, TreasuryPath(other, group) + "/withdrawals", new TreasuryTransfer("1")))
         using (var denied = await owner.SendAsync(cross, ct)) Assert.Equal(HttpStatusCode.NotFound, denied.StatusCode);
         Assert.Equal("0", (await owner.GetFromJsonAsync<TreasuryBalance>(TreasuryPath(c, second), ct))!.Owned);
@@ -196,9 +177,10 @@ public sealed partial class FoundationTests
     {
         var ct = TestContext.Current.CancellationToken;
         using var f = Factory(); await Migrate(f); using var owner = f.CreateClient(); var id = (await Login(owner, "1280")).Character.Id; var c = await Create(owner);
-        var group = await Command<GroupProfile>(owner, HttpMethod.Post, $"/api/v2/communities/{c.Id}/groups", new GroupWrite("Preserved", "Description")); await Fund(owner, c, id, "500");
+        var group = await Command<GroupProfile>(owner, HttpMethod.Post, $"/api/v2/seasons/{c.Id}/groups", new GroupWrite("Preserved", "Description")); await Fund(owner, c, id, "500");
         await using var scope = f.Services.CreateAsyncScope(); var db = scope.ServiceProvider.GetRequiredService<AmorDbContext>();
         await db.GetService<IMigrator>().MigrateAsync("20261029200422_GroupStaffPermissions", ct); db.ChangeTracker.Clear(); await db.Database.MigrateAsync(ct);
+        c = await ActivateForTest(owner, c);
         var restored = await db.Groups.SingleAsync(ct); Assert.Equal(group.Id, restored.Id); Assert.Equal("Description", restored.Description); Assert.Equal(0, restored.TreasuryOwned); Assert.DoesNotContain(GroupCapabilities.Treasury, restored.EnabledFeatures);
         Assert.Equal(500, (await db.Memberships.SingleAsync(ct)).Owned); Assert.Empty(await db.TreasuryEntries.ToArrayAsync(ct)); Assert.False(db.Database.HasPendingModelChanges());
         group = await Command<GroupProfile>(owner, HttpMethod.Put, TreasuryPath(c, group)[..^9] + "/features", new GroupFeaturesEdit(GroupCapabilities.Features.ToArray()), group.Etag);

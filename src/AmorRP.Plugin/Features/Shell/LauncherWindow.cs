@@ -38,7 +38,7 @@ public sealed class LauncherWindow : Window
         ImGui.SameLine();
         if (ImGuiComponents.IconButton("LauncherCrafting", FontAwesomeIcon.Hammer, size)) openWorkspace(WorkspaceKind.Crafting);
         ImGui.SameLine();
-        if (ImGuiComponents.IconButton("LauncherCommunity", FontAwesomeIcon.Users, size)) openWorkspace(WorkspaceKind.Community);
+        if (ImGuiComponents.IconButton("LauncherCommunity", FontAwesomeIcon.Users, size)) openWorkspace(WorkspaceKind.Season);
         if (announcements() > 0) NotificationBadge.Draw();
         if (canManageGroups())
         {

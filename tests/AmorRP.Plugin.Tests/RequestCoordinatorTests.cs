@@ -136,10 +136,10 @@ public sealed class RequestCoordinatorTests
     public void Recovered_commands_from_another_community_cannot_update_the_current_editor()
     {
         var oldCommunity = Guid.NewGuid(); var active = Guid.NewGuid();
-        var profile = new CommandRequest("PATCH", $"api/v2/communities/{oldCommunity}", "{}", "etag");
-        var member = new CommandRequest("PATCH", $"api/v2/communities/{oldCommunity}/members/{Guid.NewGuid()}/description", "{}", "etag");
+        var profile = new CommandRequest("PATCH", $"api/v2/seasons/{oldCommunity}", "{}", "etag");
+        var member = new CommandRequest("PATCH", $"api/v2/seasons/{oldCommunity}/members/{Guid.NewGuid()}/description", "{}", "etag");
         Assert.False(profile.AppliesToCommunity(active)); Assert.False(member.AppliesToCommunity(active));
         Assert.False(profile.AppliesToCommunity(null)); Assert.True(profile.AppliesToCommunity(oldCommunity));
-        Assert.True(new CommandRequest("POST", "api/v2/communities", "{}", null).AppliesToCommunity(active));
+        Assert.True(new CommandRequest("POST", "api/v2/seasons", "{}", null).AppliesToCommunity(active));
     }
 }

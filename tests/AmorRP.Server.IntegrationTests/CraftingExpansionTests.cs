@@ -1,6 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
-using AmorRP.Contracts.Communities;
+using AmorRP.Contracts.Seasons;
 using AmorRP.Contracts.Inventory;
 using AmorRP.Contracts.Trading;
 using AmorRP.Server.Infrastructure.Persistence;
@@ -16,9 +16,9 @@ public sealed partial class FoundationTests
     public async Task Recipe_items_preserve_type_spend_separate_budget_trade_and_use(string type, bool cooking)
     {
         var ct = TestContext.Current.CancellationToken;
-        using var f = Factory(); await Migrate(f); using var owner = f.CreateClient(); await Login(owner, "1020"); var c = await Command<Community>(owner, HttpMethod.Post, "/api/v2/communities", new CommunityCreate("Crafts", "", "Coins", "C", 12, 5, 12));
-        using var member = f.CreateClient(); var actor = (await Login(member, "1021")).Character.Id; await Join(member, await Invite(owner, c));
-        var prefix = $"/api/v2/communities/{c.Id}/";
+        using var f = Factory(); await Migrate(f); using var owner = f.CreateClient(); await Login(owner, "1020"); var c = await Create(owner, new SeasonCreate("Crafts", "", "Coins", "C", 12, 5, 12));
+        using var member = f.CreateClient(); var actor = (await Login(member, "1021")).Character.Id; await Enroll(member, c);
+        var prefix = $"/api/v2/seasons/{c.Id}/";
         var categories = (await owner.GetFromJsonAsync<CategoryPage>(prefix + "categories", ct))!.Items;
         var category = categories.Single(x => x.AllowedTypeIds.Contains(type));
         var recipe = await Command<Definition>(owner, HttpMethod.Post, prefix + "item-definitions", new DefinitionWrite(type, "Test " + type, category.Id, "RP item", true, new(3, "uses a test item.")));

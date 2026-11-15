@@ -1,25 +1,25 @@
 using System.Globalization;
 using AmorRP.Contracts.Auth;
-using AmorRP.Contracts.Communities;
+using AmorRP.Contracts.Seasons;
 using AmorRP.Contracts.Currency;
 using AmorRP.Contracts.History;
 using AmorRP.Contracts.Common;
 using AmorRP.Server.Features.Authentication;
-using AmorRP.Server.Features.Communities;
+using AmorRP.Server.Features.Seasons;
 using AmorRP.Server.Infrastructure.Persistence;
 using AmorRP.Server.Infrastructure.Security;
 using Microsoft.EntityFrameworkCore;
 
 namespace AmorRP.Server.Features.Currency;
 
-public sealed class CurrencyService(AmorDbContext db, SessionAccess sessions, CommunityAccess communities, CommandStore commands, AmorRP.Server.Features.Billing.DebtSettlement settlement)
+public sealed class CurrencyService(AmorDbContext db, SessionAccess sessions, SeasonAccess communities, CommandStore commands, AmorRP.Server.Features.Billing.DebtSettlement settlement)
 {
     public async Task<IResult> MemberBalanceAsync(HttpContext http, Guid communityId, Guid characterId, CancellationToken ct)
     {
         var session = await sessions.GetAsync(http, ct); var (community, member) = await communities.RequireAsync(communityId, session.CharacterId, ct);
-        if (characterId != session.CharacterId) CommunityAccess.Action(community, member, "currency.manage");
+        if (characterId != session.CharacterId) SeasonAccess.Action(community, member, "currency.manage");
         var target = await communities.TargetAsync(communityId, characterId, true, ct);
-        return Results.Json(new BalancePage([CommunityAccess.Balance(community, target)], null, target.BalanceVersion.ToString(), null));
+        return Results.Json(new BalancePage([SeasonAccess.Balance(community, target)], null, target.BalanceVersion.ToString(), null));
     }
     public async Task<IResult> AdjustAsync(HttpContext http, Guid communityId, CurrencyAdjustment body, CancellationToken ct)
     {
@@ -28,8 +28,8 @@ public sealed class CurrencyService(AmorDbContext db, SessionAccess sessions, Co
         ApiFault.Require(valid && long.TryParse(body.Delta, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out _), 422, "invalid_quantity", "Specify a nonzero signed 64-bit whole-unit delta.");
         var delta = long.Parse(body.Delta!, CultureInfo.InvariantCulture);
         var session = await sessions.GetAsync(http, ct); await using var tx = await db.Database.BeginTransactionAsync(ct);
-        await CommandStore.LockAsync(db, ["character:" + session.CharacterId, "community:" + communityId], ct);
-        var (community, member) = await communities.RequireAsync(communityId, session.CharacterId, ct); CommunityAccess.Action(community, member, "currency.manage");
+        await CommandStore.LockAsync(db, ["character:" + session.CharacterId, "season:" + communityId], ct);
+        var (community, member) = await communities.RequireAsync(communityId, session.CharacterId, ct); SeasonAccess.Action(community, member, "currency.manage");
         var scope = "character:" + session.CharacterId; var replay = await commands.ReplayAsync(http, scope, body, ct);
         if (replay != null) return commands.Replay(replay);
         var target = await communities.TargetAsync(communityId, body.TargetCharacterId, true, ct);
@@ -41,7 +41,7 @@ public sealed class CurrencyService(AmorDbContext db, SessionAccess sessions, Co
         await settlement.CollectAsync(target, "currency.adjust", op.Id, ct);
         op.AfterBalance = target.Owned;
         op.Summary = $"Currency adjustment: {delta.ToString(CultureInfo.InvariantCulture)}; balance {op.BeforeBalance} → {target.Owned}. Automatic bill repayments are recorded separately.";
-        var result = await commands.SaveAsync(http, op, new CommandResult<Balance>(op.Id, CommunityAccess.Balance(community, target)), ct);
+        var result = await commands.SaveAsync(http, op, new CommandResult<Balance>(op.Id, SeasonAccess.Balance(community, target)), ct);
         await tx.CommitAsync(ct); return result;
     }
 }
