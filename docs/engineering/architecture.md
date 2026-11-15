@@ -94,6 +94,15 @@ BackgroundRefresh prevents late scope responses; missing or denied owned reads c
 private contents. Inventory mutation invalidation requires rechecking a displayed
 body. The pure HTTP reader is linked into the plugin helper tests.
 
+Four WorkspaceWindow instances present crafting, private group operations, community
+administration and the tabbed Community browser. They reuse the same authenticated
+coordinator/context and feature services; no parallel sessions or client-side authority
+are introduced. WorkspaceAccess is the tested visibility/filter policy. Read views
+explicitly suppress editing, while server permissions continue to guard commands.
+Group/member selection protects unfinished drafts across windows. Shared dialog
+drawing is frame-gated, and crafting selection tracks recipe identity instead of
+depending on a filtered list index.
+
 `RequestCoordinator` owns the foreground and core-refresh task lanes, cancellation,
 view generation and data generation. Network work returns callbacks; the UI thread
 collects current results and applies them. A character/scope reset cancels both

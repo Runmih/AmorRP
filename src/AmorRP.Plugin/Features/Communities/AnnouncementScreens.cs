@@ -70,10 +70,10 @@ public sealed partial class CommunitiesPanel
             });
         }, ct);
     }
-    private void DrawAnnouncements()
+    private void DrawAnnouncements(bool editable = true)
     {
         ImGui.TextUnformatted("Announcements"); ImGui.Separator();
-        if (CanAnnounce) DrawAnnouncementComposer();
+        if (editable && CanAnnounce) DrawAnnouncementComposer();
         if (announcementError.Length > 0) Wrapped(announcementError);
         else if (!announcementsLoaded) ImGui.TextDisabled("Loading announcements…");
         else if (announcements.Length == 0) ImGui.TextDisabled("No announcements yet.");
@@ -129,6 +129,16 @@ public sealed partial class CommunitiesPanel
         ImGui.BeginDisabled(error != null);
         if (ActionButton("Publish")) { announcementPostError = ""; Mutate("POST", $"api/v2/communities/{community!.Id}/announcements", new AnnouncementCreate(announcementTitle, announcementBody)); }
         ImGui.EndDisabled(); ImGui.PopItemWidth(); ImGui.Spacing(); ImGui.Separator();
+    }
+    private int sharedDialogsFrame = -1;
+    private void DrawSharedDialogsOnce()
+    {
+        var frame = ImGui.GetFrameCount();
+        if (sharedDialogsFrame != frame)
+        { sharedDialogsFrame = frame; files.Draw(); }
+        // Popup IDs belong to their opening window. Keep checking each window so
+        // opening another workspace cannot strand an already-open announcement.
+        DrawAnnouncementDialogs();
     }
     private void DrawAnnouncementDialogs()
     {

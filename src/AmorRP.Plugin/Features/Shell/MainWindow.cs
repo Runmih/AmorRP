@@ -19,6 +19,7 @@ public sealed class MainWindow : Window, IDisposable
         SizeCondition = ImGuiCond.FirstUseEver;
         communities.OpenMainWindow = () => IsOpen = true;
         communities.OpenWritingLogWindow = () => OpenWritingLog?.Invoke();
+        communities.OpenWorkspaceWindow = kind => OpenWorkspace?.Invoke(kind);
         communities.OpenTradeWindow = () => OpenTrade?.Invoke();
         communities.OpenJoinCommunity = () => OpenJoinCommunity?.Invoke();
         communities.OpenCreateCommunity = () => OpenCreateCommunity?.Invoke();
@@ -30,6 +31,12 @@ public sealed class MainWindow : Window, IDisposable
 
     public void Tick() { communities.EnsureScope(ProductServer.Origin); communities.Tick(); }
     public int PendingTradeRequests => communities.PendingTradeRequests;
+    public int UnreadAnnouncements => communities.UnreadAnnouncements;
+    public bool CanOpenGroupManagement => communities.CanOpenGroupManagement;
+    public bool CanOpenCommunityManagement => communities.CanOpenCommunityManagement;
+    public Action<WorkspaceKind>? OpenWorkspace { get; set; }
+    public void OpenWorkspaceFromLauncher(WorkspaceKind kind) => communities.OpenWorkspace(kind);
+    public void DrawWorkspace(WorkspaceKind kind) => communities.Draw(ProductServer.Origin, workspace: kind);
     public void OpenWritingLogFromLauncher() => communities.OpenWritingLog();
     public void DrawWritingLog() => communities.Draw(ProductServer.Origin, writingMode: true);
     public void SetWritingLogVisible(bool visible) => communities.SetWritingLogVisible(visible);

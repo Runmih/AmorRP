@@ -1,10 +1,13 @@
 using System.Numerics;
 using AmorRP.Contracts.Communities;
+using AmorRP.Plugin.Features.Shell;
 using Dalamud.Bindings.ImGui;
 namespace AmorRP.Plugin.Features.Communities;
 
 public sealed partial class CommunitiesPanel
 {
+    private enum MemberView { Legacy, Directory, Management }
+    private Guid? pendingMemberSelection;
     private string memberSearch = "", appliedMemberSearch = "";
     private Member[] memberSearchResults = [];
     private string? memberSearchCursor;
@@ -24,11 +27,11 @@ public sealed partial class CommunitiesPanel
         memberHoldings = []; memberInventoryFor = memberInventoryRequestedFor = memberHoldingSelection = null; memberHoldingCursor = null;
         ClearMemberBalance();
     }
-    private void DrawMembers()
+    private void DrawMembers(MemberView view = MemberView.Legacy)
     {
         if (community == null) { Wrapped("Join or create a community first."); return; }
         DrawRefreshState(rosterRefresh, "Members");
-        if (Owner && ImGui.Checkbox("Show inactive members", ref showInactive)) { members = []; memberSelection = null; ClearMemberSearch(); rosterRefresh.Invalidate(); refreshNeeded = true; }
+        if (view != MemberView.Directory && Owner && ImGui.Checkbox("Show inactive members", ref showInactive)) { members = []; memberSelection = null; ClearMemberSearch(); rosterRefresh.Invalidate(); refreshNeeded = true; }
         var narrow = ImGui.GetContentRegionAvail().X < ImGui.CalcTextSize("Character description and private notes").X * 1.7f;
         if (!ImGui.BeginTable("MemberLayout", narrow ? 1 : 2, ImGuiTableFlags.Resizable | ImGuiTableFlags.BordersInnerV)) return;
         ImGui.TableSetupColumn("Members", ImGuiTableColumnFlags.WidthStretch, .38f); if (!narrow) ImGui.TableSetupColumn("Details", ImGuiTableColumnFlags.WidthStretch, .62f);
@@ -36,27 +39,37 @@ public sealed partial class CommunitiesPanel
         ImGui.SetNextItemWidth(-1); var searchNow = ImGui.InputTextWithHint("##MemberSearch", "Search all members (Enter)…", ref memberSearch, 201, ImGuiInputTextFlags.EnterReturnsTrue);
         if (searchNow || ImGui.IsItemDeactivatedAfterEdit()) SearchMembers();
         if (appliedMemberSearch.Length > 0 && ImGui.SmallButton("Clear search")) { memberSearch = ""; SearchMembers(); }
-        var visibleMembers = appliedMemberSearch.Length > 0 ? memberSearchResults : members;
+        var visibleMembers = (appliedMemberSearch.Length > 0 ? memberSearchResults : members)
+            .Where(x => view != MemberView.Directory || x.Status == "active").ToArray();
         if (appliedMemberSearch.Length > 0 && visibleMembers.Length == 0) Wrapped("No members found.");
+        Member? clickedMember = null;
         foreach (var row in visibleMembers)
         {
             ImGui.PushID(row.Character.Id.ToString());
-            if (ImGui.Selectable(row.Character.DisplayName + "###Member", memberSelection == row.Character.Id)) SelectMember(row);
+            if (ImGui.Selectable(row.Character.DisplayName + "###Member", memberSelection == row.Character.Id)) clickedMember = row;
             ImGui.TextDisabled(row.Character.HomeWorldName + " · " + (row.IsOwner ? "owner" : row.Status == "dormant" ? "inactive" : row.Status)); ImGui.PopID();
         }
+        if (clickedMember != null) RequestMemberSelection(clickedMember);
+        DrawMemberSwitchDialog();
         if ((appliedMemberSearch.Length > 0 ? memberSearchCursor : membersCursor) != null && ActionButton("More members", mutation: false))
             SearchMembers(more: true);
         ImGui.EndChild(); ImGui.TableNextColumn(); ImGui.BeginChild("SelectedMember", Vector2.Zero, true); ImGui.PushItemWidth(-1);
         var target = SelectedMember;
+        if (view == MemberView.Directory && target?.Status != "active") target = null;
         if (target == null) Wrapped("Select a member on the left. Their available actions appear here.");
         else
         {
             ImGui.TextUnformatted(target.Character.DisplayName);
-            DrawMemberDescription(target);
-            if (target.Status == "active" && target.Character.Id != session!.Character.Id && !target.TradingRestricted && !community.MyTradingRestricted && ImGui.Button("Trade with this member"))
-            { contextTarget = null; tradeTargetId = target.Character.Id; requestedTradeTab = 1; OpenTradeWindow?.Invoke(); }
-            DrawPersonalNote(target);
-            if (CanManageGameplay && target.Status == "active")
+            if (view != MemberView.Management)
+            {
+                DrawMemberDescription(target);
+                if (target.Status == "active" && target.Character.Id != session!.Character.Id && !target.TradingRestricted && !community.MyTradingRestricted && ImGui.Button("Trade with this member"))
+                { contextTarget = null; tradeTargetId = target.Character.Id; requestedTradeTab = 1; OpenTradeWindow?.Invoke(); }
+                DrawPersonalNote(target);
+            }
+            if (view == MemberView.Directory && CanManageCommunityMembers && ImGui.Button("Manage this member"))
+            { requestedManagementMembers = true; OpenWorkspaceWindow?.Invoke(WorkspaceKind.CommunityManagement); }
+            if (view != MemberView.Directory && CanManageGameplay && target.Status == "active")
             {
                 if (target.IsOwner)
                 {
@@ -65,16 +78,49 @@ public sealed partial class CommunitiesPanel
                 }
                 else DrawMemberAuthorizations(target);
             }
-            if (Owner && target.Status == "active" && !target.IsOwner) DrawCommunityPermissions(target);
-            if (CanCoins && target.Status == "active")
+            if (view != MemberView.Directory && Owner && target.Status == "active" && !target.IsOwner) DrawCommunityPermissions(target);
+            if (view != MemberView.Directory && CanCoins && target.Status == "active")
             {
                 EnsureMemberBalance(target);
                 if (ImGui.CollapsingHeader("Currency")) DrawMemberCurrency(target);
             }
-            if ((Owner || community.MyCapabilities.Contains("inventory.remove")) && ImGui.CollapsingHeader("Manage items")) DrawMemberInventory(target);
-            if (Owner && !target.IsOwner && ImGui.CollapsingHeader("Manage membership")) DrawMemberMembership(target);
+            if (view != MemberView.Directory && (Owner || community.MyCapabilities.Contains("inventory.remove")) && ImGui.CollapsingHeader("Manage items")) DrawMemberInventory(target);
+            if (view != MemberView.Directory && Owner && !target.IsOwner && ImGui.CollapsingHeader("Manage membership")) DrawMemberMembership(target);
         }
         ImGui.PopItemWidth(); ImGui.EndChild(); ImGui.EndTable();
+    }
+    private bool HasMemberDrafts()
+    {
+        var current = SelectedMember;
+        if (current == null) return false;
+        var caps = current.Capabilities;
+        return personalNote != savedPersonalNote || memberDescription != savedMemberDescription
+            || delta.Length > 0 || reason.Length > 0 || removalReason.Length > 0 || itemRemovalReason.Length > 0
+            || tradingAllowed == current.TradingRestricted || grantCoins != caps.Contains("currency.manage")
+            || grantPotions != caps.Contains("items.potion.create") || grantCooking != caps.Contains("items.cooking.create")
+            || grantDefinitions != caps.Contains("items.potion.define") || grantCookingDefinitions != caps.Contains("items.cooking.define")
+            || grantRemoval != caps.Contains("inventory.remove") || grantGeneralModeration != caps.Contains("community.moderate")
+            || grantAnnouncements != caps.Contains("announcements.manage") || grantGameplayPermissions != caps.Contains("members.gameplay.manage")
+            || grantGroupCreation != caps.Contains("groups.create") || grantGroupManagement != caps.Contains("groups.manage");
+    }
+    private void RequestMemberSelection(Member member)
+    {
+        if (memberSelection == member.Character.Id) return;
+        if (!HasMemberDrafts()) { SelectMember(member); return; }
+        pendingMemberSelection = member.Character.Id; ImGui.OpenPopup("Switch member and discard drafts?");
+    }
+    private void DrawMemberSwitchDialog()
+    {
+        if (!ImGui.BeginPopupModal("Switch member and discard drafts?", ImGuiWindowFlags.AlwaysAutoResize)) return;
+        Wrapped("You have unfinished member changes or private notes. Switching will discard those drafts.");
+        if (ImGui.Button("Discard drafts and switch"))
+        {
+            var next = members.Concat(memberSearchResults).FirstOrDefault(x => x.Character.Id == pendingMemberSelection);
+            if (next != null) SelectMember(next);
+            pendingMemberSelection = null; ImGui.CloseCurrentPopup();
+        }
+        ImGui.SameLine(); if (ImGui.Button("Keep editing")) { pendingMemberSelection = null; ImGui.CloseCurrentPopup(); }
+        ImGui.EndPopup();
     }
     private void DrawMemberAuthorizations(Member target)
     {

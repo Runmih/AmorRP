@@ -13,13 +13,28 @@ public sealed partial class CommunitiesPanel
         if (ImGui.BeginTabItem("Invitations")) { DrawInvitations(); ImGui.EndTabItem(); }
         if (ImGui.BeginTabItem("Delete Community"))
         {
-            Wrapped("Delete makes this community's assets inaccessible to all members. Enter the exact community name to confirm.");
-            FieldLabel("Exact community name"); ImGui.InputText("##DeleteCommunityName", ref deleteConfirmation, 256);
-            ImGui.BeginDisabled(deleteConfirmation != community.Name);
-            if (ActionButton("Delete this community")) Mutate("POST", $"api/v2/communities/{community.Id}/deletion", new CommunityDeletion(deleteConfirmation), ETag("community", community.Id, community.Version));
-            ImGui.EndDisabled(); ImGui.EndTabItem();
+            DrawCommunityDeletion(); ImGui.EndTabItem();
         }
         ImGui.EndTabBar();
+        DrawOwnershipCancellation();
+    }
+    private void DrawCommunityLifecycle()
+    {
+        Wrapped("To propose a new community owner, select that character under Members and use the ownership action.");
+        DrawOwnershipCancellation(); ImGui.Separator(); DrawCommunityDeletion();
+    }
+    private void DrawCommunityDeletion()
+    {
+        if (!Owner || community == null) return;
+        Wrapped("Delete makes this community's assets inaccessible to all members. Enter the exact community name to confirm.");
+        FieldLabel("Exact community name"); ImGui.InputText("##DeleteCommunityName", ref deleteConfirmation, 256);
+        ImGui.BeginDisabled(deleteConfirmation != community.Name);
+        if (ActionButton("Delete this community")) Mutate("POST", $"api/v2/communities/{community.Id}/deletion", new CommunityDeletion(deleteConfirmation), ETag("community", community.Id, community.Version));
+        ImGui.EndDisabled();
+    }
+    private void DrawOwnershipCancellation()
+    {
+        if (!Owner || community == null) return;
         if (transfer is { Status: "proposed" })
         {
             Wrapped("An ownership proposal is pending.");

@@ -10,6 +10,7 @@ using AmorRP.Contracts.Currency;
 using AmorRP.Contracts.Common;
 using AmorRP.Plugin.Services.Api;
 using AmorRP.Plugin.Services.Identity;
+using AmorRP.Plugin.Features.Shell;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Components;
@@ -75,7 +76,7 @@ public sealed partial class CommunitiesPanel(IPlayerState player, Configuration 
     private string deleteConfirmation = "";
     private int nextPoints, nextLetters, nextCooking;
 
-    public void Draw(string backendUrl, bool compactMode = false, bool inventoryMode = false, bool writingMode = false)
+    public void Draw(string backendUrl, bool compactMode = false, bool inventoryMode = false, bool writingMode = false, WorkspaceKind? workspace = null)
     {
         EnsureScope(backendUrl);
         var world = player.HomeWorld;
@@ -89,13 +90,14 @@ public sealed partial class CommunitiesPanel(IPlayerState player, Configuration 
         { refreshNeeded = false; Refresh(); }
         busy = Busy;
         if (compactMode && session == null) { Wrapped("Open /amorrp to sign in and select your character."); return; }
-        if (!compactMode && session == null) { DrawLogin(busy, localName, localWorld, world.RowId); DrawAnnouncementDialogs(); return; }
+        if (!compactMode && session == null) { DrawLogin(busy, localName, localWorld, world.RowId); DrawSharedDialogsOnce(); return; }
         var pending = configuration.PendingCommands.FirstOrDefault(x => x.Origin == origin?.AbsoluteUri && x.CharacterId == session?.Character.Id);
         if (session == null || session.AccessExpiresAt <= DateTimeOffset.UtcNow) return;
         if (session.Character.DisplayName != localName || session.Character.HomeWorldName != localWorld)
         { ImGui.TextWrapped("The verified profile does not match the character currently in game. Wait for XIVAuth to refresh it, then resume login. Existing assets are preserved."); return; }
         if (!Busy && !SyncBusy && pending == null && DateTimeOffset.UtcNow >= nextRefresh && !refreshNeeded) Refresh();
         TickTrades(); icons.Draw(); logos.Draw();
+        if (workspace is { } activeWorkspace) { DrawWorkspace(activeWorkspace, pending); return; }
         if (writingMode) { DrawWritingLog(pending); return; }
         if (inventoryMode) { DrawInventoryCompanion(pending); return; }
         DrawCommunitySelection();
@@ -136,7 +138,7 @@ public sealed partial class CommunitiesPanel(IPlayerState player, Configuration 
         }
         ImGui.PopItemWidth(); ImGui.EndChild();
         ImGui.EndChild();
-        DrawActionFeedback(pending); files.Draw(); DrawAnnouncementDialogs();
+        DrawActionFeedback(pending); DrawSharedDialogsOnce();
     }
     public void EnsureScope(string backendUrl)
     {

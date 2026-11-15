@@ -109,7 +109,7 @@ public sealed partial class CommunitiesPanel
         ImGui.BeginChild("CompanionFinances", new(0, footerHeight), false);
         DrawCompanionFinances();
         ImGui.EndChild();
-        files.Draw(); DrawAnnouncementDialogs();
+        DrawSharedDialogsOnce();
     }
 
     private void DrawCompanionBrowser()

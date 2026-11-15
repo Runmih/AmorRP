@@ -50,7 +50,7 @@ public sealed partial class CommunitiesPanel
         communities = communities.Select(x => x.Id == community.Id ? community : x).ToArray();
         if (memberSelection == balance.CharacterId) { selectedMemberBalance = balance; balanceFor = balance.CharacterId; }
     }
-    private void DrawGroupTreasury(GroupProfile group)
+    private void DrawGroupTreasury(GroupProfile group, bool management = true)
     {
         LoadTreasury(group);
         if (ActionButton("Refresh treasury", mutation: false)) LoadTreasury(group, true);
@@ -63,14 +63,14 @@ public sealed partial class CommunitiesPanel
         var valid = WholeUnits.TryNormalize(treasuryAmount, out var amount, out var value) && value > 0;
         ImGui.BeginDisabled(!valid);
         if (ActionButton("Deposit your coins")) Mutate("POST", GroupPath(group) + "/treasury/deposits", new TreasuryTransfer(amount, treasuryNote));
-        if (CanGroupAction(group, GroupCapabilities.TreasuryWithdraw))
+        if (management && CanGroupAction(group, GroupCapabilities.TreasuryWithdraw))
         {
             ImGui.SameLine();
             if (ActionButton("Withdraw to your character")) Mutate("POST", GroupPath(group) + "/treasury/withdrawals", new TreasuryTransfer(amount, treasuryNote));
         }
         ImGui.EndDisabled();
         if (lastTreasuryReceipt != null && ImGui.CollapsingHeader("Last transfer receipt")) DrawTreasuryReceipt(lastTreasuryReceipt);
-        if (CanGroupAction(group, GroupCapabilities.TreasuryRecords) && ImGui.CollapsingHeader("Treasury records", ImGuiTreeNodeFlags.DefaultOpen))
+        if (management && CanGroupAction(group, GroupCapabilities.TreasuryRecords) && ImGui.CollapsingHeader("Treasury records", ImGuiTreeNodeFlags.DefaultOpen))
         {
             if (treasuryRecords?.Items.Length == 0) Wrapped("No treasury transfers yet.");
             if (treasuryRecords != null) foreach (var entry in treasuryRecords.Items)

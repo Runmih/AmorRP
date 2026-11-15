@@ -35,7 +35,7 @@ public sealed partial class CommunitiesPanel
             };
         }, "Loading private group contents…");
     }
-    private void DrawGroupSections(AmorRP.Contracts.Groups.Group group)
+    private void DrawGroupSections(AmorRP.Contracts.Groups.Group group, bool management = true, bool includeFeatureApproval = true)
     {
         if (!ImGui.BeginTabBar("GroupSections")) return;
         if (ImGui.BeginTabItem("Members")) { DrawGroupMembers(group); ImGui.EndTabItem(); }
@@ -43,7 +43,7 @@ public sealed partial class CommunitiesPanel
         {
             LoadGroupPrivate(group);
             if (ActionButton("Refresh announcements", mutation: false)) LoadGroupPrivate(group, true);
-            if (CanGroupAction(group, GroupCapabilities.Announcements))
+            if (management && CanGroupAction(group, GroupCapabilities.Announcements))
             {
                 FieldLabel("Title"); LimitedInput("##GroupAnnouncementTitle", ref groupAnnouncementTitle, AmorRP.Contracts.Announcements.AnnouncementCreate.MaximumTitleCharacters);
                 FieldLabel("Message"); WrappedInput("##GroupAnnouncementMessage", ref groupAnnouncementMessage, 524288, new(-1, ImGui.GetTextLineHeightWithSpacing() * 4), maximumCharacters: AmorRP.Contracts.Announcements.AnnouncementCreate.MaximumBodyCharacters);
@@ -59,12 +59,12 @@ public sealed partial class CommunitiesPanel
             if (groupPrivate?.Announcements.Length == 0) Wrapped("No group announcements yet.");
             ImGui.EndTabItem();
         }
-        if (ImGui.BeginTabItem("Events")) { DrawGroupEvents(group); ImGui.EndTabItem(); }
-        if (CanGroupAction(group, GroupCapabilities.Notice) && ImGui.BeginTabItem("Notice")) { DrawNoticeEditor(group); ImGui.EndTabItem(); }
-        if (group.IsMember && group.EnabledFeatures?.Contains(GroupCapabilities.Treasury) == true && ImGui.BeginTabItem("Treasury")) { DrawGroupTreasury(group); ImGui.EndTabItem(); }
-        if ((CanGroupAction(group, GroupCapabilities.Billing) || CanGroupAction(group, GroupCapabilities.TreasuryRecords)) && ImGui.BeginTabItem("Billing")) { DrawGroupBilling(group); ImGui.EndTabItem(); }
-        if (OwnSelectedGroup && ImGui.BeginTabItem("Staff")) { DrawGroupStaff(group); ImGui.EndTabItem(); }
-        if (Owner && ImGui.BeginTabItem("Features")) { DrawGroupFeatures(group); ImGui.EndTabItem(); }
+        if (ImGui.BeginTabItem("Events")) { DrawGroupEvents(group, management); ImGui.EndTabItem(); }
+        if (management && CanGroupAction(group, GroupCapabilities.Notice) && ImGui.BeginTabItem("Notice")) { DrawNoticeEditor(group); ImGui.EndTabItem(); }
+        if (group.IsMember && group.EnabledFeatures?.Contains(GroupCapabilities.Treasury) == true && ImGui.BeginTabItem("Treasury")) { DrawGroupTreasury(group, management); ImGui.EndTabItem(); }
+        if (management && (CanGroupAction(group, GroupCapabilities.Billing) || CanGroupAction(group, GroupCapabilities.TreasuryRecords)) && ImGui.BeginTabItem("Billing")) { DrawGroupBilling(group); ImGui.EndTabItem(); }
+        if (management && OwnSelectedGroup && ImGui.BeginTabItem("Staff")) { DrawGroupStaff(group); ImGui.EndTabItem(); }
+        if (includeFeatureApproval && Owner && ImGui.BeginTabItem("Features")) { DrawGroupFeatures(group); ImGui.EndTabItem(); }
         ImGui.EndTabBar();
     }
     private void DrawGroupMembers(AmorRP.Contracts.Groups.Group group)
@@ -98,7 +98,7 @@ public sealed partial class CommunitiesPanel
         if (groupPrivate?.NextCursor != null && ActionButton("More group members", mutation: false)) LoadGroupPrivate(group, true, true);
         if (!OwnSelectedGroup && ActionButton("Leave group")) Mutate("DELETE", GroupPath(group) + "/membership", null);
     }
-    private void DrawNoticeboard()
+    private void DrawNoticeboard(bool communityBrowser = false)
     {
         if (community == null) { Wrapped("Choose a community to read its noticeboard."); return; }
         DrawRefreshState(hubRefresh, "Noticeboard");
@@ -109,7 +109,11 @@ public sealed partial class CommunitiesPanel
             ImGui.PushID(item.GroupId.ToString()); ImGui.Separator();
             Wrapped(item.GroupName); Wrapped(item.Title); Wrapped(item.Message);
             if (item.Reward.Length > 0) Wrapped("Offered reward: " + item.Reward);
-            if (ImGui.SmallButton("View group") && communityGroups.FirstOrDefault(x => x.Id == item.GroupId) is { } group) { SelectGroup(group); mainSection = MainSection.Groups; }
+            if (ImGui.SmallButton("View group") && communityGroups.FirstOrDefault(x => x.Id == item.GroupId) is { } group)
+            {
+                if (communityBrowser) { requestedDirectoryGroup = group.Id; requestedCommunityPage = CommunityBrowserPage.Groups; }
+                else { SelectGroup(group); mainSection = MainSection.Groups; }
+            }
             ImGui.PopID();
         }
         if (hub.Notices.Length == 0) Wrapped("No requests posted yet. Group owners and authorized staff can publish one from their group's Notice tab.");
@@ -135,20 +139,20 @@ public sealed partial class CommunitiesPanel
     private static bool EventTime(string text, out DateTimeOffset value) => DateTimeOffset.TryParseExact(text, "yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out value);
     private void NewGroupEvent()
     { eventEditId = null; eventEditVersion = 0; eventTitle = eventDescription = eventLocation = ""; eventStart = DateTimeOffset.UtcNow.AddHours(1).ToString("yyyy-MM-dd HH:mm"); eventEnd = DateTimeOffset.UtcNow.AddHours(2).ToString("yyyy-MM-dd HH:mm"); }
-    private void DrawGroupEvents(AmorRP.Contracts.Groups.Group group)
+    private void DrawGroupEvents(AmorRP.Contracts.Groups.Group group, bool management = true)
     {
         DrawRefreshState(hubRefresh, "Group events");
         foreach (var item in hub.Events.Where(x => x.GroupId == group.Id))
         {
             ImGui.PushID(item.Id.ToString()); DrawEvent(item);
-            if (CanGroupAction(group, GroupCapabilities.Events))
+            if (management && CanGroupAction(group, GroupCapabilities.Events))
             {
                 if (ImGui.SmallButton("Edit")) { eventEditId = item.Id; eventEditVersion = item.Version; eventTitle = item.Title; eventDescription = item.Description; eventLocation = item.Location; eventStart = item.StartsAt.ToString("yyyy-MM-dd HH:mm"); eventEnd = item.EndsAt.ToString("yyyy-MM-dd HH:mm"); }
                 ImGui.SameLine(); if (ActionButton("Cancel event")) Mutate("DELETE", GroupPath(group) + "/events/" + item.Id, null, ETag("group-event", item.Id, item.Version));
             }
             ImGui.PopID();
         }
-        if (!CanGroupAction(group, GroupCapabilities.Events)) return;
+        if (!management || !CanGroupAction(group, GroupCapabilities.Events)) return;
         if (ImGui.Button("New event")) NewGroupEvent();
         if (eventStart.Length == 0) NewGroupEvent();
         ImGui.Separator(); FieldLabel("Event title"); LimitedInput("##EventTitle", ref eventTitle, 40);

@@ -12,7 +12,7 @@ public sealed partial class CommunitiesPanel
     private bool craftCooking;
     private string[] RecipeTypes => craftCooking ? CraftingTypes.Cooking : CraftingTypes.Alchemy;
     private string RecipeType => RecipeTypes[Math.Clamp(definitionType, 0, RecipeTypes.Length - 1)];
-    private void SetCraftMode(bool cooking) { if (craftCooking == cooking) return; craftCooking = cooking; recipeChoice = 0; NewRecipe(); }
+    private void SetCraftMode(bool cooking) { if (craftCooking == cooking) return; craftCooking = cooking; recipeChoice = 0; productionSearch = ""; productionSelection.Reset(); NewRecipe(); }
     private bool definitionEnabled = true;
     private Guid? definitionEditId;
     private int? definitionEditRevision;

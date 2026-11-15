@@ -21,6 +21,7 @@ public sealed partial class CommunitiesPanel
     }
     private void ClearCommunityViews()
     {
+        pendingMemberSelection = null; requestedCommunityPage = null; requestedManagementMembers = false;
         ResetCommunityRefreshes();
         ClearNestedGroups();
         requests.ChangeView(); reads.Clear(); ClearTradeViews();

@@ -1,4 +1,5 @@
 using AmorRP.Contracts.Inventory;
+using AmorRP.Plugin.Features.Crafting;
 using AmorRP.Plugin.Services.Game;
 using Dalamud.Bindings.ImGui;
 namespace AmorRP.Plugin.Features.Communities;
@@ -6,6 +7,8 @@ namespace AmorRP.Plugin.Features.Communities;
 public sealed partial class CommunitiesPanel
 {
     private int recipeChoice, productionQuantity = 1, destination;
+    private string productionSearch = "";
+    private readonly CraftingRecipeSelection productionSelection = new();
     private ConsumptionResult? lastUse;
     private bool resendConfirmed;
     private DateTimeOffset lastPost;
@@ -32,25 +35,29 @@ public sealed partial class CommunitiesPanel
             Wrapped("Ask the community owner or a moderator for permission to craft these items.");
             DrawPotionAccess(); return;
         }
-        var recipes = definitions.Where(x => !x.Retired && x.Enabled && RecipeTypes.Contains(x.TypeId)).ToArray();
-        if (recipes.Length == 0)
+        if (CraftingRecipeSelection.View(definitions, craftCooking, "").Length == 0)
         {
             Wrapped(Owner ? "No enabled recipes. Define one in the matching recipes tab, then return here to craft it." : "No enabled recipes yet. Ask a recipe creator to define and enable one.");
             return;
         }
-        recipeChoice = Math.Clamp(recipeChoice, 0, recipes.Length - 1);
         var narrow = ImGui.GetContentRegionAvail().X < ImGui.GetFontSize() * 38;
         if (!ImGui.BeginTable("ProductionLayout", narrow ? 1 : 2, ImGuiTableFlags.Resizable | ImGuiTableFlags.BordersInnerV)) return;
         ImGui.TableSetupColumn("Recipes", ImGuiTableColumnFlags.WidthStretch, .4f); if (!narrow) ImGui.TableSetupColumn("Create", ImGuiTableColumnFlags.WidthStretch, .6f);
         ImGui.TableNextColumn(); ImGui.BeginChild("ProductionRecipes", new(0, narrow ? ImGui.GetTextLineHeightWithSpacing() * 7 : 0), true);
         ImGui.TextUnformatted("Choose a recipe");
+        ImGui.SetNextItemWidth(-1);
+        ImGui.InputTextWithHint("##ProductionSearch", "Search recipes…", ref productionSearch, 100);
+        var recipes = CraftingRecipeSelection.View(definitions, craftCooking, productionSearch);
+        recipeChoice = productionSelection.Resolve(recipes);
         for (var i = 0; i < recipes.Length; i++)
         {
             var row = recipes[i]; ImGui.PushID(row.Id.ToString());
-            if (ImGui.Selectable(row.Name + "###ProductionRecipe", recipeChoice == i)) recipeChoice = i;
+            if (ImGui.Selectable(row.Name + "###ProductionRecipe", recipeChoice == i)) { recipeChoice = i; productionSelection.Select(row.Id); }
             ImGui.TextDisabled($"{row.Potion.CreationCost} points each · revision {row.Revision}"); ImGui.PopID();
         }
         ImGui.EndChild(); ImGui.TableNextColumn(); ImGui.BeginChild("ProductionDetails", new(0, 0), true); ImGui.PushItemWidth(-1);
+        if (recipes.Length == 0)
+        { Wrapped("No recipes match this search. Clear it to see all available recipes."); ImGui.PopItemWidth(); ImGui.EndChild(); ImGui.EndTable(); return; }
         var recipe = recipes[recipeChoice]; ImGui.TextUnformatted(recipe.Name); Wrapped(recipe.Description);
         ImGui.Separator(); ImGui.TextUnformatted("Message posted when used");
         ImGui.BeginChild("ProductionMessage", new(0, ImGui.GetTextLineHeightWithSpacing() * 4), true); Wrapped(recipe.Potion.UseMessage); ImGui.EndChild();

@@ -22,13 +22,13 @@ public sealed partial class CommunitiesPanel
         if (ImGui.BeginTabItem("Books")) { inventoryTab = 2; DrawInventory(); ImGui.EndTabItem(); }
         ImGui.EndTabBar();
     }
-    private void DrawCraftingTabs()
+    private void DrawCraftingTabs(bool includeWriting = true)
     {
         if (community == null) { Wrapped("Use Join or Create community above to get started."); return; }
         DrawRefreshState(inventoryRefresh, "Crafting");
         if (!inventoryRefresh.HasLoaded && definitions.Length == 0) return;
         if (!ImGui.BeginTabBar("CraftingSubtabs")) return;
-        if (ImGui.BeginTabItem("Info"))
+        if (includeWriting && ImGui.BeginTabItem("Info"))
         {
             Wrapped("Crafting creates RP items for the selected community.");
             Wrapped("Alchemy and Cooking turn recipes into usable RP items. Ask the owner or a moderator with Manage Gameplay Permissions for crafting access. Each craft spends your character’s weekly points for that craft.");
@@ -40,8 +40,10 @@ public sealed partial class CommunitiesPanel
         if (CanDefinePotions && ImGui.BeginTabItem("Alchemy recipes")) { SetCraftMode(false); DrawCatalogEditor(); ImGui.EndTabItem(); }
         if (CanCraftCooking && ImGui.BeginTabItem("Cooking")) { SetCraftMode(true); DrawQuota("cooking_points"); DrawPotionCreation(); ImGui.EndTabItem(); }
         if (CanDefineCooking && ImGui.BeginTabItem("Cooking recipes")) { SetCraftMode(true); DrawCatalogEditor(); ImGui.EndTabItem(); }
-        if (ImGui.BeginTabItem("Writing")) { DrawQuota("letters"); DrawLetterCreation(); ImGui.EndTabItem(); }
+        if (includeWriting && ImGui.BeginTabItem("Writing")) { DrawQuota("letters"); DrawLetterCreation(); ImGui.EndTabItem(); }
         ImGui.EndTabBar();
+        if (!includeWriting && !CanCraftPotions && !CanCraftCooking && !CanDefinePotions && !CanDefineCooking)
+            Wrapped("Ask the community owner or an authorized moderator for Alchemy or Cooking access. Writing is available in the separate writing log.");
     }
     private void DrawSettings()
     {

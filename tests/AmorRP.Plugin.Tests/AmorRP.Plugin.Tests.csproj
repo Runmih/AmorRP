@@ -13,6 +13,8 @@
     <Compile Include="../../src/AmorRP.Plugin/Features/Inventory/InventoryAttachmentLayout.cs" Link="Features/Inventory/InventoryAttachmentLayout.cs" />
     <Compile Include="../../src/AmorRP.Plugin/Features/Inventory/InventoryCompanionQuery.cs" Link="Features/Inventory/InventoryCompanionQuery.cs" />
     <Compile Include="../../src/AmorRP.Plugin/Features/Writing/WritingLogReader.cs" Link="Features/Writing/WritingLogReader.cs" />
+    <Compile Include="../../src/AmorRP.Plugin/Features/Shell/WorkspaceAccess.cs" Link="Features/Shell/WorkspaceAccess.cs" />
+    <Compile Include="../../src/AmorRP.Plugin/Features/Crafting/CraftingRecipeSelection.cs" Link="Features/Crafting/CraftingRecipeSelection.cs" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit.v3" />
     <PackageReference Include="xunit.runner.visualstudio" PrivateAssets="all" />

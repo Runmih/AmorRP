@@ -9,16 +9,20 @@ namespace AmorRP.Plugin.Features.Shell;
 public sealed class LauncherWindow : Window
 {
     private readonly Action openWriting, openTrade, toggleInterfaces;
-    private readonly Func<int> requests;
-    private readonly Func<bool> canDraw, interfacesVisible;
+    private readonly Action<WorkspaceKind> openWorkspace;
+    private readonly Func<int> requests, announcements;
+    private readonly Func<bool> canDraw, interfacesVisible, canManageGroups, canManageCommunity;
 
-    public LauncherWindow(Action openWriting, Action openTrade, Func<int> requests,
-        Func<bool> canDraw, Func<bool> interfacesVisible, Action toggleInterfaces)
+    public LauncherWindow(Action openWriting, Action openTrade, Action<WorkspaceKind> openWorkspace,
+        Func<int> requests, Func<int> announcements, Func<bool> canDraw, Func<bool> interfacesVisible,
+        Action toggleInterfaces, Func<bool> canManageGroups, Func<bool> canManageCommunity)
         : base("Amor RP launcher###AmorRPLauncher", ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoResize
             | ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoCollapse)
     {
         this.openWriting = openWriting; this.openTrade = openTrade; this.requests = requests;
         this.canDraw = canDraw;
+        this.openWorkspace = openWorkspace; this.announcements = announcements;
+        this.canManageGroups = canManageGroups; this.canManageCommunity = canManageCommunity;
         this.interfacesVisible = interfacesVisible; this.toggleInterfaces = toggleInterfaces;
         RespectCloseHotkey = false;
         DisableWindowSounds = true;
@@ -31,6 +35,21 @@ public sealed class LauncherWindow : Window
     {
         var size = new Vector2(ImGui.GetFrameHeight() * 1.4f);
         if (ImGuiComponents.IconButton("LauncherWriting", FontAwesomeIcon.BookOpen, size)) openWriting();
+        ImGui.SameLine();
+        if (ImGuiComponents.IconButton("LauncherCrafting", FontAwesomeIcon.Hammer, size)) openWorkspace(WorkspaceKind.Crafting);
+        ImGui.SameLine();
+        if (ImGuiComponents.IconButton("LauncherCommunity", FontAwesomeIcon.Users, size)) openWorkspace(WorkspaceKind.Community);
+        if (announcements() > 0) NotificationBadge.Draw();
+        if (canManageGroups())
+        {
+            ImGui.SameLine();
+            if (ImGuiComponents.IconButton("LauncherGroupManagement", FontAwesomeIcon.Sitemap, size)) openWorkspace(WorkspaceKind.GroupManagement);
+        }
+        if (canManageCommunity())
+        {
+            ImGui.SameLine();
+            if (ImGuiComponents.IconButton("LauncherCommunityManagement", FontAwesomeIcon.Cog, size)) openWorkspace(WorkspaceKind.CommunityManagement);
+        }
         ImGui.SameLine();
         if (ImGuiComponents.IconButton("LauncherTrade", FontAwesomeIcon.ExchangeAlt, size)) openTrade();
         if (requests() > 0) NotificationBadge.Draw();

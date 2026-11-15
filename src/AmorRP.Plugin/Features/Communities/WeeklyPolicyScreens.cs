@@ -24,9 +24,9 @@ public sealed partial class CommunitiesPanel
         if (sent.Letters == nextLetters) policyLettersDirty = false;
         if (sent.CookingPoints == nextCooking) policyCookingDirty = false;
     }
-    private void DrawWeeklyPolicy()
+    private void DrawWeeklyPolicy(bool expanded = false)
     {
-        if (!ImGui.CollapsingHeader("Weekly Policy")) return;
+        if (!expanded && !ImGui.CollapsingHeader("Weekly Policy")) return;
         DrawRefreshState(policyRefresh, "Weekly policy");
         if (policies == null) return;
         if (!policyDraftLoaded) LoadActivePolicy(policies);

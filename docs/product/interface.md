@@ -1,5 +1,23 @@
 # Interface and player flows
 
+## Crafting and community windows — 0.3.0.5
+
+The launcher opens Crafting, Community, Group management and Community management as
+separate resizable windows, alongside writing and trading. The group/community
+management icons appear only with relevant authority. Community has Overview, Members,
+Groups and Noticeboard tabs; this is the maintainer's selected browsing layout.
+Community profiles and member views show personal actions and links to authorized
+management, rather than embedding administrator forms. Notice View group routes to
+the same Community window's Groups tab. Announcements badge its launcher icon.
+
+Crafting has searchable Alchemy/Cooking recipe lists, details, quantity and total
+cost, with weekly points/reset and authorized recipe editing. Writing remains in the
+writing log. Group management lists owned/staff-managed groups; community approval of
+group features remains in Community management and never grants private group access.
+Each management tab enforces existing permission boundaries. The closed-eye switch
+continues to hide automatic panels while manually opened workspaces remain usable.
+See [release notes and live checks](../delivery/release-0.3.0.5.md).
+
 ## Writing log and launcher — 0.3.0.4
 
 The launcher has three icon buttons: book opens the dedicated writing log, arrows

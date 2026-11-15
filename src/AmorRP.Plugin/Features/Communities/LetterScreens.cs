@@ -51,6 +51,7 @@ public sealed partial class CommunitiesPanel
     }
     private void ClearCreationDrafts()
     {
+        productionSearch = ""; productionSelection.Reset();
         letterTitle = letterBody = letterEditTitle = letterEditBody = ""; editingLetter = null; letterCategory = recipeChoice = 0; productionQuantity = 1;
         definitionEditId = null; definitionName = definitionDescription = definitionMessage = ""; definitionCost = 1; definitionEnabled = true;
     }

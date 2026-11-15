@@ -22,7 +22,7 @@ public sealed partial class CommunitiesPanel
         else if (savedCurrencyName == current.Currency.Name) editCurrencyVersion = current.Currency.Version;
         homeDraftLoaded = true;
     }
-    private void DrawHomeProfile()
+    private void DrawHomeProfile(bool editable = true)
     {
         LoadHomeDrafts();
         var current = community!;
@@ -30,16 +30,16 @@ public sealed partial class CommunitiesPanel
         var textWidth = Math.Max(100, ImGui.GetContentRegionAvail().X - 150);
         var descriptionHeight = ImGui.CalcTextSize(current.Description, false, textWidth).Y;
         var shownHeight = homeDescriptionExpanded ? descriptionHeight : Math.Min(descriptionHeight, spacing * 3);
-        var height = CanGeneralModerate ? spacing * 4 + ImGui.GetFrameHeightWithSpacing() * 3 + 28 : Math.Max(128, shownHeight + spacing * 3 + 20);
+        var height = editable && CanGeneralModerate ? spacing * 4 + ImGui.GetFrameHeightWithSpacing() * 3 + 28 : Math.Max(128, shownHeight + spacing * 3 + 20);
         BeginHomeCard("CommunityProfile", height);
         if (ImGui.BeginTable("ProfileLayout", 2, ImGuiTableFlags.SizingFixedFit))
         {
             ImGui.TableSetupColumn("Logo", ImGuiTableColumnFlags.WidthFixed, 116);
             ImGui.TableSetupColumn("Profile", ImGuiTableColumnFlags.WidthStretch);
-            ImGui.TableNextColumn(); DrawCommunityLogo(); ImGui.TableNextColumn(); ImGui.PushItemWidth(-1);
-            if (Owner) LimitedInput("##HomeCommunityName", ref editCommunityName, 80, countCodeUnits: true);
+            ImGui.TableNextColumn(); DrawCommunityLogo(editable); ImGui.TableNextColumn(); ImGui.PushItemWidth(-1);
+            if (editable && Owner) LimitedInput("##HomeCommunityName", ref editCommunityName, 80, countCodeUnits: true);
             else ImGui.TextUnformatted(current.Name);
-            if (CanGeneralModerate)
+            if (editable && CanGeneralModerate)
             {
                 WrappedInput("##HomeDescription", ref editDescription, 8192, new(-1, spacing * 4), maximumCharacters: CommunityEdit.MaximumDescriptionCharacters);
                 var conflict = savedCommunityName != current.Name || savedHomeDescription != current.Description;
@@ -65,27 +65,29 @@ public sealed partial class CommunitiesPanel
         }
         EndHomeCard();
     }
-    private void DrawHomeResources()
+    private void DrawHomeResources(bool editable = true)
     {
         ImGui.TextUnformatted("Your resources"); ImGui.Separator();
         if (icons.HasImage) { icons.DrawIcon(); ImGui.SameLine(); }
         Wrapped(community!.MyBalance.Available + " " + community.Currency.Name);
         if (community.MyBalance.Reserved != "0") ImGui.TextDisabled(community.MyBalance.Reserved + " reserved for trading");
-        if (CanGeneralModerate)
-        {
-            FieldLabel("Currency name"); LimitedInput("##HomeCurrencyName", ref editCurrencyName, 80, countCodeUnits: true);
-            var conflict = savedCurrencyName != community.Currency.Name;
-            if (conflict) { Wrapped("Currency name changed elsewhere."); if (ImGui.Button("Reload currency name")) { editCurrencyName = savedCurrencyName = community.Currency.Name; editCurrencyVersion = community.Currency.Version; } }
-            if (editCurrencyName != community.Currency.Name)
-            {
-                ImGui.BeginDisabled(conflict || string.IsNullOrWhiteSpace(editCurrencyName) || editCurrencyName.Length > 80);
-                if (ActionButton("Save currency name")) Mutate("PATCH", $"api/v2/communities/{community.Id}/currency", new CurrencyEdit(editCurrencyName, community.Currency.Symbol), ETag("currency", community.Currency.Id, editCurrencyVersion));
-                ImGui.EndDisabled();
-            }
-        }
+        if (editable && CanGeneralModerate) DrawCurrencyNameEditor();
         ImGui.Spacing(); ImGui.Separator();
         if (CanCraftPotions) DrawQuota("potion_points");
         DrawQuota("letters");
+    }
+    private void DrawCurrencyNameEditor()
+    {
+        if (!CanGeneralModerate || community == null) return;
+        FieldLabel("Currency name"); LimitedInput("##HomeCurrencyName", ref editCurrencyName, 80, countCodeUnits: true);
+        var conflict = savedCurrencyName != community.Currency.Name;
+        if (conflict) { Wrapped("Currency name changed elsewhere."); if (ImGui.Button("Reload currency name")) { editCurrencyName = savedCurrencyName = community.Currency.Name; editCurrencyVersion = community.Currency.Version; } }
+        if (editCurrencyName != community.Currency.Name)
+        {
+            ImGui.BeginDisabled(conflict || string.IsNullOrWhiteSpace(editCurrencyName) || editCurrencyName.Length > 80);
+            if (ActionButton("Save currency name")) Mutate("PATCH", $"api/v2/communities/{community.Id}/currency", new CurrencyEdit(editCurrencyName, community.Currency.Symbol), ETag("currency", community.Currency.Id, editCurrencyVersion));
+            ImGui.EndDisabled();
+        }
     }
     private void ApplyHomeSuccess(CommandRequest request, string json)
     {
