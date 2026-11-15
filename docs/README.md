@@ -1,8 +1,9 @@
 # Documentation index
 
 Current guides describe the implemented project.
-The current plugin release is [0.3.0.2 — inventory companion](delivery/release-0.3.0.2.md);
+The current plugin source is [0.3.0.3 — quick panel visibility switch](delivery/release-0.3.0.3.md);
 the server remains 0.3.0.0.
+The main feed is promoted after the matching Windows and server checks pass.
 Home-server cutover: [Portainer + Nginx Proxy Manager](delivery/home-server.md). Backend feature release:
 [0.3.0.0 — trusted billing and automatic debt repayment](delivery/release-0.3.0.0.md).
 The inventory companion is plugin-only. Billing requires server 0.3.0.0;

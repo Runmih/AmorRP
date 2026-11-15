@@ -25,7 +25,7 @@ public sealed partial class CommunitiesPanel
         if (favoriteRefresh.TryCollect(now, dataGeneration, out var events)) favoriteEvents = events;
         if (!SessionRenewalInProgress && favoriteRefresh.Error is FoundationApiException { Status: HttpStatusCode.Unauthorized })
         { ClearWork(); ClearCommunityViews(); ClearFavoriteEvents(); session = null; return; }
-        if (!configuration.ShowFavoriteEvents) { favoriteRefresh.Reset(); return; }
+        if (!configuration.ShowFavoriteEvents || !configuration.ShowAttachedInterfaces) { favoriteRefresh.Reset(); return; }
         if (SessionRenewalInProgress || session == null || origin == null || !serviceCompatible || WriteBlocked || session.AccessExpiresAt <= now) return;
         var uri = origin; var token = session.AccessToken;
         favoriteRefresh.Start(now, dataGeneration, requests.Token,

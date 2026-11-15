@@ -50,6 +50,9 @@ public sealed partial class CommunitiesPanel
         {
             var show = configuration.ShowLauncher;
             if (ImGui.Checkbox("Show quick launcher", ref show)) { configuration.ShowLauncher = show; save(); SetLauncherVisible?.Invoke(show); }
+            var attachedInterfaces = configuration.ShowAttachedInterfaces;
+            if (ImGui.Checkbox("Show attached panels and HUDs", ref attachedInterfaces))
+            { configuration.ShowAttachedInterfaces = attachedInterfaces; save(); }
             var inventoryCompanion = configuration.ShowInventoryCompanion;
             if (ImGui.Checkbox("Show RP inventory beside game inventory", ref inventoryCompanion))
             { configuration.ShowInventoryCompanion = inventoryCompanion; save(); }

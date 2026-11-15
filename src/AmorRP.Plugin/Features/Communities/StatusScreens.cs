@@ -32,7 +32,6 @@ public sealed partial class CommunitiesPanel
         if (ActionButton("Leave")) LeaveCommunity();
         ImGui.EndDisabled();
     }
-    public void DrawLauncherCommunitySelector() => DrawCommunitySelector("##LauncherCommunity", 200);
     private void DrawCommunitySelector(string id, float width)
     {
         ImGui.SetNextItemWidth(width);

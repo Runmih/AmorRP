@@ -32,7 +32,7 @@ public sealed class Plugin : IDalamudPlugin
         if (configuration.Version < 4) { configuration.Version = 4; pluginInterface.SavePluginConfig(configuration); }
         mainWindow = new MainWindow(playerState, party, configuration, () => pluginInterface.SavePluginConfig(configuration), textures);
         compactWindow = new(mainWindow.DrawCompact);
-        inventoryCompanionWindow = new(gameGui, () => configuration.ShowInventoryCompanion && playerState.IsLoaded, mainWindow.DrawInventoryCompanion);
+        inventoryCompanionWindow = new(gameGui, () => configuration.ShowAttachedInterfaces && configuration.ShowInventoryCompanion && playerState.IsLoaded, mainWindow.DrawInventoryCompanion);
         tradeWindow = new(mainWindow.DrawTrade, mainWindow.TradeOpened, mainWindow.TradeClosed);
         mainWindow.OpenTrade = () => tradeWindow.IsOpen = true;
         joinCommunityWindow = new("Amor RP — Join community###AmorRPJoinCommunity", mainWindow.DrawJoinCommunity, () => mainWindow.CanDrawCommunityForms, new(520, 360), mainWindow.ClearFeedback);
@@ -42,11 +42,12 @@ public sealed class Plugin : IDalamudPlugin
         mainWindow.CloseJoinCommunity = () => joinCommunityWindow.IsOpen = false;
         mainWindow.CloseCreateCommunity = () => createCommunityWindow.IsOpen = false;
         launcherWindow = new(mainWindow.OpenMainFromLauncher, mainWindow.OpenTradeFromLauncher,
-            () => mainWindow.PendingTradeRequests, () => mainWindow.UnreadAnnouncements, () => playerState.IsLoaded, mainWindow.DrawLauncherCommunitySelector)
+            () => mainWindow.PendingTradeRequests, () => mainWindow.UnreadAnnouncements, () => playerState.IsLoaded,
+            () => configuration.ShowAttachedInterfaces, ToggleAttachedInterfaces)
             { IsOpen = configuration.ShowLauncher };
         mainWindow.SetLauncherVisible = visible => launcherWindow.IsOpen = visible;
         context = new(contextMenu, mainWindow.SelectTarget);
-        favoriteEventsWindow = new(mainWindow.DrawFavoriteEvents, () => playerState.IsLoaded) { IsOpen = configuration.ShowFavoriteEvents };
+        favoriteEventsWindow = new(mainWindow.DrawFavoriteEvents, () => playerState.IsLoaded && configuration.ShowAttachedInterfaces) { IsOpen = configuration.ShowFavoriteEvents };
         mainWindow.SetFavoriteEventsVisible = visible => favoriteEventsWindow.IsOpen = visible;
         windows.AddWindow(favoriteEventsWindow);
         windows.AddWindow(mainWindow);
@@ -77,10 +78,17 @@ public sealed class Plugin : IDalamudPlugin
             case "launcher":
                 configuration.ShowLauncher = !configuration.ShowLauncher; launcherWindow.IsOpen = configuration.ShowLauncher;
                 pluginInterface.SavePluginConfig(configuration); break;
+            case "panels": ToggleAttachedInterfaces(); break;
             default: mainWindow.Toggle(); break;
         }
     }
     private void Open() => mainWindow.IsOpen = true;
+
+    private void ToggleAttachedInterfaces()
+    {
+        configuration.ShowAttachedInterfaces = !configuration.ShowAttachedInterfaces;
+        pluginInterface.SavePluginConfig(configuration);
+    }
 
     public void Dispose()
     {

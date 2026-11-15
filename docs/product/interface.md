@@ -1,5 +1,16 @@
 # Interface and player flows
 
+## Quick launcher — 0.3.0.3
+
+The quick launcher contains main-menu and trade icons plus an eye button labelled
+Hide panels / Show panels. It has no community selector. The visibility switch hides
+the inventory companion and favorite-events HUD while keeping the launcher available.
+It preserves each panel's individual preference and saves the shared state across
+restarts. Settings General and `/amorrp panels` provide the same switch. Main, trade
+and other manually opened windows remain usable. Community selection stays in the
+main menu and inventory companion. This supersedes earlier launcher layouts below;
+see [release notes and game checks](../delivery/release-0.3.0.3.md).
+
 ## Inventory companion — 0.3.0.2
 
 A separate panel opens to the right of vanilla inventory, tracking its position and

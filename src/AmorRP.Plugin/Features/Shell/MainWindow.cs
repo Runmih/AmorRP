@@ -31,7 +31,6 @@ public sealed class MainWindow : Window, IDisposable
     public int PendingTradeRequests => communities.PendingTradeRequests;
     public int UnreadAnnouncements => communities.UnreadAnnouncements;
     public void OpenMainFromLauncher() { communities.FocusUnreadAnnouncements(); IsOpen = true; }
-    public void DrawLauncherCommunitySelector() => communities.DrawLauncherCommunitySelector();
     public void OpenTradeFromLauncher() => communities.OpenTradeFromLauncher();
     public void DrawFavoriteEvents() => communities.DrawFavoriteEvents();
     public Action<bool>? SetFavoriteEventsVisible { get; set; }

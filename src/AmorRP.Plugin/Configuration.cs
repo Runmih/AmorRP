@@ -9,6 +9,7 @@ public sealed class Configuration : IPluginConfiguration
     public Dictionary<string, string> ProtectedMemberNotes { get; set; } = [];
     public bool ShowFavoriteEvents { get; set; } = true;
     public bool ShowLauncher { get; set; } = true;
+    public bool ShowAttachedInterfaces { get; set; } = true;
     public bool ShowInventoryCompanion { get; set; } = true;
     public Dictionary<string, Guid[]> PinnedHoldings { get; set; } = [];
     public List<Services.Identity.SavedSession> SavedSessions { get; set; } = [];
