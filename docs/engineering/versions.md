@@ -2,8 +2,8 @@
 
 ## Current product versions
 
-Plugin **0.3.0.3**, server **0.3.0.0**, Amor RP API **v2**, minimum client **0.3.0.0**.
-Plugin 0.3.0.3 adds the launcher's shared panel visibility switch; see [release notes](../delivery/release-0.3.0.3.md).
+Plugin **0.3.0.4**, server **0.3.0.0**, Amor RP API **v2**, minimum client **0.3.0.0**.
+Plugin 0.3.0.4 adds the writing log and icon-only panel switch; see [release notes](../delivery/release-0.3.0.4.md).
 The published version is recorded in repo.json after the matching CI checks pass.
 The plugin requires server 0.3.0.0. Deploy the TrustedBilling migration before
 using billing. Existing balances/permissions are preserved; debt and character trust

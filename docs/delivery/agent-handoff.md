@@ -1,8 +1,9 @@
-# Current handoff — quick panel visibility switch
+# Current handoff — writing log
 
-Use main of Runmih/AmorRP. Plugin source is 0.3.0.3, server/minimum client 0.3.0.0.
+Use main of Runmih/AmorRP. Plugin source is 0.3.0.4, server/minimum client 0.3.0.0.
 Publish the exact Windows artifact after matching CI passes; repo.json records the
-published version. Read [the launcher switch notes](release-0.3.0.3.md). Future automatic
+published version. Read [the writing log notes](release-0.3.0.4.md). The launcher book
+opens writing, not the main menu; its closed-eye switch has no text. Future automatic
 panels must respect ShowAttachedInterfaces and retain individual visibility settings.
 The home-server cutover is deployed; S03
 billing acceptance remains pending. Read [the inventory companion notes](release-0.3.0.2.md),

@@ -88,10 +88,7 @@ public sealed partial class CommunitiesPanel
     private void DrawInventoryCompanion(PendingCommand? pending)
     {
         ImGui.TextColored(InventoryGold, "AMOR RP  /  INVENTORY");
-        var menuWidth = ImGui.CalcTextSize("Main menu").X + ImGui.GetStyle().FramePadding.X * 2;
-        DrawCommunitySelector("##InventoryCommunity", Math.Max(80, ImGui.GetContentRegionAvail().X - menuWidth - ImGui.GetStyle().ItemSpacing.X));
-        ImGui.SameLine();
-        if (ImGui.Button("Main menu")) OpenMainWindow?.Invoke();
+        DrawCommunitySelector("##InventoryCommunity", -1);
         if (community == null)
         {
             ImGui.Spacing(); Wrapped("Choose a community to see its items and currency.");

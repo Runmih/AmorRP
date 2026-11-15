@@ -30,6 +30,7 @@ public sealed partial class CommunitiesPanel
     private void ResetCommunityRefreshes()
     {
         ResetInventoryCompanion();
+        ResetWritingLog();
         ClearBilling(); myBillsRefresh.Reset(); billingPolicyRefresh.Reset();
         inventoryRefresh.Reset(); rosterRefresh.Reset(); policyRefresh.Reset(); invitationRefresh.Reset();
         ownershipRefresh.Reset(); groupsRefresh.Reset(); hubRefresh.Reset(); inspectorRefresh.Reset();
@@ -39,6 +40,7 @@ public sealed partial class CommunitiesPanel
     private void RefreshCommunityFeatures()
     {
         companionInventoryRefresh.Invalidate();
+        writingLogRefresh.Invalidate();
         myBillsRefresh.Invalidate(); billingPolicyRefresh.Invalidate();
         inventoryRefresh.Invalidate(); rosterRefresh.Invalidate(); policyRefresh.Invalidate();
         invitationRefresh.Invalidate(); ownershipRefresh.Invalidate(); groupsRefresh.Invalidate();
@@ -49,6 +51,7 @@ public sealed partial class CommunitiesPanel
     {
         var now = DateTimeOffset.UtcNow;
         CollectInventoryCompanion(now);
+        CollectWritingLog(now);
         if (myBillsRefresh.TryCollect(now, dataGeneration, out var bills)) myBills = bills;
         if (billingPolicyRefresh.TryCollect(now, dataGeneration, out var billingSettings)) AcceptBillingPolicy(billingSettings);
         if (inventoryRefresh.TryCollect(now, dataGeneration, out var inventory)) AcceptInventoryState(inventory);
@@ -74,7 +77,7 @@ public sealed partial class CommunitiesPanel
         if (logoRefresh.TryCollect(now, dataGeneration, out var logo) && logo.Key == logoReadKey)
             logos.Update(logo.Key, logo.Bytes, logo.Custom);
 
-        var errors = new[] { companionInventoryRefresh.Error, myBillsRefresh.Error, billingPolicyRefresh.Error, inventoryRefresh.Error, rosterRefresh.Error, policyRefresh.Error, invitationRefresh.Error,
+        var errors = new[] { writingLogRefresh.Error, companionInventoryRefresh.Error, myBillsRefresh.Error, billingPolicyRefresh.Error, inventoryRefresh.Error, rosterRefresh.Error, policyRefresh.Error, invitationRefresh.Error,
             ownershipRefresh.Error, groupsRefresh.Error, hubRefresh.Error, inspectorRefresh.Error, iconRefresh.Error, logoRefresh.Error };
         if (!SessionRenewalInProgress && errors.Any(x => x is FoundationApiException { Status: HttpStatusCode.Unauthorized }))
         { ClearWork(); ClearCommunityViews(); session = null; return; }
@@ -83,6 +86,7 @@ public sealed partial class CommunitiesPanel
         var uri = origin; var token = session.AccessToken; var active = community; var actor = session.Character.Id;
         var ct = requests.Token; var id = active.Id; var owner = active.OwnerCharacterId == actor;
         StartInventoryCompanion(now, uri, token, id, ct);
+        StartWritingLog(now, uri, token, id, actor, ct);
         var billCount = myBills.Items.Length;
         myBillsRefresh.Start(now, dataGeneration, ct, c => LoadMyBillsAsync(uri, token, id, billCount, c));
         billingPolicyRefresh.Start(now, dataGeneration, ct, c => client.GetAsync<BillingPolicy>(uri, $"api/v2/communities/{id}/billing-policy", token, c));

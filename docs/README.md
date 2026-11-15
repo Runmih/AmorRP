@@ -1,7 +1,7 @@
 # Documentation index
 
 Current guides describe the implemented project.
-The current plugin source is [0.3.0.3 — quick panel visibility switch](delivery/release-0.3.0.3.md);
+The current plugin source is [0.3.0.4 — writing log and icon-only panel toggle](delivery/release-0.3.0.4.md);
 the server remains 0.3.0.0.
 The main feed is promoted after the matching Windows and server checks pass.
 Home-server cutover: [Portainer + Nginx Proxy Manager](delivery/home-server.md). Backend feature release:

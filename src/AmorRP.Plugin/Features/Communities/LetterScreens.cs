@@ -9,7 +9,7 @@ public sealed partial class CommunitiesPanel
     private Guid? editingLetter;
     private int letterEditVersion;
     private int letterCategory, writingType;
-    private void DrawLetterCreation()
+    private void DrawLetterCreation(float? bodyHeight = null)
     {
         ImGui.BeginChild("WritingForm", new(0, 0), true); ImGui.PushItemWidth(-1);
         var types = new[] { "book", "letter", "note" };
@@ -22,7 +22,7 @@ public sealed partial class CommunitiesPanel
         FieldLabel("Title"); LimitedInput("##WritingTitle", ref letterTitle, titleLimit);
         var titleError = PlainText.Error(letterTitle, titleLimit);
         FieldNote("WritingTitle", titleError, $"{PlainText.Characters(letterTitle)}/{titleLimit} characters");
-        FieldLabel("Contents"); WrappedInput("##WritingBody", ref letterBody, 524288, new(-1, ImGui.GetTextLineHeightWithSpacing() * 10), maximumCharacters: bodyLimit);
+        FieldLabel("Contents"); WrappedInput("##WritingBody", ref letterBody, 524288, new(-1, bodyHeight ?? ImGui.GetTextLineHeightWithSpacing() * 10), maximumCharacters: bodyLimit);
         var bodyError = PlainText.Error(letterBody, bodyLimit, multiline: true, required: false);
         FieldNote("WritingBody", bodyError, $"{PlainText.Characters(letterBody)}/{bodyLimit} characters · contents stay private to the holder");
         var remaining = quotas?.Items.FirstOrDefault(x => x.Kind == "letters")?.Remaining ?? 0;
@@ -32,24 +32,17 @@ public sealed partial class CommunitiesPanel
         if (ActionButton("Create " + types[writingType])) Mutate("POST", $"api/v2/communities/{community!.Id}/inventory/letters", new LetterCreate(choices[letterCategory].Id, letterTitle, letterBody, types[writingType]));
         ImGui.EndDisabled(); ImGui.PopItemWidth(); ImGui.EndChild();
     }
-    private void DrawLetterDetails(Letter letter, int reserved)
+    private void DrawWritingLogEditor(Letter letter, int reserved)
     {
-        Wrapped($"By {letter.Author.DisplayName} @ {letter.Author.HomeWorldName}");
-        Wrapped(letter.Locked ? "Permanently sealed after its first trade." : "The author may edit this while holding it, before its first trade.");
-        var body = letter.Body;
-        WrappedInput("##ReadWrittenBody", ref body, Math.Max(1024, System.Text.Encoding.UTF8.GetByteCount(body) + 1), new(-1, ImGui.GetTextLineHeightWithSpacing() * 10), readOnly: true);
-        if (letter.Author.Id != session!.Character.Id || letter.Locked) return;
-        ImGui.BeginDisabled(reserved > 0);
-        if (ImGui.Button("Edit contents")) { editingLetter = letter.Id; letterEditVersion = letter.Version; letterEditTitle = letter.Title; letterEditBody = letter.Body; }
-        ImGui.EndDisabled();
         if (reserved > 0) Wrapped("This text is reserved for a trade. End the trade before editing.");
-        if (editingLetter != letter.Id) return;
         var stale = letter.Version != letterEditVersion;
-        if (stale) Wrapped("This text changed. Click Edit contents to reload the saved version before saving.");
+        if (stale) Wrapped("This text changed. Click Reload saved text before saving.");
         FieldLabel("Edited title"); LimitedInput("##EditedTitle", ref letterEditTitle, serviceLimits?.LetterTitleTextElements ?? 80);
         var titleError = PlainText.Error(letterEditTitle, serviceLimits?.LetterTitleTextElements ?? 80);
         FieldNote("EditTitle", titleError, "The title shown in inventories and trade summaries.");
-        FieldLabel("Edited contents"); WrappedInput("##EditedBody", ref letterEditBody, 524288, new(-1, ImGui.GetTextLineHeightWithSpacing() * 8), maximumCharacters: Math.Min(500, serviceLimits?.LetterBodyTextElements ?? 500));
+        FieldLabel("Edited contents");
+        var height = Math.Max(ImGui.GetTextLineHeightWithSpacing() * 5, ImGui.GetContentRegionAvail().Y - ImGui.GetFrameHeightWithSpacing() * 4.5f);
+        WrappedInput("##EditedBody", ref letterEditBody, 524288, new(-1, height), maximumCharacters: Math.Min(500, serviceLimits?.LetterBodyTextElements ?? 500));
         var bodyError = PlainText.Error(letterEditBody, Math.Min(500, serviceLimits?.LetterBodyTextElements ?? 500), multiline: true, required: false);
         FieldNote("EditBody", bodyError, "Editing does not spend writing allowance.");
         ImGui.BeginDisabled(stale || titleError != null || bodyError != null || reserved > 0);

@@ -1,5 +1,21 @@
 # Interface and player flows
 
+## Writing log and launcher — 0.3.0.4
+
+The launcher has three icon buttons: book opens the dedicated writing log, arrows
+open trading, and a closed eye toggles attached panels. The eye is drawn without
+text or a tooltip; its background distinguishes enabled and hidden states. The
+book no longer opens the main menu or displays its announcement badge. No alternate
+main-menu button is introduced, and the inventory companion loses that shortcut too.
+
+The writing log is a separate resizable window with a book/letter/note library and
+large reader. Search, type filters and sorting are server-side. Selecting a title
+fetches its authorized contents; Copy text is explicit. New writing and permitted
+editing use a larger editor with existing limits/quotas. Inventory text items have
+Read in writing log in place of an embedded reader. The log remains usable when
+automatic panels are hidden. See [release and live checks](../delivery/release-0.3.0.4.md).
+This supersedes the earlier launcher descriptions below.
+
 ## Quick launcher — 0.3.0.3
 
 The quick launcher contains main-menu and trade icons plus an eye button labelled

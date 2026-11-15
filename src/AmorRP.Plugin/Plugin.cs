@@ -12,9 +12,11 @@ public sealed class Plugin : IDalamudPlugin
     private const string Command = "/amorrp";
     private readonly IDalamudPluginInterface pluginInterface;
     private readonly ICommandManager commands;
+    private readonly IPlayerState playerState;
     private readonly WindowSystem windows = new("AmorRP");
     private readonly Configuration configuration;
     private readonly LauncherWindow launcherWindow;
+    private readonly AmorRP.Plugin.Features.Writing.WritingLogWindow writingLogWindow;
     private readonly FavoriteEventsWindow favoriteEventsWindow;
     private readonly MainWindow mainWindow;
     private readonly AmorRP.Plugin.Features.Inventory.CompactWindow compactWindow;
@@ -28,9 +30,12 @@ public sealed class Plugin : IDalamudPlugin
     {
         this.pluginInterface = pluginInterface;
         this.commands = commands;
+        this.playerState = playerState;
         configuration = pluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
         if (configuration.Version < 4) { configuration.Version = 4; pluginInterface.SavePluginConfig(configuration); }
         mainWindow = new MainWindow(playerState, party, configuration, () => pluginInterface.SavePluginConfig(configuration), textures);
+        writingLogWindow = new(mainWindow.DrawWritingLog, () => playerState.IsLoaded);
+        mainWindow.OpenWritingLog = () => writingLogWindow.IsOpen = true;
         compactWindow = new(mainWindow.DrawCompact);
         inventoryCompanionWindow = new(gameGui, () => configuration.ShowAttachedInterfaces && configuration.ShowInventoryCompanion && playerState.IsLoaded, mainWindow.DrawInventoryCompanion);
         tradeWindow = new(mainWindow.DrawTrade, mainWindow.TradeOpened, mainWindow.TradeClosed);
@@ -41,8 +46,8 @@ public sealed class Plugin : IDalamudPlugin
         mainWindow.OpenCreateCommunity = () => createCommunityWindow.IsOpen = true;
         mainWindow.CloseJoinCommunity = () => joinCommunityWindow.IsOpen = false;
         mainWindow.CloseCreateCommunity = () => createCommunityWindow.IsOpen = false;
-        launcherWindow = new(mainWindow.OpenMainFromLauncher, mainWindow.OpenTradeFromLauncher,
-            () => mainWindow.PendingTradeRequests, () => mainWindow.UnreadAnnouncements, () => playerState.IsLoaded,
+        launcherWindow = new(mainWindow.OpenWritingLogFromLauncher, mainWindow.OpenTradeFromLauncher,
+            () => mainWindow.PendingTradeRequests, () => playerState.IsLoaded,
             () => configuration.ShowAttachedInterfaces, ToggleAttachedInterfaces)
             { IsOpen = configuration.ShowLauncher };
         mainWindow.SetLauncherVisible = visible => launcherWindow.IsOpen = visible;
@@ -51,6 +56,7 @@ public sealed class Plugin : IDalamudPlugin
         mainWindow.SetFavoriteEventsVisible = visible => favoriteEventsWindow.IsOpen = visible;
         windows.AddWindow(favoriteEventsWindow);
         windows.AddWindow(mainWindow);
+        windows.AddWindow(writingLogWindow);
         windows.AddWindow(compactWindow);
         windows.AddWindow(inventoryCompanionWindow);
         windows.AddWindow(tradeWindow);
@@ -66,6 +72,7 @@ public sealed class Plugin : IDalamudPlugin
     private void Draw()
     {
         mainWindow.SetInventoryCompanionVisible(inventoryCompanionWindow.UpdateAttachment());
+        mainWindow.SetWritingLogVisible(writingLogWindow.IsOpen && playerState.IsLoaded);
         mainWindow.Tick(); windows.Draw();
     }
 
@@ -75,6 +82,7 @@ public sealed class Plugin : IDalamudPlugin
         {
             case "compact": compactWindow.Toggle(); break;
             case "trade": mainWindow.OpenTradeFromLauncher(); break;
+            case "writing": mainWindow.OpenWritingLogFromLauncher(); break;
             case "launcher":
                 configuration.ShowLauncher = !configuration.ShowLauncher; launcherWindow.IsOpen = configuration.ShowLauncher;
                 pluginInterface.SavePluginConfig(configuration); break;

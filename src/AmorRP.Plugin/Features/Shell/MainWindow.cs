@@ -18,6 +18,7 @@ public sealed class MainWindow : Window, IDisposable
         Size = new Vector2(960, 680);
         SizeCondition = ImGuiCond.FirstUseEver;
         communities.OpenMainWindow = () => IsOpen = true;
+        communities.OpenWritingLogWindow = () => OpenWritingLog?.Invoke();
         communities.OpenTradeWindow = () => OpenTrade?.Invoke();
         communities.OpenJoinCommunity = () => OpenJoinCommunity?.Invoke();
         communities.OpenCreateCommunity = () => OpenCreateCommunity?.Invoke();
@@ -29,8 +30,10 @@ public sealed class MainWindow : Window, IDisposable
 
     public void Tick() { communities.EnsureScope(ProductServer.Origin); communities.Tick(); }
     public int PendingTradeRequests => communities.PendingTradeRequests;
-    public int UnreadAnnouncements => communities.UnreadAnnouncements;
-    public void OpenMainFromLauncher() { communities.FocusUnreadAnnouncements(); IsOpen = true; }
+    public void OpenWritingLogFromLauncher() => communities.OpenWritingLog();
+    public void DrawWritingLog() => communities.Draw(ProductServer.Origin, writingMode: true);
+    public void SetWritingLogVisible(bool visible) => communities.SetWritingLogVisible(visible);
+    public Action? OpenWritingLog { get; set; }
     public void OpenTradeFromLauncher() => communities.OpenTradeFromLauncher();
     public void DrawFavoriteEvents() => communities.DrawFavoriteEvents();
     public Action<bool>? SetFavoriteEventsVisible { get; set; }

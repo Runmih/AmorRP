@@ -180,7 +180,11 @@ public sealed partial class CommunitiesPanel
             if (ImGui.Button(pinned.Contains(item.Id) ? "Unpin from consumables" : "Pin to consumables")) TogglePin(item.Id);
             DrawPotionUse(selectedItem);
         }
-        if (selectedItem.Letter != null) DrawLetterDetails(selectedItem.Letter, item.Reserved);
+        if (selectedItem.Letter != null)
+        {
+            Wrapped($"By {selectedItem.Letter.Author.DisplayName} @ {selectedItem.Letter.Author.HomeWorldName}");
+            if (ImGui.Button("Read in writing log")) OpenWritingLog(item);
+        }
         if (lastUse != null && ImGui.CollapsingHeader("Last use / resend")) DrawResend();
         if (!ImGui.CollapsingHeader("Discard this item")) return;
         Wrapped("Discarding removes your own copies permanently and does not refund creation allowance.");
@@ -197,6 +201,7 @@ public sealed partial class CommunitiesPanel
     private void TogglePin(Guid id) { if (!pinned.Add(id)) pinned.Remove(id); configuration.PinnedHoldings[PinScope] = pinned.ToArray(); save(); }
     private void ApplyInventorySuccess(CommandRequest request, CommandResponse response, bool recovering)
     {
+        NoteWritingLogCompletion(request, response);
         if (request.Operation.Kind == CommandKind.CreateRecipe)
         {
             var recipe = JsonSerializer.Deserialize<CommandResult<Definition>>(response.Json, FoundationClient.Json)!.Result;

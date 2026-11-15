@@ -87,6 +87,13 @@ authorization and scope-reset checks. The native-window adapter looks up current
 inventory wrappers on the draw thread; it does not retain pointers or modify native
 nodes. Placement and query/amount helpers have no Dalamud dependency.
 
+The writing log also has independent library/selection/read state while sharing
+identity, generations and commands. WritingLogReader requests summaries separately
+from selected contents and checks community/holder/holding/written-item identity.
+BackgroundRefresh prevents late scope responses; missing or denied owned reads clear
+private contents. Inventory mutation invalidation requires rechecking a displayed
+body. The pure HTTP reader is linked into the plugin helper tests.
+
 `RequestCoordinator` owns the foreground and core-refresh task lanes, cancellation,
 view generation and data generation. Network work returns callbacks; the UI thread
 collects current results and applies them. A character/scope reset cancels both
