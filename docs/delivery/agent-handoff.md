@@ -1,4 +1,14 @@
-# Current testing update — 0.0.6.17
+# Current handoff — inventory companion candidate
+
+Use main of Runmih/AmorRP. Plugin source is 0.3.0.2 (candidate), published plugin
+0.3.0.1, server/minimum client 0.3.0.0. The home-server cutover is deployed; S03
+billing acceptance remains pending. Read [the inventory companion notes](release-0.3.0.2.md),
+[current versions](../engineering/versions.md) and [expansion progress](../planning/README.md).
+The companion uses real existing items/finances; Supplies/Documents are future empty
+states. Verify native placement in game and the Windows artifact before publication.
+The sections below are historical records and do not override these versions.
+
+# Historical testing update — 0.0.6.17
 
 `testing` contains the community rename and new nested group profiles. `main`
 remains stable 0.0.6.16. Both use the shared main/repo.json feed, with native

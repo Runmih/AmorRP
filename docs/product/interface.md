@@ -1,5 +1,19 @@
 # Interface and player flows
 
+## Inventory companion — 0.3.0.2 candidate
+
+A separate panel opens to the right of vanilla inventory, tracking its position and
+scaled size. It contains a community selector, All / Consumables / Writing / Supplies /
+Documents tabs, server-side search/type filtering/sorting, a scrollable item list and
+selected-item details/actions. Supplies and Documents are future empty states, with
+no invented inventory. The fixed bottom shows available currency, total, reserved,
+debt and any funds awaiting repayment. Unknown totals are not displayed as zero.
+View bills opens Home. The main menu inventory remains available with independent
+filters. Settings General controls attachment visibility; it defaults on. See the
+[candidate and game checklist](../delivery/release-0.3.0.2.md) for viewport behavior
+and verification. The rest of this document describes the existing main-menu flows
+and historical additions; it is not a requirement to put every future feature there.
+
 ## Shared display
 
 The shared header contains the persistent **community dropdown**, **Join**,

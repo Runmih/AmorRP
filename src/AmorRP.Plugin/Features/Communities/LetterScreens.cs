@@ -32,17 +32,17 @@ public sealed partial class CommunitiesPanel
         if (ActionButton("Create " + types[writingType])) Mutate("POST", $"api/v2/communities/{community!.Id}/inventory/letters", new LetterCreate(choices[letterCategory].Id, letterTitle, letterBody, types[writingType]));
         ImGui.EndDisabled(); ImGui.PopItemWidth(); ImGui.EndChild();
     }
-    private void DrawLetterDetails(Letter letter)
+    private void DrawLetterDetails(Letter letter, int reserved)
     {
         Wrapped($"By {letter.Author.DisplayName} @ {letter.Author.HomeWorldName}");
         Wrapped(letter.Locked ? "Permanently sealed after its first trade." : "The author may edit this while holding it, before its first trade.");
         var body = letter.Body;
         WrappedInput("##ReadWrittenBody", ref body, Math.Max(1024, System.Text.Encoding.UTF8.GetByteCount(body) + 1), new(-1, ImGui.GetTextLineHeightWithSpacing() * 10), readOnly: true);
         if (letter.Author.Id != session!.Character.Id || letter.Locked) return;
-        ImGui.BeginDisabled(details?.Holding.Reserved > 0);
+        ImGui.BeginDisabled(reserved > 0);
         if (ImGui.Button("Edit contents")) { editingLetter = letter.Id; letterEditVersion = letter.Version; letterEditTitle = letter.Title; letterEditBody = letter.Body; }
         ImGui.EndDisabled();
-        if (details?.Holding.Reserved > 0) Wrapped("This text is reserved for a trade. End the trade before editing.");
+        if (reserved > 0) Wrapped("This text is reserved for a trade. End the trade before editing.");
         if (editingLetter != letter.Id) return;
         var stale = letter.Version != letterEditVersion;
         if (stale) Wrapped("This text changed. Click Edit contents to reload the saved version before saving.");
@@ -52,7 +52,7 @@ public sealed partial class CommunitiesPanel
         FieldLabel("Edited contents"); WrappedInput("##EditedBody", ref letterEditBody, 524288, new(-1, ImGui.GetTextLineHeightWithSpacing() * 8), maximumCharacters: Math.Min(500, serviceLimits?.LetterBodyTextElements ?? 500));
         var bodyError = PlainText.Error(letterEditBody, Math.Min(500, serviceLimits?.LetterBodyTextElements ?? 500), multiline: true, required: false);
         FieldNote("EditBody", bodyError, "Editing does not spend writing allowance.");
-        ImGui.BeginDisabled(stale || titleError != null || bodyError != null || details?.Holding.Reserved > 0);
+        ImGui.BeginDisabled(stale || titleError != null || bodyError != null || reserved > 0);
         if (ActionButton("Save contents")) Mutate("PATCH", $"api/v2/communities/{community!.Id}/letters/{letter.Id}", new LetterEdit(letterEditTitle, letterEditBody), ETag("letter", letter.Id, letterEditVersion));
         ImGui.EndDisabled(); ImGui.SameLine(); if (ImGui.Button("Cancel edit")) editingLetter = null;
     }

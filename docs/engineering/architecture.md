@@ -9,7 +9,7 @@ source map. See [repository layout](repository-layout.md) for file navigation an
 
 Amor RP has two separately built applications in one repository: a Windows Dalamud
 plugin and an ASP.NET Core server. The server uses PostgreSQL and verifies character
-ownership through XIVAuth. Render hosts the public service; secrets stay in deployment
+ownership through XIVAuth. The maintainer's home server hosts the public service; secrets stay in deployment
 configuration. The plugin's release endpoint is fixed in `ProductServer`.
 
 ```mermaid
@@ -79,6 +79,13 @@ capacity guarantee. See [authentication](authentication.md).
 `CommunitiesPanel` owns the selected verified character/community, view data and
 editors. Its partial files share that state; they are not independently instantiated
 controllers. The shell and game/media adapters have their own lifecycle boundaries.
+
+The 0.3.0.2 inventory companion has independent query, pagination, selection and
+discard-confirmation state. It shares the existing identity, command and recovery
+coordinator. Its bounded background reads participate in the same generation,
+authorization and scope-reset checks. The native-window adapter looks up current
+inventory wrappers on the draw thread; it does not retain pointers or modify native
+nodes. Placement and query/amount helpers have no Dalamud dependency.
 
 `RequestCoordinator` owns the foreground and core-refresh task lanes, cancellation,
 view generation and data generation. Network work returns callbacks; the UI thread

@@ -48,6 +48,8 @@ public sealed class MainWindow : Window, IDisposable
     public void DrawJoinCommunity() => communities.DrawJoinCommunity();
     public void DrawCreateCommunity() => communities.DrawCreateCommunity();
     public void DrawCompact() => communities.Draw(ProductServer.Origin, compactMode: true);
+    public void DrawInventoryCompanion() => communities.Draw(ProductServer.Origin, inventoryMode: true);
+    public void SetInventoryCompanionVisible(bool visible) => communities.SetInventoryCompanionVisible(visible);
     public override void Draw() => communities.Draw(ProductServer.Origin);
     public void ClearFeedback() => communities.WindowOpened();
     public override void OnOpen() => ClearFeedback();

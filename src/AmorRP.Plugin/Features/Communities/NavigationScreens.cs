@@ -50,6 +50,9 @@ public sealed partial class CommunitiesPanel
         {
             var show = configuration.ShowLauncher;
             if (ImGui.Checkbox("Show quick launcher", ref show)) { configuration.ShowLauncher = show; save(); SetLauncherVisible?.Invoke(show); }
+            var inventoryCompanion = configuration.ShowInventoryCompanion;
+            if (ImGui.Checkbox("Show RP inventory beside game inventory", ref inventoryCompanion))
+            { configuration.ShowInventoryCompanion = inventoryCompanion; save(); }
             var events = configuration.ShowFavoriteEvents;
             if (ImGui.Checkbox("Show favorite events HUD", ref events)) { configuration.ShowFavoriteEvents = events; save(); SetFavoriteEventsVisible?.Invoke(events); }
             ImGui.TextWrapped("The HUD shows favorite groups' events for the next five days. Drag its header to move it; click an event for details.");

@@ -18,12 +18,13 @@ public sealed class Plugin : IDalamudPlugin
     private readonly FavoriteEventsWindow favoriteEventsWindow;
     private readonly MainWindow mainWindow;
     private readonly AmorRP.Plugin.Features.Inventory.CompactWindow compactWindow;
+    private readonly AmorRP.Plugin.Features.Inventory.InventoryCompanionWindow inventoryCompanionWindow;
     private readonly AmorRP.Plugin.Features.Trading.TradeWindow tradeWindow;
     private readonly AmorRP.Plugin.Features.Communities.CommunityFormWindow joinCommunityWindow, createCommunityWindow;
     private readonly CharacterContext context;
 
     public Plugin(IDalamudPluginInterface pluginInterface, ICommandManager commands, IPlayerState playerState,
-        IContextMenu contextMenu, IPartyList party, ITextureProvider textures)
+        IContextMenu contextMenu, IPartyList party, ITextureProvider textures, IGameGui gameGui)
     {
         this.pluginInterface = pluginInterface;
         this.commands = commands;
@@ -31,6 +32,7 @@ public sealed class Plugin : IDalamudPlugin
         if (configuration.Version < 4) { configuration.Version = 4; pluginInterface.SavePluginConfig(configuration); }
         mainWindow = new MainWindow(playerState, party, configuration, () => pluginInterface.SavePluginConfig(configuration), textures);
         compactWindow = new(mainWindow.DrawCompact);
+        inventoryCompanionWindow = new(gameGui, () => configuration.ShowInventoryCompanion && playerState.IsLoaded, mainWindow.DrawInventoryCompanion);
         tradeWindow = new(mainWindow.DrawTrade, mainWindow.TradeOpened, mainWindow.TradeClosed);
         mainWindow.OpenTrade = () => tradeWindow.IsOpen = true;
         joinCommunityWindow = new("Amor RP — Join community###AmorRPJoinCommunity", mainWindow.DrawJoinCommunity, () => mainWindow.CanDrawCommunityForms, new(520, 360), mainWindow.ClearFeedback);
@@ -49,6 +51,7 @@ public sealed class Plugin : IDalamudPlugin
         windows.AddWindow(favoriteEventsWindow);
         windows.AddWindow(mainWindow);
         windows.AddWindow(compactWindow);
+        windows.AddWindow(inventoryCompanionWindow);
         windows.AddWindow(tradeWindow);
         windows.AddWindow(joinCommunityWindow);
         windows.AddWindow(createCommunityWindow);
@@ -59,7 +62,11 @@ public sealed class Plugin : IDalamudPlugin
         pluginInterface.UiBuilder.OpenConfigUi += Open;
     }
 
-    private void Draw() { mainWindow.Tick(); windows.Draw(); }
+    private void Draw()
+    {
+        mainWindow.SetInventoryCompanionVisible(inventoryCompanionWindow.UpdateAttachment());
+        mainWindow.Tick(); windows.Draw();
+    }
 
     private void OnCommand(string command, string arguments)
     {

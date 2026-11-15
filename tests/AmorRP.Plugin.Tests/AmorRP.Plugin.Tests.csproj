@@ -10,6 +10,8 @@
     <Compile Include="../../src/AmorRP.Plugin/Features/Communities/GroupProfileDraft.cs" Link="Features/Communities/GroupProfileDraft.cs" />
     <Compile Include="../../src/AmorRP.Plugin/Features/Communities/GroupPermissionDraft.cs" Link="Features/Communities/GroupPermissionDraft.cs" />
     <Compile Include="../../src/AmorRP.Plugin/Features/Communities/FavoriteEventSchedule.cs" Link="Features/Communities/FavoriteEventSchedule.cs" />
+    <Compile Include="../../src/AmorRP.Plugin/Features/Inventory/InventoryAttachmentLayout.cs" Link="Features/Inventory/InventoryAttachmentLayout.cs" />
+    <Compile Include="../../src/AmorRP.Plugin/Features/Inventory/InventoryCompanionQuery.cs" Link="Features/Inventory/InventoryCompanionQuery.cs" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit.v3" />
     <PackageReference Include="xunit.runner.visualstudio" PrivateAssets="all" />

@@ -11,7 +11,7 @@ public sealed partial class CommunitiesPanel
         if (session == null || origin == null) return;
         if (targets.HasFlag(RefreshTargets.Groups))
         { groupsRefresh.Invalidate(); hubRefresh.Invalidate(); favoriteRefresh.Invalidate(); }
-        if (targets.HasFlag(RefreshTargets.Inventory)) { inventoryRefresh.Invalidate(); inspectorRefresh.Invalidate(); }
+        if (targets.HasFlag(RefreshTargets.Inventory)) { inventoryRefresh.Invalidate(); inspectorRefresh.Invalidate(); companionInventoryRefresh.Invalidate(); }
         if (targets.HasFlag(RefreshTargets.Members)) { rosterRefresh.Invalidate(); ownershipRefresh.Invalidate(); }
         if (targets.HasFlag(RefreshTargets.Policy)) policyRefresh.Invalidate();
         if (targets.HasFlag(RefreshTargets.Invitations)) invitationRefresh.Invalidate();

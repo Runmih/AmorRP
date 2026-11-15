@@ -76,7 +76,8 @@ public sealed partial class CommunitiesPanel
     private void DrawPotionUse(HoldingDetails item)
     {
         if (item.Definition == null) return;
-        ImGui.Combo("Message destination", ref destination, ChatCommand.Destinations, ChatCommand.Destinations.Length);
+        FieldLabel("Message destination");
+        ImGui.Combo("##MessageDestination", ref destination, ChatCommand.Destinations, ChatCommand.Destinations.Length);
         var message = item.Definition.Potion.UseMessage;
         Wrapped($"Uses one {item.Holding.Name}; community {community!.Name}; character {session!.Character.DisplayName}.");
         Wrapped(ChatCommand.TryCreate(message, destination, out var preview, ChatLimit) ? "Exact message: " + preview : "This message cannot be posted safely.");

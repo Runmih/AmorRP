@@ -166,20 +166,21 @@ public sealed partial class CommunitiesPanel
             else { holdings = holdings.Concat(page.Items).DistinctBy(x => x.Id).ToArray(); holdingCursor = page.NextCursor; }
         }; }, "Loading inventory page…");
     }
-    private void DrawDetails()
+    private void DrawDetails() => DrawDetails(details, ref discardConfirmed, ref discardQuantity);
+    private void DrawDetails(HoldingDetails? selectedItem, ref bool discardConfirmed, ref int discardQuantity)
     {
-        if (details == null) return;
-        var item = details.Holding; ImGui.TextUnformatted(item.Name);
+        if (selectedItem == null) return;
+        var item = selectedItem.Holding; ImGui.TextUnformatted(item.Name);
         ImGui.TextDisabled(TypeName(item.TypeId) + " · " + (categories.FirstOrDefault(x => x.Id == item.CategoryId)?.Name ?? "Retained category"));
         Wrapped($"{item.Available} available · {item.Reserved} reserved for trading");
         ImGui.Separator();
-        if (details.Definition != null)
+        if (selectedItem.Definition != null)
         {
-            Wrapped(details.Definition.Description); ImGui.TextDisabled("Recipe revision " + details.Definition.Revision);
+            Wrapped(selectedItem.Definition.Description); ImGui.TextDisabled("Recipe revision " + selectedItem.Definition.Revision);
             if (ImGui.Button(pinned.Contains(item.Id) ? "Unpin from consumables" : "Pin to consumables")) TogglePin(item.Id);
-            DrawPotionUse(details);
+            DrawPotionUse(selectedItem);
         }
-        if (details.Letter != null) DrawLetterDetails(details.Letter);
+        if (selectedItem.Letter != null) DrawLetterDetails(selectedItem.Letter, item.Reserved);
         if (lastUse != null && ImGui.CollapsingHeader("Last use / resend")) DrawResend();
         if (!ImGui.CollapsingHeader("Discard this item")) return;
         Wrapped("Discarding removes your own copies permanently and does not refund creation allowance.");
@@ -236,8 +237,16 @@ public sealed partial class CommunitiesPanel
             Holding[] Apply(Holding[] list) => list.Where(x => x.Id != h.Id).Concat(h.Quantity > 0 && list.Any(x => x.Id == h.Id) ? new[] { h } : Array.Empty<Holding>()).OrderBy(x => x.Name).ToArray();
             holdings = Apply(holdings); compact = Apply(compact); memberHoldings = Apply(memberHoldings);
             if (details?.Holding.Id == h.Id) details = h.Quantity == 0 ? null : details with { Holding = h };
+            // Preserve the server's selected sort order until the refreshed page arrives.
+            companionHoldings = companionHoldings with { Items = companionHoldings.Items
+                .Where(x => x.Id != h.Id || h.Quantity > 0).Select(x => x.Id == h.Id ? h : x).ToArray() };
+            if (companionDetails?.Holding.Id == h.Id)
+            {
+                companionDetails = h.Quantity == 0 ? null : companionDetails with { Holding = h };
+                if (h.Quantity == 0) companionSelection = null;
+            }
             if (request.Operation.Kind is CommandKind.ChangeHolding or CommandKind.DeleteHolding or CommandKind.DiscardHolding or CommandKind.RemoveInventory)
-            { discardConfirmed = false; removeItemsConfirmed = false; }
+            { discardConfirmed = false; companionDiscardConfirmed = false; removeItemsConfirmed = false; }
         }
         if (request.Operation.Kind != CommandKind.UseItem) return;
         var result = JsonSerializer.Deserialize<CommandResult<ConsumptionResult>>(response.Json, FoundationClient.Json)!.Result;

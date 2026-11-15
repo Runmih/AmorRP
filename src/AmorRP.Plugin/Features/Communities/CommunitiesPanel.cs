@@ -75,7 +75,7 @@ public sealed partial class CommunitiesPanel(IPlayerState player, Configuration 
     private string deleteConfirmation = "";
     private int nextPoints, nextLetters, nextCooking;
 
-    public void Draw(string backendUrl, bool compactMode = false)
+    public void Draw(string backendUrl, bool compactMode = false, bool inventoryMode = false)
     {
         EnsureScope(backendUrl);
         var world = player.HomeWorld;
@@ -96,6 +96,7 @@ public sealed partial class CommunitiesPanel(IPlayerState player, Configuration 
         { ImGui.TextWrapped("The verified profile does not match the character currently in game. Wait for XIVAuth to refresh it, then resume login. Existing assets are preserved."); return; }
         if (!Busy && !SyncBusy && pending == null && DateTimeOffset.UtcNow >= nextRefresh && !refreshNeeded) Refresh();
         TickTrades(); icons.Draw(); logos.Draw();
+        if (inventoryMode) { DrawInventoryCompanion(pending); return; }
         DrawCommunitySelection();
         var feedbackHeight = ActionFeedbackHeight(pending);
         ImGui.BeginChild("ProductContent", new System.Numerics.Vector2(0, feedbackHeight > 0 ? -feedbackHeight - ImGui.GetStyle().ItemSpacing.Y : 0), false);
