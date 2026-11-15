@@ -20,6 +20,11 @@ public sealed partial class CommunitiesPanel
     // rows here; exceptional feedback lives below the content, not above it.
     private void DrawCommunitySelection()
     {
+        if (SeasonsEnabled)
+        {
+            DrawCommunitySelector("##Community", -1);
+            DrawSeasonState(); return;
+        }
         var style = ImGui.GetStyle();
         var joinWidth = ImGui.CalcTextSize("Join").X + style.FramePadding.X * 2;
         var createWidth = ImGui.CalcTextSize("Create community").X + style.FramePadding.X * 2;
@@ -35,7 +40,7 @@ public sealed partial class CommunitiesPanel
     private void DrawCommunitySelector(string id, float width)
     {
         ImGui.SetNextItemWidth(width);
-        var preview = session == null ? "Sign in first" : community?.Name ?? (communities.Length == 0 ? "No communities yet" : "Choose a community");
+        var preview = session == null ? "Sign in first" : community?.Name ?? (communities.Length == 0 ? $"No {SeasonLabel} yet" : $"Choose a {SeasonLabel}");
         ImGui.BeginDisabled(session == null || communities.Length == 0 || WriteBlocked || Busy || session.AccessExpiresAt <= DateTimeOffset.UtcNow);
         if (ImGui.BeginCombo(id, preview))
         {
@@ -43,7 +48,8 @@ public sealed partial class CommunitiesPanel
             foreach (var entry in communities)
             {
                 var note = incoming.Contains(entry.Id) ? " • trade request" : announcementUnread.GetValueOrDefault(entry.Id) > 0 ? " • new announcements" : "";
-                if (ImGui.Selectable(entry.Name + note + "###community" + entry.Id, selected == entry.Id) && community?.Id != entry.Id) SwitchCommunity(entry);
+                var state = SeasonsEnabled ? " · " + entry.SeasonState : "";
+                if (ImGui.Selectable(entry.Name + state + note + "###community" + entry.Id, selected == entry.Id) && community?.Id != entry.Id) SwitchCommunity(entry);
             }
             ImGui.EndCombo();
         }

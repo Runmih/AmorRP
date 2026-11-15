@@ -42,7 +42,7 @@ public sealed class GroupActivityService(AmorDbContext db, SessionAccess session
             join c in db.Communities on f.CommunityId equals c.Id
             join g in db.Groups on new { f.CommunityId, Id = f.GroupId } equals new { g.CommunityId, g.Id }
             join e in db.GroupEvents on new { g.CommunityId, GroupId = g.Id } equals new { e.CommunityId, e.GroupId }
-            where f.CharacterId == actor && m.Status == "active" && !c.Deleted && !g.Deleted && e.EndsAt > time.GetUtcNow()
+            where f.CharacterId == actor && m.Status == "active" && !c.Deleted && c.SeasonState != "archived" && !g.Deleted && e.EndsAt > time.GetUtcNow()
             orderby e.StartsAt select new { Row = e, g.Name }).Take(200).ToArrayAsync(ct);
         return Results.Json(new FavoriteEvents(rows.Select(x => Event(x.Row, x.Name)).ToArray()));
     }

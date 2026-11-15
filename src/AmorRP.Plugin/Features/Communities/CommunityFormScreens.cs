@@ -21,12 +21,13 @@ public sealed partial class CommunitiesPanel
     private void DrawCommunityForm(bool create)
     {
         if (!CanDrawCommunityForms) return;
+        if (SeasonsEnabled && (!create || !IsSeasonAdministrator)) { Wrapped("Season creation is reserved for server administrators. Players join the active season automatically."); return; }
         var pending = configuration.PendingCommands.FirstOrDefault(x => x.Origin == origin?.AbsoluteUri && x.CharacterId == session!.Character.Id);
         var feedbackHeight = ActionFeedbackHeight(pending);
         ImGui.BeginChild("CommunityFormContent", new(0, feedbackHeight > 0 ? -feedbackHeight - ImGui.GetStyle().ItemSpacing.Y : 0), false);
         ImGui.PushItemWidth(-1);
         ImGui.TextUnformatted($"{session!.Character.DisplayName} @ {session.Character.HomeWorldName}");
-        ImGui.TextUnformatted($"Joined communities: {communities.Length}");
+        ImGui.TextUnformatted($"{(SeasonsEnabled ? "Seasons" : "Joined communities")}: {communities.Length}");
         ImGui.Spacing();
         if (create) DrawCreateCommunityForm(); else DrawJoinCommunityForm();
         ImGui.PopItemWidth();
@@ -46,7 +47,7 @@ public sealed partial class CommunitiesPanel
 
     private void DrawCreateCommunityForm()
     {
-        FieldLabel("Community name"); LimitedInput("##NewCommunityName", ref name, 80, countCodeUnits: true);
+        FieldLabel(SeasonsEnabled ? "Season name" : "Community name"); LimitedInput("##NewCommunityName", ref name, 80, countCodeUnits: true);
         FieldLabel("Description"); WrappedInput("##NewCommunityDescription", ref description, 8192, new(-1, 85), maximumCharacters: CommunityEdit.MaximumDescriptionCharacters);
         FieldLabel("Currency name"); LimitedInput("##NewCurrencyName", ref currencyName, 80, countCodeUnits: true);
         Wrapped("A default coin icon is used until you upload a custom icon in the community profile.");
@@ -55,7 +56,10 @@ public sealed partial class CommunitiesPanel
         FieldLabel("Initial written items / character / week"); initialAllowancesEdited |= ImGui.InputInt("##InitialWrittenItems", ref initialLetters);
         Wrapped("These limits establish your first week's policy. Later policy edits start next Monday.");
         if (initialPoints == 0) Wrapped("Zero Alchemy points means no Alchemy crafting in the first week.");
-        if (ActionButton("Create community")) Mutate("POST", "api/v2/communities", new CommunityCreate(name, description, currencyName, symbol, initialPoints, initialLetters, initialCooking));
+        if (SeasonsEnabled) Wrapped("Creates a draft with a fresh economy. Activate it from Season management when ready.");
+        ImGui.BeginDisabled(WriteBlocked);
+        if (ImGui.Button(SeasonsEnabled ? "Prepare season" : "Create community")) Mutate("POST", "api/v2/communities", new CommunityCreate(name, description, currencyName, symbol, initialPoints, initialLetters, initialCooking));
+        ImGui.EndDisabled();
     }
 
     private void ResetCommunityForms()

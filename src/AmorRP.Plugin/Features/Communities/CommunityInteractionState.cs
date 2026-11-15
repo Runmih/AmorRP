@@ -72,6 +72,7 @@ public sealed partial class CommunitiesPanel
     }
     private void QueueUpload(string path, string etag, byte[] bytes)
     {
+        if (WriteBlocked || SeasonReadOnly) return;
         var request = new CommandRequest("PUT", path, null, etag, Convert.ToBase64String(bytes));
         var pending = new PendingCommand { Origin = origin!.AbsoluteUri, CharacterId = session!.Character.Id, Key = Guid.CreateVersion7(), ProtectedRequest = PendingCommand.Protect(request) };
         configuration.PendingCommands.Add(pending); save(); ExecutePending(pending, false);

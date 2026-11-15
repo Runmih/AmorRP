@@ -33,7 +33,7 @@ public sealed partial class CommunitiesPanel(IPlayerState player, Configuration 
     private bool SessionRenewalInProgress => session != null && saved?.PendingRefreshKey != null && Busy;
     private bool ActionButton(string label, bool mutation = true)
     {
-        ImGui.BeginDisabled(mutation && WriteBlocked); var clicked = ImGui.Button(label); ImGui.EndDisabled(); return clicked;
+        ImGui.BeginDisabled(mutation && (WriteBlocked || SeasonReadOnly)); var clicked = ImGui.Button(label); ImGui.EndDisabled(); return clicked;
     }
     private string scope = "";
     private readonly CommunityImageCache icons = new(textures, "currency icon", true);
@@ -212,6 +212,7 @@ public sealed partial class CommunitiesPanel(IPlayerState player, Configuration 
                 ImGui.BeginDisabled(origin == null || localName.Length == 0 || localWorld.Length == 0);
                 if (ImGui.Button("Log in with XIVAuth")) BeginLogin(localName, localWorld, worldId);
                 ImGui.EndDisabled();
+                Wrapped("Signing in automatically joins the active season. Its members can see your verified character name, home world and membership.");
                 if (localName.Length == 0 || localWorld.Length == 0) Wrapped("Log into your FFXIV character first.");
                 DrawLoginFeedback();
             }
@@ -257,6 +258,7 @@ public sealed partial class CommunitiesPanel(IPlayerState player, Configuration 
     }
     private void Accept(SessionTokens tokens)
     {
+        if (session?.Character.Id != tokens.Character.Id) ResetSeasons();
         requests.ChangeData();
         session = tokens; loginFeedback = loginDiagnostic = ""; ResetLogin();
         saved = configuration.SavedSessions.SingleOrDefault(x => x.Origin == origin!.AbsoluteUri && x.CharacterId == tokens.Character.Id);
@@ -342,6 +344,7 @@ public sealed partial class CommunitiesPanel(IPlayerState player, Configuration 
     private void Mutate(string method, string path, object? body, string? etag = null, bool signOut = false)
     {
         if (session == null || origin == null || WriteBlocked) return;
+        if (SeasonReadOnly && path.StartsWith("api/v2/communities/", StringComparison.Ordinal)) return;
         requests.ChangeData();
         var command = new CommandRequest(method, path, body == null ? null : JsonSerializer.Serialize(body, FoundationClient.Json), etag);
         var pending = new PendingCommand { Origin = origin.AbsoluteUri, CharacterId = session.Character.Id, Key = Guid.CreateVersion7(), ProtectedRequest = PendingCommand.Protect(command) };
@@ -378,10 +381,13 @@ public sealed partial class CommunitiesPanel(IPlayerState player, Configuration 
                 var page = await client.GetAsync<CommunityPage>(uri, "api/v2/communities" + (cursor == null ? "" : "?cursor=" + Uri.EscapeDataString(cursor)), token, ct);
                 list.AddRange(page.Items); cursor = page.NextCursor;
             } while (cursor != null);
-            var active = list.FirstOrDefault(x => x.Id == selectedId) ?? list.FirstOrDefault();
+            var seasons = capability.SeasonsEnabled ? await client.GetAsync<SeasonContext>(uri, "api/v2/seasons/context", token, ct) : new SeasonContext(false, false, null, []);
+            var active = SeasonSelection.Choose(list, selectedId, seasons.ActiveSeasonId, previouslyActiveSeason, observedSeason);
             return () => {
                 var changedCommunity = community?.Id != active?.Id;
+                if (active?.SeasonState == "archived") { writingLogComposing = false; editingLetter = null; }
                 serviceCompatible = true; serviceLimits = capability.Limits;
+                seasonContext = seasons; previouslyActiveSeason = seasons.ActiveSeasonId; observedSeason = true;
                 if (lastRefresh == default && !initialAllowancesEdited) { initialPoints = capability.Limits.DefaultPotionPoints; initialLetters = capability.Limits.DefaultLettersPerWeek; }
                 if (changedCommunity) { ClearCommunityViews(); ClearMemberSearch(); }
                 communities = list.ToArray(); community = active; selected = active?.Id;
@@ -392,7 +398,7 @@ public sealed partial class CommunitiesPanel(IPlayerState player, Configuration 
         });
     }
     private void ForgetCurrent()
-    { ClearFavoriteEvents(); ClearAnnouncementNotifications(); ClearWork(); if (saved != null) configuration.SavedSessions.Remove(saved); save(); session = null; saved = null; community = null; communities = []; members = []; ClearCommunityViews(); }
+    { ResetSeasons(); ClearFavoriteEvents(); ClearAnnouncementNotifications(); ClearWork(); if (saved != null) configuration.SavedSessions.Remove(saved); save(); session = null; saved = null; community = null; communities = []; members = []; ClearCommunityViews(); }
     private void ClearWork()
     {
         if (pendingAuthorizationRead.HasValue) { authorizationResult = "Permission check cancelled. Reload saved permissions to try again."; pendingAuthorizationRead = null; }
@@ -401,7 +407,7 @@ public sealed partial class CommunitiesPanel(IPlayerState player, Configuration 
         requests.Reset(); currentCommand = null;
     }
     private void Clear()
-    { ClearFavoriteEvents(); ClearMemberSearch(); personalNote = savedPersonalNote = noteKey = ""; ClearAnnouncementNotifications(); ClearTradeInbox(); ResetCommunityForms(); ResetLogin(); loginFeedback = loginDiagnostic = ""; syncFailures = 0; scope = ""; serviceCompatible = false; ClearWork(); origin = null; session = null; saved = null; selected = null; community = null; communities = []; members = []; invitations = []; transfer = null; refreshNeeded = false; createdCode = ""; contextTarget = null; contextLookup = null; ClearTransientFeedback(); connectionError = connectionDiagnostic = ""; lastRefresh = default; nextRefresh = default; ClearCommunityViews(); }
+    { ResetSeasons(); ClearFavoriteEvents(); ClearMemberSearch(); personalNote = savedPersonalNote = noteKey = ""; ClearAnnouncementNotifications(); ClearTradeInbox(); ResetCommunityForms(); ResetLogin(); loginFeedback = loginDiagnostic = ""; syncFailures = 0; scope = ""; serviceCompatible = false; ClearWork(); origin = null; session = null; saved = null; selected = null; community = null; communities = []; members = []; invitations = []; transfer = null; refreshNeeded = false; createdCode = ""; contextTarget = null; contextLookup = null; ClearTransientFeedback(); connectionError = connectionDiagnostic = ""; lastRefresh = default; nextRefresh = default; ClearCommunityViews(); }
     private static void Wrapped(string message) { ImGui.PushTextWrapPos(); ImGui.TextUnformatted(message); ImGui.PopTextWrapPos(); }
     public void Dispose() { ResetCommunityRefreshes(); ClearFavoriteEvents(); ClearMemberSearch(); personalNote = savedPersonalNote = noteKey = ""; ClearAnnouncementNotifications(); ClearTradeInbox(); ClearWork(); requests.Dispose(); icons.Dispose(); logos.Dispose(); groupLogos.Dispose(); client.Dispose(); }
 }

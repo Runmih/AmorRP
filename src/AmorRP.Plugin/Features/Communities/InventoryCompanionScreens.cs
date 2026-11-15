@@ -89,11 +89,10 @@ public sealed partial class CommunitiesPanel
     {
         ImGui.TextColored(InventoryGold, "AMOR RP  /  INVENTORY");
         DrawCommunitySelector("##InventoryCommunity", -1);
+        DrawSeasonState();
         if (community == null)
         {
-            ImGui.Spacing(); Wrapped("Choose a community to see its items and currency.");
-            if (ImGui.Button("Join community")) OpenJoinCommunity?.Invoke();
-            ImGui.SameLine(); if (ImGui.Button("Create community")) OpenCreateCommunity?.Invoke();
+            ImGui.Spacing(); DrawNoSeason();
             DrawActionFeedback(pending);
             return;
         }
@@ -228,8 +227,8 @@ public sealed partial class CommunitiesPanel
             ImGui.EndTable();
         }
         if (community.MyBalance.HeldForDebt != "0")
-            Wrapped(InventoryCompanionQuery.FormatAmount(community.MyBalance.HeldForDebt) + " coins awaiting automatic repayment");
-        if (ImGui.SmallButton("View bills")) { mainSection = MainSection.Home; OpenMainWindow?.Invoke(); }
+            Wrapped(InventoryCompanionQuery.FormatAmount(community.MyBalance.HeldForDebt) + (SeasonReadOnly ? " coins held for recorded debts in this season" : " coins awaiting automatic repayment"));
+        if (ImGui.SmallButton("View bills")) { requestedCommunityPage = CommunityBrowserPage.Overview; OpenWorkspace(AmorRP.Plugin.Features.Shell.WorkspaceKind.Community); }
         ImGui.SameLine();
         if (ImGui.SmallButton("Refresh")) { companionInventoryRefresh.Invalidate(); myBillsRefresh.Invalidate(); refreshNeeded = true; }
         if (myBillsRefresh.Error != null) { ImGui.SameLine(); ImGui.TextDisabled("Debt update unavailable"); }

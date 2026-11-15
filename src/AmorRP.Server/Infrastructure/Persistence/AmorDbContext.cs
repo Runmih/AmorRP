@@ -58,6 +58,8 @@ public sealed partial class AmorDbContext(DbContextOptions<AmorDbContext> option
             e.HasOne<SessionRow>().WithMany().HasForeignKey(x => x.SessionId).OnDelete(DeleteBehavior.Cascade);
         });
         modelBuilder.Entity<CommunityRow>(e => {
+            e.Property(x => x.SeasonState).HasMaxLength(16).HasDefaultValue("legacy");
+            e.HasIndex(x => x.SeasonState).IsUnique().HasFilter("\"SeasonState\" = 'active'");
             e.ToTable("communities", t => t.HasCheckConstraint("ck_community_policy", "\"CurrentPotionPoints\" >= 0 AND \"CurrentLetters\" >= 0 AND \"NextPotionPoints\" >= 0 AND \"NextLetters\" >= 0"));
             e.HasKey(x => x.Id); e.HasIndex(x => x.CurrencyId).IsUnique();
             e.HasOne<CharacterRow>().WithMany().HasForeignKey(x => x.CreatedByCharacterId).OnDelete(DeleteBehavior.Restrict);

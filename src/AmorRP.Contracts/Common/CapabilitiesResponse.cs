@@ -9,7 +9,8 @@ public sealed record CapabilitiesResponse(
     ItemTypeInfo[] SupportedTypes,
     string[] GrantableCapabilities,
     string[] ChatDestinationKinds,
-    PublicLimits Limits);
+    PublicLimits Limits,
+    bool SeasonsEnabled = false);
 
 public sealed record ItemTypeInfo(string Id, int TypeDataVersion, bool CanUse, bool Stackable);
 

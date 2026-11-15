@@ -9,9 +9,9 @@ public static class CapabilitiesEndpoints
 {
     public static void MapCapabilitiesEndpoints(this WebApplication app)
     {
-        app.MapGet("/api/v2/capabilities", (IOptions<ServicePolicyOptions> policy) =>
-            new CapabilitiesResponse("2", "0.3.0.0", "0.3.0.0", false,
-                "Communities, owned groups, Alchemy, Cooking, Writing, trading, notices and events.",
-                CraftingTypes.All.Select(x => new ItemTypeInfo(x, 1, CraftingTypes.IsConsumable(x), CraftingTypes.IsConsumable(x))).ToArray(), AmorRP.Server.Features.Communities.CommunityAccess.GrantableActions, ["emote", "say", "party", "linkshell", "crossworld-linkshell"], policy.Value.ToContract()));
+        app.MapGet("/api/v2/capabilities", (IOptions<ServicePolicyOptions> policy, IOptions<SeasonPolicyOptions> seasons) =>
+            new CapabilitiesResponse("2", "0.4.0.0", seasons.Value.Enabled ? "0.4.0.0" : "0.3.0.0", false,
+                seasons.Value.Enabled ? "Seasons, owned RP groups, crafting, writing, trading, notices and events." : "Communities, owned groups, Alchemy, Cooking, Writing, trading, notices and events.",
+                CraftingTypes.All.Select(x => new ItemTypeInfo(x, 1, CraftingTypes.IsConsumable(x), CraftingTypes.IsConsumable(x))).ToArray(), AmorRP.Server.Features.Communities.CommunityAccess.GrantableActions, ["emote", "say", "party", "linkshell", "crossworld-linkshell"], policy.Value.ToContract(), seasons.Value.Enabled));
     }
 }

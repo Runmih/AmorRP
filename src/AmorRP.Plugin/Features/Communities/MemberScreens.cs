@@ -29,7 +29,7 @@ public sealed partial class CommunitiesPanel
     }
     private void DrawMembers(MemberView view = MemberView.Legacy)
     {
-        if (community == null) { Wrapped("Join or create a community first."); return; }
+        if (community == null) { DrawNoSeason(); return; }
         DrawRefreshState(rosterRefresh, "Members");
         if (view != MemberView.Directory && Owner && ImGui.Checkbox("Show inactive members", ref showInactive)) { members = []; memberSelection = null; ClearMemberSearch(); rosterRefresh.Invalidate(); refreshNeeded = true; }
         var narrow = ImGui.GetContentRegionAvail().X < ImGui.CalcTextSize("Character description and private notes").X * 1.7f;
@@ -63,7 +63,7 @@ public sealed partial class CommunitiesPanel
             if (view != MemberView.Management)
             {
                 DrawMemberDescription(target);
-                if (target.Status == "active" && target.Character.Id != session!.Character.Id && !target.TradingRestricted && !community.MyTradingRestricted && ImGui.Button("Trade with this member"))
+                if (!SeasonReadOnly && target.Status == "active" && target.Character.Id != session!.Character.Id && !target.TradingRestricted && !community.MyTradingRestricted && ImGui.Button("Trade with this member"))
                 { contextTarget = null; tradeTargetId = target.Character.Id; requestedTradeTab = 1; OpenTradeWindow?.Invoke(); }
                 DrawPersonalNote(target);
             }
@@ -74,7 +74,7 @@ public sealed partial class CommunitiesPanel
                 if (target.IsOwner)
                 {
                     ImGui.Separator(); ImGui.TextUnformatted("Gameplay permissions");
-                    ImGui.TextDisabled("Community owner — all permissions enabled.");
+                    ImGui.TextDisabled("Season owner — all permissions enabled.");
                 }
                 else DrawMemberAuthorizations(target);
             }
@@ -154,7 +154,7 @@ public sealed partial class CommunitiesPanel
     }
     private void DrawCommunityPermissions(Member target)
     {
-        if (!ImGui.CollapsingHeader("Community permissions")) return;
+        if (!ImGui.CollapsingHeader("Season permissions")) return;
         DrawPermissionConflict(target);
         ImGui.TextUnformatted("Moderation");
         ImGui.Checkbox("General Moderation", ref grantGeneralModeration);
@@ -205,6 +205,12 @@ public sealed partial class CommunitiesPanel
         }
         else if (target.Status == "dormant")
         {
+            if (SeasonsEnabled)
+            {
+                FieldLabel("Restore reason (required)"); LimitedInput("##DormantRestoreReason", ref reason, 500, countCodeUnits: true);
+                if (ShiftMemberButton("Restore season membership", !string.IsNullOrWhiteSpace(reason) && reason.Length <= 500))
+                    Mutate("POST", $"api/v2/communities/{community.Id}/members/{target.Character.Id}/restoration", new MemberRemoval(reason), memberDraftEtag ?? target.Etag);
+            }
             FieldLabel("Block reason (required)"); LimitedInput("##DormantBlockReason", ref removalReason, 500, countCodeUnits: true);
             if (ShiftMemberButton("Block member from rejoining", !string.IsNullOrWhiteSpace(removalReason) && removalReason.Length <= 500))
                 Mutate("PUT", $"api/v2/communities/{community.Id}/members/{target.Character.Id}/block", new MemberRemoval(removalReason), target.Etag);
@@ -212,8 +218,8 @@ public sealed partial class CommunitiesPanel
         else if (target.Status == "blocked")
         {
             FieldLabel("Unblock reason (required)"); LimitedInput("##MemberUnblockReason", ref reason, 500, countCodeUnits: true);
-            if (ShiftMemberButton("Unblock member", !string.IsNullOrWhiteSpace(reason) && reason.Length <= 500))
-                Mutate("DELETE", $"api/v2/communities/{community.Id}/members/{target.Character.Id}/block", new MemberRemoval(reason), memberDraftEtag ?? target.Etag);
+            if (ShiftMemberButton(SeasonsEnabled ? "Restore season membership" : "Unblock member", !string.IsNullOrWhiteSpace(reason) && reason.Length <= 500))
+                Mutate(SeasonsEnabled ? "POST" : "DELETE", SeasonsEnabled ? $"api/v2/communities/{community.Id}/members/{target.Character.Id}/restoration" : $"api/v2/communities/{community.Id}/members/{target.Character.Id}/block", new MemberRemoval(reason), memberDraftEtag ?? target.Etag);
         }
     }
     private bool ShiftMemberButton(string label, bool valid = true)

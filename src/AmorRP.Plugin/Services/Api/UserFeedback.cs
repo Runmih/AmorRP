@@ -5,6 +5,9 @@ public static class UserFeedback
 {
     public static string Error(HttpStatusCode status, string code, string serverMessage) => code switch
     {
+        "season_read_only" => "This season is read-only. Select the active season to make changes.",
+        "season_administrator_required" => "Only the server administrator can create or activate seasons.",
+        "automatic_season_membership" or "season_lifecycle_required" => "Players join the active season automatically. Contact its owner for membership help.",
         "repayment_pending" => "Coins are being applied to unpaid bills. Try again after automatic repayment finishes.",
         "billing_not_trusted" => "The customer must enable Trusted for automatic billing on this group's profile.",
         "billing_insufficient_funds" => "The customer cannot afford this bill. Nothing was charged; this community does not allow new debt.",
@@ -60,6 +63,8 @@ public static class UserFeedback
 
     public static string Success(CommandRequest request) => request.Operation.Kind switch
     {
+        CommandKind.ActivateSeason => "Season activated. The previous season is archived.",
+        CommandKind.ArchiveSeason => "Season archived. Its assets and records have been preserved.",
         CommandKind.CreateCommunity => "Community created.",
         CommandKind.JoinCommunity => "You joined the community.",
         CommandKind.LeaveCommunity or CommandKind.RemoveMember => "Membership ended. Items and currency have been kept.",

@@ -5,6 +5,11 @@ This describes the implemented durable flow. XIVAuth owns its OAuth endpoints an
 version must never change the provider's URLs. Provider credentials and the registered
 callback are deployment settings, not plugin settings or committed secrets.
 
+Season administrators are a server-side Lodestone character allowlist, matched only
+against the authenticated character's provider-verified stored identity. Public IDs,
+client-supplied hints and the first login confer no authority. See the
+[season administration and migration guide](../delivery/release-0.4.0.0.md).
+
 ## Login and pairing
 
 1. The plugin supplies its current character name/home-world hint and a fresh

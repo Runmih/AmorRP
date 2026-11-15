@@ -100,9 +100,9 @@ public sealed partial class CommunitiesPanel
     }
     private void DrawNoticeboard(bool communityBrowser = false)
     {
-        if (community == null) { Wrapped("Choose a community to read its noticeboard."); return; }
+        if (community == null) { DrawNoSeason(); return; }
         DrawRefreshState(hubRefresh, "Noticeboard");
-        Wrapped("Community requests and offered rewards · one notice per group");
+        Wrapped("Season requests and offered rewards · one notice per group");
         LimitedInput("Filter notices", ref noticeSearch, 100);
         foreach (var item in hub.Notices.Where(x => (x.Title + " " + x.Message + " " + x.GroupName + " " + x.Reward).Contains(noticeSearch, StringComparison.OrdinalIgnoreCase)))
         {

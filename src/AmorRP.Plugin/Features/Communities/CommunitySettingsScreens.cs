@@ -10,8 +10,8 @@ public sealed partial class CommunitiesPanel
         if (!ImGui.BeginTabBar("CommunitySettingsTabs")) return;
         if (ImGui.BeginTabItem("Currency")) { DrawRefreshState(iconRefresh, "Currency icon"); DrawCurrencyIconEditor(); ImGui.EndTabItem(); }
         if (ImGui.BeginTabItem("Economy")) { DrawBillingPolicy(); ImGui.EndTabItem(); }
-        if (ImGui.BeginTabItem("Invitations")) { DrawInvitations(); ImGui.EndTabItem(); }
-        if (ImGui.BeginTabItem("Delete Community"))
+        if (!SeasonsEnabled && ImGui.BeginTabItem("Invitations")) { DrawInvitations(); ImGui.EndTabItem(); }
+        if (!SeasonsEnabled && ImGui.BeginTabItem("Delete Community"))
         {
             DrawCommunityDeletion(); ImGui.EndTabItem();
         }

@@ -80,14 +80,15 @@ public sealed partial class CommunitiesPanel
     {
         ImGui.TextColored(InventoryGold, "WRITING LOG");
         DrawCommunitySelector("##WritingCommunity", -1);
+        DrawSeasonState();
         if (community == null)
         {
-            Wrapped("Choose a community to read its books, letters and notes.");
-            if (ImGui.Button("Join community")) OpenJoinCommunity?.Invoke();
-            ImGui.SameLine(); if (ImGui.Button("Create community")) OpenCreateCommunity?.Invoke();
+            DrawNoSeason();
             DrawActionFeedback(pending); return;
         }
+        ImGui.BeginDisabled(SeasonReadOnly);
         if (ImGui.Button("New writing")) { writingLogComposing = true; editingLetter = null; }
+        ImGui.EndDisabled();
         if (writingLogComposing)
         { ImGui.SameLine(); if (ImGui.Button("Back to reading")) writingLogComposing = false; }
         ImGui.SameLine();
@@ -161,7 +162,7 @@ public sealed partial class CommunitiesPanel
         ImGui.TextDisabled(TypeName(letter.TypeId) + (letter.Locked ? " · sealed after trading" : " · original writing"));
         var reserved = writingLogDetails.Holding.Reserved;
         if (ImGui.Button("Copy text")) ImGui.SetClipboardText(letter.Body);
-        if (letter.Author.Id == session!.Character.Id && !letter.Locked)
+        if (!SeasonReadOnly && letter.Author.Id == session!.Character.Id && !letter.Locked)
         {
             ImGui.SameLine(); ImGui.BeginDisabled(reserved > 0);
             if (ImGui.Button(editingLetter == letter.Id ? "Reload saved text" : "Edit writing"))
@@ -169,7 +170,7 @@ public sealed partial class CommunitiesPanel
             ImGui.EndDisabled();
         }
         ImGui.Separator();
-        if (editingLetter == letter.Id && letter.Author.Id == session!.Character.Id && !letter.Locked)
+        if (!SeasonReadOnly && editingLetter == letter.Id && letter.Author.Id == session!.Character.Id && !letter.Locked)
         { DrawWritingLogEditor(letter, reserved); return; }
         var body = letter.Body;
         WrappedInput("##WritingReadBody", ref body, Math.Max(1024, System.Text.Encoding.UTF8.GetByteCount(body) + 1),

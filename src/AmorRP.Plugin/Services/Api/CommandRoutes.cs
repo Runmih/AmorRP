@@ -3,6 +3,8 @@ namespace AmorRP.Plugin.Services.Api;
 internal enum CommandKind
 {
     Unknown,
+    ActivateSeason,
+    ArchiveSeason,
     CreateCommunity,
     JoinCommunity,
     EditCommunity,
@@ -100,6 +102,8 @@ internal static class CommandRoutes
 
     internal static readonly IReadOnlyList<Route> All = new Route[]
     {
+        new("POST", "api/v2/seasons/{seasonId}/activation", new(CommandKind.ActivateSeason, CommandHandler.None, RefreshTargets.Community)),
+        new("POST", "api/v2/seasons/{seasonId}/archive", new(CommandKind.ArchiveSeason, CommandHandler.None, RefreshTargets.Community)),
         new("POST", "api/v2/communities", new(CommandKind.CreateCommunity, CommandHandler.CommunityForm, RefreshTargets.Community)),
         new("POST", "api/v2/communities/join", new(CommandKind.JoinCommunity, CommandHandler.CommunityForm, RefreshTargets.Community)),
         new("PATCH", "api/v2/communities/{communityId}", new(CommandKind.EditCommunity, CommandHandler.Home, RefreshTargets.Community)),

@@ -12,6 +12,7 @@ tags:
 - name: Authentication
 - name: Character
 - name: Communities
+- name: Seasons
 - name: Membership
 - name: Invitations
 - name: Ownership
@@ -26,6 +27,85 @@ tags:
 - name: Events
 - name: Community Groups
 paths:
+  /api/v2/seasons/context:
+    get:
+      operationId: getSeasonContext
+      tags: [Seasons]
+      summary: Active season and authenticated administrator capabilities
+      security: [{Session: []}]
+      x-authorization-policy: Verified character session; lifecycle summaries are administrator-only
+      x-implementation-status: implemented
+      responses:
+        '200':
+          description: Enrolls a missing active-season membership without undoing moderation; returns authenticated season context
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SeasonContext'
+        '401':
+          $ref: '#/components/responses/Problem'
+  /api/v2/seasons/{seasonId}/activation:
+    post:
+      operationId: activateSeason
+      tags: [Seasons]
+      summary: Activate a draft or legacy community and archive the previous season
+      security: [{Session: []}]
+      x-authorization-policy: Server-configured provider-verified Lodestone administrator allowlist; exact name and current ETag required
+      x-implementation-status: implemented
+      parameters:
+      - {name: seasonId, in: path, required: true, schema: {type: string, format: uuid}}
+      - {name: Idempotency-Key, in: header, required: true, schema: {type: string, format: uuid}}
+      - {name: If-Match, in: header, required: true, schema: {type: string}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SeasonTransition'
+      responses:
+        '200':
+          description: Durable lifecycle receipt; exactly one active season, fresh membership enrollment and no cross-season transfers
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SeasonTransitionResult'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+  /api/v2/seasons/{seasonId}/archive:
+    post:
+      operationId: archiveSeason
+      tags: [Seasons]
+      summary: Freeze the active season without deleting its assets or records
+      security: [{Session: []}]
+      x-authorization-policy: Server-configured provider-verified Lodestone administrator allowlist; exact name and current ETag required
+      x-implementation-status: implemented
+      parameters:
+      - {name: seasonId, in: path, required: true, schema: {type: string, format: uuid}}
+      - {name: Idempotency-Key, in: header, required: true, schema: {type: string, format: uuid}}
+      - {name: If-Match, in: header, required: true, schema: {type: string}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SeasonTransition'
+      responses:
+        '200':
+          description: Durable lifecycle receipt; open trades cancelled, reservations released, archive retained
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SeasonTransitionResult'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
   /health/live:
     get:
       operationId: getLiveness
@@ -8438,6 +8518,38 @@ components:
           schema:
             $ref: '#/components/schemas/Problem'
   schemas:
+    SeasonSummary:
+      type: object
+      required: [id, name, state, version]
+      properties:
+        id: {type: string, format: uuid}
+        name: {type: string}
+        state: {type: string, enum: [legacy, draft, active, archived]}
+        version: {type: integer, minimum: 1}
+    SeasonContext:
+      type: object
+      required: [enabled, isAdministrator, activeSeasonId, seasons]
+      properties:
+        enabled: {type: boolean}
+        isAdministrator: {type: boolean}
+        activeSeasonId: {type: string, format: uuid, nullable: true}
+        seasons:
+          type: array
+          description: Administrator lifecycle metadata only; never grants private group access
+          items:
+            $ref: '#/components/schemas/SeasonSummary'
+    SeasonTransition:
+      type: object
+      required: [confirmName]
+      properties:
+        confirmName: {type: string, maxLength: 80}
+    SeasonTransitionResult:
+      type: object
+      required: [operationId, result]
+      properties:
+        operationId: {type: string, format: uuid}
+        result:
+          $ref: '#/components/schemas/SeasonSummary'
     Problem:
       type: object
       properties:
@@ -8639,6 +8751,7 @@ components:
     Capabilities:
       type: object
       properties:
+        seasonsEnabled: {type: boolean, default: false}
         apiVersion:
           type: string
         serverVersion:
@@ -8915,6 +9028,7 @@ components:
     Community:
       type: object
       properties:
+        seasonState: {type: string, enum: [legacy, draft, active, archived], default: legacy}
         id: *id002
         name: *id011
         description: *id010

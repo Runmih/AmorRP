@@ -13,10 +13,11 @@ using Microsoft.Extensions.Options;
 namespace AmorRP.Server.Features.Communities;
 
 public sealed partial class CommunityService(AmorDbContext db, SessionAccess sessions, CommunityAccess access, CommandStore commands,
-    PageCursor pages, IOptions<ServicePolicyOptions> policy, TimeProvider time, AmorRP.Server.Features.Trading.TradeReservations trades, AmorRP.Server.Features.Groups.GroupLifecycle groups)
+    PageCursor pages, IOptions<ServicePolicyOptions> policy, TimeProvider time, AmorRP.Server.Features.Trading.TradeReservations trades, AmorRP.Server.Features.Groups.GroupLifecycle groups, SeasonService seasons)
 {
     private async Task CapsAsync(Guid character, bool owning, CancellationToken ct)
     {
+        if (seasons.Enabled) return; // Historical seasons never consume current participation slots.
         var joined = await (from m in db.Memberships join g in db.Communities on m.CommunityId equals g.Id
             where m.CharacterId == character && m.Status == "active" && !g.Deleted select g.Id).CountAsync(ct);
         var owned = await db.Communities.CountAsync(x => x.OwnerCharacterId == character && !x.Deleted, ct);
@@ -25,6 +26,7 @@ public sealed partial class CommunityService(AmorDbContext db, SessionAccess ses
     public async Task<IResult> ListAsync(HttpContext http, CancellationToken ct)
     {
         var session = await sessions.GetAsync(http, ct);
+        await seasons.EnsureMembershipAsync(session.CharacterId, ct);
         var rows = await (from m in db.Memberships join g in db.Communities on m.CommunityId equals g.Id
             where m.CharacterId == session.CharacterId && m.Status == "active" && !g.Deleted orderby g.Id select new { G = g, M = m }).ToArrayAsync(ct);
         var items = new List<Community>();
@@ -39,6 +41,7 @@ public sealed partial class CommunityService(AmorDbContext db, SessionAccess ses
         ValidatePolicy(body.WeeklyPotionPoints, body.WeeklyLetters);
         ApiFault.Require(body.WeeklyCookingPoints >= 0 && body.WeeklyCookingPoints <= policy.Value.MaxWeeklyPotionPoints, 422, "invalid_policy", "Cooking points exceed the supported range.");
         var session = await sessions.GetAsync(http, ct);
+        if (seasons.Enabled) await seasons.RequireAdministratorAsync(session.CharacterId, ct);
         await using var tx = await db.Database.BeginTransactionAsync(ct);
         await CommandStore.LockAsync(db, ["character:" + session.CharacterId], ct);
         var scope = "character:" + session.CharacterId;
@@ -52,6 +55,7 @@ public sealed partial class CommunityService(AmorDbContext db, SessionAccess ses
         ApiFault.Require(await db.Communities.CountAsync(x => x.CreatedByCharacterId == session.CharacterId, ct) < policy.Value.MaxRetainedCreatedCommunitiesPerCharacter,
             409, "community_retention_limit_reached", $"Retained community creation limit ({policy.Value.MaxRetainedCreatedCommunitiesPerCharacter}) reached. Deleted and transferred communities count until eligible data is purged by an operator.");
         var community = new CommunityRow { Name = body.Name.Trim(), Description = body.Description, OwnerCharacterId = session.CharacterId,
+            SeasonState = seasons.Enabled ? "draft" : "legacy",
             CreatedByCharacterId = session.CharacterId,
             CurrencyName = body.CurrencyName.Trim(), CurrencySymbol = body.CurrencySymbol, PolicyPeriod = CommunityAccess.Period(time.GetUtcNow()),
             CurrentPotionPoints = body.WeeklyPotionPoints, NextPotionPoints = body.WeeklyPotionPoints,
@@ -66,6 +70,7 @@ public sealed partial class CommunityService(AmorDbContext db, SessionAccess ses
     }
     public async Task<IResult> JoinAsync(HttpContext http, JoinCommunity body, CancellationToken ct)
     {
+        ApiFault.Require(!seasons.Enabled, 409, "automatic_season_membership", "Verified players join the active season automatically.");
         ApiFault.Require(body.AcceptMemberVisibility && InvitationCode.IsValid(body.InvitationCode), 422, "invalid_request", "Accept community member visibility and provide a valid invitation.");
         var session = await sessions.GetAsync(http, ct);
         var hash = SecretVault.Hash(InvitationCode.Normalize(body.InvitationCode));
@@ -108,6 +113,7 @@ public sealed partial class CommunityService(AmorDbContext db, SessionAccess ses
     }
     public async Task<IResult> EditAsync(HttpContext http, Guid communityId, object? body, string kind, CancellationToken ct)
     {
+        ApiFault.Require(!seasons.Enabled || kind is not ("leave" or "delete"), 409, "season_lifecycle_required", "Season membership is automatic. A server administrator can archive a season without deleting its records.");
         var session = await sessions.GetAsync(http, ct);
         await using var tx = await db.Database.BeginTransactionAsync(ct);
         await CommandStore.LockAsync(db, ["character:" + session.CharacterId, "community:" + communityId], ct);

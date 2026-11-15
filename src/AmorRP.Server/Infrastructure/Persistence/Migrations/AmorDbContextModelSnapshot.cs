@@ -325,6 +325,13 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                     b.Property<int>("PolicyVersion")
                         .HasColumnType("integer");
 
+                    b.Property<string>("SeasonState")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasDefaultValue("legacy");
+
                     b.Property<int>("Version")
                         .HasColumnType("integer");
 
@@ -336,6 +343,10 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.HasIndex("OwnerCharacterId");
+
+                    b.HasIndex("SeasonState")
+                        .IsUnique()
+                        .HasFilter("\"SeasonState\" = 'active'");
 
                     b.HasIndex("Id", "CurrencyIconAssetId");
 

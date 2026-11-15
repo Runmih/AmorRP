@@ -1,5 +1,12 @@
 # Expansion work plan
 
+2026-11-15 revision: Communities become administrator-created Seasons, with RP
+groups inside the single active season and automatic verified-character enrollment.
+Each next season starts fresh; archived economies remain separate and read-only.
+The coordinated implementation and upgrade replace earlier community-creation/join
+assumptions in these planning documents: [0.4.0.0 seasons](../delivery/release-0.4.0.0.md).
+This feature release does not implement the planned taxes/commissions slice.
+
 Planning baseline: 2026-10-29. Implemented release: plugin/server 0.0.6.21,
 source `d2316f5`. S01 (0.1.0.0) passed the maintainer's major in-game checks on
 2026-10-29. S02 (0.2.0.0) passed all four maintainer game checks on 2026-11-05.

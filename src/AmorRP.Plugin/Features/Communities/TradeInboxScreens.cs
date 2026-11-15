@@ -47,7 +47,7 @@ public sealed partial class CommunitiesPanel
         if (inboxCharacter != session?.Character.Id || !ReferenceEquals(inboxCommunities, communities))
         {
             inboxCharacter = session?.Character.Id; inboxCommunities = communities;
-            var changed = tradeInbox.Bind(inboxCharacter, communities.Select(g => g.Id));
+            var changed = tradeInbox.Bind(inboxCharacter, communities.Where(g => !SeasonSelection.ReadOnly(SeasonsEnabled, g)).Select(g => g.Id));
             foreach (var trade in trades) tradeInbox.Observe(trade.CommunityId, trade);
             if (changed) nextInboxPoll = default;
         }
@@ -66,7 +66,7 @@ public sealed partial class CommunitiesPanel
             || session.AccessExpiresAt <= DateTimeOffset.UtcNow || DateTimeOffset.UtcNow < nextInboxPoll) return;
         // The selected community already has its normal trade poll. Read only the
         // other joined communities, once per 15 seconds, without touching UI drafts.
-        var ids = communities.Where(g => g.Id != community?.Id).Select(g => g.Id).ToArray();
+        var ids = communities.Where(g => g.Id != community?.Id && !SeasonSelection.ReadOnly(SeasonsEnabled, g)).Select(g => g.Id).ToArray();
         nextInboxPoll = DateTimeOffset.UtcNow.AddSeconds(15);
         if (ids.Length == 0) { inboxError = ""; return; }
         var uri = origin; var token = session.AccessToken; var ct = requests.Token;

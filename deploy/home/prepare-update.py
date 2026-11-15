@@ -65,6 +65,8 @@ def main():
     print(f"\nBUILD READY\nSource: {commit}\nImage ID: {image_id}\n")
     print("In Portainer: Stacks > amorrp > Editor > Environment variables")
     print(f"Set AMORRP_SERVER_IMAGE to: {image}")
+    print("For the seasons upgrade, also set AMORRP_ADMIN_LODESTONE_ID to your administrator character's numeric Lodestone ID.")
+    print("Use the updated deploy/home/compose.yaml stack definition, retaining all existing private values and volumes.")
     print("Update the stack with image re-pull disabled. Keep all other settings and volumes.")
     print("Then open your public /health/ready and /api/v2/capabilities endpoints.")
     print("No deployment, backup, database change or private-settings change was performed by this script.")

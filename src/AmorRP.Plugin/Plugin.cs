@@ -45,7 +45,7 @@ public sealed class Plugin : IDalamudPlugin
         tradeWindow = new(mainWindow.DrawTrade, mainWindow.TradeOpened, mainWindow.TradeClosed);
         mainWindow.OpenTrade = () => tradeWindow.IsOpen = true;
         joinCommunityWindow = new("Amor RP — Join community###AmorRPJoinCommunity", mainWindow.DrawJoinCommunity, () => mainWindow.CanDrawCommunityForms, new(520, 360), mainWindow.ClearFeedback);
-        createCommunityWindow = new("Amor RP — Create community###AmorRPCreateCommunity", mainWindow.DrawCreateCommunity, () => mainWindow.CanDrawCommunityForms, new(560, 660), mainWindow.ClearFeedback);
+        createCommunityWindow = new("Amor RP — Prepare season###AmorRPCreateCommunity", mainWindow.DrawCreateCommunity, () => mainWindow.CanDrawCommunityForms, new(560, 660), mainWindow.ClearFeedback);
         mainWindow.OpenJoinCommunity = () => joinCommunityWindow.IsOpen = true;
         mainWindow.OpenCreateCommunity = () => createCommunityWindow.IsOpen = true;
         mainWindow.CloseJoinCommunity = () => joinCommunityWindow.IsOpen = false;
@@ -92,7 +92,7 @@ public sealed class Plugin : IDalamudPlugin
             case "crafting": mainWindow.OpenWorkspaceFromLauncher(WorkspaceKind.Crafting); break;
             case "groups": mainWindow.OpenWorkspaceFromLauncher(WorkspaceKind.GroupManagement); break;
             case "manage": mainWindow.OpenWorkspaceFromLauncher(WorkspaceKind.CommunityManagement); break;
-            case "community": mainWindow.OpenWorkspaceFromLauncher(WorkspaceKind.Community); break;
+            case "season": case "community": mainWindow.OpenWorkspaceFromLauncher(WorkspaceKind.Community); break;
             case "launcher":
                 configuration.ShowLauncher = !configuration.ShowLauncher; launcherWindow.IsOpen = configuration.ShowLauncher;
                 pluginInterface.SavePluginConfig(configuration); break;

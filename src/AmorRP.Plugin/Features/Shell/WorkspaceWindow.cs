@@ -21,8 +21,8 @@ public sealed class WorkspaceWindow : Window
     {
         WorkspaceKind.Crafting => "Crafting",
         WorkspaceKind.GroupManagement => "Group management",
-        WorkspaceKind.CommunityManagement => "Community management",
-        _ => "Community"
+        WorkspaceKind.CommunityManagement => "Season management",
+        _ => "Season"
     };
     public override bool DrawConditions() => loaded();
     public override void PreDraw()

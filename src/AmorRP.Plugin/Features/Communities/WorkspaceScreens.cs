@@ -11,7 +11,7 @@ public sealed partial class CommunitiesPanel
     private bool requestedManagementMembers;
     public Action<WorkspaceKind>? OpenWorkspaceWindow { get; set; }
     public bool CanOpenGroupManagement => WorkspaceAccess.OpenGroupManagement(community, session?.Character.Id, communityGroups);
-    public bool CanOpenCommunityManagement => WorkspaceAccess.CommunityManagement(community, session?.Character.Id);
+    public bool CanOpenCommunityManagement => IsSeasonAdministrator || WorkspaceAccess.CommunityManagement(community, session?.Character.Id);
     private bool CanManageCommunityMembers => Owner || CanManageGameplay || CanCoins || community?.MyCapabilities.Contains("inventory.remove") == true;
 
     public void OpenWorkspace(WorkspaceKind kind) => OpenWorkspaceWindow?.Invoke(kind);
@@ -21,7 +21,7 @@ public sealed partial class CommunitiesPanel
         ImGui.TextColored(InventoryGold, WorkspaceWindow.Title(kind).ToUpperInvariant());
         DrawCommunitySelection();
         if (community == null)
-        { Wrapped("Choose a community above to get started."); DrawActionFeedback(pending); return; }
+        { if (kind == WorkspaceKind.CommunityManagement && IsSeasonAdministrator) DrawSeasonManagement(); else DrawNoSeason(); DrawActionFeedback(pending); return; }
         var feedbackHeight = ActionFeedbackHeight(pending);
         ImGui.BeginChild("WorkspaceContent", new(0, feedbackHeight > 0 ? -feedbackHeight - ImGui.GetStyle().ItemSpacing.Y : 0), false);
         switch (kind)
@@ -33,7 +33,7 @@ public sealed partial class CommunitiesPanel
                 break;
             case WorkspaceKind.CommunityManagement:
                 if (CanOpenCommunityManagement) DrawCommunityManagementWorkspace();
-                else Wrapped("Community management requires an owner or a relevant delegated permission.");
+                else Wrapped("Season management requires an owner or a relevant delegated permission.");
                 break;
             case WorkspaceKind.Community: DrawCommunityBrowser(); break;
         }
@@ -64,6 +64,7 @@ public sealed partial class CommunitiesPanel
     private void DrawCommunityManagementWorkspace()
     {
         if (!ImGui.BeginTabBar("CommunityManagementTabs", ImGuiTabBarFlags.FittingPolicyScroll)) return;
+        if (IsSeasonAdministrator && ImGui.BeginTabItem("Seasons")) { DrawSeasonManagement(); ImGui.EndTabItem(); }
         if (CanGeneralModerate && ImGui.BeginTabItem("Profile")) { DrawHomeProfile(); ImGui.EndTabItem(); }
         var membersFlags = requestedManagementMembers ? ImGuiTabItemFlags.SetSelected : ImGuiTabItemFlags.None;
         if (CanManageCommunityMembers && ImGui.BeginTabItem("Members", membersFlags))
@@ -75,8 +76,8 @@ public sealed partial class CommunitiesPanel
         { LoadHomeDrafts(); DrawCurrencyNameEditor(); if (Owner) DrawCurrencyIconEditor(); ImGui.EndTabItem(); }
         if (Owner && ImGui.BeginTabItem("Weekly limits")) { DrawWeeklyPolicy(expanded: true); ImGui.EndTabItem(); }
         if (Owner && ImGui.BeginTabItem("Economy")) { DrawBillingPolicy(); ImGui.EndTabItem(); }
-        if (Owner && ImGui.BeginTabItem("Invitations")) { DrawInvitations(); ImGui.EndTabItem(); }
-        if (Owner && ImGui.BeginTabItem("Ownership & deletion")) { DrawCommunityLifecycle(); ImGui.EndTabItem(); }
+        if (!SeasonsEnabled && Owner && ImGui.BeginTabItem("Invitations")) { DrawInvitations(); ImGui.EndTabItem(); }
+        if (!SeasonsEnabled && Owner && ImGui.BeginTabItem("Ownership & deletion")) { DrawCommunityLifecycle(); ImGui.EndTabItem(); }
         ImGui.EndTabBar();
     }
 }

@@ -43,7 +43,7 @@ public sealed partial class CommunitiesPanel
             {
                 WrappedInput("##HomeDescription", ref editDescription, 8192, new(-1, spacing * 4), maximumCharacters: CommunityEdit.MaximumDescriptionCharacters);
                 var conflict = savedCommunityName != current.Name || savedHomeDescription != current.Description;
-                var error = string.IsNullOrWhiteSpace(editCommunityName) || editCommunityName.Length > 80 ? "Community name must contain 1–80 characters."
+                var error = string.IsNullOrWhiteSpace(editCommunityName) || editCommunityName.Length > 80 ? "Season name must contain 1–80 characters."
                     : AmorRP.Core.Items.PlainText.Characters(editDescription) > CommunityEdit.MaximumDescriptionCharacters ? "Description must be at most 300 characters." : null;
                 if (error != null) Wrapped(error);
                 if (conflict) { Wrapped("The saved profile changed elsewhere."); if (ImGui.Button("Reload profile")) { homeDraftLoaded = false; LoadHomeDrafts(); } }
@@ -58,7 +58,7 @@ public sealed partial class CommunitiesPanel
             else
             {
                 ImGui.BeginChild("CommunityDescription", new(0, Math.Max(spacing, shownHeight)), false, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
-                Wrapped(current.Description.Length == 0 ? "No community description yet." : current.Description); ImGui.EndChild();
+                Wrapped(current.Description.Length == 0 ? "No season description yet." : current.Description); ImGui.EndChild();
                 if (descriptionHeight > spacing * 3 && ImGui.SmallButton(homeDescriptionExpanded ? "Show less" : "Read more")) homeDescriptionExpanded = !homeDescriptionExpanded;
             }
             ImGui.PopItemWidth(); ImGui.EndTable();

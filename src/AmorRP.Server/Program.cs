@@ -51,6 +51,9 @@ builder.Services.AddScoped<AuthenticationService>();
 builder.Services.AddScoped<LoginAdmission>();
 builder.Services.AddHostedService<LoginOriginCleanupWorker>();
 builder.Services.AddScoped<CommunityAccess>();
+builder.Services.AddOptions<SeasonPolicyOptions>().BindConfiguration("SeasonPolicy")
+    .Validate(x => x.IsValid(), "Season administrator IDs must be numeric Lodestone character IDs.").ValidateOnStart();
+builder.Services.AddScoped<SeasonService>();
 builder.Services.AddScoped<CommunityService>();
 builder.Services.AddScoped<GroupService>();
 builder.Services.AddScoped<GroupActivityService>();
@@ -131,6 +134,7 @@ app.MapCapabilitiesEndpoints();
 app.MapFeasibilityEndpoints();
 app.MapAuthenticationEndpoints();
 app.MapCommunityEndpoints();
+app.MapSeasonEndpoints();
 app.MapGroupEndpoints();
 app.MapAnnouncementEndpoints();
 app.MapCurrencyEndpoints();

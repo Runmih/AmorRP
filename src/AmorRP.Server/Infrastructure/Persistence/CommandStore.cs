@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 namespace AmorRP.Server.Infrastructure.Persistence;
 
 // Locks are database-wide across server replicas, never process-local semaphores.
-public sealed class CommandStore(AmorDbContext db, SecretVault vault, TimeProvider time)
+public sealed class CommandStore(AmorDbContext db, SecretVault vault, TimeProvider time, Microsoft.Extensions.Options.IOptions<AmorRP.Server.Options.SeasonPolicyOptions> seasons)
 {
     public static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
     public static async Task LockAsync(AmorDbContext db, IEnumerable<string> resources, CancellationToken ct)
@@ -49,6 +49,14 @@ public sealed class CommandStore(AmorDbContext db, SecretVault vault, TimeProvid
     };
     public async Task<IResult> SaveAsync(HttpContext context, OperationRow operation, object response, CancellationToken ct)
     {
+        // All fresh community commands commit here inside their community transaction/lock.
+        // Replays bypass this gate and recover their original receipt without changing assets.
+        if (operation.CommunityId is { } id && operation.Kind is not ("community.create" or "season.activate" or "season.archive"))
+        {
+            var community = await db.Communities.SingleAsync(x => x.Id == id, ct);
+            ApiFault.Require(community.SeasonState != "archived" && (!seasons.Value.Enabled || community.SeasonState == "active"),
+                409, "season_read_only", "This season is read-only. Select the active season to make changes.");
+        }
         if (operation.Kind is "group.create" or "announcement.create" or "community.create" or "invitation.create" or "ownership.propose" or "login.start" or "category.create" or "definition.create" or "potion.create" or "letter.create") operation.ResponseStatus = 201;
         var json = JsonSerializer.Serialize(response, Json);
         operation.ProtectedResponse = vault.Protect(json, "operation:" + operation.Id);

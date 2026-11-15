@@ -79,7 +79,12 @@ public sealed partial class CommunityService
                 if (restriction.Restricted) await trades.CancelForAsync(communityId, characterId, "Trading permission disabled.", ct); break;
             case MemberRemoval removal:
                 ApiFault.Text(removal.Reason, 500); op.Reason = removal.Reason;
-                if (kind == "restore") { ApiFault.Require(target.Status == "blocked", 409, "member_not_blocked", "Only blocked members can be restored."); target.Status = "dormant"; }
+                if (kind == "restore")
+                {
+                    ApiFault.Require(target.Status == "blocked" || seasons.Enabled && target.Status == "dormant", 409, "member_not_blocked", "Only inactive members can be restored.");
+                    target.Status = seasons.Enabled ? "active" : "dormant"; target.Capabilities = [];
+                    op.Summary = seasons.Enabled ? "Season membership explicitly restored without previous grants." : "Block lifted; membership remains inactive.";
+                }
                 else { target.Status = "blocked"; target.Capabilities = []; await EndMemberAccessAsync(communityId, characterId, ct); }
                 break;
         }
@@ -111,6 +116,7 @@ public sealed partial class CommunityService
         var replay = await commands.ReplayAsync(h, scope, body, ct);
         if (replay != null) return commands.Replay(replay);
         var (community, _) = await access.RequireAsync(communityId, actor, ct);
+        ApiFault.Require(!seasons.Enabled || actor != characterId || kind != "remove", 409, "automatic_season_membership", "Season membership is automatic. Ask the owner about membership access.");
         if (actor != characterId || kind != "remove") CommunityAccess.Owner(community, actor);
         ApiFault.Require(characterId != community.OwnerCharacterId, 409, "owner_protected", "Transfer ownership or delete the community first.");
         var target = await access.TargetAsync(communityId, characterId, false, ct);

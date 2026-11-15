@@ -1,6 +1,6 @@
 # API contract and endpoint catalog
 
-**Current implementation:** communities, owned groups, membership, fictional currency,
+**Current implementation:** administrator-created seasons (stored in community resources), owned groups, membership, fictional currency,
 Alchemy/Cooking/Writing, inventories, trading, announcements, noticeboard and events.
 [OpenAPI](openapi.yaml) marks each operation implemented or planned and is checked
 against source endpoints. Export/data-lifecycle operations and WebSocket invalidation
@@ -12,6 +12,13 @@ group features are v2-only. XIVAuth independently uses `/api/v1/characters`; its
 provider API must never be renamed along with ours. See [authentication](authentication.md).
 
 ## Conventions
+
+Seasonal mode keeps `/communities` identifiers/routes for scoped assets and historical
+receipts. Creation requires the server Lodestone administrator allowlist and returns
+a draft. Joining/invitations/leaving are replaced by automatic active-season
+enrollment; moderation removals persist until explicit owner restoration. Inactive
+season writes return `season_read_only`; archived reads retain existing membership
+and private-group authorization. See [season lifecycle](../delivery/release-0.4.0.0.md).
 
 - HTTPS, UTF-8 JSON, `/api/v2`. Health and browser OAuth callback are explicitly
   outside that prefix. API version is independent of package semantic version.
@@ -121,6 +128,9 @@ Mutations are marked with an asterisk and require an idempotency key.
 | Method | Endpoint | Purpose | Authorization |
 | --- | --- | --- | --- |
 | GET | `/api/v2/communities` | Current character active communities | Session |
+| GET | `/api/v2/seasons/context` | Active season and authenticated administrator capabilities | Session |
+| POST | `/api/v2/seasons/{seasonId}/activation` | Activate draft/legacy season, archive previous | Server administrator |
+| POST | `/api/v2/seasons/{seasonId}/archive` | Preserve and freeze active season | Server administrator |
 | POST * | `/api/v2/communities` | Create isolated community and defaults within caps | Session |
 | POST * | `/api/v2/communities/join` | Accept invitation within membership caps | Session |
 | GET | `/api/v2/communities/{communityId}` | Community and own permissions/balance | Active member |

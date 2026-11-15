@@ -26,6 +26,7 @@ public sealed partial class CommunityService
     private static Invitation InvitationView(InvitationRow x) => new(x.Id, x.CommunityId, x.ExpiresAt, x.MaxUses, x.Used, x.Revoked);
     public async Task<IResult> InvitationCommandAsync(HttpContext http, Guid communityId, Guid? invitationId, InvitationCreate? body, CancellationToken ct)
     {
+        ApiFault.Require(!seasons.Enabled || invitationId.HasValue, 409, "automatic_season_membership", "Players join the active season automatically; invitations are not needed.");
         var session = await sessions.GetAsync(http, ct); await using var tx = await db.Database.BeginTransactionAsync(ct);
         await CommandStore.LockAsync(db, ["character:" + session.CharacterId, "community:" + communityId], ct);
         var (community, _) = await access.RequireAsync(communityId, session.CharacterId, ct); CommunityAccess.Owner(community, session.CharacterId);

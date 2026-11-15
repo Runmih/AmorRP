@@ -38,7 +38,7 @@ public sealed class CommunityAccess(AmorDbContext db)
     {
         var transfer = await db.OwnershipTransfers.Where(x => x.CommunityId == community.Id && x.Status == "proposed" && x.ExpiresAt > now).Select(x => (Guid?)x.Id).SingleOrDefaultAsync(ct);
         return new(community.Id, community.Name, community.Description, community.OwnerCharacterId, community.Version, Currency(community),
-            community.OwnerCharacterId == member.CharacterId ? GrantableActions : member.Capabilities, member.TradingRestricted, Balance(community, member), transfer, community.LogoAssetId, community.LogoVersion);
+            community.OwnerCharacterId == member.CharacterId ? GrantableActions : member.Capabilities, member.TradingRestricted, Balance(community, member), transfer, community.LogoAssetId, community.LogoVersion, community.SeasonState);
     }
     public static DateTimeOffset Period(DateTimeOffset now)
     {

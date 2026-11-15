@@ -37,13 +37,17 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--origin", required=True, type=origin)
     parser.add_argument("--proxy-ip", required=True, type=proxy)
-    parser.add_argument("--image", default="amorrp-server:0.3.0.0")
+    parser.add_argument("--image", default="amorrp-server:0.4.0.0")
+    parser.add_argument("--admin-lodestone-id", required=True)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
+    if not re.fullmatch(r"[1-9][0-9]{0,19}", args.admin_lodestone_id):
+        parser.error("Use the numeric Lodestone character ID of the initial server administrator.")
     if not re.fullmatch(r"amorrp-server:[A-Za-z0-9_.-]+", args.image):
         parser.error("Use the local amorrp-server image tag built from this repository.")
     values = {
         "AMORRP_SERVER_IMAGE": args.image,
+        "AMORRP_ADMIN_LODESTONE_ID": args.admin_lodestone_id,
         "AMORRP_PUBLIC_ORIGIN": args.origin,
         "AMORRP_PROXY_IP": args.proxy_ip,
         "AMORRP_DB_PASSWORD": secrets.token_hex(32),
