@@ -4,6 +4,11 @@ namespace AmorRP.Plugin.Services.Api;
 
 internal static class SeasonSelection
 {
+    // Discovery and the membership list are separate reads. Prefer the active state
+    // from the list we can actually display so a rollover between reads is not lost.
+    public static Guid? ObservedActive(IReadOnlyList<Community> seasons, Guid? discovered) =>
+        seasons.FirstOrDefault(x => x.SeasonState == "active")?.Id ?? discovered;
+
     public static Community? Choose(IReadOnlyList<Community> seasons, Guid? selected, Guid? active, Guid? previouslyActive, bool observed)
     {
         if (active.HasValue && (!observed || active != previouslyActive))

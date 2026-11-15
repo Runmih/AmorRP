@@ -31,4 +31,16 @@ public sealed class SeasonSelectionTests
     [InlineData(false, "legacy", false)]
     public void Archive_remains_read_only_even_if_rollout_flag_is_disabled(bool enabled, string state, bool readOnly)
         => Assert.Equal(readOnly, SeasonSelection.ReadOnly(enabled, Season(state)));
+
+    [Fact]
+    public void Rollover_between_discovery_and_membership_reads_is_observed_on_the_next_refresh()
+    {
+        var old = Season("active"); var next = Season("active");
+        var observed = SeasonSelection.ObservedActive([old], next.Id);
+        Assert.Equal(old.Id, observed);
+        var latest = new[] { old with { SeasonState = "archived" }, next };
+        Assert.Equal(next.Id, SeasonSelection.ObservedActive(latest, old.Id));
+        Assert.Equal(next, SeasonSelection.Choose(latest, old.Id,
+            SeasonSelection.ObservedActive(latest, next.Id), observed, true));
+    }
 }

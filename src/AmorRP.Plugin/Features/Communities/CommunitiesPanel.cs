@@ -382,12 +382,13 @@ public sealed partial class CommunitiesPanel(IPlayerState player, Configuration 
                 list.AddRange(page.Items); cursor = page.NextCursor;
             } while (cursor != null);
             var seasons = capability.SeasonsEnabled ? await client.GetAsync<SeasonContext>(uri, "api/v2/seasons/context", token, ct) : new SeasonContext(false, false, null, []);
-            var active = SeasonSelection.Choose(list, selectedId, seasons.ActiveSeasonId, previouslyActiveSeason, observedSeason);
+            var observedActive = SeasonSelection.ObservedActive(list, seasons.ActiveSeasonId);
+            var active = SeasonSelection.Choose(list, selectedId, observedActive, previouslyActiveSeason, observedSeason);
             return () => {
                 var changedCommunity = community?.Id != active?.Id;
                 if (active?.SeasonState == "archived") { writingLogComposing = false; editingLetter = null; }
                 serviceCompatible = true; serviceLimits = capability.Limits;
-                seasonContext = seasons; previouslyActiveSeason = seasons.ActiveSeasonId; observedSeason = true;
+                seasonContext = seasons; previouslyActiveSeason = observedActive; observedSeason = true;
                 if (lastRefresh == default && !initialAllowancesEdited) { initialPoints = capability.Limits.DefaultPotionPoints; initialLetters = capability.Limits.DefaultLettersPerWeek; }
                 if (changedCommunity) { ClearCommunityViews(); ClearMemberSearch(); }
                 communities = list.ToArray(); community = active; selected = active?.Id;
