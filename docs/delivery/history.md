@@ -18,6 +18,7 @@ in the [milestone plan](../planning/README.md).
 | 0.3.0.2–0.4.0.1 | Attached inventory, writing reader, icon-only panel switch, feature workspaces, Settings | Implemented; native placement and final interaction acceptance remain separate |
 | 0.4.0.2 | Seasons replace Communities; explicit global creation permission; no mode switch or old API aliases | Matching source CI passed 370 automated tests; administrator identity remains private deployment configuration |
 | 0.4.0.3 | Every verified character belongs to every season; no season join/leave/exclusion; inactive-season lifecycle commands work | [Release evidence](release-0.4.0.3.md); matching source CI passed 372 tests; game acceptance pending |
+| 0.4.0.4 | Shared media/version foundations, canonical requests, main-only release tooling and condensed current documentation | [Maintenance evidence](release-0.4.0.4.md); 381 tests and both matching source workflows passed |
 
 ## Boundaries retained from earlier decisions
 

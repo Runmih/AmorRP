@@ -32,7 +32,7 @@ OpenAPI contains a planned route.
 | S03 trusted billing and debt collection | Implemented; game acceptance pending | Check offline billing, trust revocation, debt policy, collection and disbanded-group returns |
 | Seasonal direction and shared membership | Implemented; game acceptance pending | Administrator creation/activation, ordinary-user visibility, every season available, archive privacy and repeated refresh |
 | Dedicated windows and inventory companion | Implemented; layout acceptance pending | Placement/scaling, focus, unsaved drafts, writing readability and panel switch in game |
-| Maintenance consolidation | Implemented in this pass; release checks required | Shared media storage, canonical requests, one version source, current documentation; matching server/Windows CI |
+| Maintenance consolidation | Automated verification complete | [0.4.0.4 evidence](../delivery/release-0.4.0.4.md): 381 tests, both exact-source CI workflows, shared foundations and current docs; no new game acceptance claimed |
 | Operational readiness | Partial | Home host works per maintainer report; backup restore, recovery and capacity measurements still require operating evidence |
 | Export/deletion and 1.0 readiness | Planned | Policy/retention decisions and tested private-data lifecycle; no destructive live processing implied |
 

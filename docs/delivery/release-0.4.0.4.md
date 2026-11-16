@@ -50,3 +50,18 @@ configuration, database and volumes.
 Publication uses the exact Windows artifact after matching source CI succeeds.
 Verify the public feed and downloaded ZIP digest, then keep game acceptance separate
 from automated build/test evidence.
+
+## Published verification
+
+Stable **0.4.0.4** publishes source `60233c846f364df499da54487c38514f59dbf2bb`
+from the exact [Windows artifact](https://github.com/Runmih/AmorRP/actions/runs/43782900039).
+The matching [server/contracts workflow](https://github.com/Runmih/AmorRP/actions/runs/43782900060)
+passed 190 server integration, 190 plugin helper and 1 contract tests, model parity,
+documentation/deployment/startup checks and the server image build. Local full tests
+also passed. Locked solution restore and real ZIP publication guards passed.
+
+The downloaded artifact archive matches GitHub's digest. The immutable inner ZIP
+SHA-256 is `373716fe2b9f9124d602e82778accd984a3777b519be878270441cb4addb19ad`;
+its manifest reports 0.4.0.4 and Dalamud API 15. The checked documentation set shrank
+from 59 to 30 Markdown files, with superseded detail retained in Git history.
+No new in-game acceptance or live-host deployment was performed by this pass.
