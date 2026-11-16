@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import re
 import secrets
+import xml.etree.ElementTree as ET
 from urllib.parse import urlsplit
 
 
@@ -37,7 +38,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--origin", required=True, type=origin)
     parser.add_argument("--proxy-ip", required=True, type=proxy)
-    parser.add_argument("--image", default="amorrp-server:0.4.0.3")
+    parser.add_argument("--image", default="amorrp-server:" + ET.parse(Path(__file__).resolve().parents[2] / "Directory.Build.props").findtext(".//Version"))
     parser.add_argument("--admin-lodestone-id", required=True)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()

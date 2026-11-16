@@ -15,3 +15,11 @@
   variable.
 - Develop and publish on main. Publish the exact Windows artifact only after both
   matching source workflows pass; update the public installer feed and verify it.
+
+# Maintenance boundaries
+
+- Directory.Build.props owns the release version; ApiProtocol owns the wire-support floor.
+- Keep one current documentation set and milestone plan. Condense superseded detail
+  into history instead of appending conflicting instructions to current guides.
+- Preserve saved JSON keys, DPAPI purposes, ImGui IDs and applied migrations during
+  refactors. Keep authorization, lock and receipt ordering explicit in feature services.

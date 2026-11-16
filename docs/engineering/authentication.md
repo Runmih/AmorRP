@@ -8,7 +8,7 @@ callback are deployment settings, not plugin settings or committed secrets.
 Season administrators are a server-side Lodestone character allowlist, matched only
 against the authenticated character's provider-verified stored identity. Public IDs,
 client-supplied hints and the first login confer no authority. See the
-[season administration and migration guide](../delivery/release-0.4.0.0.md).
+[season administration and deployment guide](../delivery/home-server.md).
 
 ## Login and pairing
 

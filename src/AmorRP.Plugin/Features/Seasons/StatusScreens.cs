@@ -117,9 +117,9 @@ public sealed partial class SeasonsPanel
         Start(async ct => {
             var receipt = await client.GetAsync<Operation>(uri, $"api/v2/operation-keys/{pending.Key}", token, ct);
             return () => {
-                configuration.PendingCommands.Remove(pending); save(); ApplyFormSuccess(pending.Read().CurrentShape(), null);
-                NoteAuthorizationReceipt(pending.Read().CurrentShape(), receipt.Id);
-                if (pending.Read().Operation.Handler == CommandHandler.CommunityForm) selected = receipt.CommunityId;
+                configuration.PendingCommands.Remove(pending); save(); ApplyFormSuccess(pending.Read(), null);
+                NoteAuthorizationReceipt(pending.Read(), receipt.Id);
+                if (pending.Read().Operation.Handler == CommandHandler.SeasonForm) selected = receipt.CommunityId;
                 actionResult = "Your action was saved. Any chat message has not been sent again.";
                 status = "Refreshing current state."; refreshNeeded = true;
             };

@@ -138,8 +138,8 @@ public sealed class RequestCoordinatorTests
         var oldCommunity = Guid.NewGuid(); var active = Guid.NewGuid();
         var profile = new CommandRequest("PATCH", $"api/v2/seasons/{oldCommunity}", "{}", "etag");
         var member = new CommandRequest("PATCH", $"api/v2/seasons/{oldCommunity}/members/{Guid.NewGuid()}/description", "{}", "etag");
-        Assert.False(profile.AppliesToCommunity(active)); Assert.False(member.AppliesToCommunity(active));
-        Assert.False(profile.AppliesToCommunity(null)); Assert.True(profile.AppliesToCommunity(oldCommunity));
-        Assert.True(new CommandRequest("POST", "api/v2/seasons", "{}", null).AppliesToCommunity(active));
+        Assert.False(profile.AppliesToSeason(active)); Assert.False(member.AppliesToSeason(active));
+        Assert.False(profile.AppliesToSeason(null)); Assert.True(profile.AppliesToSeason(oldCommunity));
+        Assert.True(new CommandRequest("POST", "api/v2/seasons", "{}", null).AppliesToSeason(active));
     }
 }

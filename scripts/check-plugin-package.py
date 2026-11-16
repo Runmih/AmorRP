@@ -18,7 +18,7 @@ with zipfile.ZipFile(package) as archive:
     manifest = json.loads(archive.read("AmorRP.json"))
     assert manifest["InternalName"] == "AmorRP"
     assert manifest["DalamudApiLevel"] == 15
-    expected_version = ET.parse(root / "src/AmorRP.Plugin/AmorRP.Plugin.csproj").findtext(".//Version")
+    expected_version = ET.parse(root / "Directory.Build.props").findtext(".//Version")
     assert manifest["AssemblyVersion"] == expected_version
     assert manifest["RepoUrl"] == "https://github.com/Runmih/AmorRP"
     icon = archive.read("icon.png")

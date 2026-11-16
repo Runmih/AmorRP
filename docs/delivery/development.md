@@ -1,86 +1,74 @@
 # Development workflow
 
-The repository builds a Dalamud plugin and an ASP.NET Core server. Start with the
-[current architecture](../engineering/architecture.md), [source map](../engineering/repository-layout.md)
-and [version matrix](../engineering/versions.md). Dated milestone guides preserve
-historical installation/acceptance records.
+Start with [AGENTS.md](../../AGENTS.md), the [milestone plan](../planning/README.md),
+[architecture](../engineering/architecture.md) and [source map](../engineering/repository-layout.md).
+Use main and the Runmih commit identity. Preserve data, applied migrations, saved
+configuration keys and immutable packages. Do not introduce a legacy product flow.
 
-## Prerequisites
+## Setup
 
-- .NET SDK from `global.json` and locked NuGet dependencies.
-- Pinned official Dalamud API 15 references for plugin builds. Fetch with
-  `scripts/Fetch-Dalamud.ps1`, then set `DALAMUD_HOME` to its destination.
-- Disposable PostgreSQL 18 for server integration tests. No hosted test server or
-  real XIVAuth account is needed for automated tests; provider fixtures are injected.
-- Python 3.12 recommended for documentation/package checks.
-- Windows/FFXIV/Dalamud for manual game loading, rendering, input and chat checks.
-
-Never run tests against the hosted database or use production secrets in fixtures.
-`PostgresTestDatabase` requires an `amorrp_test...` database name and creates/drops
-isolated databases for tests.
-
-## Build and checks
-
-With reference setup and `DALAMUD_HOME` complete:
+Use the SDK in global.json and locked dependency graphs. Fetch official pinned
+Dalamud references with scripts/Fetch-Dalamud.ps1 and set DALAMUD_HOME to the verified
+directory. Plugin builds need Windows references; in-game validation needs actual
+FFXIV/Dalamud. Server tests use a disposable PostgreSQL 18 database, not live secrets.
 
 ```sh
 dotnet restore AmorRP.sln --locked-mode
 dotnet tool restore
-dotnet build AmorRP.sln -c Release --no-restore
 python3 -m pip install -r scripts/requirements-docs.lock.txt
+docker compose -f deploy/compose.yaml --profile test up -d --wait test-database
+export AMORRP_TEST_DATABASE='Host=127.0.0.1;Port=55432;Database=amorrp_test;Username=amorrp;Password=amorrp-local-only'
+export ConnectionStrings__Database="$AMORRP_TEST_DATABASE"
+```
+
+The integration fixture requires an amorrp_test... name and creates/drops its own
+isolated databases. Fixture identity providers avoid real accounts and credentials.
+
+## Verify the change
+
+```sh
+dotnet build src/AmorRP.Plugin -c Release --no-restore -p:Platform=x64
+dotnet build src/AmorRP.Server -c Release --no-restore
+dotnet test tests/AmorRP.Contracts.Tests -c Release --no-restore
+dotnet test tests/AmorRP.Plugin.Tests -c Release --no-restore
+dotnet test tests/AmorRP.Server.IntegrationTests -c Release --no-restore
+dotnet ef migrations has-pending-model-changes --project src/AmorRP.Server --configuration Release --no-build
 python3 scripts/check-docs.py
 python3 scripts/check-plugin-package.py
 python3 scripts/check-plugin-repository.py
+python3 scripts/check-home-deployment.py
+python3 scripts/check-home-updates.py
+python3 scripts/check-server-startup.py
 ```
 
-Start the local test database and configure this non-production connection:
+Run focused checks while developing; run release checks for the final candidate.
+Tests must exercise actual accounting, authorization, upgrade and recovery behavior.
+Do not add tests that merely copy UI conditionals or incidental implementation shape.
+Documentation validation checks links, API-source parity and acceptance coverage;
+it does not execute application behavior.
 
-```sh
-docker compose -f deploy/compose.yaml --profile test up -d --wait test-database
-export AMORRP_TEST_DATABASE='Host=127.0.0.1;Port=55432;Database=amorrp_test;Username=amorrp;Password=amorrp-local-only'
-dotnet test tests/AmorRP.Contracts.Tests -c Release
-dotnet test tests/AmorRP.Plugin.Tests -c Release
-dotnet test tests/AmorRP.Server.IntegrationTests -c Release
-ConnectionStrings__Database="$AMORRP_TEST_DATABASE" dotnet ef migrations has-pending-model-changes --project src/AmorRP.Server --configuration Release
-```
+## Structure and versions
 
-The fixed Compose password is disposable development data. The helper and integration
-test projects also have xUnit v3 executable runners; after building, their test DLLs
-can be run with `dotnet path/to/TestAssembly.dll` when a sandbox blocks VSTest's
-local communication socket.
+Put rules beside their feature and transaction. Core owns pure reusable text/type
+rules; Contracts owns transport and protocol constants. Shared media storage does
+not own feature authorization. Avoid generic engines or new layers without a real
+repeated use. Remove an obsolete adapter rather than stacking another translation.
 
-## What the checks prove
+Directory.Build.props owns the release version. ApiProtocol owns the independently
+versioned wire-support floor. Never edit dependency locks by hand. Change a pin,
+restore affected projects, then verify locked-mode restore. Schema changes need an
+explicit migration and model parity; source-only cleanup does not need one.
 
-- Contract tests check application/library dependency boundaries.
-- Plugin tests compile the actual standalone transport, refresh, coordination,
-  draft and text components. They cover token/character/context races and recovery;
-  they do not instantiate the entire Dalamud panel or render ImGui.
-- Server tests exercise real PostgreSQL constraints, authorization, transactions,
-  migrations and concurrency through test-hosted HTTP endpoints with provider fakes.
-- Documentation checks validate links, OpenAPI and endpoint/status metadata. They
-  are not application correctness or security tests.
-- Windows CI builds against verified Dalamud references and checks the distributable
-  ZIP. Linux CI runs server/contracts/helpers, schema consistency and container checks.
-  Both workflows have run successfully; every release needs fresh results for its source.
+## Publish and deploy
 
-Tests for the renewal lock deliberately hold the provider response while unrelated
-requests complete. Coordination tests use controlled task completions rather than
-sleep-based timing. Manual in-game and real-provider acceptance remain separate.
+Push source to main and wait for both matching Windows/server CI workflows. Download
+the exact Windows artifact, verify its outer digest, extract inner latest.zip and
+validate that package. Use prepare-plugin-repository.py with package, destination,
+source-commit and build-url. Commit feed/package/provenance and record release evidence. Every main push,
+including publication, runs verification. The built-in-token publisher explicitly
+dispatches the checks because its pushes do not emit normal workflow triggers. Verify plain
+and cache-busted public feeds, download URLs, ZIP digest and manifest versions.
 
-## Change and release discipline
-
-Keep changes bounded and explain the observed problem, resulting behavior and relevant
-verification. Update current guides when behavior changes; dated release records are
-historical evidence. Place rules requiring persistence beside the server transaction,
-pure reusable rules in Core and concrete wire types in Contracts.
-
-Do not change XIVAuth routes when changing Amor RP's protocol. Do not discard or
-rewrite an unresolved saved mutation merely because a UI operation was renamed.
-Preserve receipt fingerprints and test retries. Show debug IDs without exposing
-credentials or provider responses.
-
-Publish a new plugin version for changed package bytes. Use the exact successful
-Windows build artifact, record its source/build URL, and verify the public feed and
-package digest. Server-only corrections require a Render redeploy to become active;
-local/CI testing does not require restarting the live service. Database migrations,
-provider configuration changes and protocol changes are separate decisions.
+Do not publish Linux-built plugin bytes or overwrite a version's existing ZIP.
+Do not deploy the private host as a side effect. Follow [home deployment](home-server.md)
+for a manual server update and [acceptance](acceptance.md) for game/operating gates.

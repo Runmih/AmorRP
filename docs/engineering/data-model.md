@@ -1,367 +1,68 @@
 # Data model and transaction boundaries
 
-Current 0.4.0.3 direction: every verified player belongs to every non-deleted
-season automatically, including drafts and archives. No season join, leave,
-removal, block or restoration actions exist. Account bans are separate from
-season membership. The migration restores former inactive/blocked season rows
-without restoring old grants and fills missing memberships without resetting
-assets. Archives remain read-only; private items, personal financial history,
-RP-group permissions and owner-only audit remain access-controlled. See the
-[current release guide](../delivery/release-0.4.0.3.md). Earlier dated review
-findings below describe the implementation at the time of that review.
+PostgreSQL is authoritative. EF migrations preserve stable IDs, ownership, assets
+and audit receipts. Applied migration files stay immutable. Historical table/column
+names such as communities/CommunityId map existing data; the current API uses seasons.
 
-
-Proposed product schema. M0 has an infrastructure bootstrap migration; M1 identity
-probes are memory-only. M2 implements identity/session/community/currency; M3 adds catalog revisions, holdings,
-letters, quota snapshots and currency assets. M4 adds written subtypes, persistent
-trades, participant slots and offer lines. Full data lifecycle/events remain planned. UUIDs are
-opaque server IDs. All timestamps are UTC `timestamptz`. Revision counters are
-monotonic integers. Monetary amounts use checked signed `bigint`; positive deltas
-create supply, negative deltas destroy supply. Text is bounded by validated service
-options, with plain-text storage.
-
-## Entity catalog
-
-| Entity | Key fields and purpose |
+| Area | Persisted state and invariants |
 | --- | --- |
-| Character | Immutable internal ID, current display name, home-world identity, verification timestamp, status; asset ownership remains attached to this ID after rename/transfer |
-| IdentityBinding | Character ID, provider namespace, verified Lodestone ID and ownership key/attestation binding; minimum data needed for login, no alt roster |
-| LoginAttempt | ID, hashed bootstrap/attempt credential/state, selected character hint, expiry, encrypted short-lived exchange material, status |
-| Session | ID, character ID, hashed access/refresh credentials, expiry, refresh family, revoked timestamp |
-| Community | ID, owner character ID, name, description, version, deletion timestamp |
-| Membership | Community/character unique pair, active/dormant/blocked state, joined timestamps; identity reused on rejoin |
-| CapabilityGrant | Community/character/capability unique tuple, granted-by and timestamp; effective only for active member |
-| TradeRestriction | Community/character unique tuple, blocked flag, reason, version |
-| CommunityPolicyRevision | Community, effective period start, potion points, letter count, immutable policy revision |
-| Category | Community/ID, name, allowed type IDs, retired timestamp, version |
-| ItemDefinition | Community/ID, stable type ID, latest revision, enabled/retired state |
-| ItemDefinitionRevision | Community/definition/revision, category ID, name, description, typeDataVersion and typed potion payload |
-| Holding | Community/character/ID, type ID, definition revision or instance ID, owned quantity, reserved quantity, version |
-| LetterInstance | Community/ID, author ID, title/body, category ID, content version, first-traded timestamp |
-| Currency | Community/ID, name, legacy symbol, nullable icon asset ID, version; one/community uniqueness in 1.0 |
-| MediaAsset (M3) | Opaque ID, community ID, normalized static PNG bytes, content hash, validated dimensions/length, creator/time; initially currency icons only |
-| CurrencyBalance | Community/character/currency unique tuple, owned amount, reserved amount, version |
-| CurrencyLedger | Operation/community/currency, affected character, signed delta, reason/transfer counterpart, before/after, actor |
-| QuotaUsage | Community/character/kind/period unique tuple, limit snapshot, used, policy revision |
-| Invitation | Community/ID, hashed secret, expiry, maximum uses/used, creator, revoked timestamp |
-| OwnershipTransfer | Community/ID, current owner, recipient, expiry, proposed/accepted/cancelled status |
-| Trade | Community/ID, parties, invited/open/completed/cancelled/expired, revision, expires, confirmed revision per party |
-| TradeOfferLine | Trade/party/resource unique line, holding/currency reference and quantity, server-derived safe item preview; own offer revision |
-| Reservation | Trade/community/character/resource, quantity/amount, expiry; exact reservation source |
-| Operation | ID, community, actor, kind, result resource IDs/versions, timestamp; durable outcome recovery; actor may be null only for anonymous login bootstrap |
-| IdempotencyRecord | Actor or login-attempt scope, key, method/path/request hash, operation/result status, replay expiry |
-| AuditEntry | Community, actor, action, subject, reason, metadata without letter body/secrets, operation ID |
-| ChangeEvent | Community/sequence, recipient visibility, type, resource ID/version, operation ID, timestamp |
-| AccountRequest | Character, export/delete request, status, expiry/result location, operator resolution |
+| Characters | Stable internal ID, verified Lodestone binding and ownership hash; mutable name/world display fields |
+| Authentication | Hashed session/attempt credentials, bounded attempts, consumed refresh tokens, encrypted provider grants/verifiers and replay responses |
+| Seasons | Draft/active/archived state; unique active-season index; owner, creator, currency identity, policies and profile versions |
+| Season memberships | One row per character/season; only active status is valid; shared membership with independent balances, profiles, grants and read markers |
+| Global creation grants | Character key, explicit can-create flag and version; configured administrators derive creation authority separately |
+| Currency | Owned/reserved/available whole units, monotonic balance version; no negative or over-reserved account |
+| Catalog | Season categories, allowed types, immutable definition revisions and retirement state |
+| Inventory | Character-owned holdings, type/provenance/revision, quantity and reservations; holder-only private written content |
+| Quotas | Character/season/type-family/weekly-period usage; spent amounts survive grant/profile/session changes |
+| Trades | Participants, invitations, offer lines, reservations, revision-bound approval stages and terminal outcomes |
+| Groups | Season-scoped owner, membership, approved features, staff permission versions, profile/logo, notices/events and favorites |
+| Treasury | Group balance, immutable entries, actual-owner disband returns and overflow claims |
+| Billing | Trusted authorization, durable bill identity, debt policy, unpaid claims, payment/collection receipts and continuation state |
+| Announcements | Bounded latest-five messages, sequence and per-membership read UUIDs |
+| Media | Season-scoped PNG bytes, purpose, dimensions and hash; logo/icon references and monotonic feature versions |
+| Operations | Actor/scope/key, request fingerprint, encrypted original response, status/ETag and bounded public metadata |
 
-Prefer relational fields for ownership, quantities, permissions and cost. A bounded,
-schema-validated type payload can hold type-specific description/message fields;
-never use unvalidated JSON for core accounting. Type schema versions are explicit.
-Asset/currency/trade operations always require an authenticated character actor;
-anonymous bootstrap receipts are restricted to their secret-bound login context
-and short-lived auth cleanup, never the personal financial history.
+## Shared membership and lifecycle
 
-## Required constraints and indexes
+New verified characters receive all seasons; new drafts receive all characters.
+Discovery/direct reads fill a missing row idempotently. Existing rows are never
+replaced by enrollment, so balances, grants, quotas and profile/read state survive.
+The shared-membership migration normalizes former inactive/blocked rows and clears
+their old grants, then backfills zero-balance rows for missing pairs. Deleted seasons
+remain inaccessible. RP-group membership remains independent.
 
-- Unique verified identity key within provider namespace. Provider values are not
-  interchangeable with client-supplied IDs. Separate display names from ownership.
-- All character-owned product records reference the internal Character ID. A
-  verified rename/world transfer updates display metadata in place without new
-  balances, holdings, memberships or quota records. A changed ownership binding
-  requires explicit recovery; do not automatically reassign assets by public
-  Lodestone ID or a matching name/world.
-- Composite uniqueness/FKs enforce community equality between definitions, revisions,
-  holdings, letters, currencies, trades and reservations. Application checks alone
-  are insufficient to prevent accidental cross-community references.
-- `owned >= 0`, `reserved >= 0`, `reserved <= owned`; potion cost > 0; letter quantity
-  exactly one; quota `0 <= used <= limit`; invitation uses <= maximum.
-- One active membership/community/character; one currency/community; no active trade with
-  the same character in another open trade in that community. Model the latter with
-  unique active participant slots, not a race-prone pre-insert query.
-- Stable stacking key `(community, character, definition, revision)` for potions;
-  unique current holding for each letter instance. Dormant holdings still own assets.
-- Index membership by character/status, inventory by community/character/type/category,
-  history by community/character/time, pending trade participants/expiry, events by
-  recipient/community/sequence, quotas by period, cleanup data by expiry.
-- Deletion does not cascade blindly through financial history. Tombstone display
-  identity and retain bounded non-content audit according to retention policy.
+Lifecycle transitions serialize on the lifecycle lock and affected season locks.
+Activating a draft archives the current season, cancels its open trades, releases
+reservations and freezes its economy before making the draft active. Archived
+seasons cannot be reopened. Collection workers skip and recheck inactive seasons.
 
-## Atomic operations
+## Mutation ordering
 
-| Operation | Records changed in one commit |
-| --- | --- |
-| Community create/join | Character cap lock, community/membership, defaults/invitation usage, history |
-| Ownership accept | Locks on both characters + community; caps, owner, transfer status, history |
-| Potion production | Definition/current policy lock, quota debit, holding credit, operation/audit/idempotency/event |
-| Letter creation | Quota debit, instance + holding, operation/audit/idempotency/event |
-| Consumption/discard/removal | Available quantity decrement, operation/audit/idempotency/event |
-| Currency icon replacement/removal (M3) | Same-community media asset/reference, currency version, operation/audit/idempotency; preserve balances |
-| Currency adjustment | Available balance, supply ledger, operation/audit/idempotency/event |
-| Offer edit | Trade revision, own lines, old/new reservations, confirmations cleared, event |
-| Second confirmation | Both inventories/balances, balanced trade ledger, letter locks, release reservations, terminal trade, history |
-| Restrict/remove/leave/delete | Membership/restriction/community state, cancellations and reservation release, events |
+A service establishes the session, starts a transaction and takes canonical ordered
+advisory locks. It reloads mutable ownership/permission state under the lock, checks
+authority and operation replay, validates ETags/business invariants, then changes
+state and records the protected receipt in the same transaction. Specific services
+retain explicit ordering where preflight parsing or discovery is needed.
 
-All implementations authorize inside the command transaction or serialize the
-authorization state with it; a preflight permission check outside the transaction
-is not enough. Handle serialization/deadlock errors with bounded retries under the
-same idempotency key. Recheck expiry on each action. Lock ordering is documented
-in code and exercised by concurrent integration tests.
+CommandStore rejects fresh non-lifecycle gameplay writes in inactive seasons.
+A durable same-key replay recovers its original receipt; it does not apply the
+mutation again. Request fingerprints include method, current path, ETag and body.
+Never rewrite a saved request or translate an old API shape during recovery.
 
-## History and privacy
+CurrencyAccounts, TreasuryLedger, DebtSettlement and TradeReservations own their
+respective shared accounting operations. Keep money/claim/reservation updates in
+the same transaction and season scope. No new income source bypasses settlement.
 
-Personal history shows operations involving that character. Owner history exposes
-administrative issuance/removal/grant/policy changes and trade summaries, never letter
-bodies. `inventory.remove` exposes only the minimal holding summary needed to act.
-Ownership is not automatic letter-reading authority. Trading parties see offered
-letter titles/author and may open full contents only after receiving ownership.
+Authentication uses short global admission/callback/pairing transactions and
+per-session renewal/revocation locks. Provider rotation and database commit are not
+an atomic distributed transaction; recovery may require browser sign-in without
+changing asset ownership. See [authentication](authentication.md).
 
-Account export includes own identity, memberships, grants, current holdings and
-owned letter content, quota usage, and relevant history. It excludes other members'
-private content and auth secrets. Deletion requests cancel trades, resolve ownership,
-remove credentials/private content, and tombstone necessary shared records; operator
-must check exports/backups/retention. Leaving a community is not a data-erasure request.
+## Migration and recovery
 
-## Persistence across expansion
-
-Keep currency as an entity despite one/community in 1.0; remove the uniqueness constraint
-only with a deliberate multi-currency migration. Definition revisions and letter
-instances are distinct so books/equipment can gain their own instance payloads later.
-Quota kind is an extensible string; weekly potion/letter mechanics stay separate.
-Archived categories and retired definitions remain resolvable for existing holdings.
-Do not make community-name or character-name changes rewrite asset identity.
-
-## M2 concrete mapping
-
-`characters` stores the immutable internal ID plus the sole XIVAuth binding
-(Lodestone ID unique, ownership-key SHA-256) and mutable profile. A future provider
-or explicit ownership recovery adds a reviewed binding migration; no name merge.
-`login_attempts`, `sessions` and `used_refresh_tokens` persist login, device renewal
-and consumed-token detection. Secrets use purpose-bound vault envelopes; bearer
-credentials/state/invitation codes are stored as hashes.
-
-`communities` stores owner, version, deletion state, the single 1.0 currency's stable ID,
-name/symbol/version and current/next weekly policy. `memberships` has a composite
-(community, character) key, state, individual capability array, trading restriction,
-version and single-currency owned/reserved/balanceVersion. Foreign keys enforce
-character/community membership references; balance checks enforce 0 <= reserved <= owned.
-`invitations` and `ownership_transfers` reference their community and stable recipients.
-All capability/restriction changes also have actor/reason/time in `operations`.
-
-`operations` stores scoped UUIDv7 key, request fingerprint (including If-Match),
-actor/community/subject, kind, UTC time, reason, currency delta/before/after and an
-encrypted response/status/ETag for seven-day replay. A unique scope/key index and
-transactional advisory locks enforce one committed effect. Actor receipts remain
-recoverable after leaving/deletion, with no private resource replay bypass.
-
-M2 keeps the one-currency balance/policy fields compact. The target catalog is a
-1.0 architecture map rather than a claim that every row type is a separate table
-already. M3 materializes immutable per-period quota snapshots when spending starts.
-A future multiple-currency migration extracts balances keyed by stable CurrencyId;
-public IDs, actor ownership and integer-string amounts need no replacement.
-Operator retention/purge is an M5 release gate; never reset usage on rejoin.
-
-## M3 currency media mapping
-
-M3 adds a community-scoped asset table for small normalized currency images and a nullable
-asset reference beside the existing stable currency fields. Enforce same-community
-foreign keys and validated dimensions/size; use PostgreSQL bytes rather than
-Render's ephemeral filesystem. Migrate existing M2 currencies without changing IDs
-or balances; retain textual symbol fields as legacy compatibility data. Replacing
-an icon commits bytes/reference/version and the audited replay receipt atomically.
-Retire superseded bytes once no current reference or documented replay/retention
-requirement needs them; bound storage and include media in backup/restore checks.
-This is a reusable asset boundary, not a general attachment feature in 1.0.
-
-`categories`, `item_definitions` and `definition_revisions` use composite community keys;
-`holdings` references same-community membership/category and either definition revision
-or letter. Quantities/reservations and distinct payloads have database checks.
-`quota_usage` keys community/character/kind/period and stores its limit snapshot/used
-count. `communities.InventoryVersion` advances for catalog and inventory writes and
-is exposed as list snapshotVersion; updates serialize with membership/currency
-through the same community lock. Letter edits change the existing holding name/version.
-
-## M4 actual storage and locking
-
-`trades`: composite (CommunityId, Id), participant membership FKs, fixed expiry,
-state/revision, both currency amounts, first/final confirmation flags per player,
-end reason and completion operation ID. Offer-building increments the revision;
-after either first approval an edit cancels. Approvals do not change the revision.
-Both first approvals enter `confirming`, both final approvals complete.
-
-`trade_slots`: unique (CommunityId, CharacterId), composite trade FK. Either participant
-position occupies the same slot; terminal transitions delete both slots.
-`trade_lines`: unique (CommunityId, TradeId, CharacterId, HoldingId), same-community trade
-and holding FKs, positive quantity and safe immutable preview. Writing bodies are
-never copied here. Currency reservations are in memberships.Reserved and item
-reservations in holdings.Reserved; the trade amounts/lines identify their source.
-Only one active trade per participant/community makes those counters unambiguous.
-
-Every asset/trade/membership writer takes the community advisory lock in a database
-transaction. Second final confirmation releases reservations and applies both outgoing
-sides before incoming sides, checks net capacity/overflow, locks transferred written
-instances, sets terminal state and persists one operation receipt/history record.
-The operation records TradeId and both parties; the trade retains the complete
-published transfer quantities. Currency adjustment records retain delta/before/after.
-The conceptual ledger/event catalog above is a future design; M4 has no separate
-ledger or change-event table. Supply conservation is verified with PostgreSQL tests.
-
-Written instances remain in `letters` for API/database compatibility, with explicit
-TypeId (`book`, `letter`, `note`, default `letter` for M3 rows). Holding payload
-constraints permit these three types with quantity at most one and one LetterId.
-The TradingBeta migration preserves all existing IDs, content, grants, balances
-and quota usage. Server 0.0.6.8 removes its category data rewrites: all existing
-names and allowed types remain intact, including legacy Correspondence rows.
-New communities seed Books; owners opt legacy categories in explicitly. DoubleTradeConfirmation
-adds final flags/state and resets existing pending first approvals while advancing
-their revision. Offers, reservations, expiry and terminal history are retained.
-
-### Login origin admission — server 0.0.6.5
-
-login_attempts adds StartedAt and nullable OriginHash (purpose-keyed HMAC of the
-normalized originating network). Composite indexes on (OriginHash, ExpiresAt)
-and (OriginHash, StartedAt) support shared occupancy and rolling-start counts.
-No raw IP is stored for this control. Pending and verified-unredeemed rows occupy
-capacity; a SessionId releases it. The auth advisory lock serializes admissions
-and transitions across instances. A minute sweep clears fingerprints after
-ExpiresAt, without deleting attempts, replay records, identities, sessions or RP
-assets. Whole-row retention and backup expiry remain operator responsibilities.
-LoginNetworkAdmission retires only old unfinished handoffs without origin data.
-
-### Trade read snapshots — server 0.0.6.7
-
-Read-triggered expiry commits under the existing community lock. DTO assembly follows
-in a separate read-only repeatable-read transaction after clearing tracked expiry
-entities. The selected trade rows, offer-line text snapshots, participants/authors,
-currency ID and holding definition metadata therefore share one PostgreSQL MVCC
-snapshot without holding the community write advisory lock. The snapshot ends before
-HTTP serialization. Commands still use their original locked write transaction;
-no schema or stored data format changes.
-
-### Category policy migration correction — server 0.0.6.8
-
-TradingBeta no longer rewrites category names, allowed-type arrays or versions.
-M3 CategoryRow has no seed-provenance marker, and names/IDs alone cannot prove a
-row is an untouched default. All existing rows, even Correspondence/Books names,
-therefore retain their policy. Fresh communities still seed Books through CatalogService.
-Existing letter identity/content/holdings/usage and the schema's added written
-subtypes remain intact.
-
-Applied EF migration IDs are not replayed when SQL source changes. An already
-upgraded database keeps its current values until owner-authorized repair; the
-migration stored no before/after provenance. Compare original owner decisions,
-pre-M4 backups or retained operation evidence before editing. Do not infer intended
-policy solely from current name, version or allowed-type array.
-
-### Retained community creation accounting — server 0.0.6.9
-
-`communities.CreatedByCharacterId` is a required character FK with its own index. The
-server initializes it from the authenticated creator and never changes it during
-ownership transfer or soft deletion. Community creation counts all retained rows for
-this creator under the existing character advisory lock; default budget is 30.
-This resource field does not confer any ownership, membership or access rights.
-
-Migration `20261015201132_RetainedGroupCreationBudget` backfills the earliest valid
-`community.create` actor, falling back to current owner where original evidence is
-missing. Existing community IDs, owner, versions, assets, memberships and operations
-are unchanged. The fallback is accounting only, not inferred historical authority.
-Eligible physical community purge frees budget; ordinary soft deletion does not.
-Retention/privacy purge must account for this FK as well as other references.
-No raw client-provided creator or additional personal identifier is stored.
-
-### Community character profiles — server 0.0.6.10
-
-`memberships.Description` is required text with empty default. Migration
-`20261015203517_MemberDescriptions` adds it without changing existing membership,
-assets, ownership or grants. It follows the existing character/community key, remains
-through leave/rejoin, and is covered by membership retention/purge. Descriptions
-are independently editable by their active character per community; no provider or
-name-based identity is introduced. Saves use the community/character lock, member ETag
-and operation replay, increment member/community versions, and keep text out of audit
-summaries. General character identity and XIVAuth records are unchanged.
-
-### Community announcements — server 0.0.6.12
-
-Migration `20261015232913_GroupAnnouncements` adds communities.AnnouncementSequence
-(bigint, default zero), memberships.ReadAnnouncementIds (uuid[], empty default),
-and announcements (composite community/id key, author FK, sequence, published time,
-title and body). A unique community/sequence index orders concurrent publications.
-Existing community/member identity, descriptions, assets, balances and grants remain
-unchanged. No moderator grants are inferred on upgrade.
-
-Creation serializes on the existing community lock, increments its counter and removes
-all but four prior rows before inserting the new message. At most five live rows
-remain per community. Author read IDs and explicit reader marks are intersected with
-current rows and bounded to five. Reader markers do not change public member
-version/ETag; they contain no references that prevent pruning. They survive
-leave/rejoin but cannot authorize community access. Counter/read metadata does not
-change community profile versions. Create operation replay contains no title/body.
-Future physical community/privacy purge must include announcement rows and author FKs.
-
-### Community logos
-
-CommunityLogos adds nullable communities.LogoAssetId and LogoVersion=1, with a composite
-FK (community ID, asset ID) into media_assets. MediaAsset.Purpose defaults to currency
-for existing rows. The database check retains currency's 128px/128KiB bounds and
-allows community_logo up to 512px/1MiB. Logo commands use an independent ETag, so
-profile/currency versions and identities remain unchanged. One current logo is
-retained; replacement/deletion removes its old bytes in the same transaction.
-Upgrade preserves all existing assets. Downgrade drops this feature's logos only
-before restoring the old media constraint; use backups rather than downgrading if
-those new logo bytes must be retained. No downgrade is part of normal deployment.
-
-## Group staff persistence — 0.1.0.0
-
-GroupStaffPermissions adds groups.EnabledFeatures (text[], initially all three content
-actions), group_memberships.Capabilities (text[], initially empty), and PermissionVersion
-(UUID, freshly generated per membership/grant mutation). Staff preconditions include
-the group, target character and this revision, preventing old edits from surviving
-leave/rejoin. Mutations and membership cleanup share the community advisory lock.
-Existing group/profile/asset and membership identities are retained by migration.
-
-## Treasury persistence — 0.2.0.0
-
-GroupTreasury adds groups.TreasuryOwned (nonnegative bigint, initially zero) and
-TreasuryVersion. The retained group composite key identifies the account owner and
-community. Character accounts remain the existing memberships, preserving balances,
-reservations and dormant/blocked status. No character balances are copied or reset.
-The currency is the community's existing currency; no cross-community transfer is possible.
-
-TreasuryEntryRow maps to treasury_entries, an append-only financial record with the
-command ID, group/community, actor, character beneficiary, kind, amount, both before/
-after balances, note and timestamp. A unique (OperationId, GroupId) index prevents
-multiple movements for one command/group. Scoped group/member foreign keys retain
-ownership, and database checks enforce exact two-sided conservation using numeric
-arithmetic to avoid overflow in the check itself. Actor and command foreign keys
-preserve provenance. Application updates never rewrite entries.
-
-GroupLifecycle settles all deliverable coins before marking the group deleted, under
-the same lock/transaction as its command. Any amount above the owner's account capacity
-remains on that retained group. The former owner's pending-return endpoint can collect
-it into the original membership, including dormant/blocked or archived community
-accounts. No inventory limit can discard currency. Community deletion cancels trades,
-settles all nondeleted groups to their distinct owners and retains audit records.
-Downgrade refuses to drop the treasury schema if any balance or receipt exists.
-
-## Trusted billing — 0.3.0.0
-
-TrustedBilling adds default-false communities.AllowDebt, BillingPolicyVersion,
-memberships.CollectionPending and LastCollectionAttempt. No currency is copied or
-reset. GroupTrustRow keys own trust by (community, group, character) with an optimistic
-version; no existing character is automatically trusted. Community departure clears
-trust and increments its version, without deleting financial records.
-
-BillRow has a durable client UUIDv7 within its community, immutable parties/service/
-amount and canonical request fingerprint, server creation time, and collected amount.
-Database checks require 0 <= Collected <= Amount. The unpaid character/time index
-supports oldest-first collection; cashier/group/customer/time supports the cooldown.
-BillPaymentRow records amount, both character/treasury before and after balances,
-source/source ID and time. Scoped bill/member/group foreign keys preserve provenance;
-database constraints require exact conservation. Source IDs are diagnostic references
-to the triggering operation, bill or trade rather than polymorphic foreign keys.
-
-CollectionPending makes every unreserved coin unavailable to new debits/offers until
-continuation completes. It is durable and indexed with the last attempt for fair worker
-scheduling. Balance.reserved remains trade-only; heldForDebt separately reports the hold,
-and available subtracts both. No negative balance represents debt; unpaid bill principal
-is a claim, never newly spendable money. Downgrade refuses to discard bills, payment
-receipts or held repayments. Group/character/community soft deletion retains claims.
+Test upgrades against disposable PostgreSQL with preserved historical rows and
+current model consistency checks. Never edit old migration SQL to hide a current
+mismatch. No schema migration is required for the maintenance refactor. Do not
+convert an application downgrade into an automatic database downgrade. Production
+restoration uses a matched database backup, vault keys, configuration and image.

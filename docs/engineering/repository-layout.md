@@ -1,98 +1,59 @@
 # Repository layout and navigation
 
-This is the current source map for 0.4.0.2. Plugin and server share a repository,
-but build as separate applications. All paths below are relative to the repository.
-See [architecture](architecture.md) for ownership and dependencies.
+Paths are relative to the repository. Source version comes from Directory.Build.props;
+repo.json identifies the published package. [Architecture](architecture.md) explains
+state ownership, dependencies and transaction boundaries.
 
-```text
-src/
-  AmorRP.Plugin/        Dalamud application
-    Features/
-      Seasons/      Main feature views, drafts and selected context
-      Shell/            Main window, trade launcher, favorite-events HUD
-    Services/
-      Api/              HTTP transport, command routes, request coordination
-      Identity/         Protected saved sessions and pending commands
-      Game/             Character/context/chat adapters
-      Media/            Texture and image lifecycle
-      Ui/               Wrapped text input and feedback queue
-    Assets/             Bundled coin and plugin branding
-  AmorRP.Server/        ASP.NET Core application
-    Features/           Feature endpoints, services and workers
-    Infrastructure/     Persistence, security
-    Options/            Validated deployment policies
-  AmorRP.Core/          Pure text, crafting-type and capacity rules
-  AmorRP.Contracts/     Request/response records grouped by feature
-
-tests/
-  AmorRP.Contracts.Tests/          Project boundary checks
-  AmorRP.Plugin.Tests/             Linked production helper/coordinator tests
-  AmorRP.Server.IntegrationTests/  HTTP/provider/database regressions
-
-deploy/                 Docker, Compose, Render and maintenance scripts
-scripts/                Reference download, documentation/package/feed checks
-.github/workflows/      Linux server tests and Windows plugin packaging
-docs/                   Current guides, specifications and dated release records
-images/                 Content-addressed public plugin icon
-packages/               Immutable versioned Windows plugin ZIPs and provenance
-repo.json               Public Dalamud repository feed
-```
-
-## Finding a change
-
-| Concern | Main sources |
+| Location | Purpose |
 | --- | --- |
-| Composition and lifecycle | Plugin `Plugin.cs`; server `Program.cs` |
-| Main view and selected character/season | Plugin `Features/Seasons/SeasonsPanel.cs` |
-| Foreground/core request lifecycle | Plugin `Services/Api/RequestCoordinator.cs` |
-| Independent feature refresh lifecycle | Plugin `Services/Api/BackgroundRefresh.cs`; `Features/Seasons/FeatureRefreshScreens.cs` |
-| Command response dispatch and refresh targets | Plugin `Services/Api/CommandRoutes.cs`; `Features/Seasons/CommandCompletionScreens.cs`, `QuietUpdates.cs` |
-| Trusted billing, debt collection and receipts | Plugin `Features/Seasons/BillingScreens.cs`; server `Features/Billing/`, `Features/Groups/GroupService.Trust.cs`; persistence `BillingModel.cs`, `Entities/BillingRows.cs` |
-| Treasury balances, transfers, records and disband returns | Plugin `Features/Seasons/GroupTreasuryScreens.cs`; server `Features/Currency/TreasuryService.cs`, `TreasuryLedger.cs`, `CurrencyAccounts.cs`; `Features/Groups/GroupLifecycle.cs` |
-| Group staff permissions | Plugin `Features/Seasons/GroupPermissionScreens.cs`, `GroupPermissionDraft.cs`; server `Features/Groups/GroupAuthorization.cs`, `GroupService.Permissions.cs` |
-| Group profile draft | Plugin `Features/Seasons/GroupProfileDraft.cs`, `NestedGroupScreens.cs` |
-| Trade draft and views | Plugin `Services/Api/TradeDraft.cs`; `Features/Seasons/TradeScreens.cs`, `TradeWindowScreens.cs` |
-| Favorite events HUD | Plugin `Features/Shell/FavoriteEventsWindow.cs`; `Features/Seasons/FavoriteEventsHud.cs`, `FavoriteEventSchedule.cs` |
-| Season profile, announcements and settings | Plugin `HomeProfileScreens.cs`, `AnnouncementScreens.cs`, `SeasonSettingsScreens.cs`, `WeeklyPolicyScreens.cs` under `Features/Seasons/` |
-| Authentication and ownership verification | Server `Features/Authentication/AuthenticationService.cs`, `DurableXivAuthProvider.cs`, `SessionAccess.cs` |
-| Season membership and grants | Server `Features/Seasons/SeasonAccess.cs`, `SeasonResourceService.*.cs` |
-| Group ownership, joins, private content and events | Server `Features/Groups/GroupService.cs`, `GroupActivityService.cs`, `GroupEndpoints.cs` |
-| Recipes, production and holdings | Server `Features/Catalog/`, `Features/Inventory/`; Core `Items/CraftingTypes.cs` |
-| Trade transactions and projection | Server `Features/Trading/TradeService*.cs`, `TradeReservations.cs` |
-| Database mapping and migrations | Server `Infrastructure/Persistence/AmorDbContext.cs`, model files, `Migrations/` |
-| Request fingerprints, locks and receipts | Server `Infrastructure/Persistence/CommandStore.cs` |
-| Provider and deployment secrets | Server options and deployment environment; never committed values |
-| Release endpoint and metadata | Plugin `Services/Api/ProductServer.cs`, plugin/server project versions, plugin `AmorRP.json` |
+| src/AmorRP.Plugin/Features/Shell | Settings shell, launcher and dedicated workspace windows |
+| src/AmorRP.Plugin/Features/Seasons | Shared selected context, feature screens, drafts and refresh state |
+| src/AmorRP.Plugin/Features/Inventory | Native inventory attachment/placement and compact window |
+| src/AmorRP.Plugin/Features/Writing | Dedicated Writing window |
+| src/AmorRP.Plugin/Features/Trading | Trade window host |
+| src/AmorRP.Plugin/Services/Api | HTTP client, command routes, compatibility gate, request coordination and refresh helpers |
+| src/AmorRP.Plugin/Services/Identity | DPAPI sessions, pending commands and local identity helpers |
+| src/AmorRP.Plugin/Services/Game | Character/context/chat adapters |
+| src/AmorRP.Plugin/Services/Media | Texture/image lifecycle |
+| src/AmorRP.Plugin/Services/Ui | Wrapped text projection/input and feedback helpers |
+| src/AmorRP.Server/Features | Feature HTTP endpoints, business services and workers |
+| src/AmorRP.Server/Infrastructure | Persistence, command receipts, security, readiness and proxy/rate limiting |
+| src/AmorRP.Server/Options | Validated deployment policies |
+| src/AmorRP.Core | Pure text/chat/type rules |
+| src/AmorRP.Contracts | Transport shapes and ApiProtocol |
+| tests/AmorRP.Contracts.Tests | Project dependency boundaries |
+| tests/AmorRP.Plugin.Tests | Linked production helper/coordinator/draft tests |
+| tests/AmorRP.Server.IntegrationTests | HTTP/provider/accounting/upgrade tests against disposable PostgreSQL |
+| deploy/home | Private host Compose, configuration generator and verified build helper |
+| scripts | Reference fetch, docs/startup/deployment checks and package/feed validation/publication |
+| docs/planning | Single milestone plan and accepted future feature requirements |
+| packages | Immutable published ZIPs, digests and source/build provenance |
 
-`*Screens.cs` files are parts of one `SeasonsPanel` class. Splitting a file does
-not by itself isolate its state. Reusable draft/request components own their own
-state and are compiled directly into helper tests.
+## Common changes
 
-## Change and test placement
+| Task | Start here |
+| --- | --- |
+| Season inclusion or lifecycle | Server Features/Seasons/SeasonMemberships.cs, SeasonService.cs and SeasonAccess.cs |
+| Global creation rights | SeasonService.cs, Contracts/Seasons/Seasons.cs and plugin SeasonCreationAccessScreens.cs |
+| Recipe/inventory rules | Server Features/Catalog and Features/Inventory; Core/Items |
+| Personal money, treasury or debt | Features/Currency, Features/Groups/GroupLifecycle.cs, Features/Billing |
+| Trade state/reservations | Server Features/Trading; plugin TradeScreens/TradeWindowScreens and API draft helpers |
+| Authentication | Features/Authentication; provider policies under Features/Feasibility; engineering/authentication.md |
+| Images | Features/Media/StaticImageUpload.cs and MediaAssets.cs; feature-specific image service callers |
+| HTTP command recovery | CommandStore in Infrastructure/Persistence; plugin CommandRequest/CommandRoutes and pending-command state |
+| Client/server versions | Directory.Build.props, Contracts/Common/ApiProtocol.cs, plugin ServiceCompatibility.cs and server capabilities |
+| Package publication | .github/workflows, prepare-plugin-repository.py and check-plugin-repository.py |
+| Deployment/update | deploy/home/prepare-update.py, compose.yaml and delivery/home-server.md |
 
-Put server rules that require database state beside their transaction in the
-corresponding feature service. Put reusable pure rules in Core, transport records
-in Contracts, and local UI/request behavior in Plugin. Do not move authoritative
-permissions or balances into the plugin.
+## Maintenance rules
 
-For a new plugin mutation, register its exact verb/path shape, operation, result
-handler and refresh targets in `CommandRoutes`. Add its result behavior to the
-matching completion handler. Server group activities expose typed entry methods;
-the private receipt envelope handles shared locking and persistence.
+Keep services beside their feature and preserve explicit financial/authorization
+ordering. Extract concrete repeated operations; do not introduce a generic command
+engine or empty future modules. Preserve applied migrations and the storage names
+that map existing records. Preserve saved JSON keys, DPAPI purposes and window IDs.
 
-Use PostgreSQL integration tests for authorization, transactions, rotation, receipts
-and concurrency. Use the linked production components in plugin tests for draft
-and asynchronous-state regressions. UI layout and native game behavior need manual
-checks. Build/test commands are in [development](../delivery/development.md).
-
-## Distribution and historical records
-
-The normal feed is on `main`; package URLs and source/build provenance are immutable
-per version. `testing` support exists in the publication script, but there is no
-separate hosted testing server in the current deployment. Do not publish server-
-incompatible testing features against the shared stable service.
-
-Older `m0`–`m5` delivery files describe their dated milestone checkpoints. Planned
-folders, old version numbers and previously pending CI gates in those records do
-not describe today's repository. Current guides are this page, architecture,
-authentication, development and the latest release record linked by the docs index.
+Historical CommunityId/communities names in persistence and transport backing
+properties are mapped storage identifiers, not an alternative product model. The
+current wire API uses seasons. Retired milestone packagers, request conversion and
+testing-branch publication paths are removed. Earlier detailed documents remain
+available through Git history; current instructions start at the [documentation index](../README.md).

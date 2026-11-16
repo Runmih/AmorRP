@@ -4,7 +4,7 @@ namespace AmorRP.Plugin.Features.Seasons;
 public sealed partial class SeasonsPanel
 {
     private void RefreshAffected(CommandRequest request) =>
-        RefreshAffected(request.AppliesToCommunity(community?.Id) ? request.Operation.Refresh : RefreshTargets.Season);
+        RefreshAffected(request.AppliesToSeason(community?.Id) ? request.Operation.Refresh : RefreshTargets.Season);
 
     private void RefreshAffected(RefreshTargets targets)
     {
@@ -20,7 +20,7 @@ public sealed partial class SeasonsPanel
         }
         if (targets.HasFlag(RefreshTargets.Members)) { rosterRefresh.Invalidate(); ownershipRefresh.Invalidate(); }
         if (targets.HasFlag(RefreshTargets.Policy)) policyRefresh.Invalidate();
-        if (targets.HasFlag(RefreshTargets.CommunityLogo)) { logos.Clear(); logoReadKey = ""; }
+        if (targets.HasFlag(RefreshTargets.SeasonLogo)) { logos.Clear(); logoReadKey = ""; }
         if (targets.HasFlag(RefreshTargets.CurrencyIcon)) { icons.Clear(); iconReadKey = ""; }
         if (targets.HasFlag(RefreshTargets.Season)) { refreshNeeded = true; myBillsRefresh.Invalidate(); }
     }

@@ -92,7 +92,7 @@ public sealed class CommandRoutesTests
         Assert.Equal(RefreshTargets.Groups | RefreshTargets.Season, Resolve("DELETE", "groups/{id}").Refresh);
         Assert.Equal(RefreshTargets.Season | RefreshTargets.Inventory, Resolve("PUT", "trades/{id}/offers/mine").Refresh);
         Assert.Equal(RefreshTargets.Season | RefreshTargets.Members, Resolve("PUT", "members/{id}/capabilities").Refresh);
-        Assert.Equal(RefreshTargets.Season | RefreshTargets.CommunityLogo, Resolve("PUT", "logo").Refresh);
+        Assert.Equal(RefreshTargets.Season | RefreshTargets.SeasonLogo, Resolve("PUT", "logo").Refresh);
         Assert.Equal(RefreshTargets.Season | RefreshTargets.CurrencyIcon, Resolve("PUT", "currency/icon").Refresh);
     }
 
@@ -106,6 +106,6 @@ public sealed class CommandRoutesTests
         Assert.Equal(legacy, restored);
         Assert.DoesNotContain("operation", serialized, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("api/v2/seasons/", serialized);
-        Assert.Equal($"api/v2/seasons/{Id}/trades", restored.CurrentShape().Path);
+        Assert.Equal($"api/v2/seasons/{Id}/trades", restored.Path);
     }
 }

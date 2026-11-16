@@ -1,8 +1,7 @@
 name: Server and contracts
 on:
   push:
-    branches: [main, testing]
-    paths-ignore: [repo.json, "packages/**", "images/**"]
+    branches: [main]
   pull_request:
   workflow_dispatch:
 permissions:
@@ -57,7 +56,7 @@ jobs:
           dotnet test tests/AmorRP.Server.IntegrationTests -c Release --no-restore
           dotnet ef migrations has-pending-model-changes --project src/AmorRP.Server --no-build --configuration Release
       - name: Build server image
-        run: docker build -f deploy/Dockerfile -t amorrp-server:m5 .
+        run: docker build -f deploy/Dockerfile -t amorrp-server:ci .
       - name: Publish server files
         run: dotnet publish src/AmorRP.Server -c Release --no-restore -r linux-x64 --self-contained false -o artifacts/server-linux-x64
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

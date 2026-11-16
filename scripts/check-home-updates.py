@@ -13,7 +13,7 @@ spec = importlib.util.spec_from_file_location("home_updater", root / "deploy/hom
 updater = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(updater)
 SHA = "a" * 40
-VERSION = ET.parse(root / "src/AmorRP.Server/AmorRP.Server.csproj").findtext(".//Version")
+VERSION = ET.parse(root / "Directory.Build.props").findtext(".//Version")
 
 
 class UpdateChecks(unittest.TestCase):

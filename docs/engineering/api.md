@@ -1,7 +1,7 @@
 # API contract and endpoint catalog
 
 The current implementation has one model: **Seasons**, with RP groups inside each
-season. The matching plugin/server baseline is 0.4.0.3. The application's API is
+season. The wire-support floor is 0.4.0.3; package versions are independent. The application's API is
 v2; XIVAuth separately uses its own API v1. No old application routes or community
 mode are exposed. [OpenAPI](openapi.yaml) records implemented and planned operations.
 

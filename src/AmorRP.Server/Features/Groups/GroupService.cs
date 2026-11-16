@@ -1,4 +1,3 @@
-using System.Security.Cryptography;
 using Microsoft.AspNetCore.Identity;
 using AmorRP.Contracts.Common;
 using AmorRP.Contracts.Groups;
@@ -99,7 +98,7 @@ public sealed partial class GroupService(AmorDbContext db, SessionAccess session
         var previous = deleting ? row.LogoAssetId : null;
         if (deleting) { row.LogoAssetId = null; row.LogoVersion++; }
         var result = await commands.SaveAsync(h, op, new CommandResult<Group>(op.Id, View(row)), ct);
-        if (previous.HasValue) await db.MediaAssets.Where(x => x.CommunityId == communityId && x.Id == previous && x.Purpose == "group_logo").ExecuteDeleteAsync(ct);
+        await MediaAssets.RemoveAsync(db, communityId, previous, "group_logo", ct);
         await tx.CommitAsync(ct); return result;
     }
     public async Task<IResult> LogoAsync(HttpContext h, Guid communityId, Guid groupId, bool? upload, CancellationToken ct)
@@ -109,9 +108,7 @@ public sealed partial class GroupService(AmorDbContext db, SessionAccess session
         if (upload == null)
         {
             var row = await RequireAsync(communityId, groupId, ct); ApiFault.Require(row.LogoAssetId != null, 404, "not_found", "No group logo yet.");
-            var image = await db.MediaAssets.SingleOrDefaultAsync(x => x.CommunityId == communityId && x.Id == row.LogoAssetId && x.Purpose == "group_logo", ct);
-            ApiFault.Require(image != null, 404, "not_found", "The group logo changed. Refresh to load its latest version.");
-            h.Response.Headers["X-Content-Type-Options"] = "nosniff"; return Results.Bytes(image!.Png, "image/png");
+            return await MediaAssets.ReadAsync(h, db, communityId, row.LogoAssetId!.Value, "group_logo", "The group logo changed. Refresh to load its latest version.", ct);
         }
         GroupActivityService.Owner(await RequireAsync(communityId, groupId, ct), actor);
         var incoming = upload.Value ? await StaticImageUpload.ReadAsync(h, policy.Value.MaxCommunityLogoBytes, 2048, 512, 1048576, ct) : null;
@@ -121,20 +118,15 @@ public sealed partial class GroupService(AmorDbContext db, SessionAccess session
         await db.Entry(initialMember).ReloadAsync(ct);
         var (community, member) = await communities.RequireAsync(communityId, actor, ct);
         var target = await RequireAsync(communityId, groupId, ct); GroupActivityService.Owner(target, actor); await LoadViewerAsync(actor, communityId, ct);
-        object? body = incoming == null ? null : new { contentHash = Convert.ToHexString(SHA256.HashData(incoming.Input)) };
+        var body = MediaAssets.Fingerprint(incoming);
         var scope = "character:" + actor; var replay = await commands.ReplayAsync(h, scope, body, ct); if (replay != null) return commands.Replay(replay);
         CommandStore.Match(h, CommandStore.ETag("group-logo", groupId, target.LogoVersion)); var previous = target.LogoAssetId;
-        if (incoming != null)
-        {
-            var asset = new MediaAssetRow { CommunityId = communityId, Purpose = "group_logo", Png = incoming.Png, Width = incoming.Width, Height = incoming.Height, ContentHash = Convert.ToHexString(SHA256.HashData(incoming.Png)) };
-            db.MediaAssets.Add(asset); target.LogoAssetId = asset.Id;
-        }
-        else target.LogoAssetId = null;
+        target.LogoAssetId = MediaAssets.Add(db, communityId, incoming, "group_logo");
         target.LogoVersion++; target.Version++; community.Version++;
         var op = commands.New(h, scope, body, actor, communityId, upload.Value ? "group.logo.replace" : "group.logo.remove");
         h.Response.Headers.ETag = CommandStore.ETag("group-logo", groupId, target.LogoVersion);
         var result = await commands.SaveAsync(h, op, new CommandResult<Group>(op.Id, View(target)), ct);
-        if (previous.HasValue) await db.MediaAssets.Where(x => x.CommunityId == communityId && x.Id == previous && x.Purpose == "group_logo").ExecuteDeleteAsync(ct);
+        await MediaAssets.RemoveAsync(db, communityId, previous, "group_logo", ct);
         await tx.CommitAsync(ct); return result;
     }
 }

@@ -1,133 +1,88 @@
-# Expansion work plan
+# Current milestone plan
 
-2026-11-15 revision: Communities become administrator-created Seasons, with RP
-groups inside the single active season and automatic verified-character enrollment.
-Each next season starts fresh; archived economies remain separate and read-only.
-The coordinated implementation and upgrade replace earlier community-creation/join
-assumptions in these planning documents: [0.4.0.0 seasons](../delivery/release-0.4.0.0.md).
-This feature release does not implement the planned taxes/commissions slice.
+Updated 2026-11-16. This is the working plan; it replaces the old M0–M5 roadmaps.
+Use main for source and distribution. Release numbers identify shipped packages,
+not permission to mark a milestone accepted.
 
-Planning baseline: 2026-10-29. Implemented release: plugin/server 0.0.6.21,
-source `d2316f5`. S01 (0.1.0.0) passed the maintainer's major in-game checks on
-2026-10-29. S02 (0.2.0.0) passed all four maintainer game checks on 2026-11-05.
-S03 (0.3.0.0) is implemented with automated verification; major in-game acceptance is pending.
-Everything else in this directory is **planned**, unless its work item
-below is explicitly completed with implementation and verification evidence.
-Amor RP API remains v2 and XIVAuth's external API remains v1; no protocol change
-is planned here. Future feature migrations and release versions are chosen per slice.
-This is the working plan for the maintainer's current feature list. It supersedes
-earlier suggestions in the conversation, not the description of deployed behavior.
+## Implemented baseline
 
-## Documents
+The plugin has dedicated Writing, Crafting, Season browsing, Group management,
+Season management and Trade windows. Settings contains Interface, Account and About.
+The inventory companion attaches to vanilla inventory; automatic panels respect the
+closed-eye launcher switch. The book launcher opens Writing.
 
-- [Decisions](decisions.md): agreed rules, proposed defaults and deferred choices.
-- [Hosting and releases](hosting-and-releases.md): private Ubuntu target, migration
-  prerequisites, main-only development and 0.feature.0.patch versions.
-- [Economy and groups](economy-and-groups.md): permissions, treasury, billing, debt,
-  commissions, taxes, shop and ownership permits.
-- [Gameplay](gameplay.md): gathering, classes and group recipes.
-- [Integrations](integrations.md): silent Moodles integration and opt-in Discord earnings.
+All verified players automatically belong to all non-deleted seasons, including
+drafts and archives. One season is active; drafts and archives are read-only.
+Economies and scoped grants remain separate. `seasons.create` is global and defaults
+to the configured Lodestone administrator. Other players never see creation controls.
+Season membership has no join, leave, removal, block or restore operation.
 
-Current implementation references: [architecture](../engineering/architecture.md),
-[source map](../engineering/repository-layout.md), [API](../engineering/api.md) and
-[development workflow](../delivery/development.md). These expansion documents do
-not mark endpoints implemented or promise a release number/date.
+Identity/pairing, inventories, recipe revisions, quotas, two-stage trading, group
+permissions, treasuries, trusted billing, debt collection, announcements and group
+events are implemented. Backend rules remain authoritative. Export/deletion,
+WebSocket delivery and later expansion features are not implemented merely because
+OpenAPI contains a planned route.
 
-## Work order and dependencies
+## Milestones and evidence
 
-Each row is a bounded work item, not a new branch, service or promised single release.
-Implement and verify one item before starting a dependent item. The numbered order
-is the recommended sequence; dependencies show which items can move independently.
+| Item | Status | Acceptance or next evidence |
+| --- | --- | --- |
+| S01 group features and staff permissions | Accepted | Maintainer major game checks, 2026-10-29; automated authorization regressions |
+| S02 accounts, treasury and disband settlement | Accepted | Maintainer four game checks, 2026-11-05; currency conservation/replay tests |
+| S03 trusted billing and debt collection | Implemented; game acceptance pending | Check offline billing, trust revocation, debt policy, collection and disbanded-group returns |
+| Seasonal direction and shared membership | Implemented; game acceptance pending | Administrator creation/activation, ordinary-user visibility, every season available, archive privacy and repeated refresh |
+| Dedicated windows and inventory companion | Implemented; layout acceptance pending | Placement/scaling, focus, unsaved drafts, writing readability and panel switch in game |
+| Maintenance consolidation | Implemented in this pass; release checks required | Shared media storage, canonical requests, one version source, current documentation; matching server/Windows CI |
+| Operational readiness | Partial | Home host works per maintainer report; backup restore, recovery and capacity measurements still require operating evidence |
+| Export/deletion and 1.0 readiness | Planned | Policy/retention decisions and tested private-data lifecycle; no destructive live processing implied |
 
-| ID | Work item | Requires | Completion evidence |
+Published package provenance is in packages/*.json. [History](../delivery/history.md)
+records accepted checkpoints; [acceptance](../delivery/acceptance.md) is the current
+manual checklist. Do not infer game or production acceptance from a successful build.
+
+## Next work
+
+1. Finish the focused S03/season/window game checks when the maintainer returns.
+   Fix observed defects before adding new financial behavior. No new configuration
+   flag or alternative community flow is needed.
+2. Before S04, settle the tax destination, rounding and commission basis. Prepare
+   an implementation checklist around existing settlement/receipt boundaries;
+   snapshot allocations so later debt repayment cannot use changed rates.
+3. Complete S04 as a bounded server/contracts/plugin slice, then verify it before
+   enabling shop or permit spending. S07 gathering can proceed independently once
+   its bounded configuration and budget rules are ready.
+4. Keep integration adapters isolated. Discord linking is opt-in; Moodles failures
+   are silent and never affect successful gameplay/accounting.
+
+## Expansion dependencies
+
+| ID | Planned work | Requires | Completion evidence |
 | --- | --- | --- | --- |
-| S01 | Organize community permissions; add group feature approval and staff grants | Existing membership/ownership | Server rejects cross-group grants and escalation; unauthorized tabs stay hidden; existing permissions still work |
-| S02 | Currency accounts, group treasury, receipts and disband settlement | S01 | Concurrent transfers conserve currency; reservations/replays remain correct; assets transfer to the actual group owner exactly once |
-| S03 | Trusted billing, character debt and full automatic collection | S02 | Offline bills work; duplicate delivery never repeats a charge; priority/partial collection and cyclic payment cases terminate correctly |
-| S04 | Taxes, cashier commission and basic clock-in | S03 | Collected money splits exactly; later debt repayments use saved allocation; commission income also pays the cashier's own debts |
-| S05 | Community shop and regulated purchase outcomes | S02, S03 | Purchases are atomic, affordable and replay-safe; authorized group/character buyers receive the correct item or registered document |
-| S06 | RP ownership permits and owner-managed release | S03, S05 | Explicit initial OOC acceptance; full cost preview; insufficient funds change nothing; deleting a permit/disbanding releases its character |
-| S07 | Gathering packages and configurable crafting-point bonuses | S01, existing inventory | Shared weekly production budget, configurable costs and receiving limits, replay-safe use and consistent reset behavior |
-| S08 | Community classes and reset potion (nice to have) | S01, S05, discipline/budget rules checked in S07 | Slot limits and permanent choices work; reset is charged once; switching never resets spent weekly budgets |
-| S09 | Group-restricted recipes (nice to have) | S01, existing groups/recipes; budget rules checked in S07 | Membership and recipe/crafting permissions enforced; configured limits cannot be evaded by recreation |
-| S10 | Silent optional Moodles integration | Existing consumable use, S06 for the ownership effect | Supported IPC tested in game; own effects reconcile correctly; absence/rejection produces no user-facing feedback or failed gameplay action |
-| S11 | Inviteable Discord bot and writing earnings | S01, S03, permanent-host readiness | End-to-end linking/opt-in, earning caps, account selection, restart/deduplication and automatic unlink/leave verified |
+| S04 | Taxes, cashier commission, basic clock-in | S03; tax/rounding decisions | Exact splits, saved allocation on partial repayment, cashier debt and permission changes |
+| S05 | Season shop | S02/S03; revenue destination | Atomic affordable purchases, replay-safe outcomes and buyer authorization |
+| S06 | RP ownership permits and release | S03/S05 | Initial OOC acceptance, full quote, atomic settlement, owner-only release and disband release |
+| S07 | Gathering packages and budget bonuses | S01/inventory | Shared weekly production budget, costs, receiving limits, consistent reset and replay-safe use |
+| S08 | Classes and reset potion | S05/S07 | Slot limits, permanent choices until reset, no weekly-budget refill exploit |
+| S09 | Group-restricted recipes | S01/S07 budget rules | Membership and recipe/crafting authority remain separate; bounded durable limits |
+| S10 | Silent optional Moodles | Consumable use; S06 for permit effect | Best-effort IPC; absence/rejection never blocks a committed action or displays errors |
+| S11 | Discord writing earnings | S01/S03; home host | Opt-in linking, weekly/balance limits, account selection, deduplication and automatic unlink |
 
-S07 does not need a shop, classes or Discord. S09 does not need classes. S11 does
-not need permits, classes or Moodles. S10's IPC proof can happen early without
-shipping its integration or changing game behavior. Accounting/authorization must
-be complete before enabling any new spending or earning path. Nice-to-have work
-must not hold up a ready required feature; the dependency graph, not row position,
-controls that decision.
+Detailed requirements: [decisions](decisions.md), [economy](economy-and-groups.md),
+[gameplay](gameplay.md), [integrations](integrations.md). Nice-to-have work must not
+block independent required work. Later group item storage follows S02; permit
+trading follows S06 and a defined registration/billing-lock transfer rule. Schedules
+and per-staff rates are separate follow-ups.
 
-```mermaid
-flowchart TD
-    A[S01 Permissions] --> B[S02 Treasury and accounts]
-    B --> C[S03 Billing and debt settlement]
-    C --> D[S04 Tax and commission]
-    B --> E[S05 Community shop]
-    C --> E
-    E --> F[S06 Ownership permits]
-    C --> F
-    A --> G[S07 Gathering and budget rules]
-    G --> H[S08 Classes]
-    E --> H
-    G --> I[S09 Group recipes]
-    F --> J[S10 Silent Moodles]
-    C --> K[S11 Discord earnings]
-    A --> K
-    L[Permanent host ready] --> K
-```
+User/account moderation remains separate planned work; do not implement bans by
+changing season membership. Incremental future extraction of SeasonsPanel should
+follow feature-owned state and regression coverage, not a broad controller rewrite.
 
-## Progress checklist
+## Working rules
 
-- [x] S01 acceptance — [0.1.0.0 implementation and verification](../delivery/release-0.1.0.0.md); maintainer confirmed major checks work on 2026-10-29
-- [x] S02 acceptance — [0.2.0.0 treasury](../delivery/release-0.2.0.0.md); maintainer confirmed all four checks on 2026-11-05
-- [ ] S03 acceptance — [0.3.0.0 billing implementation](../delivery/release-0.3.0.0.md); major in-game checks pending
-- [ ] S04 taxes/commission/clock-in
-- [ ] S05 community shop
-- [ ] S06 ownership permits/release
-- [ ] S07 gathering packages
-- [ ] S08 classes/reset potion
-- [ ] S09 group recipes
-- [ ] S10 silent Moodles
-- [ ] S11 Discord earnings
-
-Mark a box only with a link to the code/release and relevant automated/manual
-verification. Record partial progress beneath the corresponding feature document;
-do not treat a draft migration or a successful build as feature completion.
-
-## How to work an item
-
-1. Read its accepted decisions and dependencies. Check the current source/release.
-2. Settle only details needed for that item. Ask the maintainer only if an ambiguity
-   changes authority, ownership, preservation of funds/assets or an external dependency.
-   Use clearly labelled, reversible defaults for routine UI/configuration details.
-3. Write a small implementation checklist beside that feature: data/migration,
-   server rules, transport, UI and verification. Avoid designing every future field now.
-4. Reuse existing server transaction/receipt, inventory, scope and permission mechanisms.
-   Isolate new integration adapters and feature-owned state. No broad rewrite,
-   generic workflow engine or unrelated authentication/provider change.
-5. Test the actual risks, update current API/rules/docs when implemented, and record
-   the result. Keep migrations, plugin update and server redeployment requirements explicit.
-6. Complete the slice before adding another dependent feature. Keep the normal main
-   feed and current hosting arrangement; these work IDs do not create milestone branches.
-
-## Later expansions
-
-Track these separately after their foundations:
-
-- [ ] L01: Group item storage after S02 and server-validated group item transfers.
-  Disbanded stored assets go to the owner under the same settlement rule.
-- [ ] L02: Permit trading after S06 and a complete registration/billing-lock transfer rule.
-- [ ] L03: Shift schedules, per-staff rates and further ownership/shop rules when requested.
-
-These are separate follow-ups.
-Currency treasury and a registered ownership document do not require a general
-shared item warehouse. Permit trading must transfer the registration and billing
-lock together; an ordinary inventory transfer is insufficient.
-
-The selected future target is a private Ubuntu server on the maintainer's GMKtec
-NucBox M8. Render stays testing until the controlled cutover. Use main only and
-0.feature.0.patch release numbers; see [hosting and releases](hosting-and-releases.md).
-A second paid Render test service is not required.
+Reuse feature services, transactions, receipts, settlement and query state. Extract
+shared code after real duplication appears; keep security ordering visible. Do not
+introduce a generic workflow engine, speculative layers or empty future folders.
+Update rules/API/acceptance with behavior. Preserve applied migrations, stable IDs,
+protected local settings and immutable published packages. User input is needed
+only for material unresolved product decisions, live game checks and operating
+steps unavailable from this workspace.

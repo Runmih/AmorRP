@@ -14,12 +14,12 @@ public sealed partial class SeasonsPanel
         if (request.Operation.Kind == CommandKind.CollectTreasuryReturn) ClearTreasuryReturns();
         // A recovered action may belong to another community. Its durable
         // receipt is still acknowledged, but must not overwrite this editor.
-        if (!request.AppliesToCommunity(community?.Id)) return;
+        if (!request.AppliesToSeason(community?.Id)) return;
         if (request.Operation.Handler is CommandHandler.GroupProfile or CommandHandler.GroupActivity or CommandHandler.Treasury or CommandHandler.Billing
             && !request.AppliesToGroup(selectedGroupId)) return;
         switch (request.Operation.Handler)
         {
-            case CommandHandler.CommunityForm: ApplyFormSuccess(request, response.Json); break;
+            case CommandHandler.SeasonForm: ApplyFormSuccess(request, response.Json); break;
             case CommandHandler.Home: ApplyHomeSuccess(request, response.Json); break;
             case CommandHandler.GroupProfile: ApplyGroupProfileSuccess(request, response.Json); break;
             case CommandHandler.GroupActivity: ApplyGroupActivitySuccess(request); break;

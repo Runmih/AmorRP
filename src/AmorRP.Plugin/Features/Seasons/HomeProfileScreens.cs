@@ -98,13 +98,13 @@ public sealed partial class SeasonsPanel
             announcementPostError = ""; InvalidateAnnouncements(); return;
         }
         if (community == null) return;
-        if (request.Operation.Kind is CommandKind.SetCommunityLogo or CommandKind.RemoveCommunityLogo)
+        if (request.Operation.Kind is CommandKind.SetSeasonLogo or CommandKind.RemoveSeasonLogo)
         {
             var updated = JsonSerializer.Deserialize<CommandResult<Season>>(json, FoundationClient.Json)!.Result;
             community = community with { LogoAssetId = updated.LogoAssetId, LogoVersion = updated.LogoVersion };
             logos.Clear(); return;
         }
-        if (request.Operation.Kind == CommandKind.EditCommunity)
+        if (request.Operation.Kind == CommandKind.EditSeason)
         {
             var updated = JsonSerializer.Deserialize<CommandResult<Season>>(json, FoundationClient.Json)!.Result;
             var submitted = JsonSerializer.Deserialize<SeasonEdit>(request.Json!, FoundationClient.Json)!;

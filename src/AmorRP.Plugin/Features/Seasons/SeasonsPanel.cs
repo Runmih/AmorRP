@@ -315,7 +315,7 @@ public sealed partial class SeasonsPanel(IPlayerState player, Configuration conf
     private void ExecutePending(PendingCommand pending, bool signOut, bool recovering = false)
     {
         if (Busy) { queuedCommand = pending; queuedSignOut = signOut; queuedRecovery = recovering; return; }
-        var wireRequest = pending.Read(); var request = wireRequest.CurrentShape(); currentCommand = pending; var token = session!.AccessToken;
+        var wireRequest = pending.Read(); var request = wireRequest; currentCommand = pending; var token = session!.AccessToken;
         Start(async ct => {
             var response = await client.CommandWithMetadataAsync(origin!, wireRequest, pending.Key, token, ct);
             return () => {
@@ -333,9 +333,7 @@ public sealed partial class SeasonsPanel(IPlayerState player, Configuration conf
         nextRefresh = DateTimeOffset.UtcNow.AddMinutes(1);
         StartSync(async ct => {
             var capability = await client.GetAsync<CapabilitiesResponse>(uri, "api/v2/capabilities", token, ct);
-            if (capability.ApiVersion != "2" || !Version.TryParse(capability.ServerVersion, out var serverVersion) || serverVersion < new Version(0, 4, 0, 3)
-                || !Version.TryParse(capability.MinimumClientVersion, out var minimumClient) || minimumClient > typeof(SeasonsPanel).Assembly.GetName().Version)
-                throw new InvalidOperationException($"Amor RP requires server 0.4.0.3 or newer. The connected server reports {capability.ServerVersion}. Update the server and plugin together.");
+            ServiceCompatibility.Require(capability, typeof(SeasonsPanel).Assembly.GetName().Version!);
             if (capability.Maintenance) throw new InvalidOperationException(capability.Message);
             var list = new List<Season>(); string? cursor = null;
             do

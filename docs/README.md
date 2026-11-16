@@ -1,73 +1,37 @@
-# Documentation index
+# Amor RP documentation
 
-Current guides describe the implemented project.
-Current plugin/server source is [0.4.0.3 — Seasons only](delivery/release-0.4.0.3.md).
-There is no community mode, enable variable or old API fallback. The matching
-Windows artifact is promoted to the main feed after both source workflows pass.
-The home stack retains only the Lodestone administrator identity setting for season
-administration. See the [home-server guide](delivery/home-server.md).
+The current product is Seasons with RP groups inside them. Every verified player
+belongs to every season automatically. Season creation requires `seasons.create`;
+configured Lodestone administrators receive it by default. There is no mode switch.
 
-Start with [architecture](engineering/architecture.md), the
-[source map](engineering/repository-layout.md), [authentication](engineering/authentication.md)
-and [development workflow](delivery/development.md). The
-[installation feed](delivery/plugin-repository.md) is on `main`.
+Start with the [current milestone plan](planning/README.md), [product rules](product/rules.md)
+and [source map](engineering/repository-layout.md). Source release versions live
+in [Directory.Build.props](../Directory.Build.props); the published version and exact
+Windows package are recorded in [repo.json](../repo.json) and packages/*.json.
 
-Product specifications include planned work. OpenAPI labels implemented and planned
-operations explicitly. Dated `m0`–`m5` delivery guides and older release records are
-historical snapshots; they do not override current source maps or version guidance.
-
-## Current expansion planning
-
-The [expansion work plan](planning/README.md) records the 2026-10-29 feature decisions,
-dependency order and progress checklist. It links separate plans for economy/groups,
-gameplay and integrations. S01 and S02 passed maintainer game checks; S03 billing is delivered in 0.3.0.0 with game acceptance pending;
-remaining features are planned.
-Start there for new feature work; historical milestone roadmaps remain reference records.
-
-## Reading order
-
-1. [Scope](product/scope.md): what ships and what is deferred.
-2. [Rules](product/rules.md): identity, community boundaries, permissions, item behavior.
-3. [Interface](product/interface.md): what players and owners see.
-4. [Architecture](engineering/architecture.md), [layout](engineering/repository-layout.md),
-   and [version compatibility](engineering/versions.md).
-5. [API](engineering/api.md), [OpenAPI](engineering/openapi.yaml), and [data model](engineering/data-model.md).
-6. [Security](engineering/security.md) and [authentication](engineering/authentication.md).
-7. [Expansion work plan](planning/README.md), [historical roadmap](delivery/roadmap.md), [acceptance](delivery/acceptance.md),
-   [development](delivery/development.md), and [operations](delivery/operations.md).
-8. [Decisions](decisions.md), [feasibility](feasibility.md), and [expansion](product/expansion.md).
-
-## Document ownership
-
-| Area | Source of truth |
+| Need | Guide |
 | --- | --- |
-| Agreed requirements versus recommendations | [Decision register](decisions.md); current expansion [decisions](planning/decisions.md) |
-| Product behavior | [Rules](product/rules.md) |
-| HTTP paths, wire schemas, authorization metadata | [OpenAPI](engineering/openapi.yaml) |
-| HTTP conventions and event protocol | [API guide](engineering/api.md) |
-| Persistence invariants | [Data model](engineering/data-model.md) |
-| Toolchain targets, dependency compatibility and update gates | [Version matrix](engineering/versions.md) |
-| External claims and integration references | [Sources](sources.md) |
+| What works, what remains, next milestone | [Milestone plan](planning/README.md) |
+| Product boundaries and feature status | [Scope](product/scope.md), [rules](product/rules.md), [interface](product/interface.md) |
+| Agreed requirements and future feature detail | [Decisions](decisions.md), [expansion decisions](planning/decisions.md) |
+| Where code belongs | [Architecture](engineering/architecture.md), [source map](engineering/repository-layout.md) |
+| HTTP routes and wire shapes | [API catalog](engineering/api.md), [OpenAPI](engineering/openapi.yaml) |
+| Persistent identities, financial invariants | [Data model](engineering/data-model.md) |
+| Authentication and access checks | [Authentication](engineering/authentication.md), [security](engineering/security.md) |
+| Build, test and publish | [Development](delivery/development.md), [versions](engineering/versions.md), [installer feed](delivery/plugin-repository.md) |
+| Maintain the home server | [Deployment](delivery/home-server.md), [operations](delivery/operations.md) |
+| In-game and operating acceptance | [Acceptance](delivery/acceptance.md) |
+| Continue development | [Agent handoff](delivery/agent-handoff.md) |
+| Important past changes and verified acceptance | [History](delivery/history.md) |
+| External technical references | [Sources](sources.md) |
 
-When changing a feature, update its rules, contract, interface behavior, and
-acceptance criteria in the same change. Keep decisions short and explain why a
-boundary exists. Generated endpoint tables must match OpenAPI.
+Current guides describe implemented behavior. Planning documents identify future
+work explicitly. Automated CI does not establish in-game acceptance or a production
+restore drill. Keep those results separate.
 
-## Vocabulary
-
-- **Character:** verified FFXIV character; the unit of inventory, permissions, and quotas.
-- **Community:** isolated RP environment. Nothing transfers between communities.
-- **Group:** an owned subgroup inside a community, with its own membership and private announcements.
-- **Owner:** the character responsible for a community or group; ownership is not a grantable capability.
-- **Capability:** an individually grantable action permission.
-- **Type:** behavior implemented in code, Alchemy and Cooking consumable types, plus `book`, `letter`, and `note`.
-- **Category:** community-owned organization label; it never grants a capability.
-- **Definition:** an authorized recipe author’s consumable design. **Revision:** immutable version of it.
-- **Holding:** quantity or individual item owned by a character in one community.
-- **Period:** server-defined weekly interval used to track creation usage.
-- **Reservation:** items/currency held for an open trade, still owned by the offerer.
-- **Operation ID:** durable identifier for a completed inventory/currency mutation.
-
-Historical feedback and implementation record: [M2 feedback/M3 plan](delivery/m2-feedback-m3-plan.md).
-
-Feature baseline before maintenance patches: [0.0.6.18 — crafting, groups and events](delivery/release-0.0.6.18.md). The latest maintenance release is linked above.
+Vocabulary: a **season** isolates its currency, items, quotas and RP groups; a
+**character** is the verified owner of personal assets; a **group** has independent
+membership and staff permissions inside a season. **Capabilities** grant individual
+actions, **definitions** are versioned recipes, **holdings** are owned items, and
+**reservations** hold assets for an open trade. Global season administration is
+separate from season ownership and group staff authority.

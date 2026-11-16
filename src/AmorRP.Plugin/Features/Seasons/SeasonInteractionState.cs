@@ -36,7 +36,7 @@ public sealed partial class SeasonsPanel
     }
     private void ApplyFormSuccess(CommandRequest request, string? response)
     {
-        if (request.Operation.Kind == CommandKind.CreateCommunity)
+        if (request.Operation.Kind == CommandKind.CreateSeason)
         {
             name = description = ""; currencyName = "Coins"; symbol = "C";
             initialCooking = 0;
@@ -44,7 +44,7 @@ public sealed partial class SeasonsPanel
             initialAllowancesEdited = false;
             CloseCreateCommunity?.Invoke();
         }
-        if (request.Operation.Handler == CommandHandler.CommunityForm && response != null)
+        if (request.Operation.Handler == CommandHandler.SeasonForm && response != null)
             selected = JsonSerializer.Deserialize<CommandResult<Season>>(response, FoundationClient.Json)!.Result.Id;
     }
     private void DrawCurrencyIconEditor()

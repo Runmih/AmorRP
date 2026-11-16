@@ -13,7 +13,7 @@ unsupported or rejected IPC. Optional rate-limited Dalamud debug logging is the 
 integration diagnostic. Never block consumption, billing, release or disbanding on IPC.
 Do not secretly change Moodles settings to bypass its own application permissions.
 
-Configuration is author-side: community administrators define the ownership debuff;
+Configuration is author-side: season administrators define the ownership debuff;
 authorized recipe authors define consumable effects. Store enough definition data
 for another client to apply the same effect; an author's private saved GUID alone
 is not portable. Bound icons/text/duration/stacking values and snapshot definitions
@@ -31,8 +31,8 @@ or play application effects. On release/disband, attempt removal of that specifi
 managed effect. Never clear the whole status manager or remove effects owned by
 other plugins. Missing visuals are not proof of release and do not unlock billing.
 
-Community and character scope must be explicit in effect IDs and reconciliation.
-Decide display behavior across selected communities when S10 starts; state from a
+Season and character scope must be explicit in effect IDs and reconciliation.
+Decide display behavior across selected seasons when S10 starts; state from a
 previous character must never apply to the next one. These are RP status visuals,
 not actual FFXIV combat-stat changes. Visibility to other players depends on their
 compatible synchronization setup and is not guaranteed by local IPC alone.
@@ -61,17 +61,17 @@ that no user-facing diagnostic or core-action failure occurs in every failure ca
 ## S11 — Discord writing earnings
 
 The bot is inviteable across Discord servers. Each installation links to an approved
-Amor RP group and therefore its community. Proposed first-version association is
+Amor RP group and therefore its season. Proposed first-version association is
 one Discord server per group and one group per Discord server; multiple approved
-groups give a community multiple connected servers. Treasury approval is independent:
+groups give a season multiple connected servers. Treasury approval is independent:
 a group may have Discord permission without a treasury.
 
 | Authority | Responsibility |
 | --- | --- |
-| Community owner | Enables the feature, approves group Discord Bot Permission, sets currency rewards/cooldowns/weekly limits/balance ceiling and community payout budget |
+| Season owner | Enables the feature, approves group Discord Bot Permission, sets currency rewards/cooldowns/weekly limits/balance ceiling and season payout budget |
 | Group owner | Initiates authorized linking/invitation and disconnects their group |
 | Discord server owner/authorized administrator | Approves installation, selects channels and eligible Discord roles/exclusions, pauses activity in that server |
-| Player | Explicitly opts in, links their Discord identity and selects one earning character in the community |
+| Player | Explicitly opts in, links their Discord identity and selects one earning character in the season |
 
 Discord's own installation authority cannot be bypassed by an Amor RP invitation
 button. Validate both the Amor RP owner and Discord installation association. Public
@@ -82,12 +82,12 @@ Linking uses a scoped expiring challenge, not copied Amor RP session/refresh tok
 ### Earning and anti-abuse rules
 
 - No player earns until explicitly opted in and linked. No silent assignment to an alt.
-- One earning character per linked Discord account/community. Character or server
+- One earning character per linked Discord account/season. Character or server
   switches retain usage and cannot create additional weekly budgets.
 - Reward only configured channels and eligible accounts/roles. Exclude bots, commands,
   edits/replayed messages and trivial repetition. Exact minimum length/cooldown and
   content-intent requirements are feature-time configuration/platform research.
-- Apply the weekly personal limit, a community-wide minting budget, and the personal
+- Apply the weekly personal limit, a season-wide minting budget, and the personal
   balance ceiling before posting an award. Count the full awarded amount even when
   automatic debt collection leaves no wallet increase.
 - Proposed ceiling calculation includes owned/reserved personal currency, excludes

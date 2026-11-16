@@ -1,96 +1,21 @@
 # Hosting and release policy
 
-Maintainer decisions recorded 2026-10-29, with cutover status updated 2026-11-07.
-Current plugin release is 0.3.0.5; the server remains 0.3.0.0.
-On 2026-11-05 the maintainer reported the
-Ubuntu/Docker/Portainer/NPM/DuckDNS infrastructure ready and authorized a fresh database
-because Render test data is unavailable. The [concrete cutover guide](../delivery/home-server.md)
-was followed on 2026-11-07: the maintainer deployed the backend, confirmed public
-readiness/capabilities and configured the new XIVAuth callback. Plugin 0.3.0.1 now
-switches the installation feed to the home origin; live in-game acceptance is pending.
+The maintainer's private home host is in use; the cutover is complete. Current
+instructions are in [home deployment](../delivery/home-server.md),
+[operations](../delivery/operations.md) and [versions](../engineering/versions.md).
 
-## Branch and version policy
+Use main only for source and distribution. S01–S11 are work identifiers, not branches.
+Versions follow 0.feature.0.patch. Documentation-only work does not invent a binary
+version; changed published bytes require a new immutable version. The application
+protocol remains v2; XIVAuth owns its independent v1 API.
 
-Use **main only** for ongoing development and publication. Do not introduce feature,
-testing, milestone, release or separate stable branches. The S01–S11 work identifiers
-are checklist references, not branches or version series. Do not publish a separate
-Dalamud testing candidate as part of this plan.
+Publish the exact verified Windows package after both matching source CI workflows
+pass. The feed/provenance record must identify the actual source and artifact.
+The server updater requires latest-main verification and prepares a local image;
+Portainer application and private settings remain an explicit operating step.
 
-Application versions use **0.feature.0.patch**:
-
-| Part | Rule |
-| --- | --- |
-| First | Keep 0 |
-| Second: feature | Increment for a completed feature release |
-| Third | Keep 0 |
-| Fourth: patch | Increment for fixes/adjustments within the current feature release |
-
-The first feature release is 0.1.0.0; its fixes are 0.1.0.1, 0.1.0.2, and so on. The
-following feature release is 0.2.0.0. Reset patch to 0 when feature increments.
-The four-part numeric comparison makes 0.1.0.0 newer than 0.0.6.21. Do not release
-unverified bytes or rename/reuse an already published immutable package version.
-
-Keep plugin/server versions truthful to the binaries actually released; a plugin-only
-patch does not require a fictitious server build. Record compatible/minimum client
-versions explicitly. Documentation-only changes do not bump application versions.
-Publishing policy is separate from HTTP protocols: Amor RP remains API v2 and
-XIVAuth remains external API v1. No provider URL change follows from a feature number.
-
-## Selected hosting target
-
-The maintainer plans a private **Ubuntu server** on a GMKtec NucBox M8 with
-AMD Ryzen 5 PRO 6650H, 16 GB RAM and 512 GB storage. Render remains testing
-infrastructure until cutover. Use a supported Ubuntu Server LTS release and Linux
-x64 builds. The maintainer reports a supported Ubuntu Server LTS installation with Docker,
-Portainer, NPM and public HTTPS already functioning. Host-specific addresses and
-administrator identifiers stay out of the repository.
-
-The [listed configuration](https://www.digitec.ch/en/s1/product/gmktec-nucbox-m8-512-gb-16-gb-amd-ryzen-5-pro-6650h-pc-66735403)
-is a reasonable initial target for the ASP.NET Core API, PostgreSQL and future bot.
-This is a capacity estimate, not a benchmark, concurrent-user guarantee or certification
-of this unit's Ubuntu drivers. Check network/storage support and sustained operation.
-
-The existing [Dockerfile](../../deploy/Dockerfile) already supports linux-x64.
-A small Docker Compose deployment is a proposed operational choice, not a requirement
-to rebuild the applications. Keep the API, database and bot as separately managed
-processes/containers on that machine, with persistent database storage, bounded logs
-and automatic service restart. No additional paid test server is required.
-
-## Cutover prerequisites
-
-- Choose a stable public HTTPS hostname and ingress. If hosted on a residential
-  connection, check ISP restrictions, upload reliability and CGNAT before assuming
-  port forwarding works. A tunnel/reverse proxy is an option; direct public hosting
-  can expose the household IP. Do not commit private addresses or machine identifiers.
-- Keep PostgreSQL internal to the host/deployment network. Administrative access and
-  application ingress have distinct access paths. Use wired Ethernet where practical.
-- Back up PostgreSQL and the SecretVault encryption key set separately and off-machine;
-  prove a restore. Lost encryption keys can make restored provider grants and protected
-  receipts unreadable. Never copy production secrets into the repository or test fixtures.
-- Configure the new ingress/client-IP trust explicitly. Current Render-specific mode
-  depends on RENDER/UseRenderClientIp; do not copy it unchanged to Ubuntu or trust all
-  forwarded headers. Verify separate clients receive separate rate-limit identities
-  through the selected proxy/tunnel and direct backend access cannot spoof them.
-- Plugin 0.3.0.1 points to the home origin in ProductServer. Saved sessions and pending commands are
-  origin-bound. Do not silently rewrite those bindings. Resolve pending outcomes
-  before any future cutover and require fresh login when the origin changes.
-- Register/configure the exact new browser callback in XIVAuth when its URL changes.
-  Preserve the provider's external API URLs and verification behavior. Test real
-  browser login, pairing, renewal, logout and receipts before moving testers.
-- Prevent split writes to independent Render/private database copies. Use a controlled
-  write pause/final backup or an explicitly planned test-data wipe; no wipe is authorized
-  by this document alone. The maintainer separately authorized a fresh database
-  for the 2026-11-07 cutover because the Render test data was unavailable. Keep
-  rollback and the old endpoint's treatment explicit.
-- Verify automatic startup, PostgreSQL persistence, disk/log growth and monitoring.
-  For a machine operated at home, power/router/ISP outages affect service availability;
-  a UPS and off-machine backup improve recovery. One machine is not high availability.
-
-Private hosting removes the Render-sleep dependency for a continuously running bot,
-provided the machine/network actually stay on. It does not create the bot or validate
-Discord application/intents. S11 still needs its own readiness and integration checks.
-
-The maintainer will set up the server first. No deployment, DNS change, application
-registration edit, database transfer, purchase or provisioning is performed by adding
-this plan. Use [Ubuntu's server guidance](https://ubuntu.com/server) and the chosen
-ingress provider's documentation when writing the concrete setup steps.
+Keep database/keys/identity bindings intact through normal updates. Backup restore,
+capacity measurements and live game acceptance are separate evidence. Do not
+provision paid infrastructure, deploy the private host, reset data or publish private
+configuration as a side effect of development. Future Discord work may use the
+existing permanent host; readiness is a prerequisite, not proof the bot is implemented.

@@ -52,9 +52,9 @@ def main():
     print("Checking GitHub's server verification...", flush=True)
     require_verified(commit)
     run("git", "merge", "--ff-only", commit)
-    version = ET.parse(ROOT / "src/AmorRP.Server/AmorRP.Server.csproj").findtext(".//Version")
+    version = ET.parse(ROOT / "Directory.Build.props").findtext(".//Version")
     if not version or not re.fullmatch(r"\d+\.\d+\.\d+\.\d+", version):
-        raise ValueError("The server project has no valid four-part version.")
+        raise ValueError("Directory.Build.props has no valid four-part release version.")
     image = f"amorrp-server:{version}-{commit[:12]}"
     print(f"Building {image}. The running service stays in place.", flush=True)
     run("sudo", "docker", "build", "--file", "deploy/Dockerfile",

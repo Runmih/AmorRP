@@ -1,30 +1,24 @@
-# Dalamud repository and release channels
+# Dalamud installer feed
 
-The single installation URL is:
+Use the existing single feed:
 
 ```text
 https://raw.githubusercontent.com/Runmih/AmorRP/main/repo.json
 ```
 
-`main` is the normal release source. During the closed beta, it also carries
-features being tested on the existing backend. The `testing` branch retains
-experimental work, but separate testing publication is paused until an isolated
-backend is available. The release tooling supports both channels. Dalamud chooses the
-channel from repo.json, not the Git branch name. Stable uses AssemblyVersion,
-DownloadLinkInstall and DownloadLinkUpdate. Testing additionally uses
-TestingAssemblyVersion, TestingDalamudApiLevel and DownloadLinkTesting.
+Source and distribution use main. The publisher prepares a stable manifest,
+immutable versioned ZIP, SHA-256 sidecar and source/build provenance. Installer,
+update and testing-download links point to that same published package; there is
+no separate testing candidate workflow. Old immutable packages remain available.
 
-Build and validate a Windows package from the selected source commit. Both Plugin
-package and Server and contracts workflows must succeed for that exact commit.
-Use `scripts/prepare-plugin-repository.py --channel testing` with the checked inner
-latest.zip and a destination checked out on main. Commit only distribution files
-there. Stable bytes, version, description and install/update links remain unchanged.
-The publisher rejects reused versions with different bytes and channel downgrades.
+Both exact-source Windows and server/contracts workflows must pass before
+publication. Download the Windows inner latest.zip, verify its artifact/package
+digests and run prepare-plugin-repository.py with package, destination, source-commit
+and build-url. Validate the public feed and downloaded package bytes afterwards.
+Rejected downgrade/reused-version/source evidence must leave published files intact;
+retrying the same publication must preserve timestamp and provenance.
 
-Both workflows build pushes to main and testing. Manual publishing from either
-branch chooses the corresponding channel, verifies that its source branch has not
-changed, and writes the shared feed on main. The source branch is not merged to
-main by publication. Stable promotion removes a testing candidate at or below the
-new stable version and retains any newer candidate.
-
-See [0.0.6.17 beta release](release-0.0.6.17-testing.md) for deployment details.
+See [development](development.md), [versions](../engineering/versions.md) and
+[release history](history.md). CI validates packages; game loading/rendering still
+requires the acceptance checklist. Official repository submission and 1.0 approval
+are separate future gates.

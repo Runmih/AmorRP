@@ -4,7 +4,7 @@ Start with the [current development workflow](docs/delivery/development.md).
 Use .NET SDK 10.0.401, PostgreSQL 18, and the pinned official Dalamud references.
 The four application projects are under `src/`; automated tests are under `tests/`.
 
-Core contains reusable pure text/type/capacity rules and no game/HTTP/database
+Core contains reusable pure text/type rules and no game/HTTP/database
 dependencies. Contracts contains transport types. Server feature services own
 authoritative rules alongside their persistence and transactions.
 Plugin owns game adapters, UI and local networking. Put code beside its feature;

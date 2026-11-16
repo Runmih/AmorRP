@@ -1,7 +1,7 @@
 # Gameplay expansion
 
 Planned S07–S09. Read the [decisions](decisions.md) and [work order](README.md).
-Current consumable/writing inventory and community/group membership already exist;
+Current consumable/writing inventory and season/group membership already exist;
 new budgets/classes must preserve their authority and item provenance.
 
 ## S07 — Gathering and delivery packages
@@ -11,7 +11,7 @@ package, spend gathering points, receive its item, then RP and trade the deliver
 No actual FFXIV gathering detection, timed runs, daily claims or minigame is required.
 A combined Gathering permission covers hunting and gathering for this version.
 
-Community settings define:
+Season settings define:
 
 | Setting | Purpose |
 | --- | --- |
@@ -43,7 +43,7 @@ receiver limit, old snapshots and no budget refill through identity/group change
 
 ## S08 — Classes and reset potion
 
-Community owners configure available classes, their gameplay grants and class-slot
+Season owners configure available classes, their gameplay grants and class-slot
 count. Initial default is one slot; the model must support more later. Class selection
 is performed by the player. A selected class remains fixed until a reset potion is
 used. Classes do not grant moderation, group feature approval or Discord administration.
@@ -53,8 +53,8 @@ grants without silently deleting those grants. Exact precedence/owner restrictio
 belong in the S08 checklist. The authoritative result is checked on the server and
 unavailable tabs stay hidden. No new permission-source explanation interface.
 
-Supply a default Alchemy reset potion with an expensive community-controlled price;
-the community shop is the proposed source. A sale by another player must not
+Supply a default Alchemy reset potion with an expensive season-controlled price;
+the season shop is the proposed source. A sale by another player must not
 accidentally become a free reset endpoint. Recipe availability/other suppliers can
 be decided when S08 starts, keeping the agreed hefty cost meaningful.
 
@@ -74,9 +74,9 @@ changes and preservation of weekly usage.
 
 ## S09 — Group-only recipes (nice to have)
 
-Crafting requires active community/group membership and the normal discipline crafting
+Crafting requires active season/group membership and the normal discipline crafting
 permission. Defining a recipe requires the relevant recipe-definition authority;
-group ownership alone does not grant withheld community authority. Community owners
+group ownership alone does not grant withheld season authority. Season owners
 or Manage Groups moderators receive no automatic access to private group content.
 
 Add configurable limits for active group recipes. Define whether retiring/deleting

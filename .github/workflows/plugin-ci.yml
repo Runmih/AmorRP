@@ -1,8 +1,7 @@
 name: Plugin package
 on:
   push:
-    branches: [main, testing]
-    paths-ignore: [repo.json, "packages/**", "images/**"]
+    branches: [main]
   pull_request:
   workflow_dispatch:
     inputs:
@@ -46,12 +45,12 @@ jobs:
           if-no-files-found: error
           retention-days: 30
   publish:
-    if: github.event_name == 'workflow_dispatch' && inputs.publish && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/testing')
+    if: github.event_name == 'workflow_dispatch' && inputs.publish && github.ref == 'refs/heads/main'
     needs: build
     runs-on: ubuntu-24.04
     permissions:
       contents: write
-      actions: read
+      actions: write
     concurrency:
       group: plugin-main-repository
       cancel-in-progress: false
@@ -80,9 +79,7 @@ jobs:
           git diff --exit-code "$GITHUB_SHA" "origin/$GITHUB_REF_NAME" -- . ':!repo.json' ':!packages' ':!images'
       - name: Prepare feed and immutable versioned package
         run: |
-          release_channel=stable
-          if [ "$GITHUB_REF_NAME" = testing ]; then release_channel=testing; fi
-          python scripts/prepare-plugin-repository.py --channel "$release_channel" --package "$RUNNER_TEMP/plugin-package/latest.zip" --destination distribution --source-commit "$GITHUB_SHA" --build-url "https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          python scripts/prepare-plugin-repository.py --package "$RUNNER_TEMP/plugin-package/latest.zip" --destination distribution --source-commit "$GITHUB_SHA" --build-url "https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
       - name: Publish together without rewriting history
         working-directory: distribution
         run: |
@@ -92,3 +89,7 @@ jobs:
           if git diff --cached --quiet; then exit 0; fi
           git commit -m "Publish Amor RP package"
           git push origin HEAD:main
+          # Pushes made with GITHUB_TOKEN do not trigger push workflows.
+          # Queue checks explicitly so the home updater can verify this new main commit.
+          gh workflow run server-ci.yml --repo "$GITHUB_REPOSITORY" --ref main
+          gh workflow run plugin-ci.yml --repo "$GITHUB_REPOSITORY" --ref main -f publish=false
