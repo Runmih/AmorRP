@@ -11,3 +11,8 @@ FFXIV inventory no longer opens the RP window. Power controls the automatic HUD.
 
 The minimum server version remains 0.4.0.3. Check the launcher order, window toggles
 and Inventory resizing in game.
+
+The stable feed uses the [Windows package from CI](https://github.com/Runmih/AmorRP/actions/runs/44634275236).
+The matching [server workflow](https://github.com/Runmih/AmorRP/actions/runs/44634275303)
+also passed. The Windows package SHA-256 is
+`ea909715d0d15ac498a571b15ec04317eec2614d6acd247cdfc65a996a5d23dc`.
