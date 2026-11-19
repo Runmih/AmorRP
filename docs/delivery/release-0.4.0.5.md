@@ -28,3 +28,17 @@ its launcher highlight; Trade close cancellation and pending-request recovery;
 consistent Settings/Trade/Writing/management appearance; no styling leak to other
 plugins or ImGui stack errors. API 15 builds and automated regression checks do not
 replace the final in-game appearance/lifecycle checks.
+
+## Published verification
+
+Stable **0.4.0.5** publishes source `5b895899433acb39031bf5fc671501014fcb7cd2`
+from the exact [Windows artifact](https://github.com/Runmih/AmorRP/actions/runs/44624327206).
+The matching [server/contracts workflow](https://github.com/Runmih/AmorRP/actions/runs/44624327185)
+passed 190 server integration, 190 plugin helper and 1 contract tests, model parity,
+documentation/deployment/startup checks and the server image build. The API 15
+plugin build has no warnings or errors. Local helper/contract and ZIP/feed guards passed.
+
+The downloaded artifact archive matches GitHub's digest. The inner package SHA-256
+is `31902c9ce251ba4c60bdd7c7eb6245f7919f66d3cf94a0307b862f159806865a`;
+its manifest reports 0.4.0.5 and Dalamud API 15. In-game visual and window-lifecycle
+acceptance remains pending. No live home-server deployment was performed.
