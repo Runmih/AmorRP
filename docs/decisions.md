@@ -1,6 +1,6 @@
 # Current product decisions
 
-Maintainer direction through 2026-11-16. This register records current decisions;
+Maintainer direction through 2026-11-19. This register records current decisions;
 older conflicting proposals are summarized in [history](delivery/history.md).
 
 | Area | Decision |
@@ -11,7 +11,7 @@ older conflicting proposals are summarized in [history](delivery/history.md).
 | Lifecycle | One active season. New seasons are drafts with fresh economies; prior assets remain in read-only archives. Preserve existing data through explicit migrations. |
 | RP groups | Owned groups inside a season retain independent membership and private content. Group feature approval, staff grants and gameplay authority are distinct. |
 | UI | Dedicated Writing, Crafting, browsing, group/season management and Trade windows. Settings contains Interface/Account/About. Inventory companion sits to the right of vanilla inventory. |
-| Launcher | Book opens Writing. Closed-eye icon toggles automatic panels/HUDs without text and retains individual panel preferences. No community selector. |
+| Launcher | Book opens Writing. Power icon toggles automatic panels/HUDs without text and retains individual panel preferences. No community selector. |
 | Text and chat | Plain text; preserve literal `<3`. Explicit item Use previews/posts the validated message. No startup chat permission checkbox/window. |
 | Financial integrity | Whole-unit checked currency, reservations, durable receipts and idempotency. All money sources use existing debt settlement; private group data is not exposed by season moderation. |
 | Hosting | Maintainer's private Ubuntu/Docker/Portainer/NPM host; secrets remain private. Keep `AMORRP_ADMIN_LODESTONE_ID`; no season-enable variable. |

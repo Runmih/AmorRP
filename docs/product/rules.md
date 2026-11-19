@@ -109,5 +109,5 @@ membership. Notices/events and favorite-event HUD data stay season/group scoped.
 Settings contains Interface/Account/About. Dedicated feature windows own their
 layout and drafts. The inventory companion attaches to the right of native inventory;
 Writing provides a full reader. The launcher book opens Writing. The icon-only
-closed-eye switch hides automatic panels/HUDs and remembers individual preferences.
+power switch hides automatic panels/HUDs and remembers individual preferences.
 No old main menu, community selector or season join/leave controls are exposed.

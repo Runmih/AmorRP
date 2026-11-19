@@ -40,7 +40,7 @@ public sealed partial class SeasonsPanel
         var attached = configuration.ShowAttachedInterfaces;
         if (ImGui.Checkbox("Show attached panels and HUDs", ref attached))
         { configuration.ShowAttachedInterfaces = attached; save(); }
-        Wrapped("The launcher's closed-eye button controls this switch. Your individual panel choices below are remembered.");
+        Wrapped("The launcher's power button controls this switch. Your individual panel choices below are remembered.");
         ImGui.Spacing();
         var inventory = configuration.ShowInventoryCompanion;
         if (ImGui.Checkbox("RP inventory beside game inventory", ref inventory))

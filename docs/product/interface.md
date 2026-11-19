@@ -15,8 +15,12 @@ multi-character interaction still require [in-game acceptance](../delivery/accep
 | Trade | `/amorrp trade`, member action or character context menu; requests and exchange |
 | Inventory companion | Attached to the right of the selected vanilla inventory window |
 
+Every launcher window button toggles its related window open/closed and highlights
+while that window is open. Context actions still open/focus their requested content.
+All launcher icons, including Power, use the same icon-button size and renderer.
+
 The quick launcher has no community selection. Its book opens Writing; its
-closed-eye icon toggles automatic panels/HUDs without text. Individual inventory
+power icon toggles automatic panels/HUDs without text. Individual inventory
 and event-HUD preferences remain saved while panels are hidden.
 
 ## Shared season context
@@ -61,3 +65,10 @@ approval stages are revision-bound, and closing accepted exchange cancels safely
 Billing/treasury controls require their approved group permissions. Manage Groups
 never exposes group-private content. Financial success/failure leaves a durable
 receipt and accurate available/reserved balances.
+
+## Shared theme
+
+PluginTheme applies one dark-and-gold palette and scaled rounding around the plugin
+WindowSystem. Settings, Trade, Writing, workspaces, attached inventory and popups
+inherit that same style. Individual windows retain placement/behavior; the theme
+stack restores after drawing and does not restyle other plugins.

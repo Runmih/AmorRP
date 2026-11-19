@@ -41,6 +41,8 @@ state ownership, dependencies and transaction boundaries.
 | Authentication | Features/Authentication; provider policies under Features/Feasibility; engineering/authentication.md |
 | Images | Features/Media/StaticImageUpload.cs and MediaAssets.cs; feature-specific image service callers |
 | HTTP command recovery | CommandStore in Infrastructure/Persistence; plugin CommandRequest/CommandRoutes and pending-command state |
+| Shared window appearance | Plugin Services/Ui/PluginTheme.cs, applied once around WindowSystem.Draw |
+| Launcher sizing/toggles | Features/Shell/LauncherWindow.cs; open/close wiring in Plugin.cs |
 | Client/server versions | Directory.Build.props, Contracts/Common/ApiProtocol.cs, plugin ServiceCompatibility.cs and server capabilities |
 | Package publication | .github/workflows, prepare-plugin-repository.py and check-plugin-repository.py |
 | Deployment/update | deploy/home/prepare-update.py, compose.yaml and delivery/home-server.md |

@@ -1,5 +1,6 @@
 using AmorRP.Plugin.Features.Shell;
 using AmorRP.Plugin.Services.Game;
+using AmorRP.Plugin.Services.Ui;
 using Dalamud.Game.Command;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin;
@@ -47,7 +48,10 @@ public sealed class Plugin : IDalamudPlugin
         createCommunityWindow = new("Amor RP — Prepare season###AmorRPCreateCommunity", mainWindow.DrawCreateCommunity, () => mainWindow.CanDrawCommunityForms, new(560, 660), mainWindow.ClearFeedback);
         mainWindow.OpenCreateCommunity = () => createCommunityWindow.IsOpen = true;
         mainWindow.CloseCreateCommunity = () => createCommunityWindow.IsOpen = false;
-        launcherWindow = new(mainWindow.OpenWritingLogFromLauncher, mainWindow.OpenTradeFromLauncher, mainWindow.OpenWorkspaceFromLauncher,
+        launcherWindow = new(() => ToggleWindow(writingLogWindow, mainWindow.OpenWritingLogFromLauncher),
+            () => ToggleWindow(tradeWindow, mainWindow.OpenTradeFromLauncher),
+            kind => ToggleWindow(workspaceWindows[kind], () => mainWindow.OpenWorkspaceFromLauncher(kind)),
+            () => writingLogWindow.IsOpen, () => tradeWindow.IsOpen, kind => workspaceWindows[kind].IsOpen,
             () => mainWindow.PendingTradeRequests, () => mainWindow.UnreadAnnouncements, () => playerState.IsLoaded,
             () => configuration.ShowAttachedInterfaces, ToggleAttachedInterfaces,
             () => mainWindow.CanOpenGroupManagement, () => mainWindow.CanOpenCommunityManagement)
@@ -75,7 +79,9 @@ public sealed class Plugin : IDalamudPlugin
     {
         mainWindow.SetInventoryCompanionVisible(inventoryCompanionWindow.UpdateAttachment());
         mainWindow.SetWritingLogVisible(writingLogWindow.IsOpen && playerState.IsLoaded);
-        mainWindow.Tick(); windows.Draw();
+        mainWindow.Tick();
+        using var theme = PluginTheme.Apply();
+        windows.Draw();
     }
 
     private void OnCommand(string command, string arguments)
@@ -98,6 +104,12 @@ public sealed class Plugin : IDalamudPlugin
         }
     }
     private void Open() => mainWindow.IsOpen = true;
+
+    private static void ToggleWindow(Window window, Action open)
+    {
+        if (window.IsOpen) window.IsOpen = false;
+        else open();
+    }
 
     private void ToggleAttachedInterfaces()
     {

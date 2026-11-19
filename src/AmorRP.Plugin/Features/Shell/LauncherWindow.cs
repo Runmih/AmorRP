@@ -1,4 +1,5 @@
 using System.Numerics;
+using AmorRP.Plugin.Services.Ui;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 using Dalamud.Interface.Components;
@@ -8,20 +9,22 @@ namespace AmorRP.Plugin.Features.Shell;
 
 public sealed class LauncherWindow : Window
 {
-    private readonly Action openWriting, openTrade, toggleInterfaces;
-    private readonly Action<WorkspaceKind> openWorkspace;
+    private readonly Action toggleWriting, toggleTrade, toggleInterfaces;
+    private readonly Action<WorkspaceKind> toggleWorkspace;
+    private readonly Func<WorkspaceKind, bool> workspaceVisible;
     private readonly Func<int> requests, announcements;
-    private readonly Func<bool> canDraw, interfacesVisible, canManageGroups, canManageCommunity;
+    private readonly Func<bool> canDraw, interfacesVisible, canManageGroups, canManageCommunity, writingVisible, tradeVisible;
 
-    public LauncherWindow(Action openWriting, Action openTrade, Action<WorkspaceKind> openWorkspace,
+    public LauncherWindow(Action toggleWriting, Action toggleTrade, Action<WorkspaceKind> toggleWorkspace,
+        Func<bool> writingVisible, Func<bool> tradeVisible, Func<WorkspaceKind, bool> workspaceVisible,
         Func<int> requests, Func<int> announcements, Func<bool> canDraw, Func<bool> interfacesVisible,
         Action toggleInterfaces, Func<bool> canManageGroups, Func<bool> canManageCommunity)
         : base("Amor RP launcher###AmorRPLauncher", ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoResize
             | ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoCollapse)
     {
-        this.openWriting = openWriting; this.openTrade = openTrade; this.requests = requests;
-        this.canDraw = canDraw;
-        this.openWorkspace = openWorkspace; this.announcements = announcements;
+        this.toggleWriting = toggleWriting; this.toggleTrade = toggleTrade; this.requests = requests;
+        this.canDraw = canDraw; this.toggleWorkspace = toggleWorkspace; this.announcements = announcements;
+        this.writingVisible = writingVisible; this.tradeVisible = tradeVisible; this.workspaceVisible = workspaceVisible;
         this.canManageGroups = canManageGroups; this.canManageCommunity = canManageCommunity;
         this.interfacesVisible = interfacesVisible; this.toggleInterfaces = toggleInterfaces;
         RespectCloseHotkey = false;
@@ -34,42 +37,44 @@ public sealed class LauncherWindow : Window
     public override void Draw()
     {
         var size = new Vector2(ImGui.GetFrameHeight() * 1.4f);
-        if (ImGuiComponents.IconButton("LauncherWriting", FontAwesomeIcon.BookOpen, size)) openWriting();
+        if (ToggleButton("LauncherWriting", FontAwesomeIcon.BookOpen, size, writingVisible(), "Writing")) toggleWriting();
         ImGui.SameLine();
-        if (ImGuiComponents.IconButton("LauncherCrafting", FontAwesomeIcon.Hammer, size)) openWorkspace(WorkspaceKind.Crafting);
+        DrawWorkspaceButton("LauncherCrafting", FontAwesomeIcon.Hammer, size, WorkspaceKind.Crafting);
         ImGui.SameLine();
-        if (ImGuiComponents.IconButton("LauncherCommunity", FontAwesomeIcon.Users, size)) openWorkspace(WorkspaceKind.Season);
-        if (announcements() > 0) NotificationBadge.Draw();
+        DrawWorkspaceButton("LauncherCommunity", FontAwesomeIcon.Users, size, WorkspaceKind.Season, announcements() > 0);
         if (canManageGroups())
         {
             ImGui.SameLine();
-            if (ImGuiComponents.IconButton("LauncherGroupManagement", FontAwesomeIcon.Sitemap, size)) openWorkspace(WorkspaceKind.GroupManagement);
+            DrawWorkspaceButton("LauncherGroupManagement", FontAwesomeIcon.Sitemap, size, WorkspaceKind.GroupManagement);
         }
         if (canManageCommunity())
         {
             ImGui.SameLine();
-            if (ImGuiComponents.IconButton("LauncherCommunityManagement", FontAwesomeIcon.Cog, size)) openWorkspace(WorkspaceKind.CommunityManagement);
+            DrawWorkspaceButton("LauncherCommunityManagement", FontAwesomeIcon.Cog, size, WorkspaceKind.CommunityManagement);
         }
         ImGui.SameLine();
-        if (ImGuiComponents.IconButton("LauncherTrade", FontAwesomeIcon.ExchangeAlt, size)) openTrade();
-        if (requests() > 0) NotificationBadge.Draw();
+        if (ToggleButton("LauncherTrade", FontAwesomeIcon.ExchangeAlt, size, tradeVisible(), "Trade", requests() > 0)) toggleTrade();
         ImGui.SameLine();
-        var visible = interfacesVisible();
-        if (visible) ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(.35f, .29f, .17f, 1));
-        if (ImGui.Button("##LauncherInterfaces", size)) toggleInterfaces();
-        DrawClosedEye();
-        if (visible) ImGui.PopStyleColor();
+        if (ToggleButton("##LauncherInterfaces", FontAwesomeIcon.PowerOff, size, interfacesVisible(), "attached panels", power: true)) toggleInterfaces();
     }
 
-    private static void DrawClosedEye()
+    private void DrawWorkspaceButton(string id, FontAwesomeIcon icon, Vector2 size, WorkspaceKind kind, bool badge = false)
     {
-        var origin = ImGui.GetItemRectMin(); var size = ImGui.GetItemRectSize();
-        Vector2 Point(float x, float y) => origin + new Vector2(size.X * x, size.Y * y);
-        var draw = ImGui.GetWindowDrawList(); var color = ImGui.GetColorU32(ImGuiCol.Text);
-        var thickness = Math.Max(1.3f, size.X * .05f);
-        draw.AddBezierCubic(Point(.22f, .40f), Point(.36f, .65f), Point(.64f, .65f), Point(.78f, .40f), color, thickness, 16);
-        draw.AddLine(Point(.35f, .54f), Point(.27f, .69f), color, thickness);
-        draw.AddLine(Point(.50f, .59f), Point(.50f, .77f), color, thickness);
-        draw.AddLine(Point(.65f, .54f), Point(.73f, .69f), color, thickness);
+        if (ToggleButton(id, icon, size, workspaceVisible(kind), WorkspaceWindow.Title(kind), badge)) toggleWorkspace(kind);
+    }
+
+    private static bool ToggleButton(string id, FontAwesomeIcon icon, Vector2 size, bool active, string label, bool badge = false, bool power = false)
+    {
+        if (active) ImGui.PushStyleColor(ImGuiCol.Button, PluginTheme.SelectedButton);
+        bool clicked;
+        try { clicked = ImGuiComponents.IconButton(id, icon, size); }
+        finally { if (active) ImGui.PopStyleColor(); }
+        if (badge) NotificationBadge.Draw();
+        if (ImGui.IsItemHovered())
+        {
+            var action = power ? (active ? "Turn off " : "Turn on ") : (active ? "Close " : "Open ");
+            ImGui.SetTooltip(action + label);
+        }
+        return clicked;
     }
 }

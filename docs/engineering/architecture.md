@@ -60,6 +60,10 @@ receipts and transactions. Stored purpose names and asset IDs remain unchanged.
 
 ## Plugin state and transport
 
+PluginTheme scopes the shared palette/rounding around WindowSystem.Draw and restores
+the ImGui stack afterwards. Launcher buttons use one icon renderer and actual window
+state for highlighting/toggling; Trade uses its normal close lifecycle.
+
 The shell owns independent windows. SeasonsPanel partials share current verified
 character/season, feature data and editor state. They are not separate controllers;
 future extraction should follow real state ownership and tests, not filename count.

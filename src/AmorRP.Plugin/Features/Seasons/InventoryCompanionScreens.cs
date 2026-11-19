@@ -1,4 +1,5 @@
 using System.Numerics;
+using AmorRP.Plugin.Services.Ui;
 using System.Net;
 using AmorRP.Contracts.Inventory;
 using AmorRP.Plugin.Features.Inventory;
@@ -10,7 +11,7 @@ namespace AmorRP.Plugin.Features.Seasons;
 
 public sealed partial class SeasonsPanel
 {
-    private static readonly Vector4 InventoryGold = new(.88f, .75f, .47f, 1);
+    private static readonly Vector4 InventoryGold = PluginTheme.Accent;
     private readonly InventoryCompanionQuery companionQuery = new();
     private readonly BackgroundRefresh<CompanionInventoryRead> companionInventoryRefresh = new(TimeSpan.FromMinutes(1));
     private HoldingPage companionHoldings = new([], null, "0");

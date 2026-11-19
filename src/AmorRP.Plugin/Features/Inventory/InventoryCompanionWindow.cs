@@ -51,23 +51,7 @@ public sealed class InventoryCompanionWindow : Window
         if (layout is not { } placement) return;
         ImGui.SetNextWindowPos(placement.Position, ImGuiCond.Always);
         ImGui.SetNextWindowSize(placement.Size, ImGuiCond.Always);
-        ImGui.PushStyleVar(ImGuiStyleVar.WindowRounding, 8f);
-        ImGui.PushStyleVar(ImGuiStyleVar.FrameRounding, 4f);
-        ImGui.PushStyleColor(ImGuiCol.WindowBg, new Vector4(.075f, .083f, .10f, .98f));
-        ImGui.PushStyleColor(ImGuiCol.Border, new Vector4(.48f, .40f, .25f, .8f));
-        ImGui.PushStyleColor(ImGuiCol.Header, new Vector4(.32f, .27f, .16f, .85f));
-        ImGui.PushStyleColor(ImGuiCol.HeaderHovered, new Vector4(.42f, .35f, .20f, .9f));
-        ImGui.PushStyleColor(ImGuiCol.HeaderActive, new Vector4(.49f, .40f, .22f, 1));
-        ImGui.PushStyleColor(ImGuiCol.Tab, new Vector4(.12f, .13f, .15f, 1));
-        ImGui.PushStyleColor(ImGuiCol.TabActive, new Vector4(.32f, .27f, .16f, 1));
-        ImGui.PushStyleColor(ImGuiCol.TabHovered, new Vector4(.42f, .35f, .20f, 1));
-        ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(.22f, .23f, .25f, 1));
-        ImGui.PushStyleColor(ImGuiCol.ButtonHovered, new Vector4(.38f, .32f, .20f, 1));
-        ImGui.PushStyleColor(ImGuiCol.ButtonActive, new Vector4(.49f, .40f, .22f, 1));
-        ImGui.PushStyleColor(ImGuiCol.FrameBg, new Vector4(.12f, .13f, .15f, 1));
     }
-
-    public override void PostDraw() { ImGui.PopStyleColor(12); ImGui.PopStyleVar(2); }
 
     public override void Draw()
     {

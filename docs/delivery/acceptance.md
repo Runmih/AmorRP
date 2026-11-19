@@ -22,7 +22,7 @@ records current acceptance status; this checklist describes what to verify.
 | F12 trade | Requests, offer edits, both approval stages, stale revisions, cancellation/expiry, close/reopen and reservations |
 | F13 history | Personal/participant records only; owner audit; no other player's private body or receipt |
 | F14 recovery | Restart and lost-response replay preserve operations, balances, reservations and unfinished drafts |
-| F15 settings | Interface/Account/About; launcher book and closed-eye switch; individual panel preferences; origin-bound saved state |
+| F15 settings | Interface/Account/About; launcher open/close toggles, equal-sized power icon and shared window style; individual panel preferences; origin-bound saved state |
 | F16 lifecycle | Install/update/version errors, readiness, migration/restore evidence; export/deletion still planned |
 | F17 profiles/notices | Profile/logo edits, five retained announcements/read markers, group privacy, notices/events/favorite HUD |
 
@@ -34,7 +34,10 @@ records current acceptance status; this checklist describes what to verify.
   and newly verified characters see drafts/active/archives automatically. Creation
   controls stay hidden without seasons.create. Repeated refresh preserves assets.
 - Windows: inventory placement/scaling, writing readability, independent filters,
-  focus and unsaved drafts. Closed-eye toggle hides only automatic panels/HUDs
+  focus and unsaved drafts. Click every launcher button twice, close its window
+  using X, and verify its highlight. Trade closure cancels accepted exchanges but
+  leaves pending invitations available. Compare Trade/Settings to Writing/Crafting
+  and verify DPI sizing. Power toggle hides only automatic panels/HUDs
   while retaining individual preferences.
 
 ## Automated release checks

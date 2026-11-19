@@ -18,7 +18,7 @@ version from source or change the private host while doing local maintenance.
 The shell owns separate feature windows; SeasonsPanel partials share current view
 state. Settings is Interface/Account/About. Preserve window IDs, saved property
 names, DPAPI purposes and origin bindings. The launcher book opens Writing; its
-closed-eye icon controls automatic panels/HUDs. Do not reintroduce the old main menu.
+power icon controls automatic panels/HUDs. Do not reintroduce the old main menu.
 
 Server feature services own transactions, database locks, reauthorization, ETags
 and receipts. Shared media code handles storage/hash/PNG response only. Financial

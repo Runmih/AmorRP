@@ -25,12 +25,5 @@ public sealed class WorkspaceWindow : Window
         _ => "Season"
     };
     public override bool DrawConditions() => loaded();
-    public override void PreDraw()
-    {
-        ImGui.PushStyleColor(ImGuiCol.WindowBg, new Vector4(.075f, .083f, .10f, .98f));
-        ImGui.PushStyleColor(ImGuiCol.Header, new Vector4(.32f, .27f, .16f, .85f));
-        ImGui.PushStyleColor(ImGuiCol.HeaderHovered, new Vector4(.42f, .35f, .20f, .9f));
-    }
-    public override void PostDraw() => ImGui.PopStyleColor(3);
     public override void Draw() => draw(kind);
 }
