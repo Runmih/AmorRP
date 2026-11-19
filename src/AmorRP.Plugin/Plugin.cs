@@ -22,13 +22,12 @@ public sealed class Plugin : IDalamudPlugin
     private readonly FavoriteEventsWindow favoriteEventsWindow;
     private readonly MainWindow mainWindow;
     private readonly AmorRP.Plugin.Features.Inventory.CompactWindow compactWindow;
-    private readonly AmorRP.Plugin.Features.Inventory.InventoryCompanionWindow inventoryCompanionWindow;
     private readonly AmorRP.Plugin.Features.Trading.TradeWindow tradeWindow;
     private readonly AmorRP.Plugin.Features.Seasons.SeasonFormWindow createCommunityWindow;
     private readonly CharacterContext context;
 
     public Plugin(IDalamudPluginInterface pluginInterface, ICommandManager commands, IPlayerState playerState,
-        IContextMenu contextMenu, IPartyList party, ITextureProvider textures, IGameGui gameGui)
+        IContextMenu contextMenu, IPartyList party, ITextureProvider textures)
     {
         this.pluginInterface = pluginInterface;
         this.commands = commands;
@@ -42,7 +41,6 @@ public sealed class Plugin : IDalamudPlugin
         writingLogWindow = new(mainWindow.DrawWritingLog, () => playerState.IsLoaded);
         mainWindow.OpenWritingLog = () => writingLogWindow.IsOpen = true;
         compactWindow = new(mainWindow.DrawCompact);
-        inventoryCompanionWindow = new(gameGui, () => configuration.ShowAttachedInterfaces && configuration.ShowInventoryCompanion && playerState.IsLoaded, mainWindow.DrawInventoryCompanion);
         tradeWindow = new(mainWindow.DrawTrade, mainWindow.TradeOpened, mainWindow.TradeClosed);
         mainWindow.OpenTrade = () => tradeWindow.IsOpen = true;
         createCommunityWindow = new("Amor RP — Prepare season###AmorRPCreateCommunity", mainWindow.DrawCreateCommunity, () => mainWindow.CanDrawCommunityForms, new(560, 660), mainWindow.ClearFeedback);
@@ -50,7 +48,7 @@ public sealed class Plugin : IDalamudPlugin
         mainWindow.CloseCreateCommunity = () => createCommunityWindow.IsOpen = false;
         launcherWindow = new(() => ToggleWindow(writingLogWindow, mainWindow.OpenWritingLogFromLauncher),
             () => ToggleWindow(tradeWindow, mainWindow.OpenTradeFromLauncher),
-            kind => ToggleWindow(workspaceWindows[kind], () => mainWindow.OpenWorkspaceFromLauncher(kind)),
+            kind => ToggleWindow(workspaceWindows[kind], () => mainWindow.ShowWorkspace(kind)),
             () => writingLogWindow.IsOpen, () => tradeWindow.IsOpen, kind => workspaceWindows[kind].IsOpen,
             () => mainWindow.PendingTradeRequests, () => mainWindow.UnreadAnnouncements, () => playerState.IsLoaded,
             () => configuration.ShowAttachedInterfaces, ToggleAttachedInterfaces,
@@ -65,7 +63,6 @@ public sealed class Plugin : IDalamudPlugin
         windows.AddWindow(writingLogWindow);
         foreach (var workspace in workspaceWindows.Values) windows.AddWindow(workspace);
         windows.AddWindow(compactWindow);
-        windows.AddWindow(inventoryCompanionWindow);
         windows.AddWindow(tradeWindow);
         windows.AddWindow(createCommunityWindow);
         windows.AddWindow(launcherWindow);
@@ -77,7 +74,7 @@ public sealed class Plugin : IDalamudPlugin
 
     private void Draw()
     {
-        mainWindow.SetInventoryCompanionVisible(inventoryCompanionWindow.UpdateAttachment());
+        mainWindow.SetInventoryVisible(workspaceWindows[WorkspaceKind.Inventory].IsOpen && playerState.IsLoaded);
         mainWindow.SetWritingLogVisible(writingLogWindow.IsOpen && playerState.IsLoaded);
         mainWindow.Tick();
         using var theme = PluginTheme.Apply();
@@ -92,10 +89,11 @@ public sealed class Plugin : IDalamudPlugin
             case "compact": compactWindow.Toggle(); break;
             case "trade": mainWindow.OpenTradeFromLauncher(); break;
             case "writing": mainWindow.OpenWritingLogFromLauncher(); break;
-            case "crafting": mainWindow.OpenWorkspaceFromLauncher(WorkspaceKind.Crafting); break;
-            case "groups": mainWindow.OpenWorkspaceFromLauncher(WorkspaceKind.GroupManagement); break;
-            case "manage": mainWindow.OpenWorkspaceFromLauncher(WorkspaceKind.CommunityManagement); break;
-            case "season": mainWindow.OpenWorkspaceFromLauncher(WorkspaceKind.Season); break;
+            case "inventory": mainWindow.ShowWorkspace(WorkspaceKind.Inventory); break;
+            case "crafting": mainWindow.ShowWorkspace(WorkspaceKind.Crafting); break;
+            case "groups": mainWindow.ShowWorkspace(WorkspaceKind.GroupManagement); break;
+            case "manage": mainWindow.ShowWorkspace(WorkspaceKind.CommunityManagement); break;
+            case "season": mainWindow.ShowWorkspace(WorkspaceKind.Season); break;
             case "launcher":
                 configuration.ShowLauncher = !configuration.ShowLauncher; launcherWindow.IsOpen = configuration.ShowLauncher;
                 pluginInterface.SavePluginConfig(configuration); break;

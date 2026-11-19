@@ -18,6 +18,12 @@ public sealed partial class SeasonsPanel
 
     private void DrawWorkspace(WorkspaceKind kind, PendingCommand? pending)
     {
+        if (kind == WorkspaceKind.Inventory)
+        {
+            DrawInventoryWorkspace(pending);
+            return;
+        }
+
         ImGui.TextColored(InventoryGold, WorkspaceWindow.Title(kind).ToUpperInvariant());
         DrawCommunitySelection();
         if (community == null)

@@ -37,25 +37,27 @@ public sealed class LauncherWindow : Window
     public override void Draw()
     {
         var size = new Vector2(ImGui.GetFrameHeight() * 1.4f);
-        if (ToggleButton("LauncherWriting", FontAwesomeIcon.BookOpen, size, writingVisible(), "Writing")) toggleWriting();
+        DrawWorkspaceButton("LauncherCommunity", FontAwesomeIcon.Home, size, WorkspaceKind.Season, announcements() > 0);
+        ImGui.SameLine();
+        DrawWorkspaceButton("LauncherInventory", FontAwesomeIcon.BoxOpen, size, WorkspaceKind.Inventory);
         ImGui.SameLine();
         DrawWorkspaceButton("LauncherCrafting", FontAwesomeIcon.Hammer, size, WorkspaceKind.Crafting);
         ImGui.SameLine();
-        DrawWorkspaceButton("LauncherCommunity", FontAwesomeIcon.Users, size, WorkspaceKind.Season, announcements() > 0);
+        if (ToggleButton("LauncherWriting", FontAwesomeIcon.BookOpen, size, writingVisible(), "Writing log")) toggleWriting();
         if (canManageGroups())
         {
             ImGui.SameLine();
-            DrawWorkspaceButton("LauncherGroupManagement", FontAwesomeIcon.Sitemap, size, WorkspaceKind.GroupManagement);
+            DrawWorkspaceButton("LauncherGroupManagement", FontAwesomeIcon.Users, size, WorkspaceKind.GroupManagement);
         }
+        ImGui.SameLine();
+        if (ToggleButton("LauncherTrade", FontAwesomeIcon.BalanceScale, size, tradeVisible(), "Trade", requests() > 0)) toggleTrade();
         if (canManageCommunity())
         {
             ImGui.SameLine();
-            DrawWorkspaceButton("LauncherCommunityManagement", FontAwesomeIcon.Cog, size, WorkspaceKind.CommunityManagement);
+            DrawWorkspaceButton("LauncherCommunityManagement", FontAwesomeIcon.Key, size, WorkspaceKind.CommunityManagement);
         }
         ImGui.SameLine();
-        if (ToggleButton("LauncherTrade", FontAwesomeIcon.ExchangeAlt, size, tradeVisible(), "Trade", requests() > 0)) toggleTrade();
-        ImGui.SameLine();
-        if (ToggleButton("##LauncherInterfaces", FontAwesomeIcon.PowerOff, size, interfacesVisible(), "attached panels", power: true)) toggleInterfaces();
+        if (ToggleButton("##LauncherInterfaces", FontAwesomeIcon.PowerOff, size, interfacesVisible(), "automatic HUDs", power: true)) toggleInterfaces();
     }
 
     private void DrawWorkspaceButton(string id, FontAwesomeIcon icon, Vector2 size, WorkspaceKind kind, bool badge = false)

@@ -9,19 +9,17 @@ multi-character interaction still require [in-game acceptance](../delivery/accep
 | Settings | `/amorrp` or `/amorrp settings`; Interface, Account, About |
 | Writing | Launcher book or `/amorrp writing`; full document list and dedicated reader |
 | Crafting | `/amorrp crafting`; authorized Alchemy/Cooking and writing production |
-| Season browser | `/amorrp season`; overview, Members, Groups, Noticeboard |
+| Home | `/amorrp season`; overview, Members, Groups, Noticeboard |
 | Group management | `/amorrp groups`; owned/authorized group settings and staff features |
 | Season management | `/amorrp manage`; authorized profile, permissions, economy and administration |
 | Trade | `/amorrp trade`, member action or character context menu; requests and exchange |
-| Inventory companion | Attached to the right of the selected vanilla inventory window |
+| Inventory | Launcher box or `/amorrp inventory` |
 
 Every launcher window button toggles its related window open/closed and highlights
 while that window is open. Context actions still open/focus their requested content.
 All launcher icons, including Power, use the same icon-button size and renderer.
 
-The quick launcher has no community selection. Its book opens Writing; its
-power icon toggles automatic panels/HUDs without text. Individual inventory
-and event-HUD preferences remain saved while panels are hidden.
+Launcher order is Home, Inventory, Crafting, Writing log, Group Management, Trade, Season Management and Power. Group and admin controls follow their permission checks. Power toggles automatic HUDs and remembers the favorite-events preference.
 
 ## Shared season context
 
@@ -39,7 +37,7 @@ membership removal/block/restore or inactive-member controls remain.
 ## Data, drafts and feedback
 
 Inventory supports tabs, categories, search, sorting, item details, pins and bounded
-pagination. Finances appear at the bottom of the companion. Its filters/selection
+pagination. Finances appear at the bottom of Inventory. Its filters/selection
 are independent of the main inventory editor and Writing reader. Future Supplies
 and Documents entries are honest empty states rather than unimplemented actions.
 
@@ -69,6 +67,6 @@ receipt and accurate available/reserved balances.
 ## Shared theme
 
 PluginTheme applies one dark-and-gold palette and scaled rounding around the plugin
-WindowSystem. Settings, Trade, Writing, workspaces, attached inventory and popups
+WindowSystem. Settings, Trade, Writing, workspaces, Inventory and popups
 inherit that same style. Individual windows retain placement/behavior; the theme
 stack restores after drawing and does not restyle other plugins.

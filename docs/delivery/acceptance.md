@@ -17,7 +17,7 @@ records current acceptance status; this checklist describes what to verify.
 | F07 definitions | Author permissions/revisions/retirement; cost changes invalidate previews; old copies remain readable |
 | F08 production | Atomic quantity/cost, separate character/season budgets, Monday reset, no refresh/grant-change refill |
 | F09 writing | Full dedicated reader; holder-only body; bounded input; eligible edits and traded-text lock |
-| F10 inventory | Companion sits right of native inventory at different scales; tabs/filter/sort/pins/details and finances stay readable |
+| F10 inventory | Inventory opens from the launcher and resizes independently; vanilla inventory does not open it; tabs/filter/sort/pins/details and finances stay readable |
 | F11 use/chat | Literal `<3`, correct destination/preview, exactly one item mutation, no automatic chat retry or startup permission window |
 | F12 trade | Requests, offer edits, both approval stages, stale revisions, cancellation/expiry, close/reopen and reservations |
 | F13 history | Personal/participant records only; owner audit; no other player's private body or receipt |
@@ -33,7 +33,7 @@ records current acceptance status; this checklist describes what to verify.
 - Seasons: configured administrator creates/activates while draft selected; ordinary
   and newly verified characters see drafts/active/archives automatically. Creation
   controls stay hidden without seasons.create. Repeated refresh preserves assets.
-- Windows: inventory placement/scaling, writing readability, independent filters,
+- Windows: standalone inventory resizing/scaling, writing readability, independent filters,
   focus and unsaved drafts. Click every launcher button twice, close its window
   using X, and verify its highlight. Trade closure cancels accepted exchanges but
   leaves pending invitations available. Compare Trade/Settings to Writing/Crafting

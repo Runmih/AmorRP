@@ -16,7 +16,7 @@ read-only economies. The [milestone plan](../planning/README.md) owns delivery s
 | F07 | Definitions | Authorized immutable recipe revisions, retirement and cost validation |
 | F08 | Production | Character/season weekly quotas and atomic production |
 | F09 | Writing | Shared writing allowance, owned text reader and untraded-author editing |
-| F10 | Inventory | Search/filter/sort, item details, pins, attached companion and discard |
+| F10 | Inventory | Search/filter/sort, item details, pins, finances and discard in a dedicated window |
 | F11 | Use/chat | Explicit validated preview, one committed item use and chosen chat destination |
 | F12 | Trading | Invitations, reservations, two-stage revision-bound confirmation and atomic exchange |
 | F13 | History | Personal records, participant receipts and owner audit; private bodies excluded |

@@ -67,7 +67,7 @@ state for highlighting/toggling; Trade uses its normal close lifecycle.
 The shell owns independent windows. SeasonsPanel partials share current verified
 character/season, feature data and editor state. They are not separate controllers;
 future extraction should follow real state ownership and tests, not filename count.
-Inventory companion and Writing have independent filters, selection and pagination.
+Inventory and Writing have independent filters, selection and pagination.
 
 RequestCoordinator distinguishes foreground mutations/reads and background sync,
 with generation checks that discard stale results. Feature refreshers isolate retry,

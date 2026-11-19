@@ -38,13 +38,10 @@ public sealed partial class SeasonsPanel
         { configuration.ShowLauncher = show; save(); SetLauncherVisible?.Invoke(show); }
         ImGui.Spacing(); ImGui.Separator(); ImGui.Spacing();
         var attached = configuration.ShowAttachedInterfaces;
-        if (ImGui.Checkbox("Show attached panels and HUDs", ref attached))
+        if (ImGui.Checkbox("Enable automatic HUDs", ref attached))
         { configuration.ShowAttachedInterfaces = attached; save(); }
-        Wrapped("The launcher's power button controls this switch. Your individual panel choices below are remembered.");
+        Wrapped("The launcher's power button controls this switch. Your HUD preference is remembered.");
         ImGui.Spacing();
-        var inventory = configuration.ShowInventoryCompanion;
-        if (ImGui.Checkbox("RP inventory beside game inventory", ref inventory))
-        { configuration.ShowInventoryCompanion = inventory; save(); }
         var events = configuration.ShowFavoriteEvents;
         if (ImGui.Checkbox("Favorite events HUD", ref events))
         { configuration.ShowFavoriteEvents = events; save(); SetFavoriteEventsVisible?.Invoke(events); }
@@ -60,7 +57,7 @@ public sealed partial class SeasonsPanel
             ImGui.TextDisabled("Seasons");
         ImGui.Spacing();
         Wrapped("Settings: /amorrp settings");
-        Wrapped("Windows: /amorrp writing, /amorrp crafting, /amorrp season, /amorrp groups, /amorrp manage and /amorrp trade");
+        Wrapped("Windows: /amorrp season (Home), /amorrp inventory, /amorrp crafting, /amorrp writing, /amorrp groups, /amorrp manage and /amorrp trade");
         ImGui.Spacing();
         if (ImGui.Button("Copy version info"))
             ImGui.SetClipboardText($"Amor RP plugin: {PluginVersion}\nServer (last connected): {connectedServerVersion ?? "Not connected"}");

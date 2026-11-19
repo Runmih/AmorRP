@@ -8,7 +8,7 @@ state ownership, dependencies and transaction boundaries.
 | --- | --- |
 | src/AmorRP.Plugin/Features/Shell | Settings shell, launcher and dedicated workspace windows |
 | src/AmorRP.Plugin/Features/Seasons | Shared selected context, feature screens, drafts and refresh state |
-| src/AmorRP.Plugin/Features/Inventory | Native inventory attachment/placement and compact window |
+| src/AmorRP.Plugin/Features/Inventory | Inventory queries and compact window |
 | src/AmorRP.Plugin/Features/Writing | Dedicated Writing window |
 | src/AmorRP.Plugin/Features/Trading | Trade window host |
 | src/AmorRP.Plugin/Services/Api | HTTP client, command routes, compatibility gate, request coordination and refresh helpers |

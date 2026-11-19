@@ -34,7 +34,7 @@ public sealed class MainWindow : Window, IDisposable
     public bool CanOpenGroupManagement => communities.CanOpenGroupManagement;
     public bool CanOpenCommunityManagement => communities.CanOpenCommunityManagement;
     public Action<WorkspaceKind>? OpenWorkspace { get; set; }
-    public void OpenWorkspaceFromLauncher(WorkspaceKind kind) => communities.OpenWorkspace(kind);
+    public void ShowWorkspace(WorkspaceKind kind) => communities.OpenWorkspace(kind);
     public void DrawWorkspace(WorkspaceKind kind) => communities.Draw(ProductServer.Origin, workspace: kind);
     public void OpenWritingLogFromLauncher() => communities.OpenWritingLog();
     public void DrawWritingLog() => communities.Draw(ProductServer.Origin, writingMode: true);
@@ -53,8 +53,7 @@ public sealed class MainWindow : Window, IDisposable
     public bool CanDrawCommunityForms => communities.CanDrawCommunityForms;
     public void DrawCreateCommunity() => communities.DrawCreateCommunity();
     public void DrawCompact() => communities.Draw(ProductServer.Origin, compactMode: true);
-    public void DrawInventoryCompanion() => communities.Draw(ProductServer.Origin, inventoryMode: true);
-    public void SetInventoryCompanionVisible(bool visible) => communities.SetInventoryCompanionVisible(visible);
+    public void SetInventoryVisible(bool visible) => communities.SetInventoryVisible(visible);
     public override void Draw() => communities.Draw(ProductServer.Origin);
     public void ClearFeedback() => communities.WindowOpened();
     public override void OnOpen() => ClearFeedback();

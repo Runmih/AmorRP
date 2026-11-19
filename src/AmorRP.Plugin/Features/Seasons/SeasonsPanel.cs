@@ -66,7 +66,7 @@ public sealed partial class SeasonsPanel(IPlayerState player, Configuration conf
     private Guid? balanceFor;
     private int nextPoints, nextLetters, nextCooking;
 
-    public void Draw(string backendUrl, bool compactMode = false, bool inventoryMode = false, bool writingMode = false, WorkspaceKind? workspace = null)
+    public void Draw(string backendUrl, bool compactMode = false, bool writingMode = false, WorkspaceKind? workspace = null)
     {
         EnsureScope(backendUrl);
         var world = player.HomeWorld;
@@ -79,7 +79,7 @@ public sealed partial class SeasonsPanel(IPlayerState player, Configuration conf
         if (refreshNeeded && !Busy && !SyncBusy && session != null && session.AccessExpiresAt > DateTimeOffset.UtcNow)
         { refreshNeeded = false; Refresh(); }
         busy = Busy;
-        if (!compactMode && !inventoryMode && !writingMode && workspace == null)
+        if (!compactMode && !writingMode && workspace == null)
         {
             DrawSettingsWindow(busy, localName, localWorld, world.RowId);
             return;
@@ -94,7 +94,6 @@ public sealed partial class SeasonsPanel(IPlayerState player, Configuration conf
         TickTrades(); icons.Draw(); logos.Draw();
         if (workspace is { } activeWorkspace) { DrawWorkspace(activeWorkspace, pending); return; }
         if (writingMode) { DrawWritingLog(pending); return; }
-        if (inventoryMode) { DrawInventoryCompanion(pending); return; }
         DrawCommunitySelection();
         var feedbackHeight = ActionFeedbackHeight(pending);
         ImGui.BeginChild("ProductContent", new System.Numerics.Vector2(0, feedbackHeight > 0 ? -feedbackHeight - ImGui.GetStyle().ItemSpacing.Y : 0), false);

@@ -9,8 +9,8 @@ public sealed partial class SeasonsPanel
     {
         if (session == null || community == null)
         {
-            Wrapped(session == null ? "Sign in from Settings to trade." : "Select the shared season in the Season window to trade.");
-            if (ImGui.Button(session == null ? "Open Settings" : "Open Season"))
+            Wrapped(session == null ? "Sign in from Settings to trade." : "Select the shared season in Home to trade.");
+            if (ImGui.Button(session == null ? "Open Settings" : "Open Home"))
             {
                 if (session == null) { requestedAccountSettings = true; OpenSettingsWindow?.Invoke(); }
                 else OpenWorkspace(AmorRP.Plugin.Features.Shell.WorkspaceKind.Season);

@@ -10,7 +10,6 @@ public sealed class Configuration : IPluginConfiguration
     public bool ShowFavoriteEvents { get; set; } = true;
     public bool ShowLauncher { get; set; } = true;
     public bool ShowAttachedInterfaces { get; set; } = true;
-    public bool ShowInventoryCompanion { get; set; } = true;
     public Dictionary<string, Guid[]> PinnedHoldings { get; set; } = [];
     public List<Services.Identity.SavedSession> SavedSessions { get; set; } = [];
     public List<Services.Identity.PendingCommand> PendingCommands { get; set; } = [];

@@ -10,7 +10,6 @@
     <Compile Include="../../src/AmorRP.Plugin/Features/Seasons/GroupProfileDraft.cs" Link="Features/Seasons/GroupProfileDraft.cs" />
     <Compile Include="../../src/AmorRP.Plugin/Features/Seasons/GroupPermissionDraft.cs" Link="Features/Seasons/GroupPermissionDraft.cs" />
     <Compile Include="../../src/AmorRP.Plugin/Features/Seasons/FavoriteEventSchedule.cs" Link="Features/Seasons/FavoriteEventSchedule.cs" />
-    <Compile Include="../../src/AmorRP.Plugin/Features/Inventory/InventoryAttachmentLayout.cs" Link="Features/Inventory/InventoryAttachmentLayout.cs" />
     <Compile Include="../../src/AmorRP.Plugin/Features/Inventory/InventoryCompanionQuery.cs" Link="Features/Inventory/InventoryCompanionQuery.cs" />
     <Compile Include="../../src/AmorRP.Plugin/Features/Writing/WritingLogReader.cs" Link="Features/Writing/WritingLogReader.cs" />
     <Compile Include="../../src/AmorRP.Plugin/Features/Shell/WorkspaceAccess.cs" Link="Features/Shell/WorkspaceAccess.cs" />

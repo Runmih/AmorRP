@@ -8,39 +8,6 @@ namespace AmorRP.Plugin.Tests;
 public sealed class InventoryCompanionTests
 {
     [Fact]
-    public void Attachment_tracks_the_native_right_edge_and_height_in_screen_pixels()
-    {
-        var normal = InventoryAttachmentLayout.Place(new(50, 20), new(460, 800), Vector2.Zero, new(1920, 1080), 1)!.Value;
-        Assert.Equal(new Vector2(518, 20), normal.Position);
-        Assert.Equal(new Vector2(540, 800), normal.Size);
-
-        var scaled = InventoryAttachmentLayout.Place(new(120, 70), new(690, 900), Vector2.Zero, new(2560, 1440), 1.5f)!.Value;
-        Assert.Equal(new Vector2(822, 70), scaled.Position);
-        Assert.Equal(new Vector2(810, 900), scaled.Size);
-    }
-
-    [Fact]
-    public void Limited_space_shrinks_the_panel_without_moving_it_over_inventory_or_to_the_left()
-    {
-        var panel = InventoryAttachmentLayout.Place(new(1000, 700), new(460, 800), Vector2.Zero, new(1920, 1080), 1)!.Value;
-        Assert.Equal(1468, panel.Position.X);
-        Assert.Equal(444, panel.Size.X);
-        Assert.True(panel.Position.Y >= 0);
-        Assert.True(panel.Position.Y + panel.Size.Y <= 1080);
-        Assert.Null(InventoryAttachmentLayout.Place(new(1500, 20), new(460, 800), Vector2.Zero, new(1920, 1080), 1));
-    }
-
-    [Fact]
-    public void Attachment_respects_viewport_offsets_and_rejects_unusable_native_bounds()
-    {
-        var panel = InventoryAttachmentLayout.Place(new(2050, 50), new(460, 800), new(1920, 0), new(1920, 1080), 1)!.Value;
-        Assert.Equal(2518, panel.Position.X);
-        Assert.Null(InventoryAttachmentLayout.Place(Vector2.Zero, Vector2.Zero, Vector2.Zero, new(1920, 1080), 1));
-        Assert.Null(InventoryAttachmentLayout.Place(new(float.NaN, 0), new(460, 800), Vector2.Zero, new(1920, 1080), 1));
-        Assert.Null(InventoryAttachmentLayout.Place(Vector2.Zero, new(460, 800), Vector2.Zero, new(1920, 1080), float.PositiveInfinity));
-    }
-
-    [Fact]
     public void Search_and_sort_are_applied_on_the_server_before_pagination()
     {
         var query = new InventoryCompanionQuery { Search = " Tea & cake? ", Sort = 2 };

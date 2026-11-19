@@ -24,7 +24,7 @@ public sealed partial class SeasonsPanel
     private long companionViewVersion;
     private sealed record CompanionInventoryRead(HoldingPage Page, HoldingDetails? Details);
 
-    public void SetInventoryCompanionVisible(bool visible)
+    public void SetInventoryVisible(bool visible)
     {
         if (visible && !companionVisible)
         {
@@ -86,9 +86,9 @@ public sealed partial class SeasonsPanel
         companionHoldings = new([], null, "0"); companionInventoryRefresh.Reset();
     }
 
-    private void DrawInventoryCompanion(PendingCommand? pending)
+    private void DrawInventoryWorkspace(PendingCommand? pending)
     {
-        ImGui.TextColored(InventoryGold, "AMOR RP  /  INVENTORY");
+        ImGui.TextColored(InventoryGold, "INVENTORY");
         DrawCommunitySelector("##InventoryCommunity", -1);
         DrawSeasonState();
         if (community == null)
