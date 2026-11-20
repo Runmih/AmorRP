@@ -11,6 +11,7 @@ public sealed partial class SeasonsPanel
 {
     private Trade[] trades = [];
     private Holding[] tradeInventory = [];
+    private bool tradeInventoryLoaded;
     private string? tradeInventoryCursor;
     private Guid? tradeSelection, tradeTargetId;
     private CharacterTarget? contextTarget;
@@ -21,7 +22,7 @@ public sealed partial class SeasonsPanel
     private string tradePollError = "";
     private Season? switchAfterTrade;
     private TradeDraft? tradeDraft;
-    private int submittedTradeGeneration, tradeConflictRetries, transferQuantity = 1;
+    private int submittedTradeGeneration, tradeConflictRetries;
     private bool tradeCancelRequested, tradeReadyRequested, tradeAcceptRequested, tradePreparing;
     private bool tradeWindowVisible, tradeWindowCloseRequested, confirmationStartedLocally;
     private Trade? finalReview;
@@ -59,10 +60,12 @@ public sealed partial class SeasonsPanel
     private void ClearTradeViews()
     {
         contextLookup = null; requestedTradeTab = 0;
-        trades = []; tradeInventory = []; tradeInventoryCursor = null; tradeSelection = tradeTargetId = null;
+        trades = []; tradeInventory = []; tradeInventoryCursor = null;
+        tradeSearch = tradeInventoryQuery = ""; tradeQuantityMove = null; tradeSelection = tradeTargetId = null;
+        draftTradeHoldings.Clear(); tradeInventoryLoaded = openTradeQuantity = false;
         tradeDraft = null; finalReview = null; popupForTrade = null; submittedTradeGeneration = 0;
         tradeCancelRequested = tradeReadyRequested = tradeAcceptRequested = tradePreparing = confirmationStartedLocally = false;
-        tradeConflictRetries = 0; transferQuantity = 1; tradeFeedback = tradePollError = ""; switchAfterTrade = null; nextTradePoll = default;
+        tradeConflictRetries = 0; tradeFeedback = tradePollError = ""; switchAfterTrade = null; nextTradePoll = default;
         if (tradeWork != null) _ = tradeWork.ContinueWith(t => { _ = t.Exception; }, TaskScheduler.Default); tradeWork = null;
     }
     private void ObserveTrade(Trade t)
@@ -82,7 +85,13 @@ public sealed partial class SeasonsPanel
         if (Active(t)) tradeSelection = t.Id;
         if (session == null) return;
         if (previous == null && t.State == "invited" && t.Initiator.Character.Id == session.Character.Id && tradeWindowVisible) requestedTradeTab = 1;
-        if (tradeDraft?.TradeId != t.Id && SelectedTrade?.Id == t.Id) { tradeDraft = new(t, session.Character.Id); confirmationStartedLocally = false; popupForTrade = null; }
+        if (tradeDraft?.TradeId != t.Id && SelectedTrade?.Id == t.Id)
+        {
+            tradeDraft = new(t, session.Character.Id);
+            draftTradeHoldings.Clear();
+            confirmationStartedLocally = false;
+            popupForTrade = null;
+        }
         else if (tradeDraft?.TradeId == t.Id) tradeDraft.Observe(t, session.Character.Id);
         if (!Active(t))
         {
@@ -116,6 +125,7 @@ public sealed partial class SeasonsPanel
         if (tradeWork != null || session == null || community == null || session.AccessExpiresAt <= DateTimeOffset.UtcNow || DateTimeOffset.UtcNow < nextTradePoll) return;
         var uri = origin!; var token = session.AccessToken; var id = community.Id; var ct = requests.Token;
         var loadInventory = tradeWindowVisible; var inventoryCount = tradeInventory.Length;
+        var inventoryQuery = tradeInventoryQuery;
         tradeView = viewGeneration; tradeData = dataGeneration;
         nextTradePoll = DateTimeOffset.UtcNow.AddSeconds(ActiveTrade != null || tradeWindowVisible ? 2 : 15);
         tradeWork = Task.Run(async () => {
@@ -123,18 +133,23 @@ public sealed partial class SeasonsPanel
             // remain in history; do not repeatedly download full historical item previews.
             var pageTrades = await client.GetAsync<TradePage>(uri, $"api/v2/seasons/{id}/trades?limit=1", token, ct);
             var balances = loadInventory ? await client.GetAsync<AmorRP.Contracts.Currency.BalancePage>(uri, $"api/v2/seasons/{id}/members/{session.Character.Id}/balances", token, ct) : null;
-            HoldingPage? inventory = loadInventory ? await client.GetAsync<HoldingPage>(uri, $"api/v2/seasons/{id}/inventory", token, ct) : null;
+            HoldingPage? inventory = loadInventory ? await client.GetAsync<HoldingPage>(uri, $"api/v2/seasons/{id}/inventory{inventoryQuery}", token, ct) : null;
             if (inventory != null && inventoryCount > inventory.Items.Length)
             {
                 var list = inventory.Items.ToList();
                 while (inventory.NextCursor != null && list.Count < inventoryCount)
-                { var page = await client.GetAsync<HoldingPage>(uri, $"api/v2/seasons/{id}/inventory?cursor=" + Uri.EscapeDataString(inventory.NextCursor), token, ct); list.AddRange(page.Items); inventory = page; }
+                { var page = await client.GetAsync<HoldingPage>(uri, TradeInventoryPath(id, inventoryQuery, inventory.NextCursor), token, ct); list.AddRange(page.Items); inventory = page; }
                 inventory = inventory with { Items = list.ToArray() };
             }
             return (Action)(() => {
                 if (balances?.Items.FirstOrDefault() is { } balance && community?.Id == id && balance.Version >= community.MyBalance.Version)
                     community = community with { MyBalance = balance };
-                if (inventory != null) { tradeInventory = inventory.Items; tradeInventoryCursor = inventory.NextCursor; }
+                if (inventory != null && tradeInventoryQuery == inventoryQuery)
+                {
+                    tradeInventory = inventory.Items;
+                    tradeInventoryCursor = inventory.NextCursor;
+                    tradeInventoryLoaded = true;
+                }
                 var previous = ActiveTrade;
                 foreach (var t in pageTrades.Items) ObserveTrade(t);
                 if (previous != null && ActiveTrade == null)

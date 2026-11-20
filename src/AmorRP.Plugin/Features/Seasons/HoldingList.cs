@@ -5,10 +5,20 @@ namespace AmorRP.Plugin.Features.Seasons;
 
 public sealed partial class SeasonsPanel
 {
+    private static FontAwesomeIcon ItemTypeIcon(string type) => type switch
+    {
+        "potion" or "poison" or "explosive" or "drug" or "medicine" => FontAwesomeIcon.Flask,
+        "meal" or "drink" or "dessert" => FontAwesomeIcon.Utensils,
+        "book" => FontAwesomeIcon.Book,
+        "letter" => FontAwesomeIcon.Envelope,
+        _ => FontAwesomeIcon.StickyNote
+    };
+
     private static void DrawItemTypeIcon(string type)
     {
-        var icon = type switch { "potion" or "poison" or "explosive" or "drug" or "medicine" => FontAwesomeIcon.Flask, "meal" or "drink" or "dessert" => FontAwesomeIcon.Utensils, "book" => FontAwesomeIcon.Book, "letter" => FontAwesomeIcon.Envelope, _ => FontAwesomeIcon.StickyNote };
-        ImGui.PushFont(UiBuilder.IconFont); ImGui.TextUnformatted(icon.ToIconString()); ImGui.PopFont();
+        ImGui.PushFont(UiBuilder.IconFont);
+        ImGui.TextUnformatted(ItemTypeIcon(type).ToIconString());
+        ImGui.PopFont();
     }
     private static void DrawHoldingRows(string id, Holding[] items, Guid? selected, Action<Holding> select)
     {

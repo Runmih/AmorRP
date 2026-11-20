@@ -1,14 +1,14 @@
 # Current milestone plan
 
-Updated 2026-11-19. This is the working plan; it replaces the old M0–M5 roadmaps.
+Updated 2026-11-20. This is the working plan; it replaces the old M0–M5 roadmaps.
 Use main for source and distribution. Release numbers identify shipped packages,
 not permission to mark a milestone accepted.
 
 ## Implemented baseline
 
-The plugin has dedicated Writing, Crafting, Season browsing, Group management,
-Season management and Trade windows. Settings contains Interface, Account and About.
-Inventory opens in its own window from the launcher. The power switch controls automatic HUDs. The book opens Writing.
+Home, Inventory, Crafting and Writing Log share a tabbed window. Group management,
+Season management, Trade and Settings have their own windows. The launcher opens
+the matching tab or window, and Power controls automatic HUDs.
 
 All verified players automatically belong to all non-deleted seasons, including
 drafts and archives. One season is active; drafts and archives are read-only.
@@ -30,7 +30,8 @@ OpenAPI contains a planned route.
 | S02 accounts, treasury and disband settlement | Accepted | Maintainer four game checks, 2026-11-05; currency conservation/replay tests |
 | S03 trusted billing and debt collection | Implemented; game acceptance pending | Check offline billing, trust revocation, debt policy, collection and disbanded-group returns |
 | Seasonal direction and shared membership | Implemented; game acceptance pending | Administrator creation/activation, ordinary-user visibility, every season available, archive privacy and repeated refresh |
-| Dedicated windows and launcher | Implemented; layout acceptance pending | Placement/scaling, launcher toggles and Power sizing, shared Trade/Settings style, focus, unsaved drafts and writing readability in game |
+| Home tabs, launcher and Favorite Events | Implemented; game acceptance pending | Four navigation edges, launcher toggles, scaling, writing readability and empty HUD behavior |
+| Trade grids | Implemented; game acceptance pending | Dragging and right-clicking stacks in both directions, search, offer limits and both confirmations |
 | Maintenance consolidation | Automated verification complete | [0.4.0.4 evidence](../delivery/release-0.4.0.4.md): 381 tests, both exact-source CI workflows, shared foundations and current docs; no new game acceptance claimed |
 | Operational readiness | Partial | Home host works per maintainer report; backup restore, recovery and capacity measurements still require operating evidence |
 | Export/deletion and 1.0 readiness | Planned | Policy/retention decisions and tested private-data lifecycle; no destructive live processing implied |

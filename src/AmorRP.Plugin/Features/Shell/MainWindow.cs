@@ -1,4 +1,5 @@
 using System.Numerics;
+using AmorRP.Contracts.Groups;
 using AmorRP.Plugin.Services.Api;
 using AmorRP.Plugin.Services.Game;
 using Dalamud.Bindings.ImGui;
@@ -19,7 +20,6 @@ public sealed class MainWindow : Window, IDisposable
         SizeCondition = ImGuiCond.FirstUseEver;
         SizeConstraints = new WindowSizeConstraints { MinimumSize = new(460, 360), MaximumSize = new(float.MaxValue) };
         communities.OpenSettingsWindow = () => IsOpen = true;
-        communities.OpenWritingLogWindow = () => OpenWritingLog?.Invoke();
         communities.OpenWorkspaceWindow = kind => OpenWorkspace?.Invoke(kind);
         communities.OpenTradeWindow = () => OpenTrade?.Invoke();
         communities.OpenCreateCommunity = () => OpenCreateCommunity?.Invoke();
@@ -36,14 +36,12 @@ public sealed class MainWindow : Window, IDisposable
     public Action<WorkspaceKind>? OpenWorkspace { get; set; }
     public void ShowWorkspace(WorkspaceKind kind) => communities.OpenWorkspace(kind);
     public void DrawWorkspace(WorkspaceKind kind) => communities.Draw(ProductServer.Origin, workspace: kind);
-    public void OpenWritingLogFromLauncher() => communities.OpenWritingLog();
-    public void DrawWritingLog() => communities.Draw(ProductServer.Origin, writingMode: true);
     public void SetWritingLogVisible(bool visible) => communities.SetWritingLogVisible(visible);
-    public Action? OpenWritingLog { get; set; }
     public void OpenTradeFromLauncher() => communities.OpenTradeFromLauncher();
     public bool HasPendingAction => communities.HasPendingAction;
     public void DrawActivityLog() => communities.DrawActivityLog();
-    public void DrawFavoriteEvents() => communities.DrawFavoriteEvents();
+    public bool DrawFavoriteEvents(GroupEvent[] events) => communities.DrawFavoriteEvents(events);
+    public GroupEvent[] UpcomingFavoriteEvents() => communities.UpcomingFavoriteEvents();
     public Action<bool>? SetFavoriteEventsVisible { get; set; }
     public Action<bool>? SetLauncherVisible { get; set; }
     public Action? OpenTrade { get; set; }

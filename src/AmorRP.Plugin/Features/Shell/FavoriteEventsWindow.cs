@@ -1,13 +1,13 @@
 using System.Numerics;
-using AmorRP.Plugin.Services.Ui;
+using AmorRP.Contracts.Groups;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Windowing;
 
 namespace AmorRP.Plugin.Features.Shell;
 
-public sealed class FavoriteEventsWindow(Configuration configuration, Action save, Action draw, Func<bool> loaded,
-    Action openSettings, Action openLog)
+public sealed class FavoriteEventsWindow(Configuration configuration, Action save, Func<GroupEvent[]> upcoming,
+    Func<GroupEvent[], bool> draw, Func<bool> loaded)
     : Window("Amor RP — Favorite events###AmorRPFavoriteEvents",
         ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoMove
         | ImGuiWindowFlags.NoSavedSettings | ImGuiWindowFlags.NoBackground | ImGuiWindowFlags.NoCollapse
@@ -16,8 +16,14 @@ public sealed class FavoriteEventsWindow(Configuration configuration, Action sav
     private readonly PanelHandle handle = new();
     private LauncherDock dock;
     private bool expanded;
+    private GroupEvent[] events = [];
 
-    public override bool DrawConditions() => loaded();
+    public override bool DrawConditions()
+    {
+        if (!loaded()) return false;
+        events = upcoming();
+        return events.Length > 0 || !configuration.FavoriteEventsHideWhenEmpty;
+    }
 
     public override void PreDraw()
     {
@@ -27,8 +33,10 @@ public sealed class FavoriteEventsWindow(Configuration configuration, Action sav
         var scale = ImGuiHelpers.GlobalScale;
         var size = LauncherDock.ClampPercent(configuration.FavoriteEventsSize, 60, 160, 100) / 100;
         expanded = handle.IsExpanded(configuration.FavoriteEventsDocked, configuration.FavoriteEventsEdge, configuration.FavoriteEventsAutoHide);
+        var rows = Math.Min(8, events.Length) + (configuration.FavoriteEventsShowHeader ? 1 : 0);
+        var contentHeight = Math.Max(1, rows) * ImGui.GetTextLineHeightWithSpacing();
         dock = LauncherDock.PlacePanel(configuration.FavoriteEventsEdge, viewport.WorkPos, viewport.WorkSize,
-            configuration.FavoriteEventsPosition, new Vector2(330, 325) * scale * size, scale, expanded,
+            configuration.FavoriteEventsPosition, new Vector2(210 * scale * size, contentHeight), scale, expanded,
             configuration.FavoriteEventsDocked, new(configuration.FavoriteEventsFloatX, configuration.FavoriteEventsFloatY), 6 * scale);
         ImGui.PushStyleVar(ImGuiStyleVar.WindowMinSize, Vector2.One);
         ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, Vector2.Zero);
@@ -64,7 +72,7 @@ public sealed class FavoriteEventsWindow(Configuration configuration, Action sav
                     configuration.FavoriteEventsFloatX = next.X;
                     configuration.FavoriteEventsFloatY = next.Y;
                 }
-            }, save, () => configuration.FavoriteEventsDocked = !configuration.FavoriteEventsDocked, openSettings, openLog);
+            }, save, () => configuration.FavoriteEventsDocked = !configuration.FavoriteEventsDocked);
             if (!expanded) return;
 
             ImGui.SetCursorScreenPos(dock.Position + dock.ButtonsPosition);
@@ -74,11 +82,8 @@ public sealed class FavoriteEventsWindow(Configuration configuration, Action sav
             ImGui.PushStyleColor(ImGuiCol.ChildBg, Vector4.Zero);
             try
             {
-                if (ImGui.BeginChild("##EventsContent", Vector2.Max(Vector2.One, available), false))
-                {
-                    MenuWindowButtons.DrawInline(openSettings, openLog);
-                    draw();
-                }
+                if (ImGui.BeginChild("##EventsContent", Vector2.Max(Vector2.One, available), false) && draw(events))
+                    handle.HoldOpen();
                 ImGui.EndChild();
             }
             finally { ImGui.PopStyleColor(); }

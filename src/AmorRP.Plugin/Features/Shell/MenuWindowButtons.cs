@@ -1,6 +1,5 @@
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
-using Dalamud.Interface.Components;
 using Dalamud.Interface.Windowing;
 
 namespace AmorRP.Plugin.Features.Shell;
@@ -23,13 +22,4 @@ internal static class MenuWindowButtons
         Click = button => { if (button == ImGuiMouseButton.Left) open(); },
         ShowTooltip = () => ImGui.SetTooltip(label)
     };
-
-    public static void DrawInline(Action openSettings, Action openLog)
-    {
-        if (ImGuiComponents.IconButton("EventsActivity", FontAwesomeIcon.FileAlt)) openLog();
-        if (ImGui.IsItemHovered()) ImGui.SetTooltip("Activity Log");
-        ImGui.SameLine();
-        if (ImGuiComponents.IconButton("EventsSettings", FontAwesomeIcon.Cog)) openSettings();
-        if (ImGui.IsItemHovered()) ImGui.SetTooltip("Settings");
-    }
 }

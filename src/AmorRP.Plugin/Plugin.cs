@@ -19,7 +19,7 @@ public sealed class Plugin : IDalamudPlugin
     private readonly WindowSystem windows = new("AmorRP");
     private readonly Configuration configuration;
     private readonly LauncherWindow launcherWindow;
-    private readonly AmorRP.Plugin.Features.Writing.WritingLogWindow writingLogWindow;
+    private readonly HubWindow hub;
     private readonly Dictionary<WorkspaceKind, WorkspaceWindow> workspaceWindows = [];
     private readonly FavoriteEventsWindow favoriteEventsWindow;
     private readonly MainWindow mainWindow;
@@ -37,11 +37,14 @@ public sealed class Plugin : IDalamudPlugin
         configuration = pluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
         if (configuration.Version < 4) { configuration.Version = 4; pluginInterface.SavePluginConfig(configuration); }
         mainWindow = new MainWindow(playerState, party, configuration, () => pluginInterface.SavePluginConfig(configuration), textures);
-        foreach (var kind in Enum.GetValues<WorkspaceKind>())
+        hub = new(configuration, mainWindow.DrawWorkspace, () => playerState.IsLoaded);
+        foreach (var kind in Enum.GetValues<WorkspaceKind>().Where(kind => !HubWindow.Contains(kind)))
             workspaceWindows[kind] = new(kind, mainWindow.DrawWorkspace, () => playerState.IsLoaded);
-        mainWindow.OpenWorkspace = kind => workspaceWindows[kind].IsOpen = true;
-        writingLogWindow = new(mainWindow.DrawWritingLog, () => playerState.IsLoaded);
-        mainWindow.OpenWritingLog = () => writingLogWindow.IsOpen = true;
+        mainWindow.OpenWorkspace = kind =>
+        {
+            if (HubWindow.Contains(kind)) hub.Show(kind);
+            else workspaceWindows[kind].IsOpen = true;
+        };
         compactWindow = new(mainWindow.DrawCompact);
         tradeWindow = new(mainWindow.DrawTrade, mainWindow.TradeOpened, mainWindow.TradeClosed);
         mainWindow.OpenTrade = () => tradeWindow.IsOpen = true;
@@ -50,21 +53,21 @@ public sealed class Plugin : IDalamudPlugin
         mainWindow.CloseCreateCommunity = () => createCommunityWindow.IsOpen = false;
         activityLogWindow = new(mainWindow.DrawActivityLog);
         launcherWindow = new(configuration, () => pluginInterface.SavePluginConfig(configuration), Open, OpenLog,
-            () => ToggleWindow(writingLogWindow, mainWindow.OpenWritingLogFromLauncher),
+            () => hub.TogglePage(WorkspaceKind.Writing),
             () => ToggleWindow(tradeWindow, mainWindow.OpenTradeFromLauncher),
-            kind => ToggleWindow(workspaceWindows[kind], () => mainWindow.ShowWorkspace(kind)),
-            () => writingLogWindow.IsOpen, () => tradeWindow.IsOpen, kind => workspaceWindows[kind].IsOpen,
+            ToggleWorkspace,
+            () => IsWorkspaceOpen(WorkspaceKind.Writing), () => tradeWindow.IsOpen, IsWorkspaceOpen,
             () => mainWindow.PendingTradeRequests, () => mainWindow.UnreadAnnouncements, () => playerState.IsLoaded,
             () => configuration.ShowAttachedInterfaces, ToggleAttachedInterfaces,
             () => mainWindow.CanOpenGroupManagement, () => mainWindow.CanOpenCommunityManagement)
             { IsOpen = configuration.ShowLauncher };
         mainWindow.SetLauncherVisible = visible => launcherWindow.IsOpen = visible;
         context = new(contextMenu, mainWindow.SelectTarget);
-        favoriteEventsWindow = new(configuration, () => pluginInterface.SavePluginConfig(configuration), mainWindow.DrawFavoriteEvents,
-            () => playerState.IsLoaded && configuration.ShowAttachedInterfaces, Open, OpenLog) { IsOpen = configuration.ShowFavoriteEvents };
+        favoriteEventsWindow = new(configuration, () => pluginInterface.SavePluginConfig(configuration), mainWindow.UpcomingFavoriteEvents, mainWindow.DrawFavoriteEvents,
+            () => playerState.IsLoaded && configuration.ShowAttachedInterfaces) { IsOpen = configuration.ShowFavoriteEvents };
         mainWindow.SetFavoriteEventsVisible = visible => favoriteEventsWindow.IsOpen = visible;
         windows.AddWindow(favoriteEventsWindow);
-        foreach (var menu in (Window[])[mainWindow, writingLogWindow, compactWindow, tradeWindow, createCommunityWindow, .. workspaceWindows.Values])
+        foreach (var menu in (Window[])[mainWindow, hub, compactWindow, tradeWindow, createCommunityWindow, .. workspaceWindows.Values])
         {
             if (MenuWindowButtons.Add(menu, Open, OpenLog) is { } logButton) logButtons.Add(logButton);
             windows.AddWindow(menu);
@@ -80,8 +83,8 @@ public sealed class Plugin : IDalamudPlugin
 
     private void Draw()
     {
-        mainWindow.SetInventoryVisible(workspaceWindows[WorkspaceKind.Inventory].IsOpen && playerState.IsLoaded);
-        mainWindow.SetWritingLogVisible(writingLogWindow.IsOpen && playerState.IsLoaded);
+        mainWindow.SetInventoryVisible(IsWorkspaceOpen(WorkspaceKind.Inventory) && playerState.IsLoaded);
+        mainWindow.SetWritingLogVisible(IsWorkspaceOpen(WorkspaceKind.Writing) && playerState.IsLoaded);
         mainWindow.Tick();
         foreach (var button in logButtons)
             button.IconColor = mainWindow.HasPendingAction ? PluginTheme.Accent : null;
@@ -97,7 +100,7 @@ public sealed class Plugin : IDalamudPlugin
             case "settings": Open(); break;
             case "compact": compactWindow.Toggle(); break;
             case "trade": mainWindow.OpenTradeFromLauncher(); break;
-            case "writing": mainWindow.OpenWritingLogFromLauncher(); break;
+            case "writing": mainWindow.ShowWorkspace(WorkspaceKind.Writing); break;
             case "inventory": mainWindow.ShowWorkspace(WorkspaceKind.Inventory); break;
             case "crafting": mainWindow.ShowWorkspace(WorkspaceKind.Crafting); break;
             case "groups": mainWindow.ShowWorkspace(WorkspaceKind.GroupManagement); break;
@@ -120,6 +123,15 @@ public sealed class Plugin : IDalamudPlugin
     {
         activityLogWindow.IsOpen = true;
         activityLogWindow.BringToFront();
+    }
+
+    private bool IsWorkspaceOpen(WorkspaceKind kind) =>
+        HubWindow.Contains(kind) ? hub.IsOpen && hub.Page == kind : workspaceWindows[kind].IsOpen;
+
+    private void ToggleWorkspace(WorkspaceKind kind)
+    {
+        if (HubWindow.Contains(kind)) hub.TogglePage(kind);
+        else ToggleWindow(workspaceWindows[kind], () => mainWindow.ShowWorkspace(kind));
     }
 
     private static void ToggleWindow(Window window, Action open)

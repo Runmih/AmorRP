@@ -26,7 +26,7 @@ internal sealed class PanelHandle
     public void HoldOpen() => visibleUntil = ImGui.GetTime() + .35;
 
     public void Draw(LauncherDock dock, Vector2 position, Action<Vector2> move, Action save,
-        Action toggleDock, Action openSettings, Action openLog)
+        Action toggleDock, Action? openSettings = null, Action? openLog = null)
     {
         ImGui.SetCursorScreenPos(dock.Position + dock.GripPosition);
         var clicked = ImGui.InvisibleButton("##LauncherDockHandle", dock.GripSize);
@@ -70,8 +70,8 @@ internal sealed class PanelHandle
         {
             HoldOpen();
             if (ImGui.MenuItem(placement.Docked ? "Undock" : "Dock")) { toggleDock(); save(); }
-            if (ImGui.MenuItem("Settings")) openSettings();
-            if (ImGui.MenuItem("Activity Log")) openLog();
+            if (openSettings != null && ImGui.MenuItem("Settings")) openSettings();
+            if (openLog != null && ImGui.MenuItem("Activity Log")) openLog();
             ImGui.EndPopup();
         }
         else if (hovered && !dragging)

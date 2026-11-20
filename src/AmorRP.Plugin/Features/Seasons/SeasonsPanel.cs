@@ -66,7 +66,7 @@ public sealed partial class SeasonsPanel(IPlayerState player, Configuration conf
     private Guid? balanceFor;
     private int nextPoints, nextLetters, nextCooking;
 
-    public void Draw(string backendUrl, bool compactMode = false, bool writingMode = false, WorkspaceKind? workspace = null)
+    public void Draw(string backendUrl, bool compactMode = false, WorkspaceKind? workspace = null)
     {
         EnsureScope(backendUrl);
         var world = player.HomeWorld;
@@ -79,7 +79,7 @@ public sealed partial class SeasonsPanel(IPlayerState player, Configuration conf
         if (refreshNeeded && !Busy && !SyncBusy && session != null && session.AccessExpiresAt > DateTimeOffset.UtcNow)
         { refreshNeeded = false; Refresh(); }
         busy = Busy;
-        if (!compactMode && !writingMode && workspace == null)
+        if (!compactMode && workspace == null)
         {
             DrawSettingsWindow(busy, localName, localWorld, world.RowId);
             return;
@@ -93,7 +93,6 @@ public sealed partial class SeasonsPanel(IPlayerState player, Configuration conf
         if (!Busy && !SyncBusy && pending == null && DateTimeOffset.UtcNow >= nextRefresh && !refreshNeeded) Refresh();
         TickTrades(); icons.Draw(); logos.Draw();
         if (workspace is { } activeWorkspace) { DrawWorkspace(activeWorkspace); return; }
-        if (writingMode) { DrawWritingLog(); return; }
         DrawCommunitySelection();
         ImGui.BeginChild("ProductContent", System.Numerics.Vector2.Zero, false);
         DrawConsumables();

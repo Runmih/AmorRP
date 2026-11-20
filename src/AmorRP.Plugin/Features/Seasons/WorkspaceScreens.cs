@@ -18,6 +18,11 @@ public sealed partial class SeasonsPanel
 
     private void DrawWorkspace(WorkspaceKind kind)
     {
+        if (kind == WorkspaceKind.Writing)
+        {
+            DrawWritingLog();
+            return;
+        }
         if (kind == WorkspaceKind.Inventory)
         {
             DrawInventoryWorkspace();

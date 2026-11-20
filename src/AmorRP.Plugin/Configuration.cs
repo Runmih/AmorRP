@@ -14,6 +14,9 @@ public sealed class Configuration : IPluginConfiguration
     public float QuickBarSize { get; set; } = 100;
     public float QuickBarOpacity { get; set; } = 100;
     public float QuickBarPosition { get; set; } = 50;
+    public Features.Shell.LauncherEdge HubNavigationEdge { get; set; } = Features.Shell.LauncherEdge.Left;
+    public bool FavoriteEventsShowHeader { get; set; } = true;
+    public bool FavoriteEventsHideWhenEmpty { get; set; }
     public bool QuickBarDocked { get; set; } = true;
     public float QuickBarFloatX { get; set; } = 10;
     public float QuickBarFloatY { get; set; } = 30;

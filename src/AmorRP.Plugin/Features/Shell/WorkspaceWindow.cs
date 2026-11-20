@@ -23,6 +23,7 @@ public sealed class WorkspaceWindow : Window
         WorkspaceKind.GroupManagement => "Group management",
         WorkspaceKind.CommunityManagement => "Season management",
         WorkspaceKind.Inventory => "Inventory",
+        WorkspaceKind.Writing => "Writing Log",
         _ => "Home"
     };
     public override bool DrawConditions() => loaded();

@@ -91,6 +91,15 @@ public sealed partial class SeasonsPanel
         ImGui.PopID();
 
         ImGui.Spacing();
+        DrawSectionHeading("Main window");
+        var navigation = (int)configuration.HubNavigationEdge;
+        if (ImGui.Combo("Navigation position", ref navigation, HudEdges, HudEdges.Length))
+        {
+            configuration.HubNavigationEdge = (LauncherEdge)navigation;
+            save();
+        }
+
+        ImGui.Spacing();
         DrawSectionHeading("Automatic HUDs");
         var attached = configuration.ShowAttachedInterfaces;
         if (ImGui.Checkbox("Enable automatic HUDs", ref attached))
@@ -103,11 +112,15 @@ public sealed partial class SeasonsPanel
         var events = configuration.ShowFavoriteEvents;
         if (ImGui.Checkbox("Show Favorite Events", ref events))
         { configuration.ShowFavoriteEvents = events; save(); SetFavoriteEventsVisible?.Invoke(events); }
+        var header = configuration.FavoriteEventsShowHeader;
+        if (ImGui.Checkbox("Show header", ref header)) { configuration.FavoriteEventsShowHeader = header; save(); }
+        var hideEmpty = configuration.FavoriteEventsHideWhenEmpty;
+        if (ImGui.Checkbox("Hide when there are no events", ref hideEmpty)) { configuration.FavoriteEventsHideWhenEmpty = hideEmpty; save(); }
         DrawDockSettings(HudEdges, configuration.FavoriteEventsDocked, x => configuration.FavoriteEventsDocked = x,
             configuration.FavoriteEventsEdge, x => configuration.FavoriteEventsEdge = x,
             configuration.FavoriteEventsAutoHide, x => configuration.FavoriteEventsAutoHide = x,
             configuration.FavoriteEventsPosition, x => configuration.FavoriteEventsPosition = x);
-        PercentSlider("Size", configuration.FavoriteEventsSize, 60, 160, 100, x => configuration.FavoriteEventsSize = x);
+        PercentSlider("Width", configuration.FavoriteEventsSize, 60, 160, 100, x => configuration.FavoriteEventsSize = x);
         PercentSlider("Opacity", configuration.FavoriteEventsOpacity, 25, 100, 100, x => configuration.FavoriteEventsOpacity = x);
         PercentSlider("Background opacity", configuration.FavoriteEventsBackgroundOpacity, 0, 100, 100, x => configuration.FavoriteEventsBackgroundOpacity = x);
         ImGui.PopID();

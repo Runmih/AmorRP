@@ -1,6 +1,7 @@
 using System.Net;
 using AmorRP.Contracts.Inventory;
 using AmorRP.Plugin.Features.Inventory;
+using AmorRP.Plugin.Features.Shell;
 using AmorRP.Plugin.Features.Writing;
 using AmorRP.Plugin.Services.Api;
 using AmorRP.Plugin.Services.Identity;
@@ -18,18 +19,16 @@ public sealed partial class SeasonsPanel
     private string writingLogSearch = "";
     private int writingLogRequestedCount;
     private bool writingLogVisible, writingLogComposing;
-    public Action? OpenWritingLogWindow { get; set; }
-
-    public void OpenWritingLog(Holding? item = null)
+    private void OpenWritingLog(Holding item)
     {
-        if (item != null && community?.Id == item.CommunityId && session?.Character.Id == item.CharacterId
+        if (community?.Id == item.CommunityId && session?.Character.Id == item.CharacterId
             && AmorRP.Core.Items.CraftingTypes.Writing.Contains(item.TypeId))
         {
             writingLogSearch = writingLogQuery.Type = "";
             ResetWritingLogFilters();
             writingLogSelection = item.Id; writingLogComposing = false;
         }
-        OpenWritingLogWindow?.Invoke();
+        OpenWorkspace(WorkspaceKind.Writing);
     }
 
     public void SetWritingLogVisible(bool visible)
