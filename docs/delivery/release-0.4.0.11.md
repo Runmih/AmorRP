@@ -12,3 +12,6 @@ options. Group owners can set a password there. Favoriting is available in
 Home → Groups.
 
 The minimum server version remains 0.4.0.3. In-game acceptance is pending.
+
+The stable release uses the [Windows package from CI](https://github.com/Runmih/AmorRP/actions/runs/44809078818).
+The matching [server workflow](https://github.com/Runmih/AmorRP/actions/runs/44809078842) passed.
