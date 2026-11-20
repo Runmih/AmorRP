@@ -14,6 +14,8 @@ public sealed class Plugin : IDalamudPlugin
     private readonly IDalamudPluginInterface pluginInterface;
     private readonly ICommandManager commands;
     private readonly IPlayerState playerState;
+    private readonly List<TitleBarButton> logButtons = [];
+    private readonly ActivityLogWindow activityLogWindow;
     private readonly WindowSystem windows = new("AmorRP");
     private readonly Configuration configuration;
     private readonly LauncherWindow launcherWindow;
@@ -46,7 +48,8 @@ public sealed class Plugin : IDalamudPlugin
         createCommunityWindow = new("Amor RP — Prepare season###AmorRPCreateCommunity", mainWindow.DrawCreateCommunity, () => mainWindow.CanDrawCommunityForms, new(560, 660), mainWindow.ClearFeedback);
         mainWindow.OpenCreateCommunity = () => createCommunityWindow.IsOpen = true;
         mainWindow.CloseCreateCommunity = () => createCommunityWindow.IsOpen = false;
-        launcherWindow = new(configuration, () => pluginInterface.SavePluginConfig(configuration),
+        activityLogWindow = new(mainWindow.DrawActivityLog);
+        launcherWindow = new(configuration, () => pluginInterface.SavePluginConfig(configuration), Open, OpenLog,
             () => ToggleWindow(writingLogWindow, mainWindow.OpenWritingLogFromLauncher),
             () => ToggleWindow(tradeWindow, mainWindow.OpenTradeFromLauncher),
             kind => ToggleWindow(workspaceWindows[kind], () => mainWindow.ShowWorkspace(kind)),
@@ -57,15 +60,17 @@ public sealed class Plugin : IDalamudPlugin
             { IsOpen = configuration.ShowLauncher };
         mainWindow.SetLauncherVisible = visible => launcherWindow.IsOpen = visible;
         context = new(contextMenu, mainWindow.SelectTarget);
-        favoriteEventsWindow = new(mainWindow.DrawFavoriteEvents, () => playerState.IsLoaded && configuration.ShowAttachedInterfaces) { IsOpen = configuration.ShowFavoriteEvents };
+        favoriteEventsWindow = new(configuration, () => pluginInterface.SavePluginConfig(configuration), mainWindow.DrawFavoriteEvents,
+            () => playerState.IsLoaded && configuration.ShowAttachedInterfaces, Open, OpenLog) { IsOpen = configuration.ShowFavoriteEvents };
         mainWindow.SetFavoriteEventsVisible = visible => favoriteEventsWindow.IsOpen = visible;
         windows.AddWindow(favoriteEventsWindow);
-        windows.AddWindow(mainWindow);
-        windows.AddWindow(writingLogWindow);
-        foreach (var workspace in workspaceWindows.Values) windows.AddWindow(workspace);
-        windows.AddWindow(compactWindow);
-        windows.AddWindow(tradeWindow);
-        windows.AddWindow(createCommunityWindow);
+        foreach (var menu in (Window[])[mainWindow, writingLogWindow, compactWindow, tradeWindow, createCommunityWindow, .. workspaceWindows.Values])
+        {
+            if (MenuWindowButtons.Add(menu, Open, OpenLog) is { } logButton) logButtons.Add(logButton);
+            windows.AddWindow(menu);
+        }
+        MenuWindowButtons.Add(activityLogWindow, Open, OpenLog, isLog: true);
+        windows.AddWindow(activityLogWindow);
         windows.AddWindow(launcherWindow);
         commands.AddHandler(Command, new CommandInfo(OnCommand) { HelpMessage = "/amorrp → Settings" });
         pluginInterface.UiBuilder.Draw += Draw;
@@ -78,6 +83,8 @@ public sealed class Plugin : IDalamudPlugin
         mainWindow.SetInventoryVisible(workspaceWindows[WorkspaceKind.Inventory].IsOpen && playerState.IsLoaded);
         mainWindow.SetWritingLogVisible(writingLogWindow.IsOpen && playerState.IsLoaded);
         mainWindow.Tick();
+        foreach (var button in logButtons)
+            button.IconColor = mainWindow.HasPendingAction ? PluginTheme.Accent : null;
         using var theme = PluginTheme.Apply();
         windows.Draw();
     }
@@ -86,6 +93,7 @@ public sealed class Plugin : IDalamudPlugin
     {
         switch (arguments.Trim().ToLowerInvariant())
         {
+            case "log": OpenLog(); break;
             case "settings": Open(); break;
             case "compact": compactWindow.Toggle(); break;
             case "trade": mainWindow.OpenTradeFromLauncher(); break;
@@ -102,7 +110,17 @@ public sealed class Plugin : IDalamudPlugin
             default: mainWindow.Toggle(); break;
         }
     }
-    private void Open() => mainWindow.IsOpen = true;
+    private void Open()
+    {
+        mainWindow.IsOpen = true;
+        mainWindow.BringToFront();
+    }
+
+    private void OpenLog()
+    {
+        activityLogWindow.IsOpen = true;
+        activityLogWindow.BringToFront();
+    }
 
     private static void ToggleWindow(Window window, Action open)
     {

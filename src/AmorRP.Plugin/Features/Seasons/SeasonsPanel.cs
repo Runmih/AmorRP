@@ -92,14 +92,13 @@ public sealed partial class SeasonsPanel(IPlayerState player, Configuration conf
         { ImGui.TextWrapped("The verified profile does not match the character currently in game. Wait for XIVAuth to refresh it, then resume login. Existing assets are preserved."); return; }
         if (!Busy && !SyncBusy && pending == null && DateTimeOffset.UtcNow >= nextRefresh && !refreshNeeded) Refresh();
         TickTrades(); icons.Draw(); logos.Draw();
-        if (workspace is { } activeWorkspace) { DrawWorkspace(activeWorkspace, pending); return; }
-        if (writingMode) { DrawWritingLog(pending); return; }
+        if (workspace is { } activeWorkspace) { DrawWorkspace(activeWorkspace); return; }
+        if (writingMode) { DrawWritingLog(); return; }
         DrawCommunitySelection();
-        var feedbackHeight = ActionFeedbackHeight(pending);
-        ImGui.BeginChild("ProductContent", new System.Numerics.Vector2(0, feedbackHeight > 0 ? -feedbackHeight - ImGui.GetStyle().ItemSpacing.Y : 0), false);
+        ImGui.BeginChild("ProductContent", System.Numerics.Vector2.Zero, false);
         DrawConsumables();
         ImGui.EndChild();
-        DrawActionFeedback(pending); DrawSharedDialogsOnce();
+        DrawSharedDialogsOnce();
     }
     public void EnsureScope(string backendUrl)
     {
@@ -367,7 +366,7 @@ public sealed partial class SeasonsPanel(IPlayerState player, Configuration conf
         requests.Reset(); currentCommand = null;
     }
     private void Clear()
-    { connectedServerVersion = null; ResetSeasons(); ClearFavoriteEvents(); ClearMemberSearch(); personalNote = savedPersonalNote = noteKey = ""; ClearAnnouncementNotifications(); ClearTradeInbox(); ResetCommunityForms(); ResetLogin(); loginFeedback = loginDiagnostic = ""; syncFailures = 0; scope = ""; serviceCompatible = false; ClearWork(); origin = null; session = null; saved = null; selected = null; community = null; communities = []; members = []; transfer = null; refreshNeeded = false; contextTarget = null; contextLookup = null; ClearTransientFeedback(); connectionError = connectionDiagnostic = ""; lastRefresh = default; nextRefresh = default; ClearCommunityViews(); }
+    { connectedServerVersion = null; ResetSeasons(); ClearFavoriteEvents(); ClearMemberSearch(); personalNote = savedPersonalNote = noteKey = ""; ClearAnnouncementNotifications(); ClearTradeInbox(); ResetCommunityForms(); ResetLogin(); loginFeedback = loginDiagnostic = ""; syncFailures = 0; scope = ""; serviceCompatible = false; ClearWork(); origin = null; session = null; saved = null; selected = null; community = null; communities = []; members = []; transfer = null; refreshNeeded = false; contextTarget = null; contextLookup = null; ClearTransientFeedback(); feedback.ClearHistory(); connectionError = connectionDiagnostic = ""; lastRefresh = default; nextRefresh = default; ClearCommunityViews(); }
     private static void Wrapped(string message) { ImGui.PushTextWrapPos(); ImGui.TextUnformatted(message); ImGui.PopTextWrapPos(); }
     public void Dispose() { ResetCommunityRefreshes(); ClearFavoriteEvents(); ClearMemberSearch(); personalNote = savedPersonalNote = noteKey = ""; ClearAnnouncementNotifications(); ClearTradeInbox(); ClearWork(); requests.Dispose(); icons.Dispose(); logos.Dispose(); groupLogos.Dispose(); client.Dispose(); }
 }

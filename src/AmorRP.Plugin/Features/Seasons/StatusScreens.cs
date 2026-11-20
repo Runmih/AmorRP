@@ -16,8 +16,7 @@ public sealed partial class SeasonsPanel
         if (ImGui.BeginPopup("LoginDetails")) { Wrapped(loginDiagnostic); ImGui.EndPopup(); }
     }
     private string connectionError = "", connectionDiagnostic = "";
-    // The shared header contains the selector and community entry buttons. Background work never adds
-    // rows here; exceptional feedback lives below the content, not above it.
+    // Keep the selector stable while background work reports to the Activity Log.
     private void DrawCommunitySelection()
     {
         if (CanCreateSeasons)
@@ -48,69 +47,62 @@ public sealed partial class SeasonsPanel
         }
         ImGui.EndDisabled();
     }
-    private bool HasActionFeedback(PendingCommand? pending) => pending != null || feedback.Messages.Count > 0 || connectionError.Length > 0;
-    private float ActionFeedbackHeight(PendingCommand? pending)
+    public void DrawActivityLog()
     {
-        if (!HasActionFeedback(pending)) return 0;
-        var rows = (feedback.Messages.Count + (pending != null ? 1 : 0) + (connectionError.Length > 0 ? 1 : 0)) * 2;
-        return Math.Min(ImGui.GetFrameHeightWithSpacing() * rows + ImGui.GetStyle().WindowPadding.Y * 2,
-            Math.Max(ImGui.GetFrameHeightWithSpacing() * 2.5f, ImGui.GetWindowSize().Y * .4f));
-    }
-    private void DrawActionFeedback(PendingCommand? pending)
-    {
-        if (!HasActionFeedback(pending)) return;
-        var running = pending != null && (queuedCommand?.Key == pending.Key || Busy && currentCommand?.Key == pending.Key);
-        var recovery = pending != null && !running;
-        ImGui.BeginChild("ActionFeedback", new System.Numerics.Vector2(0, ActionFeedbackHeight(pending)), true);
-        if (connectionError.Length > 0)
-        {
-            Wrapped(connectionError);
-            if (ImGui.SmallButton("Retry connection")) Refresh();
-            ImGui.SameLine();
-            if (ImGui.SmallButton("Connection details")) ImGui.OpenPopup("ConnectionDetails");
-            if (ImGui.BeginPopup("ConnectionDetails")) { Wrapped(connectionDiagnostic); ImGui.EndPopup(); }
-            ImGui.Separator();
-        }
+        var pending = session == null ? null : configuration.PendingCommands.FirstOrDefault(
+            x => x.Origin == origin?.AbsoluteUri && x.CharacterId == session.Character.Id);
         if (pending != null)
         {
-            Wrapped(recovery ? "We could not confirm whether this action was saved. Check its result before making another change." : "Saving action…");
-            if (recovery)
+            var running = queuedCommand?.Key == pending.Key || Busy && currentCommand?.Key == pending.Key;
+            DrawSectionHeading("Pending action");
+            Wrapped(running ? "Saving action…" : "Check this action's result before making another change.");
+            Wrapped("Action ID: " + pending.Key);
+            if (!running)
             {
                 ImGui.BeginDisabled(Busy);
                 ImGui.BeginDisabled(pending.Read().Operation.Kind == CommandKind.Unknown);
-                if (ImGui.SmallButton("Retry original action")) ExecutePending(pending, false, recovering: true);
+                if (ImGui.Button("Retry original action")) ExecutePending(pending, false, recovering: true);
                 ImGui.EndDisabled();
                 ImGui.SameLine();
-                if (ImGui.SmallButton("Check action result")) CheckReceipt(pending);
+                if (ImGui.Button("Check action result")) CheckReceipt(pending);
                 ImGui.EndDisabled();
             }
-            ImGui.Separator();
+            ImGui.Spacing();
         }
-        foreach (var message in feedback.Messages.ToArray())
+        if (connectionError.Length > 0)
         {
-            ImGui.PushID(message.Id.ToString());
-            // A single-line preview keeps the footer compact; the full text remains in details.
-            var preview = message.Text.Replace('\n', ' ');
-            var room = Math.Max(30, ImGui.GetContentRegionAvail().X);
-            while (preview.Length > 1 && ImGui.CalcTextSize(preview + "…").X > room)
-                preview = preview[..System.Globalization.StringInfo.ParseCombiningCharacters(preview)[^1]];
-            ImGui.TextUnformatted(preview.Length < message.Text.Length ? preview + "…" : preview);
-            if (ImGui.SmallButton("Action details")) { message.Pause(DateTimeOffset.UtcNow); ImGui.OpenPopup("Details"); }
-            if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenBlockedByPopup) || ImGui.IsItemActive()) message.Pause(DateTimeOffset.UtcNow);
-            ImGui.SameLine();
-            if (ImGui.SmallButton("Dismiss result")) feedback.Dismiss(message.Id);
-            if (ImGui.BeginPopup("Details"))
+            Wrapped(connectionError);
+            Wrapped(connectionDiagnostic);
+            ImGui.BeginDisabled(session == null || Busy || SyncBusy);
+            if (ImGui.Button("Retry connection")) Refresh();
+            ImGui.EndDisabled();
+        }
+        if (loginFeedback.Length > 0)
+        {
+            Wrapped(loginFeedback);
+            if (loginDiagnostic.Length > 0) Wrapped(loginDiagnostic);
+        }
+        if (feedback.History.Count == 0)
+        {
+            ImGui.TextDisabled("No recent activity.");
+            return;
+        }
+        DrawSectionHeading("Recent activity");
+        foreach (var message in feedback.History.Reverse().ToArray())
+        {
+            ImGui.PushID(message.Id.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            ImGui.TextDisabled($"{message.CreatedAt.ToLocalTime():HH:mm:ss} · {message.Origin}");
+            Wrapped(message.Text);
+            if (message.Details.Length > 0 && ImGui.TreeNode("Details"))
             {
-                message.Pause(DateTimeOffset.UtcNow);
-                ImGui.PushTextWrapPos(ImGui.GetCursorPosX() + 420);
-                ImGui.TextUnformatted(message.Text);
-                if (message.Details.Length > 0) ImGui.TextUnformatted(message.Details);
-                ImGui.PopTextWrapPos(); ImGui.EndPopup();
+                Wrapped(message.Details);
+                ImGui.TreePop();
             }
+            ImGui.Separator();
             ImGui.PopID();
         }
-        ImGui.EndChild();
     }
+
     private void CheckReceipt(PendingCommand pending)
     {
         var uri = origin!; var token = session!.AccessToken;

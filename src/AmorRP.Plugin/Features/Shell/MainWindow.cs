@@ -41,6 +41,8 @@ public sealed class MainWindow : Window, IDisposable
     public void SetWritingLogVisible(bool visible) => communities.SetWritingLogVisible(visible);
     public Action? OpenWritingLog { get; set; }
     public void OpenTradeFromLauncher() => communities.OpenTradeFromLauncher();
+    public bool HasPendingAction => communities.HasPendingAction;
+    public void DrawActivityLog() => communities.DrawActivityLog();
     public void DrawFavoriteEvents() => communities.DrawFavoriteEvents();
     public Action<bool>? SetFavoriteEventsVisible { get; set; }
     public Action<bool>? SetLauncherVisible { get; set; }

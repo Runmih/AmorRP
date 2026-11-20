@@ -47,4 +47,31 @@ public sealed class LauncherDockTests
         var end = LauncherDock.Place(edge, Vector2.Zero, viewport, 100, 42, 1, 6, true);
         Assert.Equal(Vector2.Lerp(start.Position, end.Position, .75f), nearEnd.Position);
     }
+
+    [Theory]
+    [InlineData(LauncherEdge.Top)]
+    [InlineData(LauncherEdge.Bottom)]
+    [InlineData(LauncherEdge.Left)]
+    [InlineData(LauncherEdge.Right)]
+    public void Favorite_events_reveal_without_moving_the_handle(LauncherEdge edge)
+    {
+        var origin = new Vector2(120, 80);
+        var viewport = new Vector2(1200, 800);
+        var content = new Vector2(330, 325);
+        var hidden = LauncherDock.PlacePanel(edge, origin, viewport, 72, content, 1, false, true, default, 6);
+        var open = LauncherDock.PlacePanel(edge, origin, viewport, 72, content, 1, true, true, default, 6);
+        Assert.Equal(hidden.Position, open.Position + open.GripPosition);
+        Assert.Equal(hidden.Size, open.GripSize);
+    }
+
+    [Fact]
+    public void Floating_vertical_quick_bar_stays_visible_at_the_bottom_right()
+    {
+        var origin = new Vector2(50, 20);
+        var viewport = new Vector2(300, 220);
+        var panel = LauncherDock.Place(LauncherEdge.Right, origin, viewport, 50, 80, 1, 8, true, false, new(100, 100));
+        Assert.Equal(origin + viewport, panel.Position + panel.Size);
+        var lastButtonEnd = panel.ButtonsPosition.Y + 8 * panel.ButtonSize + 7 * panel.Gap;
+        Assert.True(lastButtonEnd <= panel.Size.Y + .001f);
+    }
 }

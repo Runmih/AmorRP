@@ -22,6 +22,8 @@ public sealed partial class SeasonsPanel
     }
     private bool HasUnresolvedAction => configuration.PendingCommands.Any(x => x.Origin == origin?.AbsoluteUri && x.CharacterId == session?.Character.Id);
 
+    public bool HasPendingAction => session != null && HasUnresolvedAction && currentCommand == null && queuedCommand == null;
+
     public void WindowOpened() => ClearTransientFeedback();
 
     private void ClearTransientFeedback()

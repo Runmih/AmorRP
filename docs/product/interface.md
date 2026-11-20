@@ -29,7 +29,10 @@ handle itself. Size and Opacity apply immediately.
 
 With Auto-hide on, hover over the small edge handle to reveal the buttons. Click
 the handle to pin the bar open for the session, or click again to let it retract.
-Turn off Auto-hide to keep the bar visible across sessions.
+Turn off Auto-hide to keep the bar visible across sessions. Clear Dock to edge
+in Settings or choose Undock from the handle menu to drag the bar freely.
+Favorite Events has its own docking, size and opacity controls. Its Background
+opacity slider adjusts the panel behind the text.
 
 ## Shared season context
 
@@ -55,7 +58,7 @@ Drafts survive polling. Switching member/group context protects unfinished edits
 Permission updates reload after confirmed writes and keep conflict/recovery details
 available. Background reads do not reorder or overwrite active editing unnecessarily.
 
-Connection feedback and ambiguous operations live in a compact footer with details.
+The note icon opens Activity Log with recent results, detail, and pending-action recovery. The cog opens Settings.
 Keep the original operation key and request for recovery. Checking/retrying a saved
 operation never repeats game chat. Do not reinterpret an unknown old command as a
 new action. Authentication mismatch blocks feature use while preserving assets.

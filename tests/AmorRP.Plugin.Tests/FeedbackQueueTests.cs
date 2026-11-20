@@ -41,4 +41,20 @@ public sealed class FeedbackQueueTests
         queue.Tick(Start.AddSeconds(39), false); Assert.Single(queue.Messages);
         queue.Tick(Start.AddSeconds(40), false); Assert.Empty(queue.Messages);
     }
+
+    [Fact]
+    public void Activity_history_survives_elapsed_time_and_window_opening_until_the_character_scope_is_cleared()
+    {
+        var queue = new FeedbackQueue();
+        queue.Add("action", "Saved", Start);
+        queue.Latest("action")!.Details = "Receipt one";
+        queue.Tick(Start.AddMinutes(5), false);
+        queue.Clear("action");
+        Assert.Empty(queue.Messages);
+        var entry = Assert.Single(queue.History);
+        Assert.Equal("Receipt one", entry.Details);
+        Assert.Equal(Start, entry.CreatedAt);
+        queue.ClearHistory();
+        Assert.Empty(queue.History);
+    }
 }

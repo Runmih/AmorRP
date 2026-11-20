@@ -36,16 +36,7 @@ public sealed partial class SeasonsPanel
     {
         var now = DateTimeOffset.UtcNow;
         var upcoming = session == null ? [] : FavoriteEventSchedule.Upcoming(favoriteEvents.Items, now);
-        var header = ImGui.GetCursorScreenPos();
-        ImGui.InvisibleButton("##MoveEventsHud", new(ImGui.GetContentRegionAvail().X, ImGui.GetFrameHeight()));
-        if (ImGui.IsItemHovered()) ImGui.SetMouseCursor(ImGuiMouseCursor.ResizeAll);
-        if (ImGui.IsItemActive() && ImGui.IsMouseDragging(ImGuiMouseButton.Left))
-            ImGui.SetWindowPos(ImGui.GetWindowPos() + ImGui.GetIO().MouseDelta);
-        var draw = ImGui.GetWindowDrawList();
-        draw.AddText(header, ImGui.GetColorU32(ImGuiCol.Text), "Favorite events");
-        var count = upcoming.Length.ToString(System.Globalization.CultureInfo.InvariantCulture);
-        draw.AddText(new(header.X + ImGui.GetContentRegionAvail().X - ImGui.CalcTextSize(count).X, header.Y),
-            ImGui.GetColorU32(upcoming.Length > 0 ? ImGuiCol.PlotHistogram : ImGuiCol.TextDisabled), count);
+        ImGui.TextUnformatted("Favorite events");
         ImGui.TextDisabled("Next 5 days · Server Time");
         if (session == null) { Wrapped("Sign in to Amor RP to see events."); return; }
         DrawRefreshState(favoriteRefresh, "Events");

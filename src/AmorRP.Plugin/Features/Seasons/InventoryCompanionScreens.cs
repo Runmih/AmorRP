@@ -86,7 +86,7 @@ public sealed partial class SeasonsPanel
         companionHoldings = new([], null, "0"); companionInventoryRefresh.Reset();
     }
 
-    private void DrawInventoryWorkspace(PendingCommand? pending)
+    private void DrawInventoryWorkspace()
     {
         ImGui.TextColored(InventoryGold, "INVENTORY");
         DrawCommunitySelector("##InventoryCommunity", -1);
@@ -94,18 +94,17 @@ public sealed partial class SeasonsPanel
         if (community == null)
         {
             ImGui.Spacing(); DrawNoSeason();
-            DrawActionFeedback(pending);
+
             return;
         }
 
         var footerHeight = ImGui.GetTextLineHeightWithSpacing() * 4 + ImGui.GetFrameHeightWithSpacing() + ImGui.GetStyle().ItemSpacing.Y * 4;
         if (community.MyBalance.HeldForDebt != "0") footerHeight += ImGui.GetTextLineHeightWithSpacing();
-        var feedbackHeight = ActionFeedbackHeight(pending);
-        var bodyHeight = Math.Max(ImGui.GetFrameHeight(), ImGui.GetContentRegionAvail().Y - footerHeight - feedbackHeight - ImGui.GetStyle().ItemSpacing.Y * 2);
+        var bodyHeight = Math.Max(ImGui.GetFrameHeight(), ImGui.GetContentRegionAvail().Y - footerHeight - ImGui.GetStyle().ItemSpacing.Y);
         ImGui.BeginChild("CompanionItems", new(0, bodyHeight), false);
         DrawCompanionBrowser();
         ImGui.EndChild();
-        DrawActionFeedback(pending);
+
         ImGui.BeginChild("CompanionFinances", new(0, footerHeight), false);
         DrawCompanionFinances();
         ImGui.EndChild();

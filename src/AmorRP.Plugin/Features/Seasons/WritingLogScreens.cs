@@ -76,7 +76,7 @@ public sealed partial class SeasonsPanel
             c => WritingLogReader.ReadAsync(client, uri, token, communityId, characterId, query, selection, count, c));
     }
 
-    private void DrawWritingLog(PendingCommand? pending)
+    private void DrawWritingLog()
     {
         ImGui.TextColored(InventoryGold, "WRITING LOG");
         DrawCommunitySelector("##WritingCommunity", -1);
@@ -84,7 +84,7 @@ public sealed partial class SeasonsPanel
         if (community == null)
         {
             DrawNoSeason();
-            DrawActionFeedback(pending); return;
+            return;
         }
         ImGui.BeginDisabled(SeasonReadOnly);
         if (ImGui.Button("New writing")) { writingLogComposing = true; editingLetter = null; }
@@ -93,8 +93,7 @@ public sealed partial class SeasonsPanel
         { ImGui.SameLine(); if (ImGui.Button("Back to reading")) writingLogComposing = false; }
         ImGui.SameLine();
         if (ImGui.Button("Refresh writing")) { writingLogRefresh.Invalidate(); inventoryRefresh.Invalidate(); }
-        var feedbackHeight = ActionFeedbackHeight(pending);
-        ImGui.BeginChild("WritingLogContent", new(0, feedbackHeight > 0 ? -feedbackHeight - ImGui.GetStyle().ItemSpacing.Y : 0), false);
+        ImGui.BeginChild("WritingLogContent", System.Numerics.Vector2.Zero, false);
         var stacked = ImGui.GetContentRegionAvail().X < ImGui.GetFontSize() * 46;
         if (ImGui.BeginTable("WritingLogLayout", stacked ? 1 : 2, ImGuiTableFlags.Resizable | ImGuiTableFlags.BordersInnerV))
         {
@@ -115,7 +114,7 @@ public sealed partial class SeasonsPanel
             else DrawWritingReader();
             ImGui.PopItemWidth(); ImGui.EndChild(); ImGui.EndTable();
         }
-        ImGui.EndChild(); DrawActionFeedback(pending);
+        ImGui.EndChild();
     }
 
     private void DrawWritingLibrary()

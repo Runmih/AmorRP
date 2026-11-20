@@ -19,9 +19,7 @@ public sealed partial class SeasonsPanel
         }
         Wrapped("Season: " + community.Name);
         if (TradeNotificationStatus.Length > 0) Wrapped(TradeNotificationStatus);
-        var pending = configuration.PendingCommands.FirstOrDefault(x => x.Origin == origin?.AbsoluteUri && x.CharacterId == session.Character.Id);
-        var footerHeight = ActionFeedbackHeight(pending);
-        ImGui.BeginChild("TradeContent", new(0, footerHeight > 0 ? -footerHeight - ImGui.GetStyle().ItemSpacing.Y : 0), false);
+        ImGui.BeginChild("TradeContent", System.Numerics.Vector2.Zero, false);
         var t = SelectedTrade;
         if (t is { State: "open" or "confirming" }) DrawActiveTrade(t);
         else
@@ -29,7 +27,7 @@ public sealed partial class SeasonsPanel
             CloseFinalPopup();
             DrawTradeRequests();
         }
-        ImGui.EndChild(); DrawActionFeedback(pending);
+        ImGui.EndChild();
     }
     private void DrawTradeRequests()
     {

@@ -11,10 +11,8 @@ public sealed partial class SeasonsPanel
 
     private void DrawSettingsWindow(bool busy, string localName, string localWorld, uint worldId)
     {
-        var pending = configuration.PendingCommands.FirstOrDefault(x => x.Origin == origin?.AbsoluteUri && x.CharacterId == session?.Character.Id);
         ImGui.TextColored(InventoryGold, "SETTINGS");
-        var footerHeight = ActionFeedbackHeight(pending);
-        ImGui.BeginChild("SettingsContent", new(0, footerHeight > 0 ? -footerHeight - ImGui.GetStyle().ItemSpacing.Y : 0), false);
+        ImGui.BeginChild("SettingsContent", System.Numerics.Vector2.Zero, false);
         if (ImGui.BeginTabBar("PluginSettingsTabs", ImGuiTabBarFlags.FittingPolicyScroll))
         {
             if (ImGui.BeginTabItem("Interface")) { DrawInterfaceSettings(); ImGui.EndTabItem(); }
@@ -28,65 +26,91 @@ public sealed partial class SeasonsPanel
             if (ImGui.BeginTabItem("About")) { DrawAboutSettings(); ImGui.EndTabItem(); }
             ImGui.EndTabBar();
         }
-        ImGui.EndChild(); DrawActionFeedback(pending); DrawSharedDialogsOnce();
+        ImGui.EndChild(); DrawSharedDialogsOnce();
+    }
+
+    private static void DrawSectionHeading(string title)
+    {
+        ImGui.TextColored(InventoryGold, title);
+        ImGui.Separator();
     }
 
     private static readonly string[] QuickBarEdges = ["Top · Horizontal", "Bottom · Horizontal", "Left · Vertical", "Right · Vertical"];
 
-    private void DrawQuickBarSettings()
+    private static readonly string[] HudEdges = ["Top", "Bottom", "Left", "Right"];
+
+    private void DrawDockSettings(string[] edges, bool docked, Action<bool> setDocked, LauncherEdge edge, Action<LauncherEdge> setEdge,
+        bool autoHide, Action<bool> setAutoHide, float position, Action<float> setPosition)
     {
-        var edge = (int)configuration.QuickBarEdge;
-        if (ImGui.Combo("Dock edge", ref edge, QuickBarEdges, QuickBarEdges.Length))
+        if (ImGui.Checkbox("Dock to edge", ref docked)) { setDocked(docked); save(); }
+        var index = (int)edge;
+        if (docked && ImGui.Combo("Dock edge", ref index, edges, edges.Length))
         {
-            configuration.QuickBarEdge = (LauncherEdge)edge;
+            edge = (LauncherEdge)index;
+            setEdge(edge);
             save();
         }
-
-        var autoHide = configuration.QuickBarAutoHide;
-        if (ImGui.Checkbox("Auto-hide quick bar", ref autoHide))
+        if (docked)
         {
-            configuration.QuickBarAutoHide = autoHide;
-            save();
+            if (ImGui.Checkbox("Auto-hide", ref autoHide)) { setAutoHide(autoHide); save(); }
+            PercentSlider("Position along edge", position, 0, 100, 50, setPosition);
         }
+        Wrapped(docked && autoHide ? "Hover to reveal. Drag the handle to move along the edge."
+            : "Drag the handle to move the panel.");
+    }
 
-        var size = LauncherDock.ClampPercent(configuration.QuickBarSize, 60, 160, 100);
-        if (ImGui.SliderFloat("Size##QuickBar", ref size, 60, 160, "%.0f%%"))
-            configuration.QuickBarSize = size;
+    private void PercentSlider(string name, float value, float minimum, float maximum, float fallback, Action<float> update)
+    {
+        value = LauncherDock.ClampPercent(value, minimum, maximum, fallback);
+        if (ImGui.SliderFloat(name, ref value, minimum, maximum, "%.0f%%")) update(value);
         if (ImGui.IsItemDeactivatedAfterEdit()) save();
-
-        var opacity = LauncherDock.ClampPercent(configuration.QuickBarOpacity, 25, 100, 100);
-        if (ImGui.SliderFloat("Opacity##QuickBar", ref opacity, 25, 100, "%.0f%%"))
-            configuration.QuickBarOpacity = opacity;
-        if (ImGui.IsItemDeactivatedAfterEdit()) save();
-
-        var horizontal = LauncherDock.IsHorizontal(configuration.QuickBarEdge);
-        var position = LauncherDock.ClampPercent(configuration.QuickBarPosition, 0, 100, 50);
-        if (ImGui.SliderFloat(horizontal ? "Position (left to right)##QuickBar" : "Position (top to bottom)##QuickBar",
-                ref position, 0, 100, "%.0f%%"))
-            configuration.QuickBarPosition = position;
-        if (ImGui.IsItemDeactivatedAfterEdit()) save();
-
-        Wrapped(autoHide ? "Hover the handle to reveal the quick bar. Drag it to move the bar along the edge."
-            : "Drag the handle to move the quick bar along the edge.");
     }
 
     private void DrawInterfaceSettings()
     {
-        ImGui.Spacing();
+        DrawSectionHeading("Quick bar");
+        ImGui.PushID("QuickBar");
         var show = configuration.ShowLauncher;
-        if (ImGui.Checkbox("Show quick launcher", ref show))
+        if (ImGui.Checkbox("Show quick bar", ref show))
         { configuration.ShowLauncher = show; save(); SetLauncherVisible?.Invoke(show); }
-        DrawQuickBarSettings();
-        ImGui.Spacing(); ImGui.Separator(); ImGui.Spacing();
+        DrawDockSettings(QuickBarEdges, configuration.QuickBarDocked, x => configuration.QuickBarDocked = x,
+            configuration.QuickBarEdge, x => configuration.QuickBarEdge = x,
+            configuration.QuickBarAutoHide, x => configuration.QuickBarAutoHide = x,
+            configuration.QuickBarPosition, x => configuration.QuickBarPosition = x);
+        if (!configuration.QuickBarDocked)
+        {
+            var orientation = LauncherDock.IsHorizontal(configuration.QuickBarEdge) ? 0 : 1;
+            if (ImGui.Combo("Orientation", ref orientation, ["Horizontal", "Vertical"], 2))
+            {
+                configuration.QuickBarEdge = orientation == 0 ? LauncherEdge.Top : LauncherEdge.Left;
+                save();
+            }
+        }
+        PercentSlider("Size", configuration.QuickBarSize, 60, 160, 100, x => configuration.QuickBarSize = x);
+        PercentSlider("Opacity", configuration.QuickBarOpacity, 25, 100, 100, x => configuration.QuickBarOpacity = x);
+        ImGui.PopID();
+
+        ImGui.Spacing();
+        DrawSectionHeading("Automatic HUDs");
         var attached = configuration.ShowAttachedInterfaces;
         if (ImGui.Checkbox("Enable automatic HUDs", ref attached))
         { configuration.ShowAttachedInterfaces = attached; save(); }
-        Wrapped("The launcher's power button controls this switch. Your HUD preference is remembered.");
+        Wrapped("The quick bar's Power button also controls automatic HUDs.");
+
         ImGui.Spacing();
+        DrawSectionHeading("Favorite Events");
+        ImGui.PushID("FavoriteEvents");
         var events = configuration.ShowFavoriteEvents;
-        if (ImGui.Checkbox("Favorite events HUD", ref events))
+        if (ImGui.Checkbox("Show Favorite Events", ref events))
         { configuration.ShowFavoriteEvents = events; save(); SetFavoriteEventsVisible?.Invoke(events); }
-        Wrapped("Favorite events cover the next five days. Drag the HUD header to move it; click an event for details.");
+        DrawDockSettings(HudEdges, configuration.FavoriteEventsDocked, x => configuration.FavoriteEventsDocked = x,
+            configuration.FavoriteEventsEdge, x => configuration.FavoriteEventsEdge = x,
+            configuration.FavoriteEventsAutoHide, x => configuration.FavoriteEventsAutoHide = x,
+            configuration.FavoriteEventsPosition, x => configuration.FavoriteEventsPosition = x);
+        PercentSlider("Size", configuration.FavoriteEventsSize, 60, 160, 100, x => configuration.FavoriteEventsSize = x);
+        PercentSlider("Opacity", configuration.FavoriteEventsOpacity, 25, 100, 100, x => configuration.FavoriteEventsOpacity = x);
+        PercentSlider("Background opacity", configuration.FavoriteEventsBackgroundOpacity, 0, 100, 100, x => configuration.FavoriteEventsBackgroundOpacity = x);
+        ImGui.PopID();
     }
 
     private void DrawAboutSettings()
@@ -97,7 +121,7 @@ public sealed partial class SeasonsPanel
         if (connectedServerVersion != null && session != null)
             ImGui.TextDisabled("Seasons");
         ImGui.Spacing();
-        Wrapped("Settings: /amorrp settings");
+        Wrapped("Settings: /amorrp settings · Activity Log: /amorrp log");
         Wrapped("Windows: /amorrp season (Home), /amorrp inventory, /amorrp crafting, /amorrp writing, /amorrp groups, /amorrp manage and /amorrp trade");
         ImGui.Spacing();
         if (ImGui.Button("Copy version info"))

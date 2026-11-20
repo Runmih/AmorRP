@@ -19,9 +19,7 @@ public sealed partial class SeasonsPanel
     {
         if (!CanDrawCommunityForms) return;
         if (!CanCreateSeasons) return;
-        var pending = configuration.PendingCommands.FirstOrDefault(x => x.Origin == origin?.AbsoluteUri && x.CharacterId == session!.Character.Id);
-        var feedbackHeight = ActionFeedbackHeight(pending);
-        ImGui.BeginChild("CommunityFormContent", new(0, feedbackHeight > 0 ? -feedbackHeight - ImGui.GetStyle().ItemSpacing.Y : 0), false);
+        ImGui.BeginChild("CommunityFormContent", System.Numerics.Vector2.Zero, false);
         ImGui.PushItemWidth(-1);
         ImGui.TextUnformatted($"{session!.Character.DisplayName} @ {session.Character.HomeWorldName}");
         ImGui.TextUnformatted($"Seasons: {communities.Length}");
@@ -29,7 +27,7 @@ public sealed partial class SeasonsPanel
         DrawCreateCommunityForm();
         ImGui.PopItemWidth();
         ImGui.EndChild();
-        DrawActionFeedback(pending);
+
     }
 
     private void DrawCreateCommunityForm()

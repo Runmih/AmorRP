@@ -16,20 +16,19 @@ public sealed partial class SeasonsPanel
 
     public void OpenWorkspace(WorkspaceKind kind) => OpenWorkspaceWindow?.Invoke(kind);
 
-    private void DrawWorkspace(WorkspaceKind kind, PendingCommand? pending)
+    private void DrawWorkspace(WorkspaceKind kind)
     {
         if (kind == WorkspaceKind.Inventory)
         {
-            DrawInventoryWorkspace(pending);
+            DrawInventoryWorkspace();
             return;
         }
 
         ImGui.TextColored(InventoryGold, WorkspaceWindow.Title(kind).ToUpperInvariant());
         DrawCommunitySelection();
         if (community == null)
-        { if (kind == WorkspaceKind.CommunityManagement && (CanCreateSeasons || IsSeasonAdministrator)) DrawSeasonManagement(); else DrawNoSeason(); DrawActionFeedback(pending); return; }
-        var feedbackHeight = ActionFeedbackHeight(pending);
-        ImGui.BeginChild("WorkspaceContent", new(0, feedbackHeight > 0 ? -feedbackHeight - ImGui.GetStyle().ItemSpacing.Y : 0), false);
+        { if (kind == WorkspaceKind.CommunityManagement && (CanCreateSeasons || IsSeasonAdministrator)) DrawSeasonManagement(); else DrawNoSeason(); return; }
+        ImGui.BeginChild("WorkspaceContent", System.Numerics.Vector2.Zero, false);
         switch (kind)
         {
             case WorkspaceKind.Crafting: DrawCraftingTabs(includeWriting: false); break;
@@ -43,7 +42,7 @@ public sealed partial class SeasonsPanel
                 break;
             case WorkspaceKind.Season: DrawCommunityBrowser(); break;
         }
-        ImGui.EndChild(); DrawActionFeedback(pending); DrawSharedDialogsOnce();
+        ImGui.EndChild(); DrawSharedDialogsOnce();
     }
 
     private void DrawCommunityBrowser()
