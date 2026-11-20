@@ -22,7 +22,7 @@ internal sealed class PluginUpdateWindow : Window
 
     public override void Draw()
     {
-        if (updates.IsChecking)
+        if (updates.IsChecking && updates.Status != PluginUpdateStatus.Required)
         {
             ImGui.TextUnformatted("Checking the latest Amor RP version…");
             return;

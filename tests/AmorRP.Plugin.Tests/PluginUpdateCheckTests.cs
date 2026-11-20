@@ -73,6 +73,22 @@ public sealed class PluginUpdateCheckTests
         Assert.NotEqual(feed.RequestUris[0], feed.RequestUris[1]);
     }
 
+    [Fact]
+    public void The_installer_can_flag_an_update_while_the_feed_still_reports_the_installed_version()
+    {
+        var installerVersion = (Version?)null;
+        using var feed = new Feed(Release("0.4.0.10"));
+        using var check = new PluginUpdateCheck(Installed, feed, _ => Task.FromResult(installerVersion));
+        CompleteCheck(check, Now);
+        Assert.Equal(PluginUpdateStatus.Current, check.Status);
+
+        installerVersion = new Version(0, 4, 0, 11);
+        CompleteCheck(check, Now.AddSeconds(5));
+        Assert.Equal(PluginUpdateStatus.Required, check.Status);
+        Assert.Equal(installerVersion, check.PublishedVersion);
+        Assert.Equal(1, feed.Requests);
+    }
+
     [Theory]
     [InlineData(null)]
     [InlineData("[]")]

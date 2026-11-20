@@ -1,6 +1,8 @@
 # Amor RP 0.4.0.12 — Fresh update checks
 
-Amor RP requests a fresh copy of the installer feed on every version check.
+Amor RP uses Dalamud's update result and independently checks the installer
+feed. An update detected by either check pauses gameplay. Each feed check
+requests a fresh copy.
 Settings → About → Check for updates runs a check immediately and shows
 the installed and latest published version in the update window.
 

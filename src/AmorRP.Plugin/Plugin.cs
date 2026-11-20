@@ -20,7 +20,7 @@ public sealed class Plugin : IDalamudPlugin
     private readonly ActivityLogWindow activityLogWindow;
     private readonly WindowSystem windows = new("AmorRP");
     private readonly WindowSystem updateWindows = new("AmorRPUpdate");
-    private readonly PluginUpdateCheck updates = new(typeof(Plugin).Assembly.GetName().Version!);
+    private readonly PluginUpdateCheck updates;
     private readonly PluginUpdateWindow updateWindow;
     private PluginUpdateStatus? announcedUpdateStatus;
     private bool showVersionStatus;
@@ -42,6 +42,7 @@ public sealed class Plugin : IDalamudPlugin
         this.pluginInterface = pluginInterface;
         this.commands = commands;
         this.playerState = playerState;
+        updates = new(typeof(Plugin).Assembly.GetName().Version!, readInstallerVersion: ReadDalamudUpdateVersion);
         updateWindow = new(updates, () => pluginInterface.OpenPluginInstallerTo(PluginInstallerOpenKind.UpdateablePlugins, "Amor RP"));
         updateWindows.AddWindow(updateWindow);
         configuration = pluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
@@ -161,6 +162,13 @@ public sealed class Plugin : IDalamudPlugin
         updates.Retry();
         showVersionStatus = true;
         ShowUpdateWindow();
+    }
+
+    private async Task<Version?> ReadDalamudUpdateVersion(CancellationToken cancellationToken)
+    {
+        var update = await pluginInterface.CheckForUpdateAsync()
+            .WaitAsync(cancellationToken).ConfigureAwait(false);
+        return update?.Version;
     }
 
     private void OpenLog()
