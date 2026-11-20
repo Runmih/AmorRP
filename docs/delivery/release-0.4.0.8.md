@@ -14,3 +14,6 @@ right-click menu is another way to reach Settings or Activity Log.
 In game, check dragging and auto-hide on all edges, HUD text legibility with a
 transparent background, and Log recovery from another window. The minimum
 server version remains 0.4.0.3.
+
+The stable release uses the [Windows package from CI](https://github.com/Runmih/AmorRP/actions/runs/44793606288).
+The matching [server workflow](https://github.com/Runmih/AmorRP/actions/runs/44793606402) passed.
