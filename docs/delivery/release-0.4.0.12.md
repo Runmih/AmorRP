@@ -7,3 +7,6 @@ Settings → About → Check for updates runs a check immediately and shows
 the installed and latest published version in the update window.
 
 The minimum server version remains 0.4.0.3. In-game acceptance is pending.
+
+The stable release uses the [Windows package from CI](https://github.com/Runmih/AmorRP/actions/runs/44811309384).
+The matching [server workflow](https://github.com/Runmih/AmorRP/actions/runs/44811309483) passed.
