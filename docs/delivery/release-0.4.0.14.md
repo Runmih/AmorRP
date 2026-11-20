@@ -11,3 +11,6 @@ Inventory has a Type column. Home and Inventory show one coin figure that
 subtracts outstanding debt from spendable funds.
 
 The minimum server version remains 0.4.0.3. In-game acceptance is pending.
+
+The stable release uses the [Windows package from CI](https://github.com/Runmih/AmorRP/actions/runs/44833197910).
+The matching [server workflow](https://github.com/Runmih/AmorRP/actions/runs/44833198433) passed.
