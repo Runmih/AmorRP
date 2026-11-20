@@ -30,7 +30,8 @@ public sealed partial class SeasonsPanel
         }
 
         ImGui.TextColored(InventoryGold, WorkspaceWindow.Title(kind).ToUpperInvariant());
-        DrawCommunitySelection();
+        if (kind == WorkspaceKind.CommunityManagement && IsSeasonAdministrator) DrawSeasonManagementSelection();
+        DrawSeasonState();
         if (community == null)
         { if (kind == WorkspaceKind.CommunityManagement && (CanCreateSeasons || IsSeasonAdministrator)) DrawSeasonManagement(); else DrawNoSeason(); return; }
         ImGui.BeginChild("WorkspaceContent", System.Numerics.Vector2.Zero, false);

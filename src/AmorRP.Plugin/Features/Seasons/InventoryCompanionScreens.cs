@@ -89,7 +89,6 @@ public sealed partial class SeasonsPanel
     private void DrawInventoryWorkspace()
     {
         ImGui.TextColored(InventoryGold, "INVENTORY");
-        DrawCommunitySelector("##InventoryCommunity", -1);
         DrawSeasonState();
         if (community == null)
         {
@@ -98,8 +97,7 @@ public sealed partial class SeasonsPanel
             return;
         }
 
-        var footerHeight = ImGui.GetTextLineHeightWithSpacing() * 4 + ImGui.GetFrameHeightWithSpacing() + ImGui.GetStyle().ItemSpacing.Y * 4;
-        if (community.MyBalance.HeldForDebt != "0") footerHeight += ImGui.GetTextLineHeightWithSpacing();
+        var footerHeight = ImGui.GetTextLineHeightWithSpacing() * 2 + ImGui.GetFrameHeightWithSpacing() + ImGui.GetStyle().ItemSpacing.Y * 4;
         var bodyHeight = Math.Max(ImGui.GetFrameHeight(), ImGui.GetContentRegionAvail().Y - footerHeight - ImGui.GetStyle().ItemSpacing.Y);
         ImGui.BeginChild("CompanionItems", new(0, bodyHeight), false);
         DrawCompanionBrowser();
@@ -158,9 +156,10 @@ public sealed partial class SeasonsPanel
         var available = ImGui.GetContentRegionAvail().Y;
         var listHeight = companionSelection.HasValue ? Math.Max(ImGui.GetFrameHeight() * 2, available * .48f) : 0;
         ImGui.BeginChild("CompanionItemList", new(0, listHeight), true);
-        if (ImGui.BeginTable("CompanionHoldings", 3, ImGuiTableFlags.RowBg | ImGuiTableFlags.BordersInnerH))
+        if (ImGui.BeginTable("CompanionHoldings", 4, ImGuiTableFlags.RowBg | ImGuiTableFlags.BordersInnerH))
         {
             ImGui.TableSetupColumn("Item", ImGuiTableColumnFlags.WidthStretch);
+            ImGui.TableSetupColumn("Type", ImGuiTableColumnFlags.WidthFixed);
             ImGui.TableSetupColumn("Available", ImGuiTableColumnFlags.WidthFixed, ImGui.CalcTextSize("Available").X);
             ImGui.TableSetupColumn("Reserved", ImGuiTableColumnFlags.WidthFixed, ImGui.CalcTextSize("Reserved").X);
             ImGui.TableHeadersRow();
@@ -173,7 +172,7 @@ public sealed partial class SeasonsPanel
                     companionSelection = item.Id; companionDetails = null; companionDiscardConfirmed = false; companionDiscardQuantity = 1;
                     companionInventoryRefresh.Invalidate();
                 }
-                ImGui.TextDisabled(TypeName(item.TypeId));
+                ImGui.TableNextColumn(); ImGui.TextUnformatted(TypeName(item.TypeId));
                 ImGui.TableNextColumn(); ImGui.TextUnformatted(item.Available.ToString("N0"));
                 ImGui.TableNextColumn(); ImGui.TextDisabled(item.Reserved.ToString("N0"));
                 ImGui.PopID();
@@ -215,22 +214,14 @@ public sealed partial class SeasonsPanel
         if (community == null) return;
         ImGui.Separator(); ImGui.Spacing();
         ImGui.TextDisabled("PERSONAL FINANCES");
-        ImGui.TextColored(InventoryGold, InventoryCompanionQuery.FormatAmount(community.MyBalance.Available) + " " + community.Currency.Name + " available");
-        if (ImGui.BeginTable("CompanionBalances", 3, ImGuiTableFlags.SizingStretchSame))
-        {
-            ImGui.TableNextColumn(); ImGui.TextDisabled("Total coins");
-            ImGui.TextUnformatted(InventoryCompanionQuery.FormatAmount(community.MyBalance.Owned));
-            ImGui.TableNextColumn(); ImGui.TextDisabled("Reserved");
-            ImGui.TextUnformatted(InventoryCompanionQuery.FormatAmount(community.MyBalance.Reserved));
-            ImGui.TableNextColumn(); ImGui.TextDisabled("Debt owed");
-            ImGui.TextUnformatted(InventoryCompanionQuery.FormatAmount(myBillsRefresh.HasLoaded ? myBills.TotalOutstanding : null));
-            ImGui.EndTable();
-        }
-        if (community.MyBalance.HeldForDebt != "0")
-            Wrapped(InventoryCompanionQuery.FormatAmount(community.MyBalance.HeldForDebt) + (SeasonReadOnly ? " coins held for recorded debts in this season" : " coins awaiting automatic repayment"));
+        ImGui.TextColored(InventoryGold, PersonalCoinBalance());
         if (ImGui.SmallButton("View bills")) { requestedCommunityPage = CommunityBrowserPage.Overview; OpenWorkspace(AmorRP.Plugin.Features.Shell.WorkspaceKind.Season); }
         ImGui.SameLine();
         if (ImGui.SmallButton("Refresh")) { companionInventoryRefresh.Invalidate(); myBillsRefresh.Invalidate(); refreshNeeded = true; }
         if (myBillsRefresh.Error != null) { ImGui.SameLine(); ImGui.TextDisabled("Debt update unavailable"); }
     }
+
+    private string PersonalCoinBalance() =>
+        InventoryCompanionQuery.FormatNetBalance(community!.MyBalance.Available, myBillsRefresh.HasLoaded ? myBills.TotalOutstanding : null)
+        + " " + community.Currency.Name;
 }

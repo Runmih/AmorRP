@@ -93,7 +93,7 @@ public sealed partial class SeasonsPanel(IPlayerState player, Configuration conf
         if (!Busy && !SyncBusy && pending == null && DateTimeOffset.UtcNow >= nextRefresh && !refreshNeeded) Refresh();
         TickTrades(); icons.Draw(); logos.Draw();
         if (workspace is { } activeWorkspace) { DrawWorkspace(activeWorkspace); return; }
-        DrawCommunitySelection();
+        DrawSeasonState();
         ImGui.BeginChild("ProductContent", System.Numerics.Vector2.Zero, false);
         DrawConsumables();
         ImGui.EndChild();
@@ -340,7 +340,7 @@ public sealed partial class SeasonsPanel(IPlayerState player, Configuration conf
             } while (cursor != null);
             var seasons = await client.GetAsync<SeasonContext>(uri, "api/v2/seasons/context", token, ct);
             var observedActive = SeasonSelection.ObservedActive(list, seasons.ActiveSeasonId);
-            var active = SeasonSelection.Choose(list, selectedId, observedActive, previouslyActiveSeason, observedSeason);
+            var active = SeasonSelection.Choose(list, selectedId, observedActive, previouslyActiveSeason, observedSeason, seasons.IsAdministrator);
             return () => {
                 var changedCommunity = community?.Id != active?.Id;
                 if (active?.SeasonState == "archived") { writingLogComposing = false; editingLetter = null; }

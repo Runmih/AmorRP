@@ -79,6 +79,8 @@ public sealed class LauncherWindow : Window
             }
             DrawHandle();
             if (expanded) DrawButtons();
+            else NotificationBadge.DrawOnHandle(dock, LauncherDock.IsHorizontal(configuration.QuickBarEdge),
+                requests() > 0, announcements() > 0);
         }
         finally { ImGui.PopStyleVar(); }
     }

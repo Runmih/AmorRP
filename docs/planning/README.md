@@ -29,7 +29,7 @@ OpenAPI contains a planned route.
 | S01 group features and staff permissions | Accepted | Maintainer major game checks, 2026-10-29; automated authorization regressions |
 | S02 accounts, treasury and disband settlement | Accepted | Maintainer four game checks, 2026-11-05; currency conservation/replay tests |
 | S03 trusted billing and debt collection | Implemented; game acceptance pending | Check offline billing, trust revocation, debt policy, collection and disbanded-group returns |
-| Seasonal direction and shared membership | Implemented; game acceptance pending | Administrator creation/activation, ordinary-user visibility, every season available, archive privacy and repeated refresh |
+| Seasonal direction and shared membership | Implemented; game acceptance pending | Administrator creation and activation, active season rollover for players, archive privacy and repeated refresh |
 | Home tabs, launcher and Favorite Events | Implemented; game acceptance pending | Four navigation edges, launcher toggles, scaling, writing readability and empty HUD behavior |
 | Trade grids | Implemented; game acceptance pending | Dragging and right-clicking stacks in both directions, search, offer limits and both confirmations |
 | Maintenance consolidation | Automated verification complete | [0.4.0.4 evidence](../delivery/release-0.4.0.4.md): 381 tests, both exact-source CI workflows, shared foundations and current docs; no new game acceptance claimed |

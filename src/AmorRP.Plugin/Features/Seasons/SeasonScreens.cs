@@ -24,15 +24,14 @@ public sealed partial class SeasonsPanel
 
     private void DrawSeasonState()
     {
-        if (community?.SeasonState == "active") ImGui.TextDisabled("Active season · Groups, items and finances belong to this season.");
         if (SeasonReadOnly) Wrapped(community!.SeasonState == "archived"
-            ? "Archived season · Read-only. Its items, finances and records stay here."
-            : "This season is not active. Items and finances can change only in the active season.");
+            ? $"{community.Name} · Archived, read-only"
+            : $"{community.Name} · Draft, read-only");
     }
 
     private void DrawNoSeason() => Wrapped(seasonContext == null
         ? "Loading seasons…"
-        : "No seasons are available yet. A server administrator can create one from Season management.");
+        : "No season is active. A server administrator can activate one from Season management.");
 
     private void DrawSeasonManagement()
     {

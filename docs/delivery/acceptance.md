@@ -9,7 +9,7 @@ records current acceptance status; this checklist describes what to verify.
 | Feature | Acceptance |
 | --- | --- |
 | F01 identity | Fresh browser pairing, wrong/shared code rejected, saved login renewal, mismatch preserves stable assets |
-| F02 seasons | New/returning characters see all seasons; no join/leave/exclusion UI; draft activation and archive rollover work |
+| F02 seasons | New and returning characters follow the active season. Server administrators can browse drafts and archives and activate drafts from Season Management. |
 | F03 permissions | Ordinary user sees no season creation; administrator default works; explicit grant/revoke; no group/season escalation |
 | F04 currency | Accurate owned/reserved/available balances; authorized adjustments; treasury conservation and actual-owner disband returns |
 | F05 types | Alchemy/Cooking and book/letter/note remain distinct; unknown type fails safely |
@@ -30,9 +30,11 @@ records current acceptance status; this checklist describes what to verify.
 
 - S03: trust a group, bill offline, revoke trust, test debt disabled/enabled,
   collection on income/reservation release, and disbanded-group repayment returns.
-- Seasons: configured administrator creates/activates while draft selected; ordinary
-  and newly verified characters see drafts/active/archives automatically. Creation
-  controls stay hidden without seasons.create. Repeated refresh preserves assets.
+- Seasons: configured administrator creates and activates while a draft is selected.
+  Existing and newly verified players follow the active season automatically.
+  Creation controls require seasons.create. Repeated refresh preserves assets.
+- Player overview: membership rows show names only. Check the single reset on Home,
+  the Type column, negative debt, and the red and blue badges on all four edges.
 - Windows: Home navigation on all four edges, tab switching from the launcher,
   resizing/scaling, writing readability, independent filters,
   focus and unsaved drafts. Click every launcher button twice, close its window

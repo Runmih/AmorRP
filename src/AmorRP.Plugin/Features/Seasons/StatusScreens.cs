@@ -16,25 +16,12 @@ public sealed partial class SeasonsPanel
         if (ImGui.BeginPopup("LoginDetails")) { Wrapped(loginDiagnostic); ImGui.EndPopup(); }
     }
     private string connectionError = "", connectionDiagnostic = "";
-    // Keep the selector stable while background work reports to the Activity Log.
-    private void DrawCommunitySelection()
+    private void DrawSeasonManagementSelection()
     {
-        if (CanCreateSeasons)
-        {
-            var width = ImGui.CalcTextSize("Create season").X + ImGui.GetStyle().FramePadding.X * 2;
-            DrawCommunitySelector("##Season", Math.Max(1, ImGui.GetContentRegionAvail().X - width - ImGui.GetStyle().ItemSpacing.X));
-            ImGui.SameLine();
-            if (ImGui.Button("Create season", new(width, 0))) OpenCreateCommunity?.Invoke();
-        }
-        else DrawCommunitySelector("##Season", -1);
-        DrawSeasonState();
-    }
-    private void DrawCommunitySelector(string id, float width)
-    {
-        ImGui.SetNextItemWidth(width);
-        var preview = session == null ? "Sign in first" : community?.Name ?? (communities.Length == 0 ? $"No season yet" : $"Choose a season");
-        ImGui.BeginDisabled(session == null || communities.Length == 0 || WriteBlocked || Busy || session.AccessExpiresAt <= DateTimeOffset.UtcNow);
-        if (ImGui.BeginCombo(id, preview))
+        if (communities.Length == 0) return;
+        ImGui.SetNextItemWidth(-1);
+        ImGui.BeginDisabled(WriteBlocked || Busy);
+        if (ImGui.BeginCombo("##Season", community?.Name ?? "Choose a season"))
         {
             var incoming = tradeInbox.Pending(DateTimeOffset.UtcNow).Select(x => x.CommunityId).ToHashSet();
             foreach (var entry in communities)

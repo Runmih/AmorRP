@@ -10,8 +10,10 @@ internal static class SeasonSelection
     public static Guid? ObservedActive(IReadOnlyList<Season> seasons, Guid? discovered) =>
         seasons.FirstOrDefault(x => x.SeasonState == "active")?.Id ?? discovered;
 
-    public static Season? Choose(IReadOnlyList<Season> seasons, Guid? selected, Guid? active, Guid? previouslyActive, bool observed)
+    public static Season? Choose(IReadOnlyList<Season> seasons, Guid? selected, Guid? active, Guid? previouslyActive, bool observed, bool canBrowse)
     {
+        if (!canBrowse)
+            return seasons.FirstOrDefault(x => x.Id == active && x.SeasonState == "active");
         if (active.HasValue && (!observed || active != previouslyActive))
             return seasons.FirstOrDefault(x => x.Id == active) ?? seasons.FirstOrDefault(x => x.Id == selected) ?? seasons.FirstOrDefault();
         return seasons.FirstOrDefault(x => x.Id == selected) ?? seasons.FirstOrDefault(x => x.Id == active) ?? seasons.FirstOrDefault();

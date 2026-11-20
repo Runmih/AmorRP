@@ -3,6 +3,7 @@ using AmorRP.Contracts.Seasons;
 using AmorRP.Contracts.Currency;
 using AmorRP.Contracts.Announcements;
 using AmorRP.Plugin.Services.Api;
+using AmorRP.Plugin.Services.Ui;
 using System.Text.Json;
 using Dalamud.Bindings.ImGui;
 namespace AmorRP.Plugin.Features.Seasons;
@@ -69,12 +70,26 @@ public sealed partial class SeasonsPanel
     {
         ImGui.TextUnformatted("Your resources"); ImGui.Separator();
         if (icons.HasImage) { icons.DrawIcon(); ImGui.SameLine(); }
-        Wrapped(community!.MyBalance.Available + " " + community.Currency.Name);
-        if (community.MyBalance.Reserved != "0") ImGui.TextDisabled(community.MyBalance.Reserved + " reserved for trading");
+        Wrapped(PersonalCoinBalance());
         if (editable && CanGeneralModerate) DrawCurrencyNameEditor();
         ImGui.Spacing(); ImGui.Separator();
-        if (CanCraftPotions) DrawQuota("potion_points");
-        DrawQuota("letters");
+        ImGui.PushStyleColor(ImGuiCol.PlotHistogram, PluginTheme.SelectedButton);
+        var alchemyReset = CanCraftPotions ? DrawResourceBar("potion_points", "Alchemy points") : null;
+        var cookingReset = CanCraftCooking ? DrawResourceBar("cooking_points", "Cooking points") : null;
+        var writingReset = DrawResourceBar("letters", "Writing allowance");
+        ImGui.PopStyleColor();
+        if ((alchemyReset ?? cookingReset ?? writingReset) is { } reset)
+            ImGui.TextDisabled($"Next reset: {reset.LocalDateTime:g}");
+    }
+
+    private DateTimeOffset? DrawResourceBar(string kind, string label)
+    {
+        var quota = quotas?.Items.FirstOrDefault(item => item.Kind == kind);
+        if (quota == null) return null;
+        ImGui.TextUnformatted(label);
+        var fraction = quota.Limit > 0 ? Math.Clamp((float)quota.Remaining / quota.Limit, 0, 1) : 0;
+        ImGui.ProgressBar(fraction, new(-1, 0), $"{quota.Remaining:N0} / {quota.Limit:N0}");
+        return quota.ResetAt;
     }
     private void DrawCurrencyNameEditor()
     {

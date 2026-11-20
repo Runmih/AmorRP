@@ -17,7 +17,9 @@ public sealed partial class SeasonsPanel
         DrawHomeProfile(editable); ImGui.Spacing();
         var lines = ImGui.GetTextLineHeightWithSpacing();
         var announcementHeight = Math.Max(160, (editable && CanAnnounce ? lines * 7 + ImGui.GetFrameHeightWithSpacing() * 3 : 0) + Math.Max(1, announcements.Length) * lines * 2.4f + 65);
-        var resourcesHeight = (editable && CanGeneralModerate ? 280 : 200) + (CanCraftPotions ? lines * 2 : 0);
+        var bars = 1 + (CanCraftPotions ? 1 : 0) + (CanCraftCooking ? 1 : 0);
+        var resourcesHeight = lines * 5 + bars * (lines + ImGui.GetFrameHeightWithSpacing())
+            + (editable && CanGeneralModerate ? ImGui.GetFrameHeightWithSpacing() * 2 : 0) + 38;
         if (ImGui.GetContentRegionAvail().X >= 620 && ImGui.BeginTable("HomeOverview", 2, ImGuiTableFlags.SizingStretchProp | ImGuiTableFlags.Resizable))
         {
             ImGui.TableSetupColumn("Announcements", ImGuiTableColumnFlags.WidthStretch, .66f);

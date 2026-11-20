@@ -17,16 +17,8 @@ public sealed partial class SeasonsPanel
     private long announcementEpoch;
     private bool announcementsLoaded, openAnnouncementReader;
     private string announcementTitle = "", announcementBody = "", announcementError = "", announcementPostError = "";
-    public int UnreadAnnouncements => session == null ? 0 : announcementUnread.Where(x => communities.Any(g => g.Id == x.Key)).Sum(x => x.Value);
+    public int UnreadAnnouncements => session != null && community != null ? announcementUnread.GetValueOrDefault(community.Id) : 0;
     private void DrawAnnouncementBadge() => AmorRP.Plugin.Features.Shell.NotificationBadge.Draw();
-    public void FocusUnreadAnnouncements()
-    {
-        if (UnreadAnnouncements == 0) return;
-        var first = communities.OrderByDescending(g => g.Id == community?.Id).FirstOrDefault(g => announcementUnread.GetValueOrDefault(g.Id) > 0);
-        if (first != null && first.Id != community?.Id && ActiveTrade == null && !WriteBlocked) SwitchCommunity(first);
-        requestedCommunityPage = CommunityBrowserPage.Overview;
-        OpenWorkspace(AmorRP.Plugin.Features.Shell.WorkspaceKind.Season);
-    }
     private void InvalidateAnnouncements() { announcementEpoch++; nextAnnouncementPoll = default; }
     private void ClearSelectedAnnouncements()
     {

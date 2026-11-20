@@ -39,10 +39,20 @@ public sealed class SeasonSelectionTests
     {
         var archive = Season("archived"); var active = Season("active"); var next = Season("active");
         Season[] list = [archive, active];
-        Assert.Equal(active, SeasonSelection.Choose(list, archive.Id, active.Id, null, false));
-        Assert.Equal(archive, SeasonSelection.Choose(list, archive.Id, active.Id, active.Id, true));
-        Assert.Equal(next, SeasonSelection.Choose([archive, active, next], active.Id, next.Id, active.Id, true));
-        Assert.Equal(active, SeasonSelection.Choose(list, Guid.NewGuid(), active.Id, active.Id, true));
+        Assert.Equal(active, SeasonSelection.Choose(list, archive.Id, active.Id, null, false, canBrowse: true));
+        Assert.Equal(archive, SeasonSelection.Choose(list, archive.Id, active.Id, active.Id, true, canBrowse: true));
+        Assert.Equal(next, SeasonSelection.Choose([archive, active, next], active.Id, next.Id, active.Id, true, canBrowse: true));
+        Assert.Equal(active, SeasonSelection.Choose(list, Guid.NewGuid(), active.Id, active.Id, true, canBrowse: true));
+    }
+
+    [Fact]
+    public void Players_continue_to_follow_the_active_season_with_an_old_browsing_selection()
+    {
+        var archive = Season("archived");
+        var active = Season("active");
+        Assert.Equal(active, SeasonSelection.Choose([archive, active], archive.Id, active.Id, active.Id, true, canBrowse: false));
+        Assert.Null(SeasonSelection.Choose([archive], archive.Id, null, active.Id, true, canBrowse: false));
+        Assert.Null(SeasonSelection.Choose([archive], archive.Id, archive.Id, active.Id, true, canBrowse: false));
     }
 
     [Theory]
@@ -61,6 +71,6 @@ public sealed class SeasonSelectionTests
         var latest = new[] { old with { SeasonState = "archived" }, next };
         Assert.Equal(next.Id, SeasonSelection.ObservedActive(latest, old.Id));
         Assert.Equal(next, SeasonSelection.Choose(latest, old.Id,
-            SeasonSelection.ObservedActive(latest, next.Id), observed, true));
+            SeasonSelection.ObservedActive(latest, next.Id), observed, true, canBrowse: false));
     }
 }

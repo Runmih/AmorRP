@@ -8,7 +8,7 @@ public sealed partial class SeasonsPanel
 {
     private readonly WrappedTextEditor textEditor = new();
     private void WrappedInput(string id, ref string text, int maxBytes, Vector2 size, bool readOnly = false, int maximumCharacters = int.MaxValue) => textEditor.Draw(id, ref text, maxBytes, size, readOnly, maximumCharacters);
-    private static bool LimitedInput(string id, ref string text, int maximumCharacters, int maxBytes = 8192, bool countCodeUnits = false)
+    private static bool LimitedInput(string id, ref string text, int maximumCharacters, int maxBytes = 8192, bool countCodeUnits = false, string? hint = null)
     {
         var previous = text;
         int Callback(ref ImGuiInputTextCallbackData data)
@@ -25,7 +25,9 @@ public sealed partial class SeasonsPanel
             data.CursorPos = cursor; data.SelectionStart = start; data.SelectionEnd = end;
             return 0;
         }
-        return ImGui.InputText(id, ref text, maxBytes, ImGuiInputTextFlags.CallbackEdit, Callback);
+        return hint == null
+            ? ImGui.InputText(id, ref text, maxBytes, ImGuiInputTextFlags.CallbackEdit, Callback)
+            : ImGui.InputTextWithHint(id, hint, ref text, maxBytes, ImGuiInputTextFlags.CallbackEdit, Callback);
     }
     private int ChatLimit => serviceLimits?.ChatMessageTextElements ?? LiteralChatText.DefaultCharacters;
     private static void FieldLabel(string label) { ImGui.TextUnformatted(label); ImGui.SetNextItemWidth(-1); }

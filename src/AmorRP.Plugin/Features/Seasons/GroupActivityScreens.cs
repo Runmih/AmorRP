@@ -111,8 +111,8 @@ public sealed partial class SeasonsPanel
     {
         if (community == null) { DrawNoSeason(); return; }
         DrawRefreshState(hubRefresh, "Noticeboard");
-        Wrapped("Season requests and offered rewards · one notice per group");
-        LimitedInput("Filter notices", ref noticeSearch, 100);
+        ImGui.SetNextItemWidth(-1);
+        LimitedInput("##FilterNotices", ref noticeSearch, 100, hint: "Filter notices…");
         foreach (var item in hub.Notices.Where(x => (x.Title + " " + x.Message + " " + x.GroupName + " " + x.Reward).Contains(noticeSearch, StringComparison.OrdinalIgnoreCase)))
         {
             ImGui.PushID(item.GroupId.ToString()); ImGui.Separator();

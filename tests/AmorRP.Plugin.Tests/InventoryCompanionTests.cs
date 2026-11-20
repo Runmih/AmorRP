@@ -39,9 +39,10 @@ public sealed class InventoryCompanionTests
     public void Financial_totals_preserve_whole_units_beyond_a_single_wallet_and_never_invent_zero_for_unknown_data()
     {
         var expected = BigInteger.Parse("18446744073709551614", CultureInfo.InvariantCulture).ToString("N0", CultureInfo.CurrentCulture);
-        Assert.Equal(expected, InventoryCompanionQuery.FormatAmount("18446744073709551614"));
-        Assert.Equal("0", InventoryCompanionQuery.FormatAmount("0"));
-        Assert.Equal("—", InventoryCompanionQuery.FormatAmount(null));
-        Assert.Equal("—", InventoryCompanionQuery.FormatAmount("not loaded"));
+        Assert.Equal(expected, InventoryCompanionQuery.FormatNetBalance("18446744073709551614", "0"));
+        Assert.Equal("0", InventoryCompanionQuery.FormatNetBalance("10", "10"));
+        Assert.Equal((-35).ToString("N0", CultureInfo.CurrentCulture), InventoryCompanionQuery.FormatNetBalance("5", "40"));
+        Assert.Equal("—", InventoryCompanionQuery.FormatNetBalance("5", null));
+        Assert.Equal("—", InventoryCompanionQuery.FormatNetBalance("not loaded", "0"));
     }
 }

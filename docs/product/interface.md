@@ -29,6 +29,8 @@ handle itself. Size and Opacity apply immediately.
 
 With Auto-hide on, hover over the small edge handle to reveal the buttons. Click
 the handle to pin the bar open for the session, or click again to let it retract.
+The collapsed handle shows a red badge for incoming trades and a blue badge
+for unread announcements in the viewed season.
 Turn off Auto-hide to keep the bar visible across sessions. Clear Dock to edge
 in Settings or choose Undock from the handle menu to drag the bar freely.
 Favorite Events lists only upcoming event titles. Select a title to see its
@@ -37,10 +39,10 @@ visibility and whether to hide the panel when empty.
 
 ## Shared season context
 
-Every verified character automatically receives every non-deleted season. The
-selector browses them; it does not join or leave them. Default to the active season
-on login/rollover and preserve deliberate archive browsing across normal refreshes.
-Show draft/archive read-only state. Do not display obsolete join/create prompts.
+Every verified character automatically receives every non-deleted season.
+Player windows follow the active season. The browsing selector is available to
+server administrators in Season Management, where drafts and archives are
+available for read-only inspection.
 
 Only `seasons.create` holders see creation controls. Administrators can activate or
 archive with typed-name confirmation and grant creation permission under Creation
@@ -50,8 +52,10 @@ membership removal/block/restore or inactive-member controls remain.
 
 ## Data, drafts and feedback
 
-Inventory supports tabs, categories, search, sorting, item details, pins and bounded
-pagination. Finances appear at the bottom of Inventory. Its filters/selection
+Inventory supports tabs, categories, search, sorting, an item type column, item
+details, pins and bounded pagination. Home and Inventory show one balance based
+on spendable coins less outstanding debt. Home also shows numbered resource
+bars and a shared weekly reset date. Inventory filters and selection
 are independent of the Writing reader. Future Supplies
 and Documents entries are honest empty states rather than unimplemented actions.
 

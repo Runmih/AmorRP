@@ -46,7 +46,7 @@ public sealed partial class SeasonsPanel
         {
             ImGui.PushID(row.Character.Id.ToString());
             if (ImGui.Selectable(row.Character.DisplayName + "###Member", memberSelection == row.Character.Id)) clickedMember = row;
-            ImGui.TextDisabled(row.Character.HomeWorldName + " · " + (row.IsOwner ? "owner" : row.Status == "dormant" ? "inactive" : row.Status)); ImGui.PopID();
+            ImGui.PopID();
         }
         if (clickedMember != null) RequestMemberSelection(clickedMember);
         DrawMemberSwitchDialog();

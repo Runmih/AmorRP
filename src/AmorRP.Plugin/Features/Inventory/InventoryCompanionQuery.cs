@@ -34,6 +34,8 @@ internal sealed class InventoryCompanionQuery
 
     public void Reset() { Section = InventoryCompanionSection.All; Type = Search = ""; Sort = 0; }
 
-    public static string FormatAmount(string? value) => BigInteger.TryParse(value, NumberStyles.None,
-        CultureInfo.InvariantCulture, out var amount) ? amount.ToString("N0", CultureInfo.CurrentCulture) : "—";
+    public static string FormatNetBalance(string available, string? debt) =>
+        BigInteger.TryParse(available, NumberStyles.None, CultureInfo.InvariantCulture, out var coins)
+        && BigInteger.TryParse(debt, NumberStyles.None, CultureInfo.InvariantCulture, out var outstanding)
+            ? (coins - outstanding).ToString("N0", CultureInfo.CurrentCulture) : "—";
 }
