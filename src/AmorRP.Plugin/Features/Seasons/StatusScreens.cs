@@ -47,6 +47,12 @@ public sealed partial class SeasonsPanel
         }
         ImGui.EndDisabled();
     }
+    private static void DrawSectionHeading(string title)
+    {
+        ImGui.TextColored(InventoryGold, title);
+        ImGui.Separator();
+    }
+
     public void DrawActivityLog()
     {
         var pending = session == null ? null : configuration.PendingCommands.FirstOrDefault(

@@ -11,7 +11,6 @@ public sealed partial class SeasonsPanel
 
     private void DrawSettingsWindow(bool busy, string localName, string localWorld, uint worldId)
     {
-        ImGui.TextColored(InventoryGold, "SETTINGS");
         ImGui.BeginChild("SettingsContent", System.Numerics.Vector2.Zero, false);
         if (ImGui.BeginTabBar("PluginSettingsTabs", ImGuiTabBarFlags.FittingPolicyScroll))
         {
@@ -27,12 +26,6 @@ public sealed partial class SeasonsPanel
             ImGui.EndTabBar();
         }
         ImGui.EndChild(); DrawSharedDialogsOnce();
-    }
-
-    private static void DrawSectionHeading(string title)
-    {
-        ImGui.TextColored(InventoryGold, title);
-        ImGui.Separator();
     }
 
     private static readonly string[] QuickBarEdges = ["Top · Horizontal", "Bottom · Horizontal", "Left · Vertical", "Right · Vertical"];
@@ -68,7 +61,31 @@ public sealed partial class SeasonsPanel
 
     private void DrawInterfaceSettings()
     {
-        DrawSectionHeading("Quick bar");
+        if (ImGui.CollapsingHeader("Quick bar")) DrawQuickBarSettings();
+
+        if (ImGui.CollapsingHeader("Main window"))
+        {
+            var navigation = (int)configuration.HubNavigationEdge;
+            if (ImGui.Combo("Navigation position", ref navigation, HudEdges, HudEdges.Length))
+            {
+                configuration.HubNavigationEdge = (LauncherEdge)navigation;
+                save();
+            }
+        }
+
+        if (ImGui.CollapsingHeader("Automatic HUDs"))
+        {
+            var attached = configuration.ShowAttachedInterfaces;
+            if (ImGui.Checkbox("Enable automatic HUDs", ref attached))
+            { configuration.ShowAttachedInterfaces = attached; save(); }
+            Wrapped("The quick bar's Power button also controls automatic HUDs.");
+        }
+
+        if (ImGui.CollapsingHeader("Favorite Events")) DrawFavoriteEventsSettings();
+    }
+
+    private void DrawQuickBarSettings()
+    {
         ImGui.PushID("QuickBar");
         var show = configuration.ShowLauncher;
         if (ImGui.Checkbox("Show quick bar", ref show))
@@ -89,25 +106,10 @@ public sealed partial class SeasonsPanel
         PercentSlider("Size", configuration.QuickBarSize, 60, 160, 100, x => configuration.QuickBarSize = x);
         PercentSlider("Opacity", configuration.QuickBarOpacity, 25, 100, 100, x => configuration.QuickBarOpacity = x);
         ImGui.PopID();
+    }
 
-        ImGui.Spacing();
-        DrawSectionHeading("Main window");
-        var navigation = (int)configuration.HubNavigationEdge;
-        if (ImGui.Combo("Navigation position", ref navigation, HudEdges, HudEdges.Length))
-        {
-            configuration.HubNavigationEdge = (LauncherEdge)navigation;
-            save();
-        }
-
-        ImGui.Spacing();
-        DrawSectionHeading("Automatic HUDs");
-        var attached = configuration.ShowAttachedInterfaces;
-        if (ImGui.Checkbox("Enable automatic HUDs", ref attached))
-        { configuration.ShowAttachedInterfaces = attached; save(); }
-        Wrapped("The quick bar's Power button also controls automatic HUDs.");
-
-        ImGui.Spacing();
-        DrawSectionHeading("Favorite Events");
+    private void DrawFavoriteEventsSettings()
+    {
         ImGui.PushID("FavoriteEvents");
         var events = configuration.ShowFavoriteEvents;
         if (ImGui.Checkbox("Show Favorite Events", ref events))

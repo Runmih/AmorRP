@@ -147,39 +147,23 @@ public sealed partial class SeasonsPanel
     }
     private void DrawFinalConfirmation(Trade current)
     {
-        ImGui.SetNextWindowSizeConstraints(new(0, 0), ImGui.GetMainViewport().WorkSize * .9f);
         if (!ImGui.BeginPopupModal("Final trade confirmation", ImGuiWindowFlags.AlwaysAutoResize)) return;
         if (current.State != "confirming" || finalReview?.Id != current.Id || finalReview.Revision != current.Revision || tradeCancelRequested)
         { ImGui.CloseCurrentPopup(); ImGui.EndPopup(); return; }
-        var review = finalReview;
-        var own = TradeDraft.Own(review, session!.Character.Id); var other = review.Initiator.Character.Id == session.Character.Id ? review.Recipient : review.Initiator;
-        Wrapped("Season: " + community!.Name);
-        ImGui.TextUnformatted("Both players accepted. Review the exact exchange below.");
-        ImGui.BeginChild("FinalOfferSummary", new System.Numerics.Vector2(Math.Min(ImGui.GetFontSize() * 32, ImGui.GetMainViewport().WorkSize.X * .75f), Math.Min(ImGui.GetFontSize() * 20, ImGui.GetMainViewport().WorkSize.Y * .5f)), true);
-        ImGui.TextUnformatted("You send"); DrawOffer(own); ImGui.Separator();
-        ImGui.TextUnformatted("You receive"); DrawOffer(other); ImGui.EndChild();
-        Wrapped("Both players must confirm here to transfer the offer. Cancelling or closing ends the trade.");
-        var ownCurrent = TradeDraft.Own(current, session.Character.Id);
-        if (ownCurrent.FinalConfirmed) ImGui.TextUnformatted("Your final confirmation is saved. Waiting for the other player.");
-        else if (ActionButton("Confirm exchange")) Mutate("POST", $"api/v2/seasons/{current.CommunityId}/trades/{current.Id}/final-confirm", new TradeRevision(review.Revision));
-        ImGui.SameLine(); if (ImGui.Button("Cancel entire trade")) { RequestTradeCancel(); ImGui.CloseCurrentPopup(); }
+        if (TradeDraft.Own(current, session!.Character.Id).FinalConfirmed)
+            ImGui.TextUnformatted("Waiting for the other player to confirm.");
+        else
+        {
+            ImGui.TextUnformatted("Confirm this trade?");
+            if (ActionButton("Confirm"))
+                Mutate("POST", $"api/v2/seasons/{current.CommunityId}/trades/{current.Id}/final-confirm", new TradeRevision(finalReview.Revision));
+            ImGui.SameLine();
+        }
+        if (ImGui.Button("Cancel trade")) { RequestTradeCancel(); ImGui.CloseCurrentPopup(); }
         ImGui.EndPopup();
     }
     private void CloseFinalPopup()
     {
         if (ImGui.BeginPopupModal("Final trade confirmation", ImGuiWindowFlags.AlwaysAutoResize)) { ImGui.CloseCurrentPopup(); ImGui.EndPopup(); }
-    }
-    private void DrawOffer(TradeOffer offer)
-    {
-        Wrapped(offer.CurrencyAmount + " " + community!.Currency.Name);
-        foreach (var item in offer.Items)
-        {
-            Wrapped($"{item.Quantity} × {item.Name} ({item.TypeId})");
-            if (item.DefinitionRevision.HasValue) Wrapped("Recipe revision: " + item.DefinitionRevision);
-            if (item.Description != null) Wrapped(item.Description);
-            if (item.UseMessage != null) Wrapped("Use message: " + item.UseMessage);
-            if (item.Author != null) Wrapped($"Sealed text · author {item.Author.DisplayName} @ {item.Author.HomeWorldName}");
-        }
-        Wrapped(offer.FinalConfirmed ? "Final confirmation saved" : offer.Confirmed ? "Accepted" : "Editing offer");
     }
 }

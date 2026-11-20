@@ -6,14 +6,14 @@ multi-character interaction still require [in-game acceptance](../delivery/accep
 
 | Window | Entry and purpose |
 | --- | --- |
-| Settings | `/amorrp` or `/amorrp settings`; Interface, Account, About |
+| Settings | `/amorrp` or `/amorrp settings`. Interface has collapsible sections alongside the Account and About tabs. |
 | Home | Icon tabs for season overview/directory/noticeboard, Inventory, Crafting, and the Writing Log. Commands `/amorrp season`, `/amorrp inventory`, `/amorrp crafting`, and `/amorrp writing` select their respective tabs. |
-| Group management | `/amorrp groups`; owned/authorized group settings and staff features |
+| Group management | `/amorrp groups`. Main contains the logo, name, description, and joining options. Activity and staff tools use separate tabs. Groups can be favorited from Home → Groups. |
 | Season management | `/amorrp manage`; authorized profile, permissions, economy and administration |
 | Trade | `/amorrp trade`, member action or character context menu; requests and exchange |
 
 Home, Inventory, Crafting and Writing shortcuts open the shared window on the
-corresponding tab. Press the selected shortcut again to close it. Other window
+corresponding tab and use its name in the title bar. Press the selected shortcut again to close it. Other window
 buttons keep their own toggles. Context actions open their requested content.
 All launcher icons, including Power, use the same icon-button size and renderer.
 Choose the Home navigation edge under Settings → Interface → Main window.
@@ -73,7 +73,9 @@ Writing reads only currently owned private bodies. Creation/edits use bounded
 wrapped text without adding soft-wrap characters to stored content. In an accepted
 trade, move items between the Amor RP inventory and your offer grids by dragging
 or right-clicking. Pick a quantity for stacks. Your partner's grid is read-only.
-Both approval stages are revision-bound, and closing the exchange cancels it.
+Hover over offer slots for item details. The final prompt asks for confirmation
+of the visible offer. Both approval stages are revision-bound, and closing the
+exchange cancels it.
 Billing/treasury controls require their approved group permissions. Manage Groups
 never exposes group-private content. Financial success/failure leaves a durable
 receipt and accurate available/reserved balances.

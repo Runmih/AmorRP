@@ -35,9 +35,20 @@ public sealed partial class SeasonsPanel
             };
         }, "Loading private group contents…");
     }
-    private void DrawGroupSections(AmorRP.Contracts.Groups.Group group, bool management = true, bool includeFeatureApproval = true)
+    private void DrawGroupSections(AmorRP.Contracts.Groups.Group? group, GroupView view)
     {
-        if (!ImGui.BeginTabBar("GroupSections")) return;
+        if (!ImGui.BeginTabBar("GroupSections", ImGuiTabBarFlags.FittingPolicyScroll)) return;
+        if (ImGui.BeginTabItem("Main", group == null ? ImGuiTabItemFlags.SetSelected : ImGuiTabItemFlags.None))
+        {
+            DrawGroupMain(group, view);
+            ImGui.EndTabItem();
+        }
+        if (group != null) DrawGroupActivityTabs(group, management: view == GroupView.Management);
+        ImGui.EndTabBar();
+    }
+
+    private void DrawGroupActivityTabs(AmorRP.Contracts.Groups.Group group, bool management)
+    {
         if (ImGui.BeginTabItem("Members")) { DrawGroupMembers(group); ImGui.EndTabItem(); }
         if (group.IsMember && ImGui.BeginTabItem("Announcements"))
         {
@@ -64,8 +75,6 @@ public sealed partial class SeasonsPanel
         if (group.IsMember && group.EnabledFeatures?.Contains(GroupCapabilities.Treasury) == true && ImGui.BeginTabItem("Treasury")) { DrawGroupTreasury(group, management); ImGui.EndTabItem(); }
         if (management && (CanGroupAction(group, GroupCapabilities.Billing) || CanGroupAction(group, GroupCapabilities.TreasuryRecords)) && ImGui.BeginTabItem("Billing")) { DrawGroupBilling(group); ImGui.EndTabItem(); }
         if (management && OwnSelectedGroup && ImGui.BeginTabItem("Staff")) { DrawGroupStaff(group); ImGui.EndTabItem(); }
-        if (includeFeatureApproval && Owner && ImGui.BeginTabItem("Features")) { DrawGroupFeatures(group); ImGui.EndTabItem(); }
-        ImGui.EndTabBar();
     }
     private void DrawGroupMembers(AmorRP.Contracts.Groups.Group group)
     {

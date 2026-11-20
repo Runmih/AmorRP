@@ -13,7 +13,7 @@ namespace AmorRP.Plugin.Features.Seasons;
 
 public sealed partial class SeasonsPanel
 {
-    private enum GroupView { Legacy, Browse, Management, CommunityAdministration }
+    private enum GroupView { Browse, Management, CommunityAdministration }
     private Guid? pendingGroupSelection, requestedDirectoryGroup;
     private bool pendingGroupCreation;
     private GroupProfile[] communityGroups = [];
@@ -57,18 +57,16 @@ public sealed partial class SeasonsPanel
         communityGroups = []; selectedGroupId = null; creatingGroup = false;
         groupDraft.Clear(); requestedGroupLogo = ""; groupLogos.Clear();
     }
-    private void DrawCommunityGroups(GroupView view = GroupView.Legacy)
+    private void DrawCommunityGroups(GroupView view)
     {
-        var legacy = view == GroupView.Legacy;
         var management = view == GroupView.Management;
         var administration = view == GroupView.CommunityAdministration;
         if (!administration) DrawTreasuryReturns();
         if (community == null) { Wrapped("Choose a season first to see its groups."); return; }
         DrawRefreshState(groupsRefresh, "Groups");
         groupLogos.Draw();
-        Wrapped("Groups within " + community.Name);
         if (ActionButton("Refresh groups", mutation: false)) { groupsRefresh.Invalidate(); hubRefresh.Invalidate(); ClearTreasury(); if (SelectedGroup is { IsMember: true } selectedGroup) LoadGroupPrivate(selectedGroup, true); }
-        var canCreateHere = (legacy || management) && CanCreateGroups;
+        var canCreateHere = management && CanCreateGroups;
         var createRequested = canCreateHere && ImGui.Button("New group");
         var narrow = ImGui.GetContentRegionAvail().X < ImGui.GetFontSize() * 38;
         if (!ImGui.BeginTable("CommunityGroupsLayout", narrow ? 1 : 2, ImGuiTableFlags.Resizable | ImGuiTableFlags.BordersInnerV)) return;
@@ -86,61 +84,90 @@ public sealed partial class SeasonsPanel
         ImGui.EndChild(); ImGui.TableNextColumn(); ImGui.BeginChild("CommunityGroupProfile", Vector2.Zero, true); ImGui.PushItemWidth(-1);
         var current = SelectedGroup;
         if (management && current != null && !WorkspaceAccess.GroupManagement(community, session?.Character.Id, current)) current = null;
-        if (creatingGroup && canCreateHere || current != null)
+        if (creatingGroup && canCreateHere)
+            DrawGroupSections(null, view);
+        else if (current == null)
+            Wrapped(canCreateHere ? "Select a group, or choose New group to create one." : "Select a group to read its profile.");
+        else if (administration)
         {
-            if (current != null) DrawNestedGroupLogo(current, editable: legacy || management);
-            if ((legacy || management) && (creatingGroup ? CanCreateGroups : OwnSelectedGroup))
-            {
-                FieldLabel("Group name"); LimitedInput("##NestedGroupName", ref groupDraft.Name, 80, countCodeUnits: true);
-                FieldLabel("Description"); WrappedInput("##NestedGroupDescription", ref groupDraft.Description, 8192, new(-1, ImGui.GetTextLineHeightWithSpacing() * 5), maximumCharacters: 300);
-                ImGui.TextDisabled($"{PlainText.Characters(groupDraft.Description)}/300");
-                FieldLabel("Joining"); ImGui.Combo("##GroupJoinMode", ref groupDraft.JoinMode, new[] { "Open", "Closed", "Password protected" }, 3);
-                if (groupDraft.JoinMode == 2) { FieldLabel(current?.JoinMode == "password" ? "New password (leave blank to keep current)" : "Password"); ImGui.InputText("##GroupPassword", ref groupDraft.Password, 65, ImGuiInputTextFlags.Password); }
-                var error = PlainText.Error(groupDraft.Name, 80, required: true) ?? PlainText.Error(groupDraft.Description, 300, multiline: true, required: false);
-                var conflict = current != null && groupDraft.ETag != current.Etag;
-                if (error != null) Wrapped(error);
-                if (conflict)
-                {
-                    Wrapped("This group changed elsewhere. Reload its profile before saving.");
-                    if (ImGui.Button("Reload group")) groupDraft.Load(current!);
-                }
-                var dirty = creatingGroup || groupDraft.IsDirty;
-                ImGui.BeginDisabled(error != null || conflict || !dirty);
-                if (ActionButton(creatingGroup ? "Create group" : "Save group"))
-                    Mutate(creatingGroup ? "POST" : "PATCH", $"api/v2/seasons/{community.Id}/groups" + (creatingGroup ? "" : "/" + current!.Id), groupDraft.Request(), groupDraft.ETag);
-                ImGui.EndDisabled();
-                if (creatingGroup) { if (ImGui.Button("Cancel")) { creatingGroup = false; if (communityGroups.FirstOrDefault() is { } first) SelectGroup(first); } }
-
-            }
-            else
-            {
-                Wrapped(current!.Name); ImGui.Separator();
-                Wrapped(current.Description.Length == 0 ? "No group description yet." : current.Description);
-            }
-        }
-        if (current != null)
-        {
+            DrawGroupProfile(current, editable: false);
             ImGui.Separator();
-            if (administration)
-            { if (Owner) DrawGroupFeatures(current); }
-            else
-            {
-                if (ActionButton(current.IsFavorite ? "Unfavorite group" : "Favorite group")) Mutate(current.IsFavorite ? "DELETE" : "PUT", GroupPath(current) + "/favorite", null);
-                DrawTrust(current);
-                if (view == GroupView.Browse && WorkspaceAccess.GroupManagement(community, session?.Character.Id, current)
-                    && ImGui.Button("Manage this group")) OpenWorkspaceWindow?.Invoke(WorkspaceKind.GroupManagement);
-                DrawGroupSections(current, management: legacy || management, includeFeatureApproval: legacy);
-            }
-            if (legacy && (OwnSelectedGroup || CanManageGroups) || management && OwnSelectedGroup || administration && CanManageGroups)
-            {
-                ImGui.Separator();
-                if (ShiftMemberButton("Delete group")) Mutate("DELETE", GroupPath(current), null, current.Etag);
-            }
+            if (Owner) DrawGroupFeatures(current);
+            if (CanManageGroups) DrawGroupDelete(current);
         }
-        else if (!creatingGroup || !canCreateHere) Wrapped(canCreateHere ? "Select a group, or choose New group to create one." : "Select a group to read its profile.");
+        else DrawGroupSections(current, view);
         ImGui.PopItemWidth(); ImGui.EndChild(); ImGui.EndTable();
     }
-    private void DrawNestedGroupLogo(GroupProfile current, bool editable = true)
+
+    private void DrawGroupMain(GroupProfile? group, GroupView view)
+    {
+        var management = view == GroupView.Management;
+        DrawGroupProfile(group, editable: management && (group == null || OwnSelectedGroup));
+        if (group == null) return;
+
+        ImGui.Separator();
+        if (view == GroupView.Browse)
+        {
+            if (ActionButton(group.IsFavorite ? "Unfavorite group" : "Favorite group"))
+                Mutate(group.IsFavorite ? "DELETE" : "PUT", GroupPath(group) + "/favorite", null);
+            if (WorkspaceAccess.GroupManagement(community, session?.Character.Id, group)
+                && ImGui.Button("Manage this group")) OpenWorkspace(WorkspaceKind.GroupManagement);
+        }
+        DrawTrust(group);
+        if (management && OwnSelectedGroup) DrawGroupDelete(group);
+    }
+
+    private void DrawGroupProfile(GroupProfile? group, bool editable)
+    {
+        if (group != null) DrawNestedGroupLogo(group, editable);
+        if (!editable)
+        {
+            if (group != null)
+            {
+                Wrapped(group.Name);
+                Wrapped(group.Description.Length == 0 ? "No group description yet." : group.Description);
+            }
+            return;
+        }
+
+        FieldLabel("Group name"); LimitedInput("##NestedGroupName", ref groupDraft.Name, 80, countCodeUnits: true);
+        FieldLabel("Description"); WrappedInput("##NestedGroupDescription", ref groupDraft.Description, 8192, new(-1, ImGui.GetTextLineHeightWithSpacing() * 5), maximumCharacters: 300);
+        ImGui.TextDisabled($"{PlainText.Characters(groupDraft.Description)}/300");
+        FieldLabel("Joining"); ImGui.Combo("##GroupJoinMode", ref groupDraft.JoinMode, ["Open", "Closed", "Password protected"], 3);
+        if (groupDraft.JoinMode == 2)
+        {
+            FieldLabel(group?.JoinMode == "password" ? "New password (leave blank to keep current)" : "Password");
+            ImGui.InputText("##GroupPassword", ref groupDraft.Password, 65, ImGuiInputTextFlags.Password);
+        }
+        var error = PlainText.Error(groupDraft.Name, 80, required: true) ?? PlainText.Error(groupDraft.Description, 300, multiline: true, required: false);
+        var conflict = group != null && groupDraft.ETag != group.Etag;
+        if (error != null) Wrapped(error);
+        if (conflict)
+        {
+            Wrapped("This group changed elsewhere. Reload its profile before saving.");
+            if (ImGui.Button("Reload group")) groupDraft.Load(group!);
+        }
+        ImGui.BeginDisabled(error != null || conflict || group != null && !groupDraft.IsDirty);
+        if (ActionButton(group == null ? "Create group" : "Save group"))
+        {
+            var path = group == null ? $"api/v2/seasons/{community!.Id}/groups" : GroupPath(group);
+            Mutate(group == null ? "POST" : "PATCH", path, groupDraft.Request(), groupDraft.ETag);
+        }
+        ImGui.EndDisabled();
+        if (group == null && ImGui.Button("Cancel"))
+        {
+            creatingGroup = false;
+            if (communityGroups.FirstOrDefault() is { } first) SelectGroup(first);
+        }
+    }
+
+    private void DrawGroupDelete(GroupProfile group)
+    {
+        ImGui.Separator();
+        if (ShiftMemberButton("Delete group")) Mutate("DELETE", GroupPath(group), null, group.Etag);
+    }
+
+    private void DrawNestedGroupLogo(GroupProfile current, bool editable)
     {
         var communityId = community!.Id; var imageKey = $"{origin}|{session!.Character.Id}|{communityId}|{current.Id}|{current.LogoAssetId}|{current.LogoVersion}";
         if (requestedGroupLogo != imageKey && connectionError.Length == 0)

@@ -87,7 +87,7 @@ public sealed partial class SeasonsPanel
             StartTradeCell(i, columns);
             DrawTradeCell(line.Key, item?.Name ?? saved?.Name ?? "Item", item?.TypeId ?? saved?.TypeId ?? "",
                 line.Value, editable ? FromOffer : null, trade.Id,
-                editable ? () => RequestTradeQuantity(trade, own, line.Key, false) : null);
+                editable ? () => RequestTradeQuantity(trade, own, line.Key, false) : null, saved);
         }
         DrawEmptyTradeCells(lines.Length, lineLimit, columns, cell);
         ImGui.EndChild();
@@ -101,7 +101,7 @@ public sealed partial class SeasonsPanel
         {
             var item = other.Items[i];
             StartTradeCell(i, columns);
-            DrawTradeCell(item.HoldingId, item.Name, item.TypeId, item.Quantity, null, trade.Id, null, item.Description);
+            DrawTradeCell(item.HoldingId, item.Name, item.TypeId, item.Quantity, null, trade.Id, null, item);
         }
         DrawEmptyTradeCells(other.Items.Length, lineLimit, columns, cell);
         ImGui.EndChild();
@@ -132,7 +132,7 @@ public sealed partial class SeasonsPanel
     }
 
     private static void DrawTradeCell(Guid holding, string name, string type, int quantity,
-        string? source, Guid tradeId, Action? onMenu, string? description = null)
+        string? source, Guid tradeId, Action? onMenu, TradeItem? preview = null)
     {
         ImGui.PushID(holding.ToString());
         var size = new Vector2(ImGui.GetFrameHeight() * 1.65f);
@@ -161,10 +161,13 @@ public sealed partial class SeasonsPanel
             ImGui.BeginTooltip();
             ImGui.TextUnformatted(name);
             ImGui.TextUnformatted($"{TypeName(type)} · Quantity {quantity}");
-            if (!string.IsNullOrEmpty(description))
+            if (preview != null)
             {
                 ImGui.PushTextWrapPos(ImGui.GetCursorPosX() + ImGui.GetFontSize() * 26);
-                ImGui.TextUnformatted(description);
+                if (preview.DefinitionRevision is { } revision) ImGui.TextDisabled($"Recipe revision {revision}");
+                if (!string.IsNullOrEmpty(preview.Description)) ImGui.TextUnformatted(preview.Description);
+                if (!string.IsNullOrEmpty(preview.UseMessage)) ImGui.TextUnformatted("Use message: " + preview.UseMessage);
+                if (preview.Author is { } author) ImGui.TextUnformatted($"Sealed text · {author.DisplayName} @ {author.HomeWorldName}");
                 ImGui.PopTextWrapPos();
             }
             ImGui.EndTooltip();

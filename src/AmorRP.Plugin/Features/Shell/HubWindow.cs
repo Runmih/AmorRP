@@ -34,6 +34,7 @@ internal sealed class HubWindow : Window
     public WorkspaceKind Page { get; private set; } = WorkspaceKind.Season;
     public static bool Contains(WorkspaceKind page) => Tabs.Any(tab => tab.Page == page);
     public override bool DrawConditions() => loaded();
+    public override void PreDraw() => WindowName = $"Amor RP — {WorkspaceWindow.Title(Page)}###AmorRPSeasonWorkspace";
 
     public void Show(WorkspaceKind page)
     {
