@@ -1,7 +1,9 @@
 using AmorRP.Plugin.Features.Shell;
+using AmorRP.Plugin.Services.Api;
 using AmorRP.Plugin.Services.Game;
 using AmorRP.Plugin.Services.Ui;
 using Dalamud.Game.Command;
+using Dalamud.Interface;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
@@ -17,6 +19,11 @@ public sealed class Plugin : IDalamudPlugin
     private readonly List<TitleBarButton> logButtons = [];
     private readonly ActivityLogWindow activityLogWindow;
     private readonly WindowSystem windows = new("AmorRP");
+    private readonly WindowSystem updateWindows = new("AmorRPUpdate");
+    private readonly PluginUpdateCheck updates = new(typeof(Plugin).Assembly.GetName().Version!);
+    private readonly PluginUpdateWindow updateWindow;
+    private PluginUpdateStatus? announcedUpdateStatus;
+    private bool GameplayAvailable => updates.Status == PluginUpdateStatus.Current;
     private readonly Configuration configuration;
     private readonly LauncherWindow launcherWindow;
     private readonly HubWindow hub;
@@ -34,6 +41,8 @@ public sealed class Plugin : IDalamudPlugin
         this.pluginInterface = pluginInterface;
         this.commands = commands;
         this.playerState = playerState;
+        updateWindow = new(updates, () => pluginInterface.OpenPluginInstallerTo(PluginInstallerOpenKind.UpdateablePlugins, "Amor RP"));
+        updateWindows.AddWindow(updateWindow);
         configuration = pluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
         if (configuration.Version < 4) { configuration.Version = 4; pluginInterface.SavePluginConfig(configuration); }
         mainWindow = new MainWindow(playerState, party, configuration, () => pluginInterface.SavePluginConfig(configuration), textures);
@@ -62,7 +71,7 @@ public sealed class Plugin : IDalamudPlugin
             () => mainWindow.CanOpenGroupManagement, () => mainWindow.CanOpenCommunityManagement)
             { IsOpen = configuration.ShowLauncher };
         mainWindow.SetLauncherVisible = visible => launcherWindow.IsOpen = visible;
-        context = new(contextMenu, mainWindow.SelectTarget);
+        context = new(contextMenu, mainWindow.SelectTarget, () => GameplayAvailable);
         favoriteEventsWindow = new(configuration, () => pluginInterface.SavePluginConfig(configuration), mainWindow.UpcomingFavoriteEvents, mainWindow.DrawFavoriteEvents,
             () => playerState.IsLoaded && configuration.ShowAttachedInterfaces) { IsOpen = configuration.ShowFavoriteEvents };
         mainWindow.SetFavoriteEventsVisible = visible => favoriteEventsWindow.IsOpen = visible;
@@ -83,17 +92,33 @@ public sealed class Plugin : IDalamudPlugin
 
     private void Draw()
     {
+        updates.Tick(DateTimeOffset.UtcNow);
+        using var theme = PluginTheme.Apply();
+        if (!GameplayAvailable)
+        {
+            var status = updates.Status;
+            if (playerState.IsLoaded && (status is PluginUpdateStatus.Required or PluginUpdateStatus.Unavailable)
+                && announcedUpdateStatus != status)
+            {
+                announcedUpdateStatus = status;
+                ShowUpdateWindow();
+            }
+            updateWindows.Draw();
+            return;
+        }
+        announcedUpdateStatus = null;
+        updateWindow.IsOpen = false;
         mainWindow.SetInventoryVisible(IsWorkspaceOpen(WorkspaceKind.Inventory) && playerState.IsLoaded);
         mainWindow.SetWritingLogVisible(IsWorkspaceOpen(WorkspaceKind.Writing) && playerState.IsLoaded);
         mainWindow.Tick();
         foreach (var button in logButtons)
             button.IconColor = mainWindow.HasPendingAction ? PluginTheme.Accent : null;
-        using var theme = PluginTheme.Apply();
         windows.Draw();
     }
 
     private void OnCommand(string command, string arguments)
     {
+        if (!GameplayAvailable) { ShowUpdateWindow(); return; }
         switch (arguments.Trim().ToLowerInvariant())
         {
             case "log": OpenLog(); break;
@@ -115,8 +140,15 @@ public sealed class Plugin : IDalamudPlugin
     }
     private void Open()
     {
+        if (!GameplayAvailable) { ShowUpdateWindow(); return; }
         mainWindow.IsOpen = true;
         mainWindow.BringToFront();
+    }
+
+    private void ShowUpdateWindow()
+    {
+        updateWindow.IsOpen = true;
+        updateWindow.BringToFront();
     }
 
     private void OpenLog()
@@ -153,7 +185,9 @@ public sealed class Plugin : IDalamudPlugin
         pluginInterface.UiBuilder.OpenConfigUi -= Open;
         commands.RemoveHandler(Command);
         context.Dispose();
+        updateWindows.RemoveAllWindows();
         windows.RemoveAllWindows();
+        updates.Dispose();
         mainWindow.Dispose();
     }
 }

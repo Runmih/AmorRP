@@ -45,6 +45,10 @@ records current acceptance status; this checklist describes what to verify.
 - Trade: fill an offer across several rows, filter inventory while an offer is
   saved, move partial stacks back, and compare both players' currency and item
   totals before and after final confirmation.
+- Plugin updates: run an older build with the checker against a newer published
+  version. Verify that Amor RP windows and trade context actions are blocked,
+  that the notice opens Dalamud's update list, and that the current build
+  restores gameplay after installation. Simulate an unavailable feed and retry.
 
 ## Automated release checks
 

@@ -11,6 +11,11 @@ v1. ServiceCompatibility validates the advertised API/server/minimum-client tupl
 malformed, unsupported and too-old tuples fail closed. There is no API adapter or
 alternative community mode.
 
+The plugin's installer check uses the published AssemblyVersion in repo.json.
+It pauses gameplay if the installed version is older or the feed cannot be
+verified. The API support floor remains independent of the published version.
+Clients below 0.4.0.10 predate this installer check.
+
 | Dependency | Source of truth / current pin |
 | --- | --- |
 | .NET SDK | global.json — 10.0.401, latestPatch roll-forward |

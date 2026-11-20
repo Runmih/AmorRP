@@ -18,6 +18,12 @@ and build-url. Validate the public feed and downloaded package bytes afterwards.
 Rejected downgrade/reused-version/source evidence must leave published files intact;
 retrying the same publication must preserve timestamp and provenance.
 
+Starting with 0.4.0.10, the plugin checks this feed before use and every five
+minutes while running. A newer published version pauses gameplay and opens an
+Update required window with a shortcut to Dalamud's update list. If verification
+fails, the plugin pauses and retries. Players can also retry from the notice.
+Publishing a newer plugin does not require a home-server deployment.
+
 See [development](development.md), [versions](../engineering/versions.md) and
 [release history](history.md). CI validates packages; game loading/rendering still
 requires the acceptance checklist. Official repository submission and 1.0 approval

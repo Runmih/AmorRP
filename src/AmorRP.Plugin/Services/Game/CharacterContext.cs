@@ -10,17 +10,19 @@ public sealed class CharacterContext : IDisposable
 {
     private readonly IContextMenu menus;
     private readonly Action<CharacterTarget> selected;
+    private readonly Func<bool> isAvailable;
 
-    public CharacterContext(IContextMenu menus, Action<CharacterTarget> selected)
+    public CharacterContext(IContextMenu menus, Action<CharacterTarget> selected, Func<bool> isAvailable)
     {
         this.menus = menus;
         this.selected = selected;
+        this.isAvailable = isAvailable;
         menus.OnMenuOpened += OnMenuOpened;
     }
 
     private void OnMenuOpened(IMenuOpenedArgs args)
     {
-        if (args.MenuType != ContextMenuType.Default || args.Target is not MenuTargetDefault target) return;
+        if (!isAvailable() || args.MenuType != ContextMenuType.Default || args.Target is not MenuTargetDefault target) return;
         // An NPC can have a name too. Require character evidence; never read/store ContentId.
         var player = target.TargetObject as IPlayerCharacter;
         var character = target.TargetCharacter;
@@ -32,7 +34,7 @@ public sealed class CharacterContext : IDisposable
         args.AddMenuItem(new MenuItem
         {
             Name = "Amor RP: Trade",
-            OnClicked = _ => selected(snapshot)
+            OnClicked = _ => { if (isAvailable()) selected(snapshot); }
         });
     }
 
