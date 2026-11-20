@@ -35,7 +35,7 @@ public sealed partial class SeasonsPanel
         ImGui.TextUnformatted("Your inventory");
         if (editable) Wrapped("Drag items between these grids or right-click for actions.");
         ImGui.SetNextItemWidth(-1);
-        if (ImGui.InputTextWithHint("##TradeInventorySearch", "Search items…", ref tradeSearch, 201, ImGuiInputTextFlags.EnterReturnsTrue)
+        if (ImGui.InputTextWithHint("##TradeInventorySearch", "Search items…", ref tradeSearch, 100, ImGuiInputTextFlags.EnterReturnsTrue)
             || ImGui.IsItemDeactivatedAfterEdit())
         {
             var search = tradeSearch.Trim();
