@@ -13,7 +13,7 @@ public sealed class MainWindow : Window, IDisposable
     private readonly AmorRP.Plugin.Features.Seasons.SeasonsPanel communities;
 
     public MainWindow(IPlayerState playerState, IPartyList party, Configuration configuration, Action save, ITextureProvider textures)
-        : base("Amor RP — Settings###AmorRPMain")
+        : base("###AmorRPMain")
     {
         communities = new(playerState, configuration, save, party, textures);
         Size = new Vector2(660, 500);

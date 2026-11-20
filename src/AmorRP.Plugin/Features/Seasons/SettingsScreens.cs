@@ -12,6 +12,7 @@ public sealed partial class SeasonsPanel
 
     private void DrawSettingsWindow(bool busy, string localName, string localWorld, uint worldId)
     {
+        ImGui.TextColored(InventoryGold, "SETTINGS");
         ImGui.BeginChild("SettingsContent", System.Numerics.Vector2.Zero, false);
         if (ImGui.BeginTabBar("PluginSettingsTabs", ImGuiTabBarFlags.FittingPolicyScroll))
         {

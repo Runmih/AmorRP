@@ -46,7 +46,8 @@ records current acceptance status; this checklist describes what to verify.
   saved, move partial stacks back, and compare both players' currency and item
   totals before and after final confirmation. Check item details in slot tooltips
   and confirm or cancel from the compact prompt.
-- Interface: switch between Home tabs and check the title bar. Expand and collapse
+- Interface: switch between Home tabs to check the gold page heading and verify
+  the title bar controls. Expand and collapse
   Interface settings. Create a password-protected group, save a profile edit,
   switch activity tabs, and favorite the group from Home → Groups.
 - Plugin updates: run an older build with the checker against a newer published

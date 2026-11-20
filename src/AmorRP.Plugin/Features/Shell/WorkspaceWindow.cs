@@ -11,7 +11,7 @@ public sealed class WorkspaceWindow : Window
     private readonly Func<bool> loaded;
 
     public WorkspaceWindow(WorkspaceKind kind, Action<WorkspaceKind> draw, Func<bool> loaded)
-        : base($"Amor RP — {Title(kind)}###AmorRP{kind}Workspace")
+        : base($"###AmorRP{kind}Workspace")
     {
         this.kind = kind; this.draw = draw; this.loaded = loaded;
         Size = new Vector2(1040, 760); SizeCondition = ImGuiCond.FirstUseEver;

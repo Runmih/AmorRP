@@ -13,7 +13,8 @@ multi-character interaction still require [in-game acceptance](../delivery/accep
 | Trade | `/amorrp trade`, member action or character context menu; requests and exchange |
 
 Home, Inventory, Crafting and Writing shortcuts open the shared window on the
-corresponding tab and use its name in the title bar. Press the selected shortcut again to close it. Other window
+corresponding tab. Its gold heading appears above the page content. The title bar
+holds window controls. Press the selected shortcut again to close it. Other window
 buttons keep their own toggles. Context actions open their requested content.
 All launcher icons, including Power, use the same icon-button size and renderer.
 Choose the Home navigation edge under Settings → Interface → Main window.

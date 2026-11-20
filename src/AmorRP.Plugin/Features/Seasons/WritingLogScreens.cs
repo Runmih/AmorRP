@@ -77,6 +77,7 @@ public sealed partial class SeasonsPanel
 
     private void DrawWritingLog()
     {
+        ImGui.TextColored(InventoryGold, "WRITING LOG");
         DrawCommunitySelector("##WritingCommunity", -1);
         DrawSeasonState();
         if (community == null)

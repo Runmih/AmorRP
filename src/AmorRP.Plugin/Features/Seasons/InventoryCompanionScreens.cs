@@ -88,6 +88,7 @@ public sealed partial class SeasonsPanel
 
     private void DrawInventoryWorkspace()
     {
+        ImGui.TextColored(InventoryGold, "INVENTORY");
         DrawCommunitySelector("##InventoryCommunity", -1);
         DrawSeasonState();
         if (community == null)
