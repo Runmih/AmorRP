@@ -41,7 +41,8 @@ internal sealed class PluginUpdateCheck(Version installedVersion, HttpMessageHan
 
     private async Task<Version> ReadVersion(CancellationToken cancellationToken)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Get, FeedUrl);
+        // A CDN edge can still have the previous release at the regular feed URL.
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"{FeedUrl}?check={Guid.NewGuid():N}");
         request.Headers.CacheControl = new CacheControlHeaderValue { NoCache = true };
         try
         {

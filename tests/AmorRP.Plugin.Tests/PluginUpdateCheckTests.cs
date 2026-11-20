@@ -53,6 +53,26 @@ public sealed class PluginUpdateCheckTests
         Assert.Equal(PluginUpdateStatus.Current, check.Status);
     }
 
+    [Fact]
+    public void A_manual_check_requests_a_fresh_feed_without_waiting_for_the_next_poll()
+    {
+        using var feed = new Feed(Release("0.4.0.10"), Release("0.4.0.11"));
+        using var check = new PluginUpdateCheck(Installed, feed);
+        CompleteCheck(check, Now);
+        Assert.Equal(PluginUpdateStatus.Current, check.Status);
+        check.Retry();
+        CompleteCheck(check, Now.AddSeconds(1));
+        Assert.Equal(PluginUpdateStatus.Required, check.Status);
+        Assert.Equal(2, feed.Requests);
+        Assert.All(feed.RequestUris, uri =>
+        {
+            Assert.Equal("raw.githubusercontent.com", uri.Host);
+            Assert.Equal("/Runmih/AmorRP/main/repo.json", uri.AbsolutePath);
+            Assert.StartsWith("?check=", uri.Query);
+        });
+        Assert.NotEqual(feed.RequestUris[0], feed.RequestUris[1]);
+    }
+
     [Theory]
     [InlineData(null)]
     [InlineData("[]")]
@@ -76,11 +96,13 @@ public sealed class PluginUpdateCheckTests
 
     private sealed class Feed(params string?[] bodies) : HttpMessageHandler
     {
-        public int Requests { get; private set; }
+        public List<Uri> RequestUris { get; } = [];
+        public int Requests => RequestUris.Count;
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            var content = bodies[Requests++];
+            var content = bodies[Requests];
+            RequestUris.Add(request.RequestUri!);
             return Task.FromResult(content == null ? new HttpResponseMessage(HttpStatusCode.ServiceUnavailable)
                 : new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(content, Encoding.UTF8, "application/json") });
         }

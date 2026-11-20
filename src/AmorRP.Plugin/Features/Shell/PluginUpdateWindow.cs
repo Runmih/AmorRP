@@ -22,6 +22,12 @@ internal sealed class PluginUpdateWindow : Window
 
     public override void Draw()
     {
+        if (updates.IsChecking)
+        {
+            ImGui.TextUnformatted("Checking the latest Amor RP version…");
+            return;
+        }
+
         switch (updates.Status)
         {
             case PluginUpdateStatus.Required:
@@ -36,9 +42,11 @@ internal sealed class PluginUpdateWindow : Window
                 ImGui.TextColored(PluginTheme.Accent, "Could not verify the latest version");
                 ImGui.TextWrapped("Amor RP is paused until it can reach the installer feed.");
                 ImGui.Spacing();
-                ImGui.BeginDisabled(updates.IsChecking);
-                if (ImGui.Button(updates.IsChecking ? "Checking…" : "Retry")) updates.Retry();
-                ImGui.EndDisabled();
+                if (ImGui.Button("Retry")) updates.Retry();
+                break;
+            case PluginUpdateStatus.Current:
+                ImGui.TextColored(PluginTheme.Accent, "Amor RP is up to date");
+                ImGui.TextUnformatted($"Installed {updates.InstalledVersion}   ·   Latest {updates.PublishedVersion}");
                 break;
             default:
                 ImGui.TextUnformatted("Checking the latest Amor RP version…");

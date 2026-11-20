@@ -44,6 +44,7 @@ public sealed class MainWindow : Window, IDisposable
     public GroupEvent[] UpcomingFavoriteEvents() => communities.UpcomingFavoriteEvents();
     public Action<bool>? SetFavoriteEventsVisible { get; set; }
     public Action<bool>? SetLauncherVisible { get; set; }
+    internal Action? CheckForPluginUpdates { set => communities.CheckForPluginUpdates = value; }
     public Action? OpenTrade { get; set; }
     public void DrawTrade() => communities.DrawTradeWindow();
     public void TradeOpened() => communities.TradeWindowOpened();

@@ -7,6 +7,7 @@ public sealed partial class SeasonsPanel
 {
     private string? connectedServerVersion;
     private bool requestedAccountSettings;
+    internal Action? CheckForPluginUpdates { get; set; }
     private static string PluginVersion => typeof(SeasonsPanel).Assembly.GetName().Version?.ToString() ?? "Unknown";
 
     private void DrawSettingsWindow(bool busy, string localName, string localWorld, uint worldId)
@@ -141,5 +142,10 @@ public sealed partial class SeasonsPanel
         ImGui.Spacing();
         if (ImGui.Button("Copy version info"))
             ImGui.SetClipboardText($"Amor RP plugin: {PluginVersion}\nServer (last connected): {connectedServerVersion ?? "Not connected"}");
+        if (CheckForPluginUpdates is { } checkForUpdates)
+        {
+            ImGui.SameLine();
+            if (ImGui.Button("Check for updates")) checkForUpdates();
+        }
     }
 }

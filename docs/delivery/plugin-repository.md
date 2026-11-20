@@ -22,6 +22,8 @@ Starting with 0.4.0.10, the plugin checks this feed before use and every five
 minutes while running. A newer published version pauses gameplay and opens an
 Update required window with a shortcut to Dalamud's update list. If verification
 fails, the plugin pauses and retries. Players can also retry from the notice.
+Each check requests a fresh copy of the feed. Settings → About → Check for
+updates runs a check immediately and shows the installed and published versions.
 Publishing a newer plugin does not require a home-server deployment.
 
 See [development](development.md), [versions](../engineering/versions.md) and

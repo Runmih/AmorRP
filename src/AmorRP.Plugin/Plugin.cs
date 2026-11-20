@@ -23,6 +23,7 @@ public sealed class Plugin : IDalamudPlugin
     private readonly PluginUpdateCheck updates = new(typeof(Plugin).Assembly.GetName().Version!);
     private readonly PluginUpdateWindow updateWindow;
     private PluginUpdateStatus? announcedUpdateStatus;
+    private bool showVersionStatus;
     private bool GameplayAvailable => updates.Status == PluginUpdateStatus.Current;
     private readonly Configuration configuration;
     private readonly LauncherWindow launcherWindow;
@@ -46,6 +47,7 @@ public sealed class Plugin : IDalamudPlugin
         configuration = pluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
         if (configuration.Version < 4) { configuration.Version = 4; pluginInterface.SavePluginConfig(configuration); }
         mainWindow = new MainWindow(playerState, party, configuration, () => pluginInterface.SavePluginConfig(configuration), textures);
+        mainWindow.CheckForPluginUpdates = CheckForUpdates;
         hub = new(configuration, mainWindow.DrawWorkspace, () => playerState.IsLoaded);
         foreach (var kind in Enum.GetValues<WorkspaceKind>().Where(kind => !HubWindow.Contains(kind)))
             workspaceWindows[kind] = new(kind, mainWindow.DrawWorkspace, () => playerState.IsLoaded);
@@ -103,17 +105,20 @@ public sealed class Plugin : IDalamudPlugin
                 announcedUpdateStatus = status;
                 ShowUpdateWindow();
             }
-            updateWindows.Draw();
-            return;
         }
-        announcedUpdateStatus = null;
-        updateWindow.IsOpen = false;
-        mainWindow.SetInventoryVisible(IsWorkspaceOpen(WorkspaceKind.Inventory) && playerState.IsLoaded);
-        mainWindow.SetWritingLogVisible(IsWorkspaceOpen(WorkspaceKind.Writing) && playerState.IsLoaded);
-        mainWindow.Tick();
-        foreach (var button in logButtons)
-            button.IconColor = mainWindow.HasPendingAction ? PluginTheme.Accent : null;
-        windows.Draw();
+        else
+        {
+            announcedUpdateStatus = null;
+            if (!showVersionStatus) updateWindow.IsOpen = false;
+            mainWindow.SetInventoryVisible(IsWorkspaceOpen(WorkspaceKind.Inventory) && playerState.IsLoaded);
+            mainWindow.SetWritingLogVisible(IsWorkspaceOpen(WorkspaceKind.Writing) && playerState.IsLoaded);
+            mainWindow.Tick();
+            foreach (var button in logButtons)
+                button.IconColor = mainWindow.HasPendingAction ? PluginTheme.Accent : null;
+            windows.Draw();
+        }
+        updateWindows.Draw();
+        if (!updateWindow.IsOpen) showVersionStatus = false;
     }
 
     private void OnCommand(string command, string arguments)
@@ -149,6 +154,13 @@ public sealed class Plugin : IDalamudPlugin
     {
         updateWindow.IsOpen = true;
         updateWindow.BringToFront();
+    }
+
+    private void CheckForUpdates()
+    {
+        updates.Retry();
+        showVersionStatus = true;
+        ShowUpdateWindow();
     }
 
     private void OpenLog()
