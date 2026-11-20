@@ -13,3 +13,6 @@ side has up to 20 item lines on the default server configuration. The trade
 still requires both players to accept and confirm.
 
 The minimum server version remains 0.4.0.3. In-game acceptance is pending.
+
+The stable release uses the [Windows package from CI](https://github.com/Runmih/AmorRP/actions/runs/44799644460).
+The matching [server workflow](https://github.com/Runmih/AmorRP/actions/runs/44799644255) passed.
