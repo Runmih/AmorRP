@@ -21,6 +21,16 @@ All launcher icons, including Power, use the same icon-button size and renderer.
 
 Launcher order is Home, Inventory, Crafting, Writing log, Group Management, Trade, Season Management and Power. Group and admin controls follow their permission checks. Power toggles automatic HUDs and remembers the favorite-events preference.
 
+## Docking the quick bar
+
+In Settings → Interface, choose Top or Bottom for a horizontal bar, or Left or
+Right for a vertical bar. Use Position to move it along the edge, or drag the
+handle itself. Size and Opacity apply immediately.
+
+With Auto-hide on, hover over the small edge handle to reveal the buttons. Click
+the handle to pin the bar open for the session, or click again to let it retract.
+Turn off Auto-hide to keep the bar visible across sessions.
+
 ## Shared season context
 
 Every verified character automatically receives every non-deleted season. The

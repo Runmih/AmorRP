@@ -46,7 +46,8 @@ public sealed class Plugin : IDalamudPlugin
         createCommunityWindow = new("Amor RP — Prepare season###AmorRPCreateCommunity", mainWindow.DrawCreateCommunity, () => mainWindow.CanDrawCommunityForms, new(560, 660), mainWindow.ClearFeedback);
         mainWindow.OpenCreateCommunity = () => createCommunityWindow.IsOpen = true;
         mainWindow.CloseCreateCommunity = () => createCommunityWindow.IsOpen = false;
-        launcherWindow = new(() => ToggleWindow(writingLogWindow, mainWindow.OpenWritingLogFromLauncher),
+        launcherWindow = new(configuration, () => pluginInterface.SavePluginConfig(configuration),
+            () => ToggleWindow(writingLogWindow, mainWindow.OpenWritingLogFromLauncher),
             () => ToggleWindow(tradeWindow, mainWindow.OpenTradeFromLauncher),
             kind => ToggleWindow(workspaceWindows[kind], () => mainWindow.ShowWorkspace(kind)),
             () => writingLogWindow.IsOpen, () => tradeWindow.IsOpen, kind => workspaceWindows[kind].IsOpen,

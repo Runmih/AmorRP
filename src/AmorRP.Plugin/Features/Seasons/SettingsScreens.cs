@@ -1,3 +1,4 @@
+using AmorRP.Plugin.Features.Shell;
 using Dalamud.Bindings.ImGui;
 
 namespace AmorRP.Plugin.Features.Seasons;
@@ -30,12 +31,52 @@ public sealed partial class SeasonsPanel
         ImGui.EndChild(); DrawActionFeedback(pending); DrawSharedDialogsOnce();
     }
 
+    private static readonly string[] QuickBarEdges = ["Top · Horizontal", "Bottom · Horizontal", "Left · Vertical", "Right · Vertical"];
+
+    private void DrawQuickBarSettings()
+    {
+        var edge = (int)configuration.QuickBarEdge;
+        if (ImGui.Combo("Dock edge", ref edge, QuickBarEdges, QuickBarEdges.Length))
+        {
+            configuration.QuickBarEdge = (LauncherEdge)edge;
+            save();
+        }
+
+        var autoHide = configuration.QuickBarAutoHide;
+        if (ImGui.Checkbox("Auto-hide quick bar", ref autoHide))
+        {
+            configuration.QuickBarAutoHide = autoHide;
+            save();
+        }
+
+        var size = LauncherDock.ClampPercent(configuration.QuickBarSize, 60, 160, 100);
+        if (ImGui.SliderFloat("Size##QuickBar", ref size, 60, 160, "%.0f%%"))
+            configuration.QuickBarSize = size;
+        if (ImGui.IsItemDeactivatedAfterEdit()) save();
+
+        var opacity = LauncherDock.ClampPercent(configuration.QuickBarOpacity, 25, 100, 100);
+        if (ImGui.SliderFloat("Opacity##QuickBar", ref opacity, 25, 100, "%.0f%%"))
+            configuration.QuickBarOpacity = opacity;
+        if (ImGui.IsItemDeactivatedAfterEdit()) save();
+
+        var horizontal = LauncherDock.IsHorizontal(configuration.QuickBarEdge);
+        var position = LauncherDock.ClampPercent(configuration.QuickBarPosition, 0, 100, 50);
+        if (ImGui.SliderFloat(horizontal ? "Position (left to right)##QuickBar" : "Position (top to bottom)##QuickBar",
+                ref position, 0, 100, "%.0f%%"))
+            configuration.QuickBarPosition = position;
+        if (ImGui.IsItemDeactivatedAfterEdit()) save();
+
+        Wrapped(autoHide ? "Hover the handle to reveal the quick bar. Drag it to move the bar along the edge."
+            : "Drag the handle to move the quick bar along the edge.");
+    }
+
     private void DrawInterfaceSettings()
     {
         ImGui.Spacing();
         var show = configuration.ShowLauncher;
         if (ImGui.Checkbox("Show quick launcher", ref show))
         { configuration.ShowLauncher = show; save(); SetLauncherVisible?.Invoke(show); }
+        DrawQuickBarSettings();
         ImGui.Spacing(); ImGui.Separator(); ImGui.Spacing();
         var attached = configuration.ShowAttachedInterfaces;
         if (ImGui.Checkbox("Enable automatic HUDs", ref attached))
