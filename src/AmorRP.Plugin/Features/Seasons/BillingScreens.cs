@@ -110,12 +110,21 @@ public sealed partial class SeasonsPanel
             ImGui.EndCombo();
         }
         if (billingCustomers.NextCursor != null && ActionButton("More customers", mutation: false)) LoadBillingCustomers(true);
-        FieldLabel("Service"); LimitedInput("##BillService", ref billingService, 100);
-        FieldLabel("Amount"); ImGui.InputText("##BillAmount", ref billingAmount, 20, ImGuiInputTextFlags.CharsDecimal);
-        var valid = billingCustomer != null && WholeUnits.TryNormalize(billingAmount, out _, out var value) && value > 0 && AmorRP.Core.Items.PlainText.Error(billingService, 100) == null;
-        ImGui.BeginDisabled(!valid);
-        if (ActionButton("Charge customer")) { WholeUnits.TryNormalize(billingAmount, out var amount, out _); Mutate("POST", GroupPath(group) + "/bills", new BillCreate(billingDraftId, billingCustomer!.Value, amount, billingService)); }
+        var amount = DrawBillFields(ref billingAmount, ref billingService);
+        ImGui.BeginDisabled(billingCustomer == null || amount == null);
+        if (ActionButton("Charge customer") && billingCustomer is { } customer && amount != null)
+            Mutate("POST", GroupPath(group) + "/bills", new BillCreate(billingDraftId, customer, amount, billingService));
         ImGui.EndDisabled(); ImGui.Separator();
+    }
+
+    private static string? DrawBillFields(ref string amount, ref string service)
+    {
+        FieldLabel("Amount");
+        ImGui.InputText("##BillAmount", ref amount, 20, ImGuiInputTextFlags.CharsDecimal);
+        FieldLabel("Service or item");
+        LimitedInput("##BillService", ref service, 100);
+        return WholeUnits.TryNormalize(amount, out var normalized, out var value) && value > 0
+            && AmorRP.Core.Items.PlainText.Error(service, 100) == null ? normalized : null;
     }
     private void LoadGroupBills(GroupProfile group, bool more = false)
     {
@@ -182,7 +191,18 @@ public sealed partial class SeasonsPanel
     private void ApplyBillingSuccess(string json)
     {
         var bill = ReadCommand<Bill>(json); billingReadVersion++; billingGroupRequested = null; treasuryRequestedFor = null;
-        billingDraftId = Guid.CreateVersion7(); billingAmount = billingService = ""; myBillsRefresh.Invalidate(); billPayments.Clear();
+        if (bill.Id == billingDraftId)
+        {
+            billingDraftId = Guid.CreateVersion7();
+            billingAmount = billingService = "";
+        }
+        myBillsRefresh.Invalidate();
+        billPayments.Clear();
         actionResult = $"Bill recorded: {bill.Collected} paid; {bill.Outstanding} still owed.";
+        if (contextBill?.Id == bill.Id)
+        {
+            contextBill.Recorded = true;
+            contextBill.Feedback = actionResult;
+        }
     }
 }

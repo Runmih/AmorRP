@@ -8,9 +8,9 @@ multi-character interaction still require [in-game acceptance](../delivery/accep
 | --- | --- |
 | Settings | `/amorrp` or `/amorrp settings`. Interface has collapsible sections alongside the Account and About tabs. |
 | Home | Icon tabs for season overview/directory/noticeboard, Inventory, Crafting, and the Writing Log. Commands `/amorrp season`, `/amorrp inventory`, `/amorrp crafting`, and `/amorrp writing` select their respective tabs. |
-| Group management | `/amorrp groups`. Main contains the logo, name, description, and joining options. Activity and staff tools use separate tabs. Home → Groups has name search, a favorite star beside each group, and a Favorites only filter. |
+| Groups | Home → Groups, the launcher flag, or `/amorrp groups`. Search and favorite groups from the directory. Open a profile for its activity and any controls you have permission to use. Group owners select members in the Members tab to manage staff permissions. |
 | Season management | `/amorrp manage`; authorized profile, permissions, economy and administration |
-| Trade | `/amorrp trade`, member action or character context menu; requests and exchange |
+| Trade | `/amorrp trade`, member action or character context menu → ♥ Amor RP → Trade; requests and exchange |
 
 Home, Inventory, Crafting and Writing shortcuts open the shared window on the
 corresponding tab. Its gold heading appears above the page content. The title bar
@@ -19,7 +19,7 @@ buttons keep their own toggles. Context actions open their requested content.
 All launcher icons, including Power, use the same icon-button size and renderer.
 Choose the Home navigation edge under Settings → Interface → Main window.
 
-Launcher order is Home, Inventory, Crafting, Writing log, Group Management, Trade, Season Management and Power. Group and admin controls follow their permission checks. Power toggles automatic HUDs and remembers the favorite-events preference.
+Launcher order is Home, Inventory, Crafting, Writing log, Groups, Trade, Season Management and Power. Season management follows its permission checks. Power toggles automatic HUDs and remembers the favorite-events preference.
 
 ## Docking the quick bar
 
@@ -89,9 +89,12 @@ or right-clicking. Pick a quantity for stacks. Your partner's grid is read-only.
 Hover over offer slots for item details. The final prompt asks for confirmation
 of the visible offer. Both approval stages are revision-bound, and closing the
 exchange cancels it.
-With billing enabled, Group Management → Billing contains clock-in and charges.
-Group owners set commission and can require clock-in there. Owners can clock staff
-out from Staff. Season Management → Economy contains the tax rate and season
+With billing enabled, Home → Groups → Billing contains clock-in and charges.
+Group owners set commission and can require clock-in there. Select a staff member
+in Members to clock them out. Right-click a character and choose ♥ Amor RP →
+Billing to enter the amount and what they were billed for. Pick the issuing group
+if you have billing access for multiple groups. Return reopens the character's
+context menu. Season Management → Economy contains the tax rate and season
 treasury balance. Bills show the split for the amount collected so far and each
 payment has its own receipt. Billing and treasury controls require their approved
 group permissions. Manage Groups

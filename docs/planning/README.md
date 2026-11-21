@@ -6,8 +6,9 @@ not permission to mark a milestone accepted.
 
 ## Implemented baseline
 
-Home, Inventory, Crafting and Writing Log share a tabbed window. Group management,
-Season management, Trade and Settings have their own windows. The launcher opens
+Home, Inventory, Crafting and Writing Log share a tabbed window. Group browsing
+and management both live under Home → Groups. Season management, Trade and
+Settings have their own windows. The launcher opens
 the matching tab or window, and Power controls automatic HUDs.
 
 All verified players automatically belong to all non-deleted seasons, including

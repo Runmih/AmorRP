@@ -33,6 +33,13 @@ records current acceptance status; this checklist describes what to verify.
 - S04: set tax and commission, require clock-in, then verify the composer unlocks
   after clock-in and locks after owner clock-out. Pay a bill in installments across
   a rate change. Check each receipt, both treasuries, and the cashier's balance.
+- Character context: right-click a player, open ♥ Amor RP, and verify Trade
+  targets the player. Open Billing, charge a trusted customer, and check amount,
+  service or item, issuing group and payment receipt. Verify the bottom Return row
+  reopens the game menu for that player. Check that billing requires a group grant.
+- Home → Groups: open the directory from Home, the flag and `/amorrp groups`.
+  As group owner, select a member to change permissions or clock them out.
+  Check that members can view the roster and nonmembers can join from Members.
 - Seasons: configured administrator creates and activates while a draft is selected.
   Existing and newly verified players follow the active season automatically.
   Creation controls require seasons.create. Repeated refresh preserves assets.

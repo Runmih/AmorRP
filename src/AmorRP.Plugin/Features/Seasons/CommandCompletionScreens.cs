@@ -21,7 +21,12 @@ public sealed partial class SeasonsPanel
             communityGroups = communityGroups.Select(group => group.Id == groupId ? group with { IsFavorite = favorite } : group).ToArray();
             return;
         }
-        if (request.Operation.Handler is CommandHandler.GroupProfile or CommandHandler.GroupActivity or CommandHandler.Treasury or CommandHandler.Billing or CommandHandler.GroupBilling
+        if (request.Operation.Handler == CommandHandler.Billing)
+        {
+            ApplyBillingSuccess(response.Json);
+            return;
+        }
+        if (request.Operation.Handler is CommandHandler.GroupProfile or CommandHandler.GroupActivity or CommandHandler.Treasury or CommandHandler.GroupBilling
             && !request.AppliesToGroup(selectedGroupId)) return;
         switch (request.Operation.Handler)
         {
@@ -29,7 +34,6 @@ public sealed partial class SeasonsPanel
             case CommandHandler.Home: ApplyHomeSuccess(request, response.Json); break;
             case CommandHandler.GroupProfile: ApplyGroupProfileSuccess(request, response.Json); break;
             case CommandHandler.GroupActivity: ApplyGroupActivitySuccess(request); break;
-            case CommandHandler.Billing: ApplyBillingSuccess(response.Json); break;
             case CommandHandler.GroupBilling: ApplyGroupBillingSuccess(request, response.Json); break;
             case CommandHandler.BillingPolicy: billingPolicyEtag = ""; AcceptBillingPolicy(ReadCommand<BillingPolicy>(response.Json)); billingPolicyRefresh.Invalidate(); break;
             case CommandHandler.Treasury: ApplyTreasurySuccess(response.Json); break;

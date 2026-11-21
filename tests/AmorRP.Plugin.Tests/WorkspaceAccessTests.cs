@@ -45,7 +45,6 @@ public sealed class WorkspaceAccessTests
         var owned = Scope() with { OwnerCharacterId = Actor };
         var otherGroup = Group(member: false);
         Assert.True(WorkspaceAccess.CommunityManagement(owned, Actor));
-        Assert.True(WorkspaceAccess.OpenGroupManagement(owned, Actor, [otherGroup])); // They may create a group.
         Assert.False(WorkspaceAccess.GroupManagement(owned, Actor, otherGroup));
         Assert.False(WorkspaceAccess.GroupManagement(Scope("groups.manage"), Actor, Group()));
     }
@@ -61,7 +60,6 @@ public sealed class WorkspaceAccessTests
     {
         var group = Group(true, action);
         Assert.True(WorkspaceAccess.GroupManagement(Scope(), Actor, group));
-        Assert.True(WorkspaceAccess.OpenGroupManagement(Scope(), Actor, [group]));
         Assert.False(WorkspaceAccess.GroupManagement(Scope(), Actor, group with { IsMember = false }));
         Assert.False(WorkspaceAccess.GroupManagement(Scope(), Actor, group with { CommunityId = Guid.NewGuid() }));
         Assert.False(WorkspaceAccess.GroupManagement(Scope(), Actor, group with { EnabledFeatures = [] }));
@@ -80,8 +78,6 @@ public sealed class WorkspaceAccessTests
     {
         var group = Group() with { IsFavorite = true, IsTrusted = true };
         Assert.False(WorkspaceAccess.GroupManagement(Scope(), Actor, group));
-        Assert.False(WorkspaceAccess.OpenGroupManagement(Scope(), Actor, [group]));
-        Assert.True(WorkspaceAccess.OpenGroupManagement(Scope("groups.create"), Actor, [group]));
         Assert.False(WorkspaceAccess.GroupManagement(Scope("groups.create"), Actor, group));
         Assert.False(WorkspaceAccess.GroupManagement(Scope(), Actor, group with { MyCapabilities = ["unknown.action"] }));
     }
@@ -93,7 +89,5 @@ public sealed class WorkspaceAccessTests
         Assert.False(WorkspaceAccess.CommunityManagement(Scope(), null));
         Assert.False(WorkspaceAccess.GroupManagement(null, Actor, Group()));
         Assert.False(WorkspaceAccess.GroupManagement(Scope(), null, Group()));
-        Assert.False(WorkspaceAccess.OpenGroupManagement(null, Actor, []));
-        Assert.False(WorkspaceAccess.OpenGroupManagement(Scope(), null, []));
     }
 }

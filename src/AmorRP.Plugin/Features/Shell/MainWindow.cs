@@ -32,7 +32,8 @@ public sealed class MainWindow : Window, IDisposable
     public void Tick() { communities.EnsureScope(ProductServer.Origin); communities.Tick(); }
     public int PendingTradeRequests => communities.PendingTradeRequests;
     public int UnreadAnnouncements => communities.UnreadAnnouncements;
-    public bool CanOpenGroupManagement => communities.CanOpenGroupManagement;
+    public bool GroupsSelected => communities.GroupsSelected;
+    public void SelectGroupsPage() => communities.SelectGroupsPage();
     public bool CanOpenCommunityManagement => communities.CanOpenCommunityManagement;
     public Action<WorkspaceKind>? OpenWorkspace { get; set; }
     public void ShowWorkspace(WorkspaceKind kind) => communities.OpenWorkspace(kind);
@@ -60,5 +61,9 @@ public sealed class MainWindow : Window, IDisposable
     public void ClearFeedback() => communities.WindowOpened();
     public override void OnOpen() => ClearFeedback();
     public void SelectTarget(CharacterTarget target) => communities.SelectTradeTarget(target);
+    public bool CanOpenContextBilling => communities.CanOpenContextBilling;
+    public bool OpenContextBilling(CharacterTarget target) => communities.OpenContextBilling(target);
+    public void DrawContextBilling() => communities.DrawContextBilling();
+    public void ClearContextBilling() => communities.ClearContextBilling();
     public void Dispose() => communities.Dispose();
 }

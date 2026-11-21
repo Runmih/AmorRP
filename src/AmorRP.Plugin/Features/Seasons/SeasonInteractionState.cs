@@ -24,6 +24,7 @@ public sealed partial class SeasonsPanel
         pendingMemberSelection = null; requestedCommunityPage = null; requestedManagementMembers = false; selectedEventId = null;
         ResetCommunityRefreshes();
         ClearNestedGroups();
+        ClearContextBilling();
         requests.ChangeView(); reads.Clear(); ClearTradeViews();
         icons.Clear(); logos.Clear(); community = null; members = []; policies = null; transfer = null;
         ClearMemberDescription(); memberSelection = null; memberDraftEtag = null; memberSearch = ""; policyDraftVersion = editCommunityVersion = editCurrencyVersion = 0; membersCursor = null;

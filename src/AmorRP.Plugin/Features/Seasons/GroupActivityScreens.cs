@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Numerics;
 using AmorRP.Contracts.Groups;
+using AmorRP.Plugin.Features.Shell;
 using Dalamud.Bindings.ImGui;
 namespace AmorRP.Plugin.Features.Seasons;
 
@@ -35,15 +36,15 @@ public sealed partial class SeasonsPanel
             };
         }, "Loading private group contents…");
     }
-    private void DrawGroupSections(AmorRP.Contracts.Groups.Group? group, GroupView view)
+    private void DrawGroupSections(AmorRP.Contracts.Groups.Group? group)
     {
         if (!ImGui.BeginTabBar("GroupSections", ImGuiTabBarFlags.FittingPolicyScroll)) return;
         if (ImGui.BeginTabItem("Main", group == null ? ImGuiTabItemFlags.SetSelected : ImGuiTabItemFlags.None))
         {
-            DrawGroupMain(group, view);
+            DrawGroupMain(group);
             ImGui.EndTabItem();
         }
-        if (group != null) DrawGroupActivityTabs(group, management: view == GroupView.Management);
+        if (group != null) DrawGroupActivityTabs(group, WorkspaceAccess.GroupManagement(community, session?.Character.Id, group));
         ImGui.EndTabBar();
     }
 
@@ -74,7 +75,6 @@ public sealed partial class SeasonsPanel
         if (management && CanGroupAction(group, GroupCapabilities.Notice) && ImGui.BeginTabItem("Notice")) { DrawNoticeEditor(group); ImGui.EndTabItem(); }
         if (group.IsMember && group.EnabledFeatures?.Contains(GroupCapabilities.Treasury) == true && ImGui.BeginTabItem("Treasury")) { DrawGroupTreasury(group, management); ImGui.EndTabItem(); }
         if (management && (CanGroupAction(group, GroupCapabilities.Billing) || CanGroupAction(group, GroupCapabilities.TreasuryRecords)) && ImGui.BeginTabItem("Billing")) { DrawGroupBilling(group); ImGui.EndTabItem(); }
-        if (management && OwnSelectedGroup && ImGui.BeginTabItem("Staff")) { DrawGroupStaff(group); ImGui.EndTabItem(); }
     }
     private void DrawGroupMembers(AmorRP.Contracts.Groups.Group group)
     {
@@ -102,9 +102,22 @@ public sealed partial class SeasonsPanel
         }
         LoadGroupPrivate(group);
         if (ActionButton("Refresh group members", mutation: false)) LoadGroupPrivate(group, true);
-        if (groupPrivate != null) foreach (var member in groupPrivate.Members)
-            Wrapped(member.Name + " @ " + member.World + (member.IsOwner ? " · owner" : ""));
-        if (groupPrivate?.NextCursor != null && ActionButton("More group members", mutation: false)) LoadGroupPrivate(group, true, true);
+        if (groupPrivate != null)
+        {
+            foreach (var member in groupPrivate.Members)
+            {
+                var label = member.Name + " @ " + member.World + (member.IsOwner ? " · owner" : "");
+                if (!OwnSelectedGroup || member.IsOwner) { Wrapped(label); continue; }
+                if (ImGui.Selectable(label + "###staff" + member.CharacterId, groupStaffSelection == member.CharacterId))
+                {
+                    groupStaffSelection = member.CharacterId;
+                    groupStaffDraft.Clear();
+                }
+            }
+            if (groupPrivate.NextCursor != null && ActionButton("More group members", mutation: false)) LoadGroupPrivate(group, true, true);
+            if (OwnSelectedGroup && groupPrivate.Members.FirstOrDefault(member => member.CharacterId == groupStaffSelection && !member.IsOwner) is { } selectedMember)
+                DrawGroupMemberPermissions(group, selectedMember);
+        }
         if (!OwnSelectedGroup && ActionButton("Leave group")) Mutate("DELETE", GroupPath(group) + "/membership", null);
     }
     private void DrawNoticeEditor(AmorRP.Contracts.Groups.Group group)

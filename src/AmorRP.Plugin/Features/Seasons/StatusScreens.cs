@@ -104,6 +104,11 @@ public sealed partial class SeasonsPanel
             return () => {
                 configuration.PendingCommands.Remove(pending); save(); ApplyFormSuccess(pending.Read(), null);
                 NoteAuthorizationReceipt(pending.Read(), receipt.Id);
+                if (ContextBillFor(pending.Read()) is { } draft)
+                {
+                    draft.Recorded = true;
+                    draft.Feedback = "Bill recorded. See Billing for the payment details.";
+                }
                 if (pending.Read().Operation.Handler == CommandHandler.SeasonForm) selected = receipt.CommunityId;
                 actionResult = "Your action was saved. Any chat message has not been sent again.";
                 status = "Refreshing current state."; refreshNeeded = true;

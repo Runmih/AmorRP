@@ -4,7 +4,7 @@ using GroupProfile = AmorRP.Contracts.Groups.Group;
 
 namespace AmorRP.Plugin.Features.Shell;
 
-public enum WorkspaceKind { Crafting, GroupManagement, CommunityManagement, Season, Inventory, Writing }
+public enum WorkspaceKind { Crafting, Groups, CommunityManagement, Season, Inventory, Writing }
 
 internal static class WorkspaceAccess
 {
@@ -18,8 +18,4 @@ internal static class WorkspaceAccess
         && actor.HasValue && group.CommunityId == community.Id && group.IsMember
         && (group.OwnerCharacterId == actor || (group.MyCapabilities ?? []).Any(action =>
             GroupCapabilities.All.Contains(action) && GroupCapabilities.Enabled(group.EnabledFeatures ?? [], action)));
-
-    public static bool OpenGroupManagement(Season? community, Guid? actor, IEnumerable<GroupProfile> groups) => community != null
-        && actor.HasValue && (community.OwnerCharacterId == actor || community.MyCapabilities.Contains("groups.create")
-            || groups.Any(group => GroupManagement(community, actor, group)));
 }

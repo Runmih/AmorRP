@@ -167,21 +167,21 @@ public sealed partial class SeasonsPanel
     private void ResolveContextTarget()
     {
         if (community == null || contextTarget == null) return;
-        var target = contextTarget; var communityId = community.Id; var path = $"api/v2/seasons/{communityId}/members"; var uri = origin!; var token = session!.AccessToken;
+        var target = contextTarget; var communityId = community.Id; var uri = origin!; var token = session!.AccessToken;
+        var actor = session.Character.Id;
         contextLookup = (target, communityId); tradeFeedback = "Finding " + target.Name + " in this season…";
         Start(async ct => {
-            var rows = new List<Member>(); string? cursor = null;
-            do { var page = await client.GetAsync<MemberPage>(uri, path + (cursor == null ? "" : "?cursor=" + Uri.EscapeDataString(cursor)), token, ct); rows.AddRange(page.Items); cursor = page.NextCursor; } while (cursor != null);
-            var match = rows.Where(x => x.Status == "active" && x.Character.DisplayName == target.Name && x.Character.HomeWorldId == target.HomeWorldId.ToString(System.Globalization.CultureInfo.InvariantCulture)).ToArray();
+            var match = await FindSeasonCharacterAsync(uri, token, communityId, target, ct);
             return () => {
                 if (contextTarget != target || community?.Id != communityId) return;
-                match = match.Where(x => x.Character.Id != session?.Character.Id).ToArray();
-                tradeTargetId = match.Length == 1 ? match[0].Character.Id : null;
-                if (match.Length == 1) members = members.Concat(match).DistinctBy(x => x.Character.Id).ToArray();
-                tradeFeedback = match.Length == 1 ? $"Selected {match[0].Character.DisplayName} @ {match[0].Character.HomeWorldName}." : "That character is not an active member of this season. Select a shared season in the main window to try again.";
+                if (match?.Character.Id == actor) match = null;
+                tradeTargetId = match?.Character.Id;
+                if (match != null) members = members.Append(match).DistinctBy(x => x.Character.Id).ToArray();
+                tradeFeedback = match != null ? $"Selected {match.Character.DisplayName} @ {match.Character.HomeWorldName}." : "That character is not an active member of this season. Select a shared season in the main window to try again.";
             };
         }, "Resolving season member…");
     }
+
     // Preparation reads are separate from command submission. A rejected stale write
     // can be rebased only after a definitive rejection; uncertain writes keep their key.
     private void PumpTradeChanges()

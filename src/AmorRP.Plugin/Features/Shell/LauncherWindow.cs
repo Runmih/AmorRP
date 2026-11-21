@@ -13,19 +13,19 @@ public sealed class LauncherWindow : Window
     private readonly Action<WorkspaceKind> toggleWorkspace;
     private readonly Func<WorkspaceKind, bool> workspaceVisible;
     private readonly Func<int> requests, announcements;
-    private readonly Func<bool> canDraw, interfacesVisible, canManageGroups, canManageCommunity, writingVisible, tradeVisible;
+    private readonly Func<bool> canDraw, interfacesVisible, canManageCommunity, writingVisible, tradeVisible;
 
     private readonly Configuration configuration;
     private readonly Action save;
     private LauncherDock dock;
     private readonly PanelHandle handle = new();
     private readonly Action openSettings, openLog;
-    private bool expanded, showGroups, showAdmin;
+    private bool expanded, showAdmin;
 
     public LauncherWindow(Configuration configuration, Action save, Action openSettings, Action openLog, Action toggleWriting, Action toggleTrade, Action<WorkspaceKind> toggleWorkspace,
         Func<bool> writingVisible, Func<bool> tradeVisible, Func<WorkspaceKind, bool> workspaceVisible,
         Func<int> requests, Func<int> announcements, Func<bool> canDraw, Func<bool> interfacesVisible,
-        Action toggleInterfaces, Func<bool> canManageGroups, Func<bool> canManageCommunity)
+        Action toggleInterfaces, Func<bool> canManageCommunity)
         : base("Amor RP launcher###AmorRPLauncher", ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoResize
             | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoMove
             | ImGuiWindowFlags.NoSavedSettings | ImGuiWindowFlags.NoBackground | ImGuiWindowFlags.NoFocusOnAppearing
@@ -38,7 +38,7 @@ public sealed class LauncherWindow : Window
         this.toggleWriting = toggleWriting; this.toggleTrade = toggleTrade; this.requests = requests;
         this.canDraw = canDraw; this.toggleWorkspace = toggleWorkspace; this.announcements = announcements;
         this.writingVisible = writingVisible; this.tradeVisible = tradeVisible; this.workspaceVisible = workspaceVisible;
-        this.canManageGroups = canManageGroups; this.canManageCommunity = canManageCommunity;
+        this.canManageCommunity = canManageCommunity;
         this.interfacesVisible = interfacesVisible; this.toggleInterfaces = toggleInterfaces;
         RespectCloseHotkey = false;
         DisableWindowSounds = true;
@@ -49,13 +49,12 @@ public sealed class LauncherWindow : Window
     public override void PreDraw()
     {
         var edge = configuration.QuickBarEdge;
-        showGroups = canManageGroups();
         showAdmin = canManageCommunity();
         expanded = handle.IsExpanded(configuration.QuickBarDocked, edge, configuration.QuickBarAutoHide);
         var viewport = ImGui.GetMainViewport();
         var buttonSize = ImGui.GetFrameHeight() * 1.4f * LauncherDock.ClampPercent(configuration.QuickBarSize, 60, 160, 100) / 100;
         dock = LauncherDock.Place(edge, viewport.WorkPos, viewport.WorkSize, configuration.QuickBarPosition,
-            buttonSize, ImGuiHelpers.GlobalScale, 6 + (showGroups ? 1 : 0) + (showAdmin ? 1 : 0), expanded,
+            buttonSize, ImGuiHelpers.GlobalScale, 7 + (showAdmin ? 1 : 0), expanded,
             configuration.QuickBarDocked, new Vector2(configuration.QuickBarFloatX, configuration.QuickBarFloatY));
         ImGui.PushStyleVar(ImGuiStyleVar.WindowMinSize, Vector2.One);
         ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, Vector2.Zero);
@@ -131,11 +130,8 @@ public sealed class LauncherWindow : Window
         DrawWorkspaceButton("LauncherCrafting", FontAwesomeIcon.Hammer, size, WorkspaceKind.Crafting);
         Next();
         if (ToggleButton("LauncherWriting", FontAwesomeIcon.BookOpen, size, writingVisible(), "Writing log")) toggleWriting();
-        if (showGroups)
-        {
-            Next();
-            DrawWorkspaceButton("LauncherGroupManagement", FontAwesomeIcon.Flag, size, WorkspaceKind.GroupManagement);
-        }
+        Next();
+        DrawWorkspaceButton("LauncherGroupManagement", FontAwesomeIcon.Flag, size, WorkspaceKind.Groups);
         Next();
         if (ToggleButton("LauncherTrade", FontAwesomeIcon.BalanceScale, size, tradeVisible(), "Trade", hasTrade)) toggleTrade();
         if (showAdmin)

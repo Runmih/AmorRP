@@ -48,24 +48,11 @@ public sealed partial class SeasonsPanel
         if (ImGui.Button("Reload features")) groupFeaturesDraft.Load(key, group.Etag, actions);
     }
 
-    private void DrawGroupStaff(GroupProfile group)
+    private void DrawGroupMemberPermissions(GroupProfile group, GroupMember selectedMember)
     {
-        LoadGroupPrivate(group);
-        if (ActionButton("Refresh staff", mutation: false)) LoadGroupPrivate(group, true);
-        if (groupPrivate == null) return;
-        var members = groupPrivate.Members.Where(x => !x.IsOwner).ToArray();
-        var selectedMember = members.FirstOrDefault(x => x.CharacterId == groupStaffSelection);
-        if (ImGui.BeginCombo("Staff member", selectedMember == null ? "Choose a member" : selectedMember.Name + " @ " + selectedMember.World))
-        {
-            foreach (var member in members)
-                if (ImGui.Selectable(member.Name + " @ " + member.World + "###staff" + member.CharacterId, member.CharacterId == groupStaffSelection))
-                { groupStaffSelection = member.CharacterId; groupStaffDraft.Clear(); }
-            ImGui.EndCombo();
-        }
-        selectedMember = members.FirstOrDefault(x => x.CharacterId == groupStaffSelection);
-        if (groupPrivate.NextCursor != null && ActionButton("More group members", mutation: false)) LoadGroupPrivate(group, true, true);
-        if (members.Length == 0) { Wrapped("Other members must join this group before you can assign staff permissions."); return; }
-        if (selectedMember?.Etag == null) return;
+        if (selectedMember.Etag == null) return;
+        ImGui.Separator();
+        FieldLabel(selectedMember.Name);
         if (selectedMember.ClockedInAt is { } clockedIn)
         {
             Wrapped($"Clocked in since {clockedIn.LocalDateTime:g}");

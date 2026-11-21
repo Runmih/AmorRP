@@ -1,3 +1,4 @@
+using AmorRP.Plugin.Features.Seasons;
 using AmorRP.Plugin.Features.Shell;
 using AmorRP.Plugin.Services.Api;
 using AmorRP.Plugin.Services.Game;
@@ -34,7 +35,7 @@ public sealed class Plugin : IDalamudPlugin
     private readonly MainWindow mainWindow;
     private readonly AmorRP.Plugin.Features.Inventory.CompactWindow compactWindow;
     private readonly AmorRP.Plugin.Features.Trading.TradeWindow tradeWindow;
-    private readonly AmorRP.Plugin.Features.Seasons.SeasonFormWindow createCommunityWindow;
+    private readonly SeasonFormWindow createCommunityWindow;
     private readonly CharacterContext context;
 
     public Plugin(IDalamudPluginInterface pluginInterface, ICommandManager commands, IPlayerState playerState,
@@ -51,11 +52,16 @@ public sealed class Plugin : IDalamudPlugin
         mainWindow = new MainWindow(playerState, party, configuration, () => pluginInterface.SavePluginConfig(configuration), textures, pluginInterface.UiBuilder.FontAtlas);
         mainWindow.CheckForPluginUpdates = CheckForUpdates;
         hub = new(configuration, mainWindow.DrawWorkspace, () => playerState.IsLoaded);
-        foreach (var kind in Enum.GetValues<WorkspaceKind>().Where(kind => !HubWindow.Contains(kind)))
+        foreach (var kind in Enum.GetValues<WorkspaceKind>().Where(kind => kind != WorkspaceKind.Groups && !HubWindow.Contains(kind)))
             workspaceWindows[kind] = new(kind, mainWindow.DrawWorkspace, () => playerState.IsLoaded);
         mainWindow.OpenWorkspace = kind =>
         {
-            if (HubWindow.Contains(kind)) hub.Show(kind);
+            if (kind == WorkspaceKind.Groups)
+            {
+                mainWindow.SelectGroupsPage();
+                hub.Show(WorkspaceKind.Season);
+            }
+            else if (HubWindow.Contains(kind)) hub.Show(kind);
             else workspaceWindows[kind].IsOpen = true;
         };
         compactWindow = new(mainWindow.DrawCompact);
@@ -73,15 +79,22 @@ public sealed class Plugin : IDalamudPlugin
             () => GameplayAvailable ? mainWindow.PendingTradeRequests : 0,
             () => GameplayAvailable ? mainWindow.UnreadAnnouncements : 0, () => playerState.IsLoaded,
             () => configuration.ShowAttachedInterfaces, ToggleAttachedInterfaces,
-            () => mainWindow.CanOpenGroupManagement, () => mainWindow.CanOpenCommunityManagement)
+            () => mainWindow.CanOpenCommunityManagement)
             { IsOpen = configuration.ShowLauncher };
         mainWindow.SetLauncherVisible = visible => launcherWindow.IsOpen = visible;
-        context = new(contextMenu, mainWindow.SelectTarget, () => GameplayAvailable);
+        var billingForm = new SeasonFormWindow("Amor RP — Billing###AmorRPContextBilling", mainWindow.DrawContextBilling,
+            () => playerState.IsLoaded, new(420, 275), mainWindow.ClearFeedback, mainWindow.ClearContextBilling);
+        context = new(contextMenu, mainWindow.SelectTarget, target =>
+        {
+            if (!mainWindow.OpenContextBilling(target)) return;
+            billingForm.IsOpen = true;
+            billingForm.BringToFront();
+        }, () => GameplayAvailable, () => mainWindow.CanOpenContextBilling);
         favoriteEventsWindow = new(configuration, () => pluginInterface.SavePluginConfig(configuration), mainWindow.UpcomingFavoriteEvents, mainWindow.DrawFavoriteEvents,
             () => playerState.IsLoaded && configuration.ShowAttachedInterfaces) { IsOpen = configuration.ShowFavoriteEvents };
         mainWindow.SetFavoriteEventsVisible = visible => favoriteEventsWindow.IsOpen = visible;
         windows.AddWindow(favoriteEventsWindow);
-        foreach (var menu in (Window[])[mainWindow, hub, compactWindow, tradeWindow, createCommunityWindow, .. workspaceWindows.Values])
+        foreach (var menu in (Window[])[mainWindow, hub, compactWindow, tradeWindow, createCommunityWindow, billingForm, .. workspaceWindows.Values])
         {
             if (MenuWindowButtons.Add(menu, Open, OpenLog) is { } logButton) logButtons.Add(logButton);
             windows.AddWindow(menu);
@@ -126,7 +139,7 @@ public sealed class Plugin : IDalamudPlugin
             case "writing": mainWindow.ShowWorkspace(WorkspaceKind.Writing); break;
             case "inventory": mainWindow.ShowWorkspace(WorkspaceKind.Inventory); break;
             case "crafting": mainWindow.ShowWorkspace(WorkspaceKind.Crafting); break;
-            case "groups": mainWindow.ShowWorkspace(WorkspaceKind.GroupManagement); break;
+            case "groups": mainWindow.ShowWorkspace(WorkspaceKind.Groups); break;
             case "manage": mainWindow.ShowWorkspace(WorkspaceKind.CommunityManagement); break;
             case "season": mainWindow.ShowWorkspace(WorkspaceKind.Season); break;
             case "launcher":
@@ -178,12 +191,18 @@ public sealed class Plugin : IDalamudPlugin
     }
 
     private bool IsWorkspaceOpen(WorkspaceKind kind) => GameplayAvailable
-        && (HubWindow.Contains(kind) ? hub.IsOpen && hub.Page == kind : workspaceWindows[kind].IsOpen);
+        && (kind == WorkspaceKind.Groups ? hub.IsOpen && hub.Page == WorkspaceKind.Season && mainWindow.GroupsSelected
+            : HubWindow.Contains(kind) ? hub.IsOpen && hub.Page == kind : workspaceWindows[kind].IsOpen);
 
     private void ToggleWorkspace(WorkspaceKind kind)
     {
         if (!TryUseGameplay()) return;
-        if (HubWindow.Contains(kind)) hub.TogglePage(kind);
+        if (kind == WorkspaceKind.Groups)
+        {
+            if (IsWorkspaceOpen(kind)) hub.IsOpen = false;
+            else mainWindow.ShowWorkspace(kind);
+        }
+        else if (HubWindow.Contains(kind)) hub.TogglePage(kind);
         else ToggleWindow(workspaceWindows[kind], () => mainWindow.ShowWorkspace(kind));
     }
 

@@ -5,7 +5,6 @@ using AmorRP.Contracts.Groups;
 using AmorRP.Core.Items;
 using AmorRP.Plugin.Services.Api;
 using AmorRP.Plugin.Services.Media;
-using AmorRP.Plugin.Features.Shell;
 using Dalamud.Bindings.ImGui;
 using GroupProfile = AmorRP.Contracts.Groups.Group;
 
@@ -13,7 +12,6 @@ namespace AmorRP.Plugin.Features.Seasons;
 
 public sealed partial class SeasonsPanel
 {
-    private enum GroupView { Browse, Management, CommunityAdministration }
     private Guid? pendingGroupSelection, requestedDirectoryGroup;
     private bool pendingGroupCreation;
     private GroupProfile[] communityGroups = [];
@@ -60,15 +58,13 @@ public sealed partial class SeasonsPanel
         groupSearch = ""; favoriteGroupsOnly = false;
         groupDraft.Clear(); requestedGroupLogo = ""; groupLogos.Clear();
     }
-    private void DrawCommunityGroups(GroupView view)
+    private void DrawCommunityGroups(bool administration = false)
     {
-        var management = view == GroupView.Management;
-        var administration = view == GroupView.CommunityAdministration;
         if (community == null) { Wrapped("Choose a season first to see its groups."); return; }
         DrawRefreshState(groupsRefresh, "Groups");
         groupLogos.Draw();
         if (ActionButton("Refresh groups", mutation: false)) { groupsRefresh.Invalidate(); hubRefresh.Invalidate(); ClearTreasury(); if (SelectedGroup is { IsMember: true } selectedGroup) LoadGroupPrivate(selectedGroup, true); }
-        var canCreateHere = management && CanCreateGroups;
+        var canCreateHere = !administration && CanCreateGroups;
         var createRequested = canCreateHere && ImGui.Button("New group");
         var narrow = ImGui.GetContentRegionAvail().X < ImGui.GetFontSize() * 38;
         if (!ImGui.BeginTable("CommunityGroupsLayout", narrow ? 1 : 2, ImGuiTableFlags.Resizable | ImGuiTableFlags.BordersInnerV)) return;
@@ -76,22 +72,20 @@ public sealed partial class SeasonsPanel
         if (!narrow) ImGui.TableSetupColumn("Profile", ImGuiTableColumnFlags.WidthStretch, .68f);
         ImGui.TableNextColumn(); ImGui.BeginChild("CommunityGroupList", new(0, narrow ? ImGui.GetTextLineHeightWithSpacing() * 7 : 0), true);
         if (createRequested) RequestGroupChange(null);
-        if (view == GroupView.Browse) DrawGroupDirectory();
+        if (!administration) DrawGroupDirectory();
         else
         {
-            var shownGroups = communityGroups.Where(x => !management || WorkspaceAccess.GroupManagement(community, session?.Character.Id, x))
-                .OrderBy(x => x.Name, StringComparer.OrdinalIgnoreCase).ToArray();
+            var shownGroups = communityGroups.OrderBy(x => x.Name, StringComparer.OrdinalIgnoreCase).ToArray();
             foreach (var row in shownGroups)
                 if (ImGui.Selectable(row.Name + "###nested" + row.Id, selectedGroupId == row.Id)) RequestGroupChange(row);
-            if (shownGroups.Length == 0) Wrapped(management ? "No groups you can manage yet." : "No groups yet.");
+            if (shownGroups.Length == 0) Wrapped("No groups yet.");
         }
         DrawGroupSwitchDialog();
         ImGui.EndChild(); ImGui.TableNextColumn(); ImGui.BeginChild("CommunityGroupProfile", Vector2.Zero, true); ImGui.PushItemWidth(-1);
         var current = SelectedGroup;
-        if (management && current != null && !WorkspaceAccess.GroupManagement(community, session?.Character.Id, current)) current = null;
-        if (view == GroupView.Browse && current != null && !MatchesGroupFilter(current)) current = null;
+        if (!administration && current != null && !MatchesGroupFilter(current)) current = null;
         if (creatingGroup && canCreateHere)
-            DrawGroupSections(null, view);
+            DrawGroupSections(null);
         else if (current == null)
             Wrapped(canCreateHere ? "Select a group, or choose New group to create one." : "Select a group to read its profile.");
         else if (administration)
@@ -101,21 +95,18 @@ public sealed partial class SeasonsPanel
             if (Owner) DrawGroupFeatures(current);
             if (CanManageGroups) DrawGroupDelete(current);
         }
-        else DrawGroupSections(current, view);
+        else DrawGroupSections(current);
         ImGui.PopItemWidth(); ImGui.EndChild(); ImGui.EndTable();
     }
 
-    private void DrawGroupMain(GroupProfile? group, GroupView view)
+    private void DrawGroupMain(GroupProfile? group)
     {
-        var management = view == GroupView.Management;
-        DrawGroupProfile(group, editable: management && (group == null || OwnSelectedGroup));
+        DrawGroupProfile(group, editable: group == null || OwnSelectedGroup);
         if (group == null) return;
 
         ImGui.Separator();
-        if (view == GroupView.Browse && WorkspaceAccess.GroupManagement(community, session?.Character.Id, group)
-            && ImGui.Button("Manage this group")) OpenWorkspace(WorkspaceKind.GroupManagement);
         DrawTrust(group);
-        if (management && OwnSelectedGroup) DrawGroupDelete(group);
+        if (OwnSelectedGroup) DrawGroupDelete(group);
     }
 
     private void DrawGroupProfile(GroupProfile? group, bool editable)

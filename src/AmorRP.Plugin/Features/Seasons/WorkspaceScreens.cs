@@ -10,7 +10,9 @@ public sealed partial class SeasonsPanel
     private CommunityBrowserPage? requestedCommunityPage;
     private bool requestedManagementMembers;
     public Action<WorkspaceKind>? OpenWorkspaceWindow { get; set; }
-    public bool CanOpenGroupManagement => WorkspaceAccess.OpenGroupManagement(community, session?.Character.Id, communityGroups);
+    private CommunityBrowserPage activeCommunityPage;
+    public bool GroupsSelected => (requestedCommunityPage ?? activeCommunityPage) == CommunityBrowserPage.Groups;
+    public void SelectGroupsPage() => requestedCommunityPage = CommunityBrowserPage.Groups;
     public bool CanOpenCommunityManagement => CanCreateSeasons || IsSeasonAdministrator || WorkspaceAccess.CommunityManagement(community, session?.Character.Id);
     private bool CanManageCommunityMembers => Owner || CanManageGameplay || CanCoins || community?.MyCapabilities.Contains("inventory.remove") == true;
 
@@ -38,10 +40,6 @@ public sealed partial class SeasonsPanel
         switch (kind)
         {
             case WorkspaceKind.Crafting: DrawCraftingTabs(includeWriting: false); break;
-            case WorkspaceKind.GroupManagement:
-                if (CanOpenGroupManagement) DrawCommunityGroups(GroupView.Management);
-                else Wrapped("You can manage groups you own or have staff permissions for. Group creation requires season permission.");
-                break;
             case WorkspaceKind.CommunityManagement:
                 if (CanOpenCommunityManagement) DrawCommunityManagementWorkspace();
                 else Wrapped("Season management requires an owner or a relevant delegated permission.");
@@ -58,6 +56,7 @@ public sealed partial class SeasonsPanel
         {
             var flags = requestedCommunityPage == page ? ImGuiTabItemFlags.SetSelected : ImGuiTabItemFlags.None;
             if (!ImGui.BeginTabItem(page.ToString(), flags)) continue;
+            activeCommunityPage = page;
             if (requestedCommunityPage == page)
             {
                 requestedCommunityPage = null;
@@ -72,7 +71,7 @@ public sealed partial class SeasonsPanel
                     case CommunityBrowserPage.Overview:
                         DrawHomeOverview(editable: false); DrawMyBills(); DrawOwnershipOffer(); break;
                     case CommunityBrowserPage.Members: DrawMembers(MemberView.Directory); break;
-                    case CommunityBrowserPage.Groups: DrawCommunityGroups(GroupView.Browse); break;
+                    case CommunityBrowserPage.Groups: DrawCommunityGroups(); break;
                     case CommunityBrowserPage.Noticeboard: DrawNoticeboard(); break;
                 }
             }
@@ -91,7 +90,7 @@ public sealed partial class SeasonsPanel
         { requestedManagementMembers = false; DrawMembers(MemberView.Management); ImGui.EndTabItem(); }
         if (CanAnnounce && ImGui.BeginTabItem("Announcements")) { DrawAnnouncements(); ImGui.EndTabItem(); }
         if (CanManageGroups && ImGui.BeginTabItem(Owner ? "Group access" : "Groups"))
-        { DrawCommunityGroups(GroupView.CommunityAdministration); ImGui.EndTabItem(); }
+        { DrawCommunityGroups(administration: true); ImGui.EndTabItem(); }
         if (CanGeneralModerate && ImGui.BeginTabItem("Currency"))
         { LoadHomeDrafts(); DrawCurrencyNameEditor(); if (Owner) DrawCurrencyIconEditor(); ImGui.EndTabItem(); }
         if (Owner && ImGui.BeginTabItem("Weekly limits")) { DrawWeeklyPolicy(expanded: true); ImGui.EndTabItem(); }
