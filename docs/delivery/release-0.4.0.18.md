@@ -5,3 +5,6 @@ selected. The page shows the host, start and end times, location, and descriptio
 It also lists upcoming events in the viewed season.
 
 The minimum server version remains 0.4.0.3. In-game appearance is pending verification.
+
+The stable release uses the [Windows package from CI](https://github.com/Runmih/AmorRP/actions/runs/44911489438).
+The matching [server workflow](https://github.com/Runmih/AmorRP/actions/runs/44911489407) passed.
