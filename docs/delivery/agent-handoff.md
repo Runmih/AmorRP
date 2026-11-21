@@ -25,10 +25,10 @@ and receipts. Shared media code handles storage/hash/PNG response only. Financia
 mutations use CurrencyAccounts/DebtSettlement/TradeReservations. Do not hide lock
 ordering or authorization inside a generic engine.
 
-S01 and S02 passed maintainer game checks. S03, Seasons and dedicated-window layout
-still need the focused [manual checks](acceptance.md). Planned S04–S11 features,
-export/deletion and final operating drills are not implemented/accepted by this
-maintenance pass. Do not claim new game checks or a production restore.
+S01 and S02 passed maintainer game checks. S03, S04, Seasons and the dedicated-window layout
+still need the focused [manual checks](acceptance.md). S05–S11 features,
+export/deletion and final operating drills remain planned. Do not claim new
+game checks or a production restore.
 
 Use the Runmih commit identity, locked dependencies and disposable PostgreSQL tests.
 Preserve migration history and immutable packages. Both source workflows must pass

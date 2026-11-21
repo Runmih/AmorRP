@@ -17,4 +17,7 @@ public sealed class GroupRow
     public string[] EnabledFeatures { get; set; } = AmorRP.Contracts.Groups.GroupCapabilities.DefaultFeatures.ToArray();
     public long TreasuryOwned { get; set; }
     public int TreasuryVersion { get; set; } = 1;
+    public int CommissionPercent { get; set; }
+    public bool RequireClockIn { get; set; }
+    public int BillingSettingsVersion { get; set; } = 1;
 }

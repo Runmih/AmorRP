@@ -60,7 +60,11 @@ Oldest unpaid bills collect available unreserved funds and subsequent income.
 Collection retains trade reservations and continues durably for long queues. All
 income paths use settlement; collection cycles terminate without minting money.
 Disbanded-group claims persist and later payments go to the former owner through
-Treasury returns. Taxes/commission and permit billing locks are not implemented.
+Treasury returns. Billing applies the season tax first, then pays the issuing
+cashier commission on the remainder. Each share rounds down against cumulative
+collections and the rest goes to the group treasury. Bill rates are fixed at
+issuance. Groups can require cashiers to clock in before issuing a bill.
+Permit billing locks are planned.
 
 ## Inventory, recipes, quotas and writing
 

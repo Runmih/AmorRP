@@ -1,7 +1,7 @@
 # API contract and endpoint catalog
 
 The current implementation has one model: **Seasons**, with RP groups inside each
-season. The wire-support floor is 0.4.0.3; package versions are independent. The application's API is
+season. The wire-support floors are client 0.4.0.3 and server 0.5.0.0; package versions are independent. The application's API is
 v2; XIVAuth separately uses its own API v1. No old application routes or community
 mode are exposed. [OpenAPI](openapi.yaml) records implemented and planned operations.
 
@@ -156,7 +156,10 @@ mode are exposed. [OpenAPI](openapi.yaml) records implemented and planned operat
 | GET | `/api/v2/me/treasury-returns` | List own pending disband returns | Current verified character; own pending disband returns only |
 | POST | `/api/v2/seasons/{seasonId}/groups/{groupId}/treasury/return` | Collect disbanded group coins into original account | Current verified character who owns the deleted group; original retained account |
 | GET | `/api/v2/seasons/{seasonId}/billing-policy` | Read billing settings | Active season member |
-| PUT | `/api/v2/seasons/{seasonId}/billing-policy` | Save season debt policy | Active season owner only |
+| PUT | `/api/v2/seasons/{seasonId}/billing-policy` | Save season debt and tax policy | Active season owner only |
+| GET | `/api/v2/seasons/{seasonId}/groups/{groupId}/billing-settings` | Read group billing settings and own clock-in | Authorized group cashier |
+| PUT | `/api/v2/seasons/{seasonId}/groups/{groupId}/billing-settings` | Save group billing settings | Group owner with billing enabled |
+| PUT | `/api/v2/seasons/{seasonId}/groups/{groupId}/clock-in` | Set cashier clock-in status | Authorized cashier for self, group owner for clocking out staff |
 | PUT | `/api/v2/seasons/{seasonId}/groups/{groupId}/trust` | Save own automatic billing trust | Active season character; own trust only; treasury enabled to opt in |
 | POST | `/api/v2/seasons/{seasonId}/groups/{groupId}/bills` | Charge a trusted customer | Active group owner or treasury.bill staff; treasury enabled; active trusted customer |
 | GET | `/api/v2/seasons/{seasonId}/groups/{groupId}/bills` | List group bills | Active group records staff or owner; billing staff see only their issued bills; deleted group former owner |

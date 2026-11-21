@@ -10,7 +10,8 @@ public sealed record GroupEvent(Guid Id, [property: System.Text.Json.Serializati
 public sealed record EventWrite(string Title, string Description, string Location, DateTimeOffset StartsAt, DateTimeOffset EndsAt);
 public sealed record GroupAnnouncement(Guid Id, string Title, string Message, DateTimeOffset PublishedAt);
 public sealed record AnnouncementWrite(string Title, string Message);
-public sealed record GroupMember(Guid CharacterId, string Name, string World, bool IsOwner, string[]? Capabilities = null, string? Etag = null);
+public sealed record GroupMember(Guid CharacterId, string Name, string World, bool IsOwner, string[]? Capabilities = null, string? Etag = null,
+    DateTimeOffset? ClockedInAt = null);
 public sealed record GroupPrivate(GroupMember[] Members, GroupAnnouncement[] Announcements, string? NextCursor = null);
 public sealed record GroupHub(GroupNotice[] Notices, GroupEvent[] Events);
 public sealed record FavoriteEvents(GroupEvent[] Items);

@@ -30,6 +30,9 @@ records current acceptance status; this checklist describes what to verify.
 
 - S03: trust a group, bill offline, revoke trust, test debt disabled/enabled,
   collection on income/reservation release, and disbanded-group repayment returns.
+- S04: set tax and commission, require clock-in, then verify the composer unlocks
+  after clock-in and locks after owner clock-out. Pay a bill in installments across
+  a rate change. Check each receipt, both treasuries, and the cashier's balance.
 - Seasons: configured administrator creates and activates while a draft is selected.
   Existing and newly verified players follow the active season automatically.
   Creation controls require seasons.create. Repeated refresh preserves assets.

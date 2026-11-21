@@ -23,10 +23,11 @@ public static class GroupAuthorization
         return member!;
     }
 
-    public static async Task ActionAsync(AmorDbContext db, GroupRow group, Guid actor, string capability, CancellationToken ct)
+    public static async Task<GroupMembershipRow> ActionAsync(AmorDbContext db, GroupRow group, Guid actor, string capability, CancellationToken ct)
     {
         var member = await MemberAsync(db, group, actor, ct);
         ApiFault.Require(Effective(group, actor, member).Contains(capability), 403, "group_capability_required", "You do not have permission for this group action.");
+        return member;
     }
 
     public static void Validate(string[]? values, bool features = false)

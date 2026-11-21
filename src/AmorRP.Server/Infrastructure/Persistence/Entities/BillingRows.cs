@@ -22,6 +22,8 @@ public sealed class BillRow
     public string RequestHash { get; set; } = "";
     public long Amount { get; set; }
     public long Collected { get; set; }
+    public int TaxPercent { get; set; }
+    public int CommissionPercent { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
 }
 public sealed class BillPaymentRow
@@ -34,6 +36,8 @@ public sealed class BillPaymentRow
     public long CharacterAfter { get; set; }
     public long TreasuryBefore { get; set; }
     public long TreasuryAfter { get; set; }
+    public long SeasonTax { get; set; }
+    public long Commission { get; set; }
     public string Source { get; set; } = "";
     public Guid? SourceId { get; set; }
     public DateTimeOffset OccurredAt { get; set; }

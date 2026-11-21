@@ -17,6 +17,8 @@ public sealed class CommunityRow
     public int LogoVersion { get; set; } = 1;
     public bool AllowDebt { get; set; }
     public int BillingPolicyVersion { get; set; } = 1;
+    public int BillingTaxPercent { get; set; }
+    public long SeasonTreasuryOwned { get; set; }
     public Guid CurrencyId { get; set; } = Guid.CreateVersion7();
     public string CurrencyName { get; set; } = "";
     public string CurrencySymbol { get; set; } = "";

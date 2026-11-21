@@ -8,13 +8,18 @@ public sealed partial class AmorDbContext
     public DbSet<BillPaymentRow> BillPayments => Set<BillPaymentRow>();
     private static void ConfigureBilling(ModelBuilder m)
     {
+        m.Entity<CommunityRow>().ToTable(t => t.HasCheckConstraint("ck_season_billing_tax", "\"BillingTaxPercent\" BETWEEN 0 AND 100 AND \"SeasonTreasuryOwned\" >= 0"));
+        m.Entity<GroupRow>().ToTable(t => t.HasCheckConstraint("ck_group_commission", "\"CommissionPercent\" BETWEEN 0 AND 100"));
         m.Entity<GroupTrustRow>(e => {
             e.ToTable("group_trusts"); e.HasKey(x => new { x.CommunityId, x.GroupId, x.CharacterId });
             e.HasOne<GroupRow>().WithMany().HasForeignKey(x => new { x.CommunityId, Id = x.GroupId }).OnDelete(DeleteBehavior.Restrict);
             e.HasOne<MembershipRow>().WithMany().HasForeignKey(x => new { x.CommunityId, x.CharacterId }).OnDelete(DeleteBehavior.Restrict);
         });
         m.Entity<BillRow>(e => {
-            e.ToTable("bills", t => t.HasCheckConstraint("ck_bill_amount", "\"Amount\" > 0 AND \"Collected\" >= 0 AND \"Collected\" <= \"Amount\""));
+            e.ToTable("bills", t => {
+                t.HasCheckConstraint("ck_bill_amount", "\"Amount\" > 0 AND \"Collected\" >= 0 AND \"Collected\" <= \"Amount\"");
+                t.HasCheckConstraint("ck_bill_rates", "\"TaxPercent\" BETWEEN 0 AND 100 AND \"CommissionPercent\" BETWEEN 0 AND 100");
+            });
             e.HasKey(x => new { x.CommunityId, x.Id });
             e.HasIndex(x => new { x.CommunityId, x.CharacterId, x.CreatedAt, x.Id }).HasFilter("\"Collected\" < \"Amount\"");
             e.HasIndex(x => new { x.CommunityId, x.GroupId, x.IssuerCharacterId, x.CharacterId, x.CreatedAt });
@@ -24,7 +29,7 @@ public sealed partial class AmorDbContext
             e.HasOne<CharacterRow>().WithMany().HasForeignKey(x => x.IssuerCharacterId).OnDelete(DeleteBehavior.Restrict);
         });
         m.Entity<BillPaymentRow>(e => {
-            e.ToTable("bill_payments", t => t.HasCheckConstraint("ck_bill_payment", "\"Amount\" > 0 AND \"CharacterAfter\" >= 0 AND \"TreasuryBefore\" >= 0 AND \"CharacterBefore\"::numeric - \"CharacterAfter\"::numeric = \"Amount\" AND \"TreasuryAfter\"::numeric - \"TreasuryBefore\"::numeric = \"Amount\""));
+            e.ToTable("bill_payments", t => t.HasCheckConstraint("ck_bill_payment", "\"Amount\" > 0 AND \"CharacterAfter\" >= 0 AND \"TreasuryBefore\" >= 0 AND \"TreasuryAfter\" >= \"TreasuryBefore\" AND \"SeasonTax\" >= 0 AND \"Commission\" >= 0 AND \"CharacterBefore\"::numeric - \"CharacterAfter\"::numeric = \"Amount\" AND \"TreasuryAfter\"::numeric - \"TreasuryBefore\"::numeric + \"SeasonTax\" + \"Commission\" = \"Amount\""));
             e.HasKey(x => x.Id); e.HasIndex(x => new { x.CommunityId, x.BillId, x.Id });
             e.HasOne<BillRow>().WithMany().HasForeignKey(x => new { x.CommunityId, Id = x.BillId }).OnDelete(DeleteBehavior.Restrict);
             e.Property(x => x.Source).HasMaxLength(40);

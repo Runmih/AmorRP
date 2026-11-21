@@ -1,7 +1,7 @@
 # Expansion decisions
 
 Accepted feature requirements from 2026-10-29, updated for Seasons on 2026-11-16.
-S01–S03 are implemented; S04–S11 remain planned. Follow the [milestone plan](README.md).
+S01–S04 are implemented. S05–S11 remain planned. Follow the [milestone plan](README.md).
 Every verified player belongs to every season. No season join/leave/block controls
 exist; user bans belong to separate account moderation. Creation requires seasons.create.
 
@@ -47,8 +47,8 @@ only the relevant entries when their feature starts; none requires a question no
 | Topic | Proposed default | Resolve by |
 | --- | --- | --- |
 | Debt order | Implemented: oldest unpaid bill first, with stable tie-breaking and full collection of unreserved funds. | S03 complete; game acceptance pending |
-| Tax and commission basis | Apply season tax to collected service proceeds, then calculate cashier commission on the remainder. Snapshot allocation on the bill. | S04 |
-| Tax revenue destination | Explicit season-controlled destination/account, with balanced receipts. Do not implicitly pay a random administrator. | S04 |
+| Tax and commission basis | Apply season tax to collected service proceeds, then calculate cashier commission on the remainder. Round both down against cumulative collections and save rates on the bill. | S04 |
+| Tax revenue destination | Credit tax to the season treasury and show the split on each receipt. | S04 |
 | Staff cut | One group-wide commission percentage, paid to the issuing cashier. Per-staff rates are later. | S04 |
 | Clock-in | Simple on/off staff state and optional group requirement for billing. No scheduled shifts or paid time accrual initially. | S04 |
 | Shop payment | Require actual available funds; ordinary shop purchases do not create debt. Owner-configured shop revenue may serve as a currency sink. | S05 |

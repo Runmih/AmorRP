@@ -213,6 +213,7 @@ public sealed partial class SeasonsPanel
     {
         var notice = hub.Notices.FirstOrDefault(x => x.GroupId == selectedGroupId);
         return ((creatingGroup || OwnSelectedGroup) && groupDraft.IsDirty) || groupStaffDraft.IsDirty || groupFeaturesDraft.IsDirty
+            || (groupBillingSettings != null && GroupBillingDirty)
             || groupAnnouncementTitle.Length > 0 || groupAnnouncementMessage.Length > 0 || billingAmount.Length > 0 || billingService.Length > 0
             || treasuryAmount.Length > 0 || treasuryNote.Length > 0 || eventEditId.HasValue || eventTitle.Length > 0 || eventDescription.Length > 0 || eventLocation.Length > 0
             || (noticeDraftFor.HasValue && (noticeTitle != (notice?.Title ?? "") || noticeMessage != (notice?.Message ?? "") || noticeReward != (notice?.Reward ?? "")));

@@ -7356,7 +7356,7 @@ paths:
       operationId: editBillingPolicy
       tags:
       - Currency
-      summary: Save season debt policy
+      summary: Save season debt and tax policy
       security:
       - Session: []
       parameters:
@@ -7414,6 +7414,190 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/BillingPolicyEdit'
+  /api/v2/seasons/{seasonId}/groups/{groupId}/billing-settings:
+    get:
+      operationId: getGroupBillingSettings
+      tags:
+      - Currency
+      summary: Read group billing settings and own clock-in
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: groupId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupBillingSettings'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Authorized group cashier
+      x-implementation-status: implemented
+    put:
+      operationId: editGroupBillingSettings
+      tags:
+      - Currency
+      summary: Save group billing settings
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: groupId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: If-Match
+        in: header
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupBillingSettingsResult'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Group owner with billing enabled
+      x-implementation-status: implemented
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GroupBillingEdit'
+  /api/v2/seasons/{seasonId}/groups/{groupId}/clock-in:
+    put:
+      operationId: editGroupClockIn
+      tags:
+      - Currency
+      summary: Set cashier clock-in status
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: groupId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupBillingSettingsResult'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Authorized cashier for self, group owner for clocking out staff
+      x-implementation-status: implemented
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClockInEdit'
   /api/v2/seasons/{seasonId}/groups/{groupId}/trust:
     put:
       operationId: editGroupBillingTrust
@@ -10353,6 +10537,10 @@ components:
       - world
       - isOwner
       properties:
+        clockedInAt:
+          type: string
+          format: date-time
+          nullable: true
         capabilities:
           type: array
           maxItems: 6
@@ -10604,6 +10792,13 @@ components:
     BillingPolicy:
       type: object
       properties:
+        taxPercent:
+          type: integer
+          minimum: 0
+          maximum: 100
+        seasonTreasury:
+          type: string
+          nullable: true
         allowDebt:
           type: boolean
         version:
@@ -10618,10 +10813,76 @@ components:
     BillingPolicyEdit:
       type: object
       properties:
+        taxPercent:
+          type: integer
+          minimum: 0
+          maximum: 100
         allowDebt:
           type: boolean
       required:
       - allowDebt
+      additionalProperties: false
+    GroupBillingSettings:
+      type: object
+      required: [commissionPercent, requireClockIn, etag]
+      additionalProperties: false
+      properties:
+        commissionPercent:
+          type: integer
+          minimum: 0
+          maximum: 100
+        requireClockIn:
+          type: boolean
+        clockedInAt:
+          type: string
+          format: date-time
+          nullable: true
+        etag:
+          type: string
+    GroupBillingEdit:
+      type: object
+      required: [commissionPercent, requireClockIn]
+      additionalProperties: false
+      properties:
+        commissionPercent:
+          type: integer
+          minimum: 0
+          maximum: 100
+        requireClockIn:
+          type: boolean
+    ClockInEdit:
+      type: object
+      required: [clockedIn]
+      additionalProperties: false
+      properties:
+        clockedIn:
+          type: boolean
+        characterId:
+          type: string
+          format: uuid
+          nullable: true
+    BillAllocation:
+      type: object
+      required: [seasonTax, commission, groupTreasury]
+      additionalProperties: false
+      properties:
+        seasonTax:
+          type: string
+        commission:
+          type: string
+        groupTreasury:
+          type: string
+    GroupBillingSettingsResult:
+      type: object
+      properties:
+        operationId:
+          type: string
+          format: uuid
+        result:
+          $ref: '#/components/schemas/GroupBillingSettings'
+      required:
+      - operationId
+      - result
       additionalProperties: false
     GroupTrustEdit:
       type: object
@@ -10655,6 +10916,16 @@ components:
     Bill:
       type: object
       properties:
+        taxPercent:
+          type: integer
+          minimum: 0
+          maximum: 100
+        commissionPercent:
+          type: integer
+          minimum: 0
+          maximum: 100
+        allocation:
+          $ref: '#/components/schemas/BillAllocation'
         id:
           type: string
           format: uuid
@@ -10722,6 +10993,8 @@ components:
     BillPayment:
       type: object
       properties:
+        allocation:
+          $ref: '#/components/schemas/BillAllocation'
         id:
           type: string
           format: uuid

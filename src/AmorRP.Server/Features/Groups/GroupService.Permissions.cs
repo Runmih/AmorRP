@@ -26,6 +26,8 @@ public sealed partial class GroupService
             var retained = member.Capabilities.Where(x => GroupCapabilities.Enabled(group.EnabledFeatures, x)).Order().ToArray();
             if (!member.Capabilities.Order().SequenceEqual(retained))
             { member.Capabilities = retained; member.PermissionVersion = Guid.CreateVersion7(); }
+            if (!GroupAuthorization.Effective(group, member.CharacterId, member).Contains(GroupCapabilities.Billing))
+                member.ClockedInAt = null;
         }
         await LoadViewerAsync(actor, communityId, ct);
         var op = commands.New(h, scope, body, actor, communityId, "group.features");
@@ -51,6 +53,7 @@ public sealed partial class GroupService
         CommandStore.Match(h, GroupAuthorization.ETag(member)); GroupAuthorization.Validate(body.Capabilities);
         ApiFault.Require(body.Capabilities.All(x => GroupCapabilities.Enabled(group.EnabledFeatures, x)), 403, "group_feature_disabled", "The season owner has not enabled that group feature.");
         member.Capabilities = body.Capabilities.Order().ToArray(); member.PermissionVersion = Guid.CreateVersion7();
+        if (!member.Capabilities.Contains(GroupCapabilities.Billing)) member.ClockedInAt = null;
         var character = await db.Characters.SingleAsync(x => x.Id == characterId, ct);
         var dto = new GroupMember(character.Id, character.DisplayName, character.HomeWorldName, false, member.Capabilities, GroupAuthorization.ETag(member));
         h.Response.Headers.ETag = dto.Etag;

@@ -1,6 +1,6 @@
 # Current milestone plan
 
-Updated 2026-11-20. This is the working plan; it replaces the old M0–M5 roadmaps.
+Updated 2026-11-21. This is the working plan; it replaces the old M0–M5 roadmaps.
 Use main for source and distribution. Release numbers identify shipped packages,
 not permission to mark a milestone accepted.
 
@@ -18,7 +18,7 @@ Season membership has no join, leave, removal, block or restore operation.
 
 Identity/pairing, inventories, recipe revisions, quotas, two-stage trading, group
 permissions, treasuries, trusted billing, debt collection, announcements and group
-events are implemented. Backend rules remain authoritative. Export/deletion,
+events are implemented. Billing includes season tax, cashier commission and clock-in. Backend rules remain authoritative. Export/deletion,
 WebSocket delivery and later expansion features are not implemented merely because
 OpenAPI contains a planned route.
 
@@ -29,6 +29,7 @@ OpenAPI contains a planned route.
 | S01 group features and staff permissions | Accepted | Maintainer major game checks, 2026-10-29; automated authorization regressions |
 | S02 accounts, treasury and disband settlement | Accepted | Maintainer four game checks, 2026-11-05; currency conservation/replay tests |
 | S03 trusted billing and debt collection | Implemented; game acceptance pending | Check offline billing, trust revocation, debt policy, collection and disbanded-group returns |
+| S04 tax, commission and clock-in | Implemented; game acceptance pending | Verify clock-in, owner clock-out, payment receipts and all three destinations across a rate change |
 | Seasonal direction and shared membership | Implemented; game acceptance pending | Administrator creation and activation, active season rollover for players, archive privacy and repeated refresh |
 | Home tabs, launcher and Favorite Events | Implemented; game acceptance pending | Four navigation edges, launcher toggles, scaling, writing readability and empty HUD behavior |
 | Trade grids | Implemented; game acceptance pending | Dragging and right-clicking stacks in both directions, search, offer limits and both confirmations |
@@ -42,21 +43,15 @@ manual checklist. Do not infer game or production acceptance from a successful b
 
 ## Next work
 
-1. Finish the focused S03/season/window game checks when the maintainer returns.
-   Fix observed defects before adding new financial behavior. No new configuration
-   flag or alternative community flow is needed.
-2. Before S04, settle the tax destination, rounding and commission basis. Prepare
-   an implementation checklist around existing settlement/receipt boundaries;
-   snapshot allocations so later debt repayment cannot use changed rates.
-3. Complete S04 as a bounded server/contracts/plugin slice, then verify it before
-   enabling shop or permit spending. S07 gathering can proceed independently once
-   its bounded configuration and budget rules are ready.
-4. Keep integration adapters isolated. Discord linking is opt-in; Moodles failures
-   are silent and never affect successful gameplay/accounting.
+1. Finish the focused S03/S04, season, and window checks in game.
+2. Settle shop revenue and purchase eligibility for S05. S07 gathering can proceed
+   independently once its configuration and budget rules are settled.
+3. Keep integration adapters isolated. Discord linking is opt-in. Moodles failures
+   are silent and never affect successful gameplay or accounting.
 
 ## Expansion dependencies
 
-| ID | Planned work | Requires | Completion evidence |
+| ID | Work | Requires | Completion evidence |
 | --- | --- | --- | --- |
 | S04 | Taxes, cashier commission, basic clock-in | S03; tax/rounding decisions | Exact splits, saved allocation on partial repayment, cashier debt and permission changes |
 | S05 | Season shop | S02/S03; revenue destination | Atomic affordable purchases, replay-safe outcomes and buyer authorization |

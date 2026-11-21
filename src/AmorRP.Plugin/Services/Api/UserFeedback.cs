@@ -96,6 +96,8 @@ public static class UserFeedback
         CommandKind.EditGroupTrust => "Automatic billing trust saved.",
         CommandKind.EditBillingPolicy => "Billing settings saved.",
         CommandKind.CreateBill => "Bill recorded. Open Billing for its receipt.",
+        CommandKind.EditGroupBilling => "Group billing settings saved.",
+        CommandKind.SetGroupClockIn => "Group clock-in status saved.",
         CommandKind.DepositTreasury => "Coins deposited into the group treasury.",
         CommandKind.WithdrawTreasury => "Coins withdrawn to your character.",
         CommandKind.CollectTreasuryReturn => "Treasury return collected.",

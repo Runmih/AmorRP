@@ -18,11 +18,13 @@ public sealed partial class SeasonsPanel
     private bool billingCustomersLoaded;
     private BillingPolicy? billingPolicy;
     private bool allowDebtDraft, allowDebtSaved;
+    private int taxDraft, taxSaved;
     private string billingPolicyEtag = "";
     private readonly Dictionary<Guid, BillPaymentPage> billPayments = [];
 
     private void ClearGroupBilling()
     {
+        ClearGroupBillingSettings();
         billingReadVersion++; billingCustomerReadVersion++; billingGroupRequested = billingCustomer = null;
         groupBills = new([], null); billingCustomers = new([], null, "0", null); billingCustomersLoaded = false;
         billingDraftId = Guid.CreateVersion7(); billingAmount = billingService = billingSearch = ""; billPayments.Clear();
@@ -31,12 +33,17 @@ public sealed partial class SeasonsPanel
     {
         ClearGroupBilling(); myBills = new([], null); billingPolicy = null; billingPolicyEtag = "";
         allowDebtDraft = allowDebtSaved = false;
+        taxDraft = taxSaved = 0;
     }
     private void AcceptBillingPolicy(BillingPolicy policy)
     {
         billingPolicy = policy;
-        if (billingPolicyEtag.Length == 0 || allowDebtDraft == allowDebtSaved)
-        { allowDebtDraft = allowDebtSaved = policy.AllowDebt; billingPolicyEtag = policy.Etag; }
+        if (billingPolicyEtag.Length == 0 || allowDebtDraft == allowDebtSaved && taxDraft == taxSaved)
+        {
+            allowDebtDraft = allowDebtSaved = policy.AllowDebt;
+            taxDraft = taxSaved = policy.TaxPercent;
+            billingPolicyEtag = policy.Etag;
+        }
     }
     private void DrawBillingPolicy()
     {
@@ -44,10 +51,13 @@ public sealed partial class SeasonsPanel
         if (billingPolicy == null) return;
         ImGui.Checkbox("Allow unpaid bills to become debt", ref allowDebtDraft);
         Wrapped("When this is off, an unaffordable bill fails without charging coins. Existing debts continue to be repaid.");
+        FieldLabel("Season tax (%)");
+        ImGui.InputInt("##SeasonTaxPercent", ref taxDraft);
+        if (billingPolicy.SeasonTreasury is { } treasury) Wrapped("Season treasury: " + treasury + " " + community!.Currency.Name);
         var stale = billingPolicyEtag != billingPolicy.Etag;
         if (stale) { Wrapped("Billing settings changed. Reload before saving."); if (ImGui.Button("Reload billing settings")) { billingPolicyEtag = ""; AcceptBillingPolicy(billingPolicy); } }
-        ImGui.BeginDisabled(stale || allowDebtDraft == allowDebtSaved);
-        if (ActionButton("Save billing settings")) Mutate("PUT", $"api/v2/seasons/{community!.Id}/billing-policy", new BillingPolicyEdit(allowDebtDraft), billingPolicyEtag);
+        ImGui.BeginDisabled(stale || taxDraft is < 0 or > 100 || allowDebtDraft == allowDebtSaved && taxDraft == taxSaved);
+        if (ActionButton("Save billing settings")) Mutate("PUT", $"api/v2/seasons/{community!.Id}/billing-policy", new BillingPolicyEdit(allowDebtDraft, taxDraft), billingPolicyEtag);
         ImGui.EndDisabled();
     }
     private void DrawTrust(GroupProfile group)
@@ -82,7 +92,7 @@ public sealed partial class SeasonsPanel
     {
         if (billingGroupRequested != group.Id) LoadGroupBills(group);
         if (ActionButton("Refresh bills", mutation: false)) { LoadGroupBills(group); treasuryRequestedFor = null; billPayments.Clear(); }
-        if (CanGroupAction(group, GroupCapabilities.Billing)) DrawBillComposer(group);
+        if (CanGroupAction(group, GroupCapabilities.Billing) && DrawGroupBillingSettings(group)) DrawBillComposer(group);
         Wrapped("Outstanding on these bills: " + groupBills.TotalOutstanding + " " + community!.Currency.Name);
         DrawBills(groupBills);
         if (groupBills.NextCursor != null && ActionButton("Older group bills", mutation: false)) LoadGroupBills(group, true);
@@ -136,11 +146,18 @@ public sealed partial class SeasonsPanel
             {
                 Wrapped(bill.GroupName + " · " + bill.CharacterName + " · issued by " + bill.IssuerName);
                 Wrapped("Paid: " + bill.Collected); Wrapped("Still owed: " + bill.Outstanding);
+                if (bill.Allocation is { } allocation)
+                    Wrapped($"Collected split · Season tax: {allocation.SeasonTax} · Cashier: {allocation.Commission} · Group treasury: {allocation.GroupTreasury}");
                 Wrapped("Receipt: " + bill.Id);
                 if (ActionButton("Payment details", mutation: false)) LoadBillPayments(bill);
                 if (billPayments.TryGetValue(bill.Id, out var payments))
                 {
-                    foreach (var payment in payments.Items) Wrapped($"{payment.OccurredAt:dd MMM HH:mm}: {payment.Amount} paid · balance {payment.CharacterBefore} → {payment.CharacterAfter}");
+                    foreach (var payment in payments.Items)
+                    {
+                        Wrapped($"{payment.OccurredAt:dd MMM HH:mm}: {payment.Amount} paid · balance {payment.CharacterBefore} → {payment.CharacterAfter}");
+                        if (payment.Allocation is { } split)
+                            Wrapped($"Season tax: {split.SeasonTax} · Cashier: {split.Commission} · Group treasury: {split.GroupTreasury}");
+                    }
                     if (payments.NextCursor != null && ActionButton("Older payments", mutation: false)) LoadBillPayments(bill, true);
                 }
                 ImGui.TreePop();

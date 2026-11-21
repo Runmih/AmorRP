@@ -1,28 +1,26 @@
 # Economy expansion
 
-S01 permissions, S02 treasury and S03 billing are implemented; see the
-[current rules](../product/rules.md) and [milestone plan](README.md).
-The following S04–S06 work is planned, not installed behavior.
+S01 permissions, S02 treasury, S03 billing, and S04 billing revenue are
+implemented. See the [current rules](../product/rules.md) and
+[milestone plan](README.md). S05 and S06 remain planned.
 
 ## S04 — Taxes, cashier commission and clock-in
 
-The group owner sets a commission percentage; the issuing cashier receives that
-share and the treasury receives the remainder. No shift pool. Proposed basis:
-season tax first, then commission on collected net proceeds. Numeric bounds,
-rounding and tax recipient are explicit policies, settled before implementing S04.
+The season owner sets a tax from 0–100 percent, credited to the season treasury.
+The group owner sets a commission from 0–100 percent, credited to the issuing
+cashier. Calculate tax first, commission on the remainder, and credit the rest to
+the group treasury. Both fractions round down. Each payment uses the difference
+between the split of the total collected before and after that payment, so paying
+in installments produces the same split as paying in full.
 
-Snapshot the tax/cut/payee allocation when issuing the bill. Later debt repayments
-follow that allocation even if the cashier clocks out, leaves, or rates change.
-Do not distribute unpaid debt. Staff income itself goes through full debt collection.
-Deposits, withdrawals and repayments must not accidentally incur the same service
-tax multiple times. Display receipts with a breakdown that adds up exactly.
+Bills keep their rates and issuing cashier. Repayments use those values after
+rate changes, clock-out, or staff leaving. Commission income enters ordinary
+debt settlement. Deposits and withdrawals incur no service tax. Receipts show all
+three credits.
 
-Basic clock-in is a staff state, optionally required for billing by group policy.
-Do not start with schedules, hourly wages, pooled payroll or per-staff rate tables.
-Permissions for changing rates and correcting staff clock-in remain group-scoped.
-
-Verification: 0/100-percent commission, rounding small payments, partial collection,
-rate changes, cashier debt, departed staff and permission changes during billing.
+Clock-in is a persistent group staff state. Group owners can require it for
+billing and clock staff out. Losing billing access clears clock-in. In-game
+verification is tracked in the [acceptance checklist](../delivery/acceptance.md).
 
 ## S05 — Season shop
 

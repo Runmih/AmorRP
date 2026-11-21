@@ -59,6 +59,8 @@ internal enum CommandKind
     EditGroupStaff,
     EditGroupTrust,
     EditBillingPolicy,
+    EditGroupBilling,
+    SetGroupClockIn,
     CreateBill,
     DepositTreasury,
     WithdrawTreasury,
@@ -66,7 +68,7 @@ internal enum CommandKind
     SignOut,
 }
 
-internal enum CommandHandler { None, SeasonForm, Home, Balance, Policy, Member, Inventory, Trade, GroupProfile, GroupActivity, Treasury, Billing, BillingPolicy, SignOut }
+internal enum CommandHandler { None, SeasonForm, Home, Balance, Policy, Member, Inventory, Trade, GroupProfile, GroupActivity, Treasury, Billing, BillingPolicy, GroupBilling, SignOut }
 
 [Flags]
 internal enum RefreshTargets
@@ -151,6 +153,8 @@ internal static class CommandRoutes
         new("POST", "api/v2/seasons/{seasonId}/groups/{groupId}/announcements", new(CommandKind.PublishGroupAnnouncement, CommandHandler.GroupActivity, RefreshTargets.Groups)),
         new("PUT", "api/v2/seasons/{seasonId}/groups/{groupId}/trust", new(CommandKind.EditGroupTrust, CommandHandler.GroupProfile, RefreshTargets.Groups)),
         new("PUT", "api/v2/seasons/{seasonId}/billing-policy", new(CommandKind.EditBillingPolicy, CommandHandler.BillingPolicy, RefreshTargets.Season)),
+        new("PUT", "api/v2/seasons/{seasonId}/groups/{groupId}/billing-settings", new(CommandKind.EditGroupBilling, CommandHandler.GroupBilling, RefreshTargets.None)),
+        new("PUT", "api/v2/seasons/{seasonId}/groups/{groupId}/clock-in", new(CommandKind.SetGroupClockIn, CommandHandler.GroupBilling, RefreshTargets.None)),
         new("POST", "api/v2/seasons/{seasonId}/groups/{groupId}/bills", new(CommandKind.CreateBill, CommandHandler.Billing, RefreshTargets.Season)),
         new("POST", "api/v2/seasons/{seasonId}/groups/{groupId}/treasury/deposits", new(CommandKind.DepositTreasury, CommandHandler.Treasury, RefreshTargets.Season)),
         new("POST", "api/v2/seasons/{seasonId}/groups/{groupId}/treasury/withdrawals", new(CommandKind.WithdrawTreasury, CommandHandler.Treasury, RefreshTargets.Season)),

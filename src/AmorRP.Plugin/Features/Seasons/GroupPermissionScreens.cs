@@ -66,6 +66,12 @@ public sealed partial class SeasonsPanel
         if (groupPrivate.NextCursor != null && ActionButton("More group members", mutation: false)) LoadGroupPrivate(group, true, true);
         if (members.Length == 0) { Wrapped("Other members must join this group before you can assign staff permissions."); return; }
         if (selectedMember?.Etag == null) return;
+        if (selectedMember.ClockedInAt is { } clockedIn)
+        {
+            Wrapped($"Clocked in since {clockedIn.LocalDateTime:g}");
+            if (ActionButton("Clock this member out"))
+                Mutate("PUT", GroupPath(group) + "/clock-in", new AmorRP.Contracts.Currency.ClockInEdit(false, selectedMember.CharacterId));
+        }
         var key = group.Id + ":" + selectedMember.CharacterId;
         groupStaffDraft.Refresh(key, selectedMember.Etag, selectedMember.Capabilities ?? []);
         DrawGroupPermissionChoices(groupStaffDraft, GroupCapabilities.All.Where(x => GroupCapabilities.Enabled(group.EnabledFeatures ?? [], x)));

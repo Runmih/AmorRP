@@ -89,7 +89,12 @@ or right-clicking. Pick a quantity for stacks. Your partner's grid is read-only.
 Hover over offer slots for item details. The final prompt asks for confirmation
 of the visible offer. Both approval stages are revision-bound, and closing the
 exchange cancels it.
-Billing/treasury controls require their approved group permissions. Manage Groups
+With billing enabled, Group Management → Billing contains clock-in and charges.
+Group owners set commission and can require clock-in there. Owners can clock staff
+out from Staff. Season Management → Economy contains the tax rate and season
+treasury balance. Bills show the split for the amount collected so far and each
+payment has its own receipt. Billing and treasury controls require their approved
+group permissions. Manage Groups
 never exposes group-private content. Financial success/failure leaves a durable
 receipt and accurate available/reserved balances.
 

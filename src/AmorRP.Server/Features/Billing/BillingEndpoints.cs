@@ -7,6 +7,9 @@ public static class BillingEndpoints
     {
         app.MapGet("/api/v2/seasons/{seasonId}/billing-policy", (HttpContext h, Guid seasonId, BillingService s, CancellationToken ct) => s.PolicyAsync(h, seasonId, null, ct));
         app.MapPut("/api/v2/seasons/{seasonId}/billing-policy", (HttpContext h, Guid seasonId, BillingPolicyEdit b, BillingService s, CancellationToken ct) => s.PolicyAsync(h, seasonId, b, ct));
+        app.MapGet("/api/v2/seasons/{seasonId}/groups/{groupId}/billing-settings", (HttpContext h, Guid seasonId, Guid groupId, BillingService s, CancellationToken ct) => s.GroupSettingsAsync(h, seasonId, groupId, null, ct));
+        app.MapPut("/api/v2/seasons/{seasonId}/groups/{groupId}/billing-settings", (HttpContext h, Guid seasonId, Guid groupId, GroupBillingEdit b, BillingService s, CancellationToken ct) => s.GroupSettingsAsync(h, seasonId, groupId, b, ct));
+        app.MapPut("/api/v2/seasons/{seasonId}/groups/{groupId}/clock-in", (HttpContext h, Guid seasonId, Guid groupId, ClockInEdit b, BillingService s, CancellationToken ct) => s.ClockInAsync(h, seasonId, groupId, b, ct));
         app.MapPost("/api/v2/seasons/{seasonId}/groups/{groupId}/bills", (HttpContext h, Guid seasonId, Guid groupId, BillCreate b, BillingService s, CancellationToken ct) => s.CreateAsync(h, seasonId, groupId, b, ct));
         app.MapGet("/api/v2/seasons/{seasonId}/groups/{groupId}/bills", (HttpContext h, Guid seasonId, Guid groupId, BillingService s, CancellationToken ct) => s.ListAsync(h, seasonId, groupId, ct));
         app.MapGet("/api/v2/seasons/{seasonId}/bills/mine", (HttpContext h, Guid seasonId, BillingService s, CancellationToken ct) => s.ListAsync(h, seasonId, null, ct));

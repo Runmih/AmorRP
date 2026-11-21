@@ -75,11 +75,17 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                     b.Property<long>("CharacterBefore")
                         .HasColumnType("bigint");
 
+                    b.Property<long>("Commission")
+                        .HasColumnType("bigint");
+
                     b.Property<Guid>("CommunityId")
                         .HasColumnType("uuid");
 
                     b.Property<DateTimeOffset>("OccurredAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("SeasonTax")
+                        .HasColumnType("bigint");
 
                     b.Property<string>("Source")
                         .IsRequired()
@@ -101,7 +107,7 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
 
                     b.ToTable("bill_payments", null, t =>
                         {
-                            t.HasCheckConstraint("ck_bill_payment", "\"Amount\" > 0 AND \"CharacterAfter\" >= 0 AND \"TreasuryBefore\" >= 0 AND \"CharacterBefore\"::numeric - \"CharacterAfter\"::numeric = \"Amount\" AND \"TreasuryAfter\"::numeric - \"TreasuryBefore\"::numeric = \"Amount\"");
+                            t.HasCheckConstraint("ck_bill_payment", "\"Amount\" > 0 AND \"CharacterAfter\" >= 0 AND \"TreasuryBefore\" >= 0 AND \"TreasuryAfter\" >= \"TreasuryBefore\" AND \"SeasonTax\" >= 0 AND \"Commission\" >= 0 AND \"CharacterBefore\"::numeric - \"CharacterAfter\"::numeric = \"Amount\" AND \"TreasuryAfter\"::numeric - \"TreasuryBefore\"::numeric + \"SeasonTax\" + \"Commission\" = \"Amount\"");
                         });
                 });
 
@@ -125,6 +131,9 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
 
                     b.Property<long>("Collected")
                         .HasColumnType("bigint");
+
+                    b.Property<int>("CommissionPercent")
+                        .HasColumnType("integer");
 
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -152,6 +161,9 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<int>("TaxPercent")
+                        .HasColumnType("integer");
+
                     b.HasKey("CommunityId", "Id");
 
                     b.HasIndex("IssuerCharacterId");
@@ -164,6 +176,8 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                     b.ToTable("bills", null, t =>
                         {
                             t.HasCheckConstraint("ck_bill_amount", "\"Amount\" > 0 AND \"Collected\" >= 0 AND \"Collected\" <= \"Amount\"");
+
+                            t.HasCheckConstraint("ck_bill_rates", "\"TaxPercent\" BETWEEN 0 AND 100 AND \"CommissionPercent\" BETWEEN 0 AND 100");
                         });
                 });
 
@@ -249,6 +263,9 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                     b.Property<int>("BillingPolicyVersion")
                         .HasColumnType("integer");
 
+                    b.Property<int>("BillingTaxPercent")
+                        .HasColumnType("integer");
+
                     b.Property<Guid>("CreatedByCharacterId")
                         .HasColumnType("uuid");
 
@@ -332,6 +349,9 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(16)")
                         .HasDefaultValue("draft");
 
+                    b.Property<long>("SeasonTreasuryOwned")
+                        .HasColumnType("bigint");
+
                     b.Property<int>("Version")
                         .HasColumnType("integer");
 
@@ -355,6 +375,8 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                     b.ToTable("communities", null, t =>
                         {
                             t.HasCheckConstraint("ck_community_policy", "\"CurrentPotionPoints\" >= 0 AND \"CurrentLetters\" >= 0 AND \"NextPotionPoints\" >= 0 AND \"NextLetters\" >= 0");
+
+                            t.HasCheckConstraint("ck_season_billing_tax", "\"BillingTaxPercent\" BETWEEN 0 AND 100 AND \"SeasonTreasuryOwned\" >= 0");
 
                             t.HasCheckConstraint("ck_season_state", "\"SeasonState\" IN ('draft', 'active', 'archived')");
                         });
@@ -534,6 +556,9 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                         .HasColumnType("text[]")
                         .HasDefaultValue(new string[0]);
 
+                    b.Property<DateTimeOffset?>("ClockedInAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<Guid>("PermissionVersion")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
@@ -582,6 +607,12 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
+                    b.Property<int>("BillingSettingsVersion")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("CommissionPercent")
+                        .HasColumnType("integer");
+
                     b.Property<bool>("Deleted")
                         .HasColumnType("boolean");
 
@@ -616,6 +647,9 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                     b.Property<string>("PasswordHash")
                         .HasColumnType("text");
 
+                    b.Property<bool>("RequireClockIn")
+                        .HasColumnType("boolean");
+
                     b.Property<long>("TreasuryOwned")
                         .HasColumnType("bigint");
 
@@ -633,6 +667,8 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
 
                     b.ToTable("groups", null, t =>
                         {
+                            t.HasCheckConstraint("ck_group_commission", "\"CommissionPercent\" BETWEEN 0 AND 100");
+
                             t.HasCheckConstraint("ck_group_treasury", "\"TreasuryOwned\" >= 0");
                         });
                 });
