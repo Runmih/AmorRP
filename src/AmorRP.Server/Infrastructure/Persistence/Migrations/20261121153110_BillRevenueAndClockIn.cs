@@ -108,6 +108,20 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.Sql("""
+                DO $$
+                BEGIN
+                    IF EXISTS (SELECT 1 FROM communities WHERE "BillingTaxPercent" <> 0 OR "SeasonTreasuryOwned" <> 0)
+                        OR EXISTS (SELECT 1 FROM groups WHERE "CommissionPercent" <> 0 OR "RequireClockIn")
+                        OR EXISTS (SELECT 1 FROM group_memberships WHERE "ClockedInAt" IS NOT NULL)
+                        OR EXISTS (SELECT 1 FROM bills WHERE "TaxPercent" <> 0 OR "CommissionPercent" <> 0)
+                        OR EXISTS (SELECT 1 FROM bill_payments WHERE "SeasonTax" <> 0 OR "Commission" <> 0)
+                    THEN
+                        RAISE EXCEPTION 'Cannot remove billing revenue and clock-in data; restore a matching backup.';
+                    END IF;
+                END $$;
+                """);
+
             migrationBuilder.DropCheckConstraint(
                 name: "ck_group_commission",
                 table: "groups");

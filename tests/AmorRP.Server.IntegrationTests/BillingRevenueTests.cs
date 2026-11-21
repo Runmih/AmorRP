@@ -2,6 +2,10 @@ using System.Net;
 using System.Net.Http.Json;
 using AmorRP.Contracts.Currency;
 using AmorRP.Contracts.Groups;
+using AmorRP.Server.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace AmorRP.Server.IntegrationTests;
@@ -68,5 +72,12 @@ public sealed partial class FoundationTests
         Assert.Equal("58", (await owner.GetFromJsonAsync<TreasuryBalance>(TreasuryPath(season, group), ct))!.Owned);
         Assert.Equal("28", (await OwnBalance(staff, season)).Owned);
         Assert.Equal("0", (await OwnBalance(payer, season)).Owned);
+
+        await using var scope = f.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<AmorDbContext>();
+        var previousVersion = "20261115204732_SharedSeasonMemberships";
+        var downgrade = await Assert.ThrowsAsync<Npgsql.PostgresException>(() => db.GetService<IMigrator>().MigrateAsync(previousVersion, ct));
+        Assert.Contains("restore a matching backup", downgrade.MessageText);
+        Assert.Equal("17", (await owner.GetFromJsonAsync<BillingPolicy>(policyPath, ct))!.SeasonTreasury);
     }
 }

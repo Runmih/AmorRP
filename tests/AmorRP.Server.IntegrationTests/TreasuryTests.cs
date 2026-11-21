@@ -185,6 +185,7 @@ public sealed partial class FoundationTests
         group = await Command<GroupProfile>(owner, HttpMethod.Put, TreasuryPath(c, group)[..^9] + "/features", new GroupFeaturesEdit(GroupCapabilities.Features.ToArray()), group.Etag);
         await TreasuryMove(owner, c, group, "100"); db.ChangeTracker.Clear();
         await Assert.ThrowsAsync<Npgsql.PostgresException>(() => db.GetService<IMigrator>().MigrateAsync("20261029200422_GroupStaffPermissions", ct));
-        Assert.Equal(100, (await db.Groups.SingleAsync(ct)).TreasuryOwned); Assert.Single(await db.TreasuryEntries.ToArrayAsync(ct));
+        Assert.Equal(100, await db.Groups.Select(x => x.TreasuryOwned).SingleAsync(ct));
+        Assert.Single(await db.TreasuryEntries.ToArrayAsync(ct));
     }
 }
