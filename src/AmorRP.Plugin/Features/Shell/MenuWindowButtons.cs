@@ -10,7 +10,7 @@ internal static class MenuWindowButtons
     {
         window.TitleBarButtons.Add(Button(FontAwesomeIcon.Cog, "Settings", 0, openSettings));
         if (isLog) return null;
-        var log = Button(FontAwesomeIcon.FileAlt, "Activity Log", 1, openLog);
+        var log = Button(FontAwesomeIcon.History, "Activity Log", 1, openLog);
         window.TitleBarButtons.Add(log);
         return log;
     }

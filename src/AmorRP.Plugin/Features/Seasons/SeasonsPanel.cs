@@ -12,12 +12,14 @@ using AmorRP.Plugin.Services.Api;
 using AmorRP.Plugin.Services.Identity;
 using AmorRP.Plugin.Features.Shell;
 using Dalamud.Bindings.ImGui;
+using Dalamud.Interface.ManagedFontAtlas;
 using Dalamud.Plugin.Services;
 
 namespace AmorRP.Plugin.Features.Seasons;
 
-public sealed partial class SeasonsPanel(IPlayerState player, Configuration configuration, Action save, IPartyList party, ITextureProvider textures) : IDisposable
+public sealed partial class SeasonsPanel(IPlayerState player, Configuration configuration, Action save, IPartyList party, ITextureProvider textures, IFontAtlas atlas) : IDisposable
 {
+    private readonly AmorRP.Plugin.Services.Ui.InterfaceFonts interfaceFonts = new(atlas);
     private readonly FoundationClient client = new();
     private readonly RequestCoordinator requests = new();
     private bool Busy => requests.ForegroundBusy;
@@ -367,5 +369,5 @@ public sealed partial class SeasonsPanel(IPlayerState player, Configuration conf
     private void Clear()
     { connectedServerVersion = null; ResetSeasons(); ClearFavoriteEvents(); ClearMemberSearch(); personalNote = savedPersonalNote = noteKey = ""; ClearAnnouncementNotifications(); ClearTradeInbox(); ResetCommunityForms(); ResetLogin(); loginFeedback = loginDiagnostic = ""; syncFailures = 0; scope = ""; serviceCompatible = false; ClearWork(); origin = null; session = null; saved = null; selected = null; community = null; communities = []; members = []; transfer = null; refreshNeeded = false; contextTarget = null; contextLookup = null; ClearTransientFeedback(); feedback.ClearHistory(); connectionError = connectionDiagnostic = ""; lastRefresh = default; nextRefresh = default; ClearCommunityViews(); }
     private static void Wrapped(string message) { ImGui.PushTextWrapPos(); ImGui.TextUnformatted(message); ImGui.PopTextWrapPos(); }
-    public void Dispose() { ResetCommunityRefreshes(); ClearFavoriteEvents(); ClearMemberSearch(); personalNote = savedPersonalNote = noteKey = ""; ClearAnnouncementNotifications(); ClearTradeInbox(); ClearWork(); requests.Dispose(); icons.Dispose(); logos.Dispose(); groupLogos.Dispose(); client.Dispose(); }
+    public void Dispose() { ResetCommunityRefreshes(); ClearFavoriteEvents(); ClearMemberSearch(); personalNote = savedPersonalNote = noteKey = ""; ClearAnnouncementNotifications(); ClearTradeInbox(); ClearWork(); requests.Dispose(); icons.Dispose(); logos.Dispose(); groupLogos.Dispose(); ClearNoticeLogos(); interfaceFonts.Dispose(); client.Dispose(); }
 }

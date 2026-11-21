@@ -6,6 +6,7 @@ using AmorRP.Plugin.Services.Api;
 using AmorRP.Plugin.Services.Ui;
 using System.Text.Json;
 using Dalamud.Bindings.ImGui;
+using Dalamud.Interface;
 namespace AmorRP.Plugin.Features.Seasons;
 
 public sealed partial class SeasonsPanel
@@ -69,23 +70,27 @@ public sealed partial class SeasonsPanel
     private void DrawHomeResources(bool editable = true)
     {
         ImGui.TextUnformatted("Your resources"); ImGui.Separator();
-        if (icons.HasImage) { icons.DrawIcon(); ImGui.SameLine(); }
+        if (community!.Currency.IconAssetId.HasValue && icons.HasImage) icons.DrawIcon();
+        else UiIcons.Draw(FontAwesomeIcon.Coins);
+        ImGui.SameLine();
         Wrapped(PersonalCoinBalance());
         if (editable && CanGeneralModerate) DrawCurrencyNameEditor();
         ImGui.Spacing(); ImGui.Separator();
         ImGui.PushStyleColor(ImGuiCol.PlotHistogram, PluginTheme.SelectedButton);
-        var alchemyReset = CanCraftPotions ? DrawResourceBar("potion_points", "Alchemy points") : null;
-        var cookingReset = CanCraftCooking ? DrawResourceBar("cooking_points", "Cooking points") : null;
-        var writingReset = DrawResourceBar("letters", "Writing allowance");
+        var alchemyReset = CanCraftPotions ? DrawResourceBar("potion_points", "Alchemy points", FontAwesomeIcon.Flask) : null;
+        var cookingReset = CanCraftCooking ? DrawResourceBar("cooking_points", "Cooking points", FontAwesomeIcon.KitchenSet) : null;
+        var writingReset = DrawResourceBar("letters", "Writing allowance", FontAwesomeIcon.FeatherAlt);
         ImGui.PopStyleColor();
         if ((alchemyReset ?? cookingReset ?? writingReset) is { } reset)
             ImGui.TextDisabled($"Next reset: {reset.LocalDateTime:g}");
     }
 
-    private DateTimeOffset? DrawResourceBar(string kind, string label)
+    private DateTimeOffset? DrawResourceBar(string kind, string label, FontAwesomeIcon icon)
     {
         var quota = quotas?.Items.FirstOrDefault(item => item.Kind == kind);
         if (quota == null) return null;
+        UiIcons.Draw(icon);
+        ImGui.SameLine();
         ImGui.TextUnformatted(label);
         var fraction = quota.Limit > 0 ? Math.Clamp((float)quota.Remaining / quota.Limit, 0, 1) : 0;
         ImGui.ProgressBar(fraction, new(-1, 0), $"{quota.Remaining:N0} / {quota.Limit:N0}");

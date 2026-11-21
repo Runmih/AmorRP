@@ -30,7 +30,8 @@ handle itself. Size and Opacity apply immediately.
 With Auto-hide on, hover over the small edge handle to reveal the buttons. Click
 the handle to pin the bar open for the session, or click again to let it retract.
 The collapsed handle shows a red badge for incoming trades and a blue badge
-for unread announcements in the viewed season.
+for unread announcements in the viewed season. Hovering over the handle
+labels the badges and shows their counts.
 Turn off Auto-hide to keep the bar visible across sessions. Clear Dock to edge
 in Settings or choose Undock from the handle menu to drag the bar freely.
 Favorite Events lists only upcoming event titles. Select a title to see its
@@ -73,6 +74,11 @@ signed out. About reports installed/last-connected versions without credentials.
 The release endpoint is fixed in ProductServer; players do not edit hosting URLs.
 
 ## Feature details
+
+Noticeboard entries show the title, request, and offered reward in a card.
+The footer pairs the group's logo with its name as a handwritten signature.
+Groups without a logo show their initial. Selecting the seal or signature
+opens the group profile.
 
 Writing reads only currently owned private bodies. Creation/edits use bounded
 wrapped text without adding soft-wrap characters to stored content. In an accepted

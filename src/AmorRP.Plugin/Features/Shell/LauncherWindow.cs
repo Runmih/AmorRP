@@ -71,25 +71,34 @@ public sealed class LauncherWindow : Window
         ImGui.PushStyleVar(ImGuiStyleVar.Alpha, ImGui.GetStyle().Alpha * opacity);
         try
         {
+            var tradeCount = requests();
+            var announcementCount = announcements();
             if (expanded)
             {
                 if (ImGui.IsWindowHovered(ImGuiHoveredFlags.AllowWhenBlockedByPopup)) handle.HoldOpen();
                 ImGui.GetWindowDrawList().AddRectFilled(dock.Position, dock.Position + dock.Size,
                     ImGui.GetColorU32(ImGuiCol.WindowBg), ImGui.GetStyle().WindowRounding);
             }
-            DrawHandle();
-            if (expanded) DrawButtons();
+            DrawHandle(tradeCount, announcementCount);
+            if (expanded) DrawButtons(tradeCount > 0, announcementCount > 0);
             else NotificationBadge.DrawOnHandle(dock, LauncherDock.IsHorizontal(configuration.QuickBarEdge),
-                requests() > 0, announcements() > 0);
+                tradeCount > 0, announcementCount > 0);
         }
         finally { ImGui.PopStyleVar(); }
     }
 
-    private void DrawHandle()
+    private void DrawHandle(int tradeCount, int announcementCount)
     {
         var docked = configuration.QuickBarDocked;
         var position = docked ? new Vector2(configuration.QuickBarPosition, 0)
             : new Vector2(configuration.QuickBarFloatX, configuration.QuickBarFloatY);
+        var status = (tradeCount > 0, announcementCount > 0) switch
+        {
+            (true, true) => $"Red · Trade requests ({tradeCount})\nBlue · Unread announcements ({announcementCount})",
+            (true, false) => $"Red · Trade requests ({tradeCount})",
+            (false, true) => $"Blue · Unread announcements ({announcementCount})",
+            _ => null
+        };
         handle.Draw(dock, position, next =>
         {
             if (docked) configuration.QuickBarPosition = next.X;
@@ -98,12 +107,12 @@ public sealed class LauncherWindow : Window
                 configuration.QuickBarFloatX = next.X;
                 configuration.QuickBarFloatY = next.Y;
             }
-        }, save, () => configuration.QuickBarDocked = !configuration.QuickBarDocked, openSettings, openLog);
+        }, save, () => configuration.QuickBarDocked = !configuration.QuickBarDocked, openSettings, openLog, status);
     }
 
     public override void OnClose() => handle.Closed(save);
 
-    private void DrawButtons()
+    private void DrawButtons(bool hasTrade, bool hasAnnouncements)
     {
         ImGui.SetCursorScreenPos(dock.Position + dock.ButtonsPosition);
         var size = new Vector2(dock.ButtonSize);
@@ -115,7 +124,7 @@ public sealed class LauncherWindow : Window
                 ? new(end.X + dock.Gap, start.Y)
                 : new(start.X, end.Y + dock.Gap));
         }
-        DrawWorkspaceButton("LauncherCommunity", FontAwesomeIcon.Home, size, WorkspaceKind.Season, announcements() > 0);
+        DrawWorkspaceButton("LauncherCommunity", FontAwesomeIcon.Home, size, WorkspaceKind.Season, hasAnnouncements);
         Next();
         DrawWorkspaceButton("LauncherInventory", FontAwesomeIcon.BoxOpen, size, WorkspaceKind.Inventory);
         Next();
@@ -125,10 +134,10 @@ public sealed class LauncherWindow : Window
         if (showGroups)
         {
             Next();
-            DrawWorkspaceButton("LauncherGroupManagement", FontAwesomeIcon.Users, size, WorkspaceKind.GroupManagement);
+            DrawWorkspaceButton("LauncherGroupManagement", FontAwesomeIcon.Flag, size, WorkspaceKind.GroupManagement);
         }
         Next();
-        if (ToggleButton("LauncherTrade", FontAwesomeIcon.BalanceScale, size, tradeVisible(), "Trade", requests() > 0)) toggleTrade();
+        if (ToggleButton("LauncherTrade", FontAwesomeIcon.BalanceScale, size, tradeVisible(), "Trade", hasTrade)) toggleTrade();
         if (showAdmin)
         {
             Next();
@@ -140,10 +149,10 @@ public sealed class LauncherWindow : Window
 
     private void DrawWorkspaceButton(string id, FontAwesomeIcon icon, Vector2 size, WorkspaceKind kind, bool badge = false)
     {
-        if (ToggleButton(id, icon, size, workspaceVisible(kind), WorkspaceWindow.Title(kind), badge)) toggleWorkspace(kind);
+        if (ToggleButton(id, icon, size, workspaceVisible(kind), WorkspaceWindow.Title(kind), badge, announcement: kind == WorkspaceKind.Season)) toggleWorkspace(kind);
     }
 
-    private static bool ToggleButton(string id, FontAwesomeIcon icon, Vector2 size, bool active, string label, bool badge = false, bool power = false)
+    private static bool ToggleButton(string id, FontAwesomeIcon icon, Vector2 size, bool active, string label, bool badge = false, bool power = false, bool announcement = false)
     {
         if (active) ImGui.PushStyleColor(ImGuiCol.Button, PluginTheme.SelectedButton);
         bool clicked;
@@ -154,7 +163,7 @@ public sealed class LauncherWindow : Window
             ImGui.PopFont();
             if (active) ImGui.PopStyleColor();
         }
-        if (badge) NotificationBadge.Draw();
+        if (badge) NotificationBadge.Draw(announcement);
         if (ImGui.IsItemHovered())
         {
             var action = power ? (active ? "Turn off " : "Turn on ") : (active ? "Close " : "Open ");

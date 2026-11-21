@@ -4,7 +4,9 @@ using System.Text.Json;
 using AmorRP.Contracts.Announcements;
 using AmorRP.Core.Items;
 using AmorRP.Plugin.Services.Api;
+using AmorRP.Plugin.Services.Ui;
 using Dalamud.Bindings.ImGui;
+using Dalamud.Interface;
 namespace AmorRP.Plugin.Features.Seasons;
 
 public sealed partial class SeasonsPanel
@@ -18,7 +20,6 @@ public sealed partial class SeasonsPanel
     private bool announcementsLoaded, openAnnouncementReader;
     private string announcementTitle = "", announcementBody = "", announcementError = "", announcementPostError = "";
     public int UnreadAnnouncements => session != null && community != null ? announcementUnread.GetValueOrDefault(community.Id) : 0;
-    private void DrawAnnouncementBadge() => AmorRP.Plugin.Features.Shell.NotificationBadge.Draw();
     private void InvalidateAnnouncements() { announcementEpoch++; nextAnnouncementPoll = default; }
     private void ClearSelectedAnnouncements()
     {
@@ -65,6 +66,7 @@ public sealed partial class SeasonsPanel
     }
     private void DrawAnnouncements(bool editable = true)
     {
+        UiIcons.Draw(FontAwesomeIcon.Bullhorn); ImGui.SameLine();
         ImGui.TextUnformatted("Announcements"); ImGui.Separator();
         if (editable && CanAnnounce) DrawAnnouncementComposer();
         if (announcementError.Length > 0) Wrapped(announcementError);
@@ -75,7 +77,7 @@ public sealed partial class SeasonsPanel
             ImGui.PushID(post.Id.ToString());
             var position = ImGui.GetCursorScreenPos();
             if (ImGui.Selectable("##AnnouncementTitle", false, ImGuiSelectableFlags.None, new(0, ImGui.GetTextLineHeightWithSpacing() * 2))) OpenAnnouncement(post.Id);
-            if (post.Unread) DrawAnnouncementBadge();
+            if (post.Unread) AmorRP.Plugin.Features.Shell.NotificationBadge.Draw(announcement: true);
             var title = post.Title;
             var available = Math.Max(30, ImGui.GetContentRegionAvail().X - 18);
             if (ImGui.CalcTextSize(title).X > available)

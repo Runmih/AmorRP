@@ -35,6 +35,9 @@ records current acceptance status; this checklist describes what to verify.
   Creation controls require seasons.create. Repeated refresh preserves assets.
 - Player overview: membership rows show names only. Check the single reset on Home,
   the Type column, negative debt, and the red and blue badges on all four edges.
+- Noticeboard: check notices with and without rewards or logos, long descriptions,
+  group names that require a font fallback, the clear filter icon, and navigation
+  to the correct group from its seal or signature.
 - Windows: Home navigation on all four edges, tab switching from the launcher,
   resizing/scaling, writing readability, independent filters,
   focus and unsaved drafts. Click every launcher button twice, close its window

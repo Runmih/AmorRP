@@ -10,7 +10,7 @@ public sealed partial class SeasonsPanel
     private GroupPrivate? groupPrivate;
     private Guid? privateRequestedFor, eventEditId, announcementOpen;
     private int eventEditVersion;
-    private string groupJoinPassword = "", noticeSearch = "";
+    private string groupJoinPassword = "";
     private string noticeTitle = "", noticeMessage = "", noticeReward = "";
     private Guid? noticeDraftFor;
     private int noticeDraftVersion;
@@ -106,30 +106,6 @@ public sealed partial class SeasonsPanel
             Wrapped(member.Name + " @ " + member.World + (member.IsOwner ? " · owner" : ""));
         if (groupPrivate?.NextCursor != null && ActionButton("More group members", mutation: false)) LoadGroupPrivate(group, true, true);
         if (!OwnSelectedGroup && ActionButton("Leave group")) Mutate("DELETE", GroupPath(group) + "/membership", null);
-    }
-    private void DrawNoticeboard(bool communityBrowser = false)
-    {
-        if (community == null) { DrawNoSeason(); return; }
-        DrawRefreshState(hubRefresh, "Noticeboard");
-        ImGui.SetNextItemWidth(-1);
-        LimitedInput("##FilterNotices", ref noticeSearch, 100, hint: "Filter notices…");
-        foreach (var item in hub.Notices.Where(x => (x.Title + " " + x.Message + " " + x.GroupName + " " + x.Reward).Contains(noticeSearch, StringComparison.OrdinalIgnoreCase)))
-        {
-            ImGui.PushID(item.GroupId.ToString()); ImGui.Separator();
-            Wrapped(item.GroupName); Wrapped(item.Title); Wrapped(item.Message);
-            if (item.Reward.Length > 0) Wrapped("Offered reward: " + item.Reward);
-            if (ImGui.SmallButton("View group") && communityGroups.FirstOrDefault(x => x.Id == item.GroupId) is { } group)
-            {
-                if (communityBrowser) { requestedDirectoryGroup = group.Id; requestedCommunityPage = CommunityBrowserPage.Groups; }
-                else
-                {
-                    requestedDirectoryGroup = group.Id; requestedCommunityPage = CommunityBrowserPage.Groups;
-                    OpenWorkspace(AmorRP.Plugin.Features.Shell.WorkspaceKind.Season);
-                }
-            }
-            ImGui.PopID();
-        }
-        if (hub.Notices.Length == 0) Wrapped("No requests posted yet. Group owners and authorized staff can publish one from their group's Notice tab.");
     }
     private void DrawNoticeEditor(AmorRP.Contracts.Groups.Group group)
     {

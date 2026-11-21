@@ -50,6 +50,7 @@ public sealed partial class SeasonsPanel
     }
     private void ClearNestedGroups()
     {
+        ClearNoticeLogos();
         pendingGroupSelection = requestedDirectoryGroup = null; pendingGroupCreation = false;
         ClearTreasuryReturns();
         ClearGroupPermissions(); ClearTreasury(); ClearGroupBilling();
@@ -108,7 +109,7 @@ public sealed partial class SeasonsPanel
         ImGui.Separator();
         if (view == GroupView.Browse)
         {
-            if (ActionButton(group.IsFavorite ? "Unfavorite group" : "Favorite group"))
+            if (ActionButton(group.IsFavorite ? "★ Unfavorite group###FavoriteGroup" : "☆ Favorite group###FavoriteGroup"))
                 Mutate(group.IsFavorite ? "DELETE" : "PUT", GroupPath(group) + "/favorite", null);
             if (WorkspaceAccess.GroupManagement(community, session?.Character.Id, group)
                 && ImGui.Button("Manage this group")) OpenWorkspace(WorkspaceKind.GroupManagement);

@@ -26,7 +26,7 @@ internal sealed class PanelHandle
     public void HoldOpen() => visibleUntil = ImGui.GetTime() + .35;
 
     public void Draw(LauncherDock dock, Vector2 position, Action<Vector2> move, Action save,
-        Action toggleDock, Action? openSettings = null, Action? openLog = null)
+        Action toggleDock, Action? openSettings = null, Action? openLog = null, string? status = null)
     {
         ImGui.SetCursorScreenPos(dock.Position + dock.GripPosition);
         var clicked = ImGui.InvisibleButton("##LauncherDockHandle", dock.GripSize);
@@ -75,9 +75,9 @@ internal sealed class PanelHandle
             ImGui.EndPopup();
         }
         else if (hovered && !dragging)
-            ImGui.SetTooltip(placement.Docked && placement.AutoHide
+            ImGui.SetTooltip((placement.Docked && placement.AutoHide
                 ? "Drag to move. Click to pin. Right-click for options."
-                : "Drag to move. Right-click for options.");
+                : "Drag to move. Right-click for options.") + (status == null ? "" : "\n" + status));
     }
 
     public void Closed(Action save)

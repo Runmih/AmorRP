@@ -1,6 +1,7 @@
 using AmorRP.Plugin.Features.Shell;
 using AmorRP.Plugin.Services.Identity;
 using Dalamud.Bindings.ImGui;
+using Dalamud.Interface;
 
 namespace AmorRP.Plugin.Features.Seasons;
 
@@ -57,7 +58,14 @@ public sealed partial class SeasonsPanel
         foreach (var page in Enum.GetValues<CommunityBrowserPage>())
         {
             var flags = requestedCommunityPage == page ? ImGuiTabItemFlags.SetSelected : ImGuiTabItemFlags.None;
-            if (!ImGui.BeginTabItem(page.ToString(), flags)) continue;
+            var open = page switch
+            {
+                CommunityBrowserPage.Members => interfaceFonts.BeginTab(FontAwesomeIcon.UserFriends, "Members", flags),
+                CommunityBrowserPage.Groups => interfaceFonts.BeginTab(FontAwesomeIcon.Flag, "Groups", flags),
+                CommunityBrowserPage.Noticeboard => interfaceFonts.BeginTab(FontAwesomeIcon.Clipboard, "Noticeboard", flags),
+                _ => ImGui.BeginTabItem(page.ToString(), flags)
+            };
+            if (!open) continue;
             if (requestedCommunityPage == page) requestedCommunityPage = null;
             switch (page)
             {
@@ -65,7 +73,7 @@ public sealed partial class SeasonsPanel
                     DrawHomeOverview(editable: false); DrawMyBills(); DrawOwnershipOffer(); break;
                 case CommunityBrowserPage.Members: DrawMembers(MemberView.Directory); break;
                 case CommunityBrowserPage.Groups: DrawCommunityGroups(GroupView.Browse); break;
-                case CommunityBrowserPage.Noticeboard: DrawNoticeboard(communityBrowser: true); break;
+                case CommunityBrowserPage.Noticeboard: DrawNoticeboard(); break;
             }
             ImGui.EndTabItem();
         }

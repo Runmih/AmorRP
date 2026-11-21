@@ -1,4 +1,5 @@
 using AmorRP.Contracts.Inventory;
+using AmorRP.Plugin.Services.Ui;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface;
 namespace AmorRP.Plugin.Features.Seasons;
@@ -8,18 +9,15 @@ public sealed partial class SeasonsPanel
     private static FontAwesomeIcon ItemTypeIcon(string type) => type switch
     {
         "potion" or "poison" or "explosive" or "drug" or "medicine" => FontAwesomeIcon.Flask,
-        "meal" or "drink" or "dessert" => FontAwesomeIcon.Utensils,
+        "meal" => FontAwesomeIcon.PlateWheat,
+        "drink" => FontAwesomeIcon.MugHot,
+        "dessert" => FontAwesomeIcon.Cookie,
         "book" => FontAwesomeIcon.Book,
         "letter" => FontAwesomeIcon.Envelope,
         _ => FontAwesomeIcon.StickyNote
     };
 
-    private static void DrawItemTypeIcon(string type)
-    {
-        ImGui.PushFont(UiBuilder.IconFont);
-        ImGui.TextUnformatted(ItemTypeIcon(type).ToIconString());
-        ImGui.PopFont();
-    }
+    private static void DrawItemTypeIcon(string type) => UiIcons.Draw(ItemTypeIcon(type));
     private static void DrawHoldingRows(string id, Holding[] items, Guid? selected, Action<Holding> select)
     {
         if (!ImGui.BeginTable(id, 4, ImGuiTableFlags.RowBg | ImGuiTableFlags.BordersInnerH | ImGuiTableFlags.SizingStretchProp)) return;

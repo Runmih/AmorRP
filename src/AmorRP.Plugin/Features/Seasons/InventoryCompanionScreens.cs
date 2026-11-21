@@ -6,6 +6,7 @@ using AmorRP.Plugin.Features.Inventory;
 using AmorRP.Plugin.Services.Api;
 using AmorRP.Plugin.Services.Identity;
 using Dalamud.Bindings.ImGui;
+using Dalamud.Interface;
 
 namespace AmorRP.Plugin.Features.Seasons;
 
@@ -122,11 +123,12 @@ public sealed partial class SeasonsPanel
             }
             ImGui.EndTabBar();
         }
-        ImGui.SetNextItemWidth(Math.Max(80, ImGui.GetContentRegionAvail().X - ImGui.GetFrameHeight() * 2.6f));
+        UiIcons.SearchLabel();
+        ImGui.SetNextItemWidth(Math.Max(80, ImGui.GetContentRegionAvail().X - ImGui.GetFrameHeight() * 1.6f));
         var entered = ImGui.InputTextWithHint("##CompanionSearch", "Search items…", ref companionSearch, 100, ImGuiInputTextFlags.EnterReturnsTrue);
         if (entered || ImGui.IsItemDeactivatedAfterEdit()) ApplyCompanionFilters();
         ImGui.SameLine();
-        if (ImGui.Button("Reset"))
+        if (UiIcons.ClearButton("Reset inventory filters"))
         { companionSearch = companionQuery.Type = ""; companionQuery.Sort = 0; ApplyCompanionFilters(); }
 
         if (!companionQuery.CanLoad)
@@ -166,13 +168,12 @@ public sealed partial class SeasonsPanel
             foreach (var item in companionHoldings.Items)
             {
                 ImGui.PushID(item.Id.ToString()); ImGui.TableNextRow(); ImGui.TableNextColumn();
-                DrawItemTypeIcon(item.TypeId); ImGui.SameLine();
                 if (ImGui.Selectable(item.Name + "###CompanionHolding", companionSelection == item.Id, ImGuiSelectableFlags.SpanAllColumns))
                 {
                     companionSelection = item.Id; companionDetails = null; companionDiscardConfirmed = false; companionDiscardQuantity = 1;
                     companionInventoryRefresh.Invalidate();
                 }
-                ImGui.TableNextColumn(); ImGui.TextUnformatted(TypeName(item.TypeId));
+                ImGui.TableNextColumn(); DrawItemTypeIcon(item.TypeId); ImGui.SameLine(); ImGui.TextUnformatted(TypeName(item.TypeId));
                 ImGui.TableNextColumn(); ImGui.TextUnformatted(item.Available.ToString("N0"));
                 ImGui.TableNextColumn(); ImGui.TextDisabled(item.Reserved.ToString("N0"));
                 ImGui.PopID();
@@ -214,8 +215,9 @@ public sealed partial class SeasonsPanel
         if (community == null) return;
         ImGui.Separator(); ImGui.Spacing();
         ImGui.TextDisabled("PERSONAL FINANCES");
+        UiIcons.Draw(FontAwesomeIcon.Coins); ImGui.SameLine();
         ImGui.TextColored(InventoryGold, PersonalCoinBalance());
-        if (ImGui.SmallButton("View bills")) { requestedCommunityPage = CommunityBrowserPage.Overview; OpenWorkspace(AmorRP.Plugin.Features.Shell.WorkspaceKind.Season); }
+        if (interfaceFonts.SmallButton(FontAwesomeIcon.Receipt, "View bills")) { requestedCommunityPage = CommunityBrowserPage.Overview; OpenWorkspace(AmorRP.Plugin.Features.Shell.WorkspaceKind.Season); }
         ImGui.SameLine();
         if (ImGui.SmallButton("Refresh")) { companionInventoryRefresh.Invalidate(); myBillsRefresh.Invalidate(); refreshNeeded = true; }
         if (myBillsRefresh.Error != null) { ImGui.SameLine(); ImGui.TextDisabled("Debt update unavailable"); }

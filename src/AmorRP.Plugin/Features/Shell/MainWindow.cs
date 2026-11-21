@@ -3,6 +3,7 @@ using AmorRP.Contracts.Groups;
 using AmorRP.Plugin.Services.Api;
 using AmorRP.Plugin.Services.Game;
 using Dalamud.Bindings.ImGui;
+using Dalamud.Interface.ManagedFontAtlas;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin.Services;
 
@@ -12,10 +13,10 @@ public sealed class MainWindow : Window, IDisposable
 {
     private readonly AmorRP.Plugin.Features.Seasons.SeasonsPanel communities;
 
-    public MainWindow(IPlayerState playerState, IPartyList party, Configuration configuration, Action save, ITextureProvider textures)
+    public MainWindow(IPlayerState playerState, IPartyList party, Configuration configuration, Action save, ITextureProvider textures, IFontAtlas atlas)
         : base("###AmorRPMain")
     {
-        communities = new(playerState, configuration, save, party, textures);
+        communities = new(playerState, configuration, save, party, textures, atlas);
         Size = new Vector2(660, 500);
         SizeCondition = ImGuiCond.FirstUseEver;
         SizeConstraints = new WindowSizeConstraints { MinimumSize = new(460, 360), MaximumSize = new(float.MaxValue) };

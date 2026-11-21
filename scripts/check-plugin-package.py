@@ -13,8 +13,9 @@ package = Path(sys.argv[1]) if len(sys.argv) > 1 else root / "src/AmorRP.Plugin/
 with zipfile.ZipFile(package) as archive:
     names = set(archive.namelist())
     assert len(names) == len(archive.namelist()), "Duplicate ZIP entry"
-    required = {"AmorRP.dll", "AmorRP.Contracts.dll", "AmorRP.Core.dll", "AmorRP.json", "AmorRP.deps.json", "System.Security.Cryptography.ProtectedData.dll", "AmorRP.licenses.json", "icon.png"}
+    required = {"AmorRP.dll", "AmorRP.Contracts.dll", "AmorRP.Core.dll", "AmorRP.json", "AmorRP.deps.json", "System.Security.Cryptography.ProtectedData.dll", "AmorRP.licenses.json", "icon.png", "Caveat-OFL.txt"}
     assert required <= names, f"Missing package files: {required - names}"
+    assert archive.read("Caveat-OFL.txt").decode("utf-8").splitlines() == (root / "licenses/Caveat-OFL.txt").read_text(encoding="utf-8").splitlines()
     manifest = json.loads(archive.read("AmorRP.json"))
     assert manifest["InternalName"] == "AmorRP"
     assert manifest["DalamudApiLevel"] == 15

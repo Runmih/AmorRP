@@ -47,7 +47,7 @@ public sealed class Plugin : IDalamudPlugin
         updateWindows.AddWindow(updateWindow);
         configuration = pluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
         if (configuration.Version < 4) { configuration.Version = 4; pluginInterface.SavePluginConfig(configuration); }
-        mainWindow = new MainWindow(playerState, party, configuration, () => pluginInterface.SavePluginConfig(configuration), textures);
+        mainWindow = new MainWindow(playerState, party, configuration, () => pluginInterface.SavePluginConfig(configuration), textures, pluginInterface.UiBuilder.FontAtlas);
         mainWindow.CheckForPluginUpdates = CheckForUpdates;
         hub = new(configuration, mainWindow.DrawWorkspace, () => playerState.IsLoaded);
         foreach (var kind in Enum.GetValues<WorkspaceKind>().Where(kind => !HubWindow.Contains(kind)))

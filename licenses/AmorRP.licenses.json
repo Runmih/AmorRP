@@ -6,6 +6,13 @@
   },
   "dependencies": [
     {
+      "name": "Caveat Regular",
+      "copyright": "Copyright 2014 The Caveat Project Authors",
+      "license": "SIL Open Font License 1.1",
+      "source": "https://github.com/googlefonts/caveat/tree/fc2a58c4d2ec864d8a2ab7e434f427b01dbe89e5",
+      "notice": "Caveat-OFL.txt"
+    },
+    {
       "name": "System.Security.Cryptography.ProtectedData",
       "version": "10.0.12",
       "copyright": "Copyright Microsoft Corporation. All rights reserved.",

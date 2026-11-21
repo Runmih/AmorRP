@@ -1,6 +1,7 @@
 using System.Numerics;
 using AmorRP.Contracts.Seasons;
 using AmorRP.Plugin.Features.Shell;
+using AmorRP.Plugin.Services.Ui;
 using Dalamud.Bindings.ImGui;
 namespace AmorRP.Plugin.Features.Seasons;
 
@@ -35,9 +36,14 @@ public sealed partial class SeasonsPanel
         if (!ImGui.BeginTable("MemberLayout", narrow ? 1 : 2, ImGuiTableFlags.Resizable | ImGuiTableFlags.BordersInnerV)) return;
         ImGui.TableSetupColumn("Members", ImGuiTableColumnFlags.WidthStretch, .38f); if (!narrow) ImGui.TableSetupColumn("Details", ImGuiTableColumnFlags.WidthStretch, .62f);
         ImGui.TableNextColumn(); ImGui.BeginChild("MemberRoster", new(0, narrow ? ImGui.GetTextLineHeightWithSpacing() * 9 : 0), true);
-        ImGui.SetNextItemWidth(-1); var searchNow = ImGui.InputTextWithHint("##MemberSearch", "Search all members (Enter)…", ref memberSearch, 201, ImGuiInputTextFlags.EnterReturnsTrue);
+        UiIcons.SearchLabel();
+        ImGui.SetNextItemWidth(Math.Max(70, ImGui.GetContentRegionAvail().X - ImGui.GetFrameHeight() * 1.6f));
+        var searchNow = ImGui.InputTextWithHint("##MemberSearch", "Search all members (Enter)…", ref memberSearch, 201, ImGuiInputTextFlags.EnterReturnsTrue);
         if (searchNow || ImGui.IsItemDeactivatedAfterEdit()) SearchMembers();
-        if (appliedMemberSearch.Length > 0 && ImGui.SmallButton("Clear search")) { memberSearch = ""; SearchMembers(); }
+        ImGui.SameLine();
+        ImGui.BeginDisabled(memberSearch.Length == 0 && appliedMemberSearch.Length == 0);
+        if (UiIcons.ClearButton("Clear member search")) { memberSearch = ""; SearchMembers(); }
+        ImGui.EndDisabled();
         var visibleMembers = (appliedMemberSearch.Length > 0 ? memberSearchResults : members)
             .Where(x => view != MemberView.Directory || x.Status == "active").ToArray();
         if (appliedMemberSearch.Length > 0 && visibleMembers.Length == 0) Wrapped("No members found.");
