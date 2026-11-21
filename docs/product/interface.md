@@ -34,8 +34,9 @@ for unread announcements in the viewed season. Hovering over the handle
 labels the badges and shows their counts.
 Turn off Auto-hide to keep the bar visible across sessions. Clear Dock to edge
 in Settings or choose Undock from the handle menu to drag the bar freely.
-Favorite Events lists only upcoming event titles. Select a title to see its
-details. Its settings control docking, width, opacity, background opacity, header
+Favorite Events lists only upcoming event titles. Select a title to open its
+details in Home → Events. The Events tab also lists other upcoming events in the
+viewed season. Favorite Events settings control docking, width, opacity, background opacity, header
 visibility and whether to hide the panel when empty.
 
 ## Shared season context

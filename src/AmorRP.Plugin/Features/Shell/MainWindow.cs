@@ -41,7 +41,7 @@ public sealed class MainWindow : Window, IDisposable
     public void OpenTradeFromLauncher() => communities.OpenTradeFromLauncher();
     public bool HasPendingAction => communities.HasPendingAction;
     public void DrawActivityLog() => communities.DrawActivityLog();
-    public bool DrawFavoriteEvents(GroupEvent[] events) => communities.DrawFavoriteEvents(events);
+    public void DrawFavoriteEvents(GroupEvent[] events) => communities.DrawFavoriteEvents(events);
     public GroupEvent[] UpcomingFavoriteEvents() => communities.UpcomingFavoriteEvents();
     public Action<bool>? SetFavoriteEventsVisible { get; set; }
     public Action<bool>? SetLauncherVisible { get; set; }

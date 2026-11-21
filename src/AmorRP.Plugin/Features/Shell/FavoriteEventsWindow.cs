@@ -7,7 +7,7 @@ using Dalamud.Interface.Windowing;
 namespace AmorRP.Plugin.Features.Shell;
 
 public sealed class FavoriteEventsWindow(Configuration configuration, Action save, Func<GroupEvent[]> upcoming,
-    Func<GroupEvent[], bool> draw, Func<bool> loaded)
+    Action<GroupEvent[]> draw, Func<bool> loaded)
     : Window("Amor RP — Favorite events###AmorRPFavoriteEvents",
         ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoMove
         | ImGuiWindowFlags.NoSavedSettings | ImGuiWindowFlags.NoBackground | ImGuiWindowFlags.NoCollapse
@@ -82,8 +82,7 @@ public sealed class FavoriteEventsWindow(Configuration configuration, Action sav
             ImGui.PushStyleColor(ImGuiCol.ChildBg, Vector4.Zero);
             try
             {
-                if (ImGui.BeginChild("##EventsContent", Vector2.Max(Vector2.One, available), false) && draw(events))
-                    handle.HoldOpen();
+                if (ImGui.BeginChild("##EventsContent", Vector2.Max(Vector2.One, available), false)) draw(events);
                 ImGui.EndChild();
             }
             finally { ImGui.PopStyleColor(); }

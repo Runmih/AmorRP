@@ -6,7 +6,7 @@ namespace AmorRP.Plugin.Features.Seasons;
 
 public sealed partial class SeasonsPanel
 {
-    private enum CommunityBrowserPage { Overview, Members, Groups, Noticeboard }
+    private enum CommunityBrowserPage { Overview, Members, Groups, Noticeboard, Events }
     private CommunityBrowserPage? requestedCommunityPage;
     private bool requestedManagementMembers;
     public Action<WorkspaceKind>? OpenWorkspaceWindow { get; set; }
@@ -32,7 +32,7 @@ public sealed partial class SeasonsPanel
         ImGui.TextColored(InventoryGold, WorkspaceWindow.Title(kind).ToUpperInvariant());
         if (kind == WorkspaceKind.CommunityManagement && IsSeasonAdministrator) DrawSeasonManagementSelection();
         DrawSeasonState();
-        if (community == null)
+        if (community == null && kind != WorkspaceKind.Season)
         { if (kind == WorkspaceKind.CommunityManagement && (CanCreateSeasons || IsSeasonAdministrator)) DrawSeasonManagement(); else DrawNoSeason(); return; }
         ImGui.BeginChild("WorkspaceContent", System.Numerics.Vector2.Zero, false);
         switch (kind)
@@ -58,14 +58,23 @@ public sealed partial class SeasonsPanel
         {
             var flags = requestedCommunityPage == page ? ImGuiTabItemFlags.SetSelected : ImGuiTabItemFlags.None;
             if (!ImGui.BeginTabItem(page.ToString(), flags)) continue;
-            if (requestedCommunityPage == page) requestedCommunityPage = null;
-            switch (page)
+            if (requestedCommunityPage == page)
             {
-                case CommunityBrowserPage.Overview:
-                    DrawHomeOverview(editable: false); DrawMyBills(); DrawOwnershipOffer(); break;
-                case CommunityBrowserPage.Members: DrawMembers(MemberView.Directory); break;
-                case CommunityBrowserPage.Groups: DrawCommunityGroups(GroupView.Browse); break;
-                case CommunityBrowserPage.Noticeboard: DrawNoticeboard(); break;
+                requestedCommunityPage = null;
+                if (page == CommunityBrowserPage.Events) ImGui.SetScrollY(0);
+            }
+            if (page == CommunityBrowserPage.Events) DrawSeasonEvents();
+            else if (community == null) DrawNoSeason();
+            else
+            {
+                switch (page)
+                {
+                    case CommunityBrowserPage.Overview:
+                        DrawHomeOverview(editable: false); DrawMyBills(); DrawOwnershipOffer(); break;
+                    case CommunityBrowserPage.Members: DrawMembers(MemberView.Directory); break;
+                    case CommunityBrowserPage.Groups: DrawCommunityGroups(GroupView.Browse); break;
+                    case CommunityBrowserPage.Noticeboard: DrawNoticeboard(); break;
+                }
             }
             ImGui.EndTabItem();
         }

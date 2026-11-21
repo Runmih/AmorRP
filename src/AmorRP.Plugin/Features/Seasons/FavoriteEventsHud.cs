@@ -1,6 +1,7 @@
 using System.Net;
 using System.Numerics;
 using AmorRP.Contracts.Groups;
+using AmorRP.Plugin.Features.Shell;
 using AmorRP.Plugin.Services.Api;
 using Dalamud.Bindings.ImGui;
 
@@ -35,29 +36,23 @@ public sealed partial class SeasonsPanel
     public GroupEvent[] UpcomingFavoriteEvents() => session == null ? []
         : FavoriteEventSchedule.Upcoming(favoriteEvents.Items, DateTimeOffset.UtcNow);
 
-    public bool DrawFavoriteEvents(GroupEvent[] upcoming)
+    public void DrawFavoriteEvents(GroupEvent[] upcoming)
     {
-        var showingDetails = false;
         if (configuration.FavoriteEventsShowHeader) ImGui.TextUnformatted("Favorite Events");
         foreach (var item in upcoming)
         {
             ImGui.PushID(item.Id.ToString());
             var position = ImGui.GetCursorScreenPos();
-            if (ImGui.Selectable("##Event")) ImGui.OpenPopup("EventDetails");
+            if (ImGui.Selectable("##Event"))
+            {
+                selectedEventId = item.Id;
+                requestedCommunityPage = CommunityBrowserPage.Events;
+                OpenWorkspace(WorkspaceKind.Season);
+            }
             DrawHudLine(ImGui.GetWindowDrawList(), position, item.Title, ImGuiCol.Text);
             if (ImGui.IsItemHovered()) ImGui.SetTooltip(item.Title);
-            ImGui.SetNextWindowSize(new(ImGui.GetFontSize() * 25, 0), ImGuiCond.Appearing);
-            if (ImGui.BeginPopup("EventDetails"))
-            {
-                showingDetails = true;
-                ImGui.PushTextWrapPos(ImGui.GetCursorPosX() + ImGui.GetFontSize() * 24);
-                DrawEvent(item);
-                ImGui.PopTextWrapPos();
-                ImGui.EndPopup();
-            }
             ImGui.PopID();
         }
-        return showingDetails;
     }
 
     private static void DrawHudLine(ImDrawListPtr draw, Vector2 position, string text, ImGuiCol color)

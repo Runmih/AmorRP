@@ -45,8 +45,9 @@ records current acceptance status; this checklist describes what to verify.
   leaves pending invitations available. Compare Trade/Settings to Writing/Crafting
   and verify DPI sizing. Power toggle hides only automatic panels/HUDs
   while retaining individual preferences.
-- Favorite Events: only titles in the panel, optional header, click for details,
-  and hide when empty. Verify docked auto-hide and floating placement.
+- Favorite Events: verify the optional header, hide-when-empty setting, and
+  docked and floating layouts. Click a title and confirm Home → Events selects
+  that event and fits its details at normal window widths.
 - Trade: fill an offer across several rows, filter inventory while an offer is
   saved, move partial stacks back, and compare both players' currency and item
   totals before and after final confirmation. Check item details in slot tooltips

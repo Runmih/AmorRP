@@ -21,7 +21,7 @@ public sealed partial class SeasonsPanel
     }
     private void ClearCommunityViews()
     {
-        pendingMemberSelection = null; requestedCommunityPage = null; requestedManagementMembers = false;
+        pendingMemberSelection = null; requestedCommunityPage = null; requestedManagementMembers = false; selectedEventId = null;
         ResetCommunityRefreshes();
         ClearNestedGroups();
         requests.ChangeView(); reads.Clear(); ClearTradeViews();
