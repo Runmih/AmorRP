@@ -34,7 +34,7 @@ records current acceptance status; this checklist describes what to verify.
   after clock-in and locks after owner clock-out. Pay a bill in installments across
   a rate change. Check each receipt, both treasuries, and the cashier's balance.
 - Character context: right-click a player, open ♥ Amor RP, and verify Trade
-  targets the player. Open Billing, charge a trusted customer, and check amount,
+  immediately sends a request to that player. Open Billing, charge a trusted customer, and check amount,
   service or item, issuing group and payment receipt. Verify the bottom Return row
   reopens the game menu for that player. Check that billing requires a group grant.
 - Home → Groups: open the directory from Home, the flag and `/amorrp groups`.
@@ -57,7 +57,16 @@ records current acceptance status; this checklist describes what to verify.
   while retaining individual preferences.
 - Favorite Events: verify the optional header, hide-when-empty setting, and
   docked and floating layouts. Click a title and confirm Home → Events selects
-  that event and fits its details at normal window widths.
+  that event, shows its card first without duplication, and wraps its details at
+  narrow widths. Check the event card’s logo, fallback initial, and group link.
+- Recipe Creation: verify the separate tab with Alchemy-only, Cooking-only, and
+  full recipe access. Start an editor draft, visit Crafting, then return and verify
+  the draft survives. Check that Crafting shows production and Recipe Creation
+  disappears when recipe permissions are revoked.
+- Trade requests: send from the character menu or member list and check the compact
+  popup, countdown, cancellation and expiry. Open the incoming request from the
+  launcher badge. Check Decline, then send again and verify Accept opens the exchange
+  for both players. Dismissing the request popup leaves its request available.
 - Trade: fill an offer across several rows, filter inventory while an offer is
   saved, move partial stacks back, and compare both players' currency and item
   totals before and after final confirmation. Check item details in slot tooltips

@@ -28,6 +28,17 @@ public sealed partial class SeasonsPanel
         if (details?.Definition != null) { Wrapped(details.Definition.Description); DrawPotionUse(details); }
         DrawResend();
     }
+    private bool craftCooking;
+
+    private void SetCraftMode(bool cooking)
+    {
+        if (craftCooking == cooking) return;
+        craftCooking = cooking;
+        recipeChoice = 0;
+        productionSearch = "";
+        productionSelection.Reset();
+    }
+
     private void DrawPotionCreation()
     {
         if (!(craftCooking ? CanCraftCooking : CanCraftPotions))
@@ -37,7 +48,7 @@ public sealed partial class SeasonsPanel
         }
         if (CraftingRecipeSelection.View(definitions, craftCooking, "").Length == 0)
         {
-            Wrapped(Owner ? "No enabled recipes. Define one in the matching recipes tab, then return here to craft it." : "No enabled recipes yet. Ask a recipe creator to define and enable one.");
+            Wrapped((craftCooking ? CanDefineCooking : CanDefinePotions) ? "No enabled recipes. Define one in Recipe Creation, then return here to craft it." : "No enabled recipes yet. Ask a recipe creator to define and enable one.");
             return;
         }
         var narrow = ImGui.GetContentRegionAvail().X < ImGui.GetFontSize() * 38;

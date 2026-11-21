@@ -20,55 +20,27 @@ public sealed partial class SeasonsPanel
         if (favorite != null && (selected == null || favorite.Version > selected.Version))
             selected = favorite;
 
-        if (selected != null)
-        {
-            DrawEventDetails(selected);
-            ImGui.Spacing();
-            ImGui.Separator();
-        }
-        else if (selectedEventId.HasValue)
-            ImGui.TextDisabled("This event is no longer available.");
-
         if (community == null && selected == null) { DrawNoSeason(); return; }
-        if (upcoming.Length == 0)
-        {
-            if (community != null && hubRefresh.HasLoaded) ImGui.TextDisabled("No upcoming events in this season.");
-            return;
-        }
-        if (!ImGui.BeginTable("SeasonEvents", 2, ImGuiTableFlags.RowBg | ImGuiTableFlags.BordersInnerH)) return;
-        ImGui.TableSetupColumn("Event", ImGuiTableColumnFlags.WidthStretch);
-        ImGui.TableSetupColumn("When", ImGuiTableColumnFlags.WidthFixed);
-        ImGui.TableHeadersRow();
+        RefreshGroupCardLogos(now);
+        if (selected != null) DrawEventCard(selected, now);
+        else if (selectedEventId.HasValue) ImGui.TextDisabled("This event is no longer available.");
+
         foreach (var item in upcoming)
-        {
-            ImGui.TableNextRow();
-            ImGui.TableNextColumn();
-            ImGui.PushID(item.Id.ToString());
-            if (ImGui.Selectable(item.Title + "###Event", item.Id == selectedEventId, ImGuiSelectableFlags.SpanAllColumns))
-            {
-                selectedEventId = item.Id;
-                ImGui.SetScrollY(0);
-            }
-            ImGui.PopID();
-            ImGui.TableNextColumn();
-            ImGui.TextUnformatted(FavoriteEventSchedule.When(item, now));
-        }
-        ImGui.EndTable();
+            if (item.Id != selected?.Id) DrawEventCard(item, now);
+
+        if (selected == null && upcoming.Length == 0 && community != null && hubRefresh.HasLoaded)
+            ImGui.TextDisabled("No upcoming events in this season.");
     }
 
-    private void DrawEventDetails(GroupEvent item)
+    private void DrawEventCard(GroupEvent item, DateTimeOffset now)
     {
-        ImGui.PushStyleColor(ImGuiCol.Text, InventoryGold);
-        Wrapped(item.Title);
-        ImGui.PopStyleColor();
-        Wrapped(item.GroupName);
+        var schedule = FormattableString.Invariant($"{item.StartsAt.UtcDateTime:yyyy-MM-dd HH:mm} → {item.EndsAt.UtcDateTime:yyyy-MM-dd HH:mm} ST");
+        var body = new List<string> { schedule };
+        var group = communityGroups.FirstOrDefault(group => group.CommunityId == item.CommunityId && group.Id == item.GroupId);
         if (item.CommunityId != community?.Id && communities.FirstOrDefault(entry => entry.Id == item.CommunityId) is { } season)
-            ImGui.TextDisabled(season.Name);
-        ImGui.Spacing();
-        Wrapped($"Starts {item.StartsAt.UtcDateTime:yyyy-MM-dd HH:mm} ST");
-        Wrapped($"Ends {item.EndsAt.UtcDateTime:yyyy-MM-dd HH:mm} ST");
-        ImGui.Spacing();
-        Wrapped(item.Location);
-        if (item.Description.Length > 0) Wrapped(item.Description);
+            body.Add(season.Name);
+        if (!string.IsNullOrWhiteSpace(item.Location)) body.Add(item.Location);
+        if (!string.IsNullOrWhiteSpace(item.Description)) body.Add(item.Description);
+        DrawGroupCard("EventCard", item.Id, item.Title, item.GroupName, group, now, body);
     }
 }

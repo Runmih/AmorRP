@@ -109,7 +109,18 @@ public sealed partial class SeasonsPanel
                     draft.Recorded = true;
                     draft.Feedback = "Bill recorded. See Billing for the payment details.";
                 }
-                if (pending.Read().Operation.Handler == CommandHandler.SeasonForm) selected = receipt.CommunityId;
+                var request = pending.Read();
+                if (request.Operation.Handler == CommandHandler.SeasonForm) selected = receipt.CommunityId;
+                if (request.Operation.Handler == CommandHandler.Trade && request.AppliesToSeason(community?.Id))
+                {
+                    nextTradePoll = default;
+                    if (request.Operation.Kind == CommandKind.CreateTrade
+                        && trades.Any(trade => receipt.ResourceIds.Contains(trade.Id) && !Active(trade)))
+                    {
+                        outgoingRecipient = null;
+                        tradeRequestMessage = "The trade request ended.";
+                    }
+                }
                 actionResult = "Your action was saved. Any chat message has not been sent again.";
                 status = "Refreshing current state."; refreshNeeded = true;
             };

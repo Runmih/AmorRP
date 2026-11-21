@@ -50,7 +50,7 @@ public sealed partial class SeasonsPanel
     }
     private void ClearNestedGroups()
     {
-        ClearNoticeLogos();
+        ClearGroupCardLogos();
         pendingGroupSelection = requestedDirectoryGroup = null; pendingGroupCreation = false;
         ClearGroupPermissions(); ClearTreasury(); ClearGroupBilling();
         groupPrivate = null; privateRequestedFor = null; hub = new([], []); groupJoinPassword = ""; noticeDraftFor = null;

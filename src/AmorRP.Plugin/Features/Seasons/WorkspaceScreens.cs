@@ -13,6 +13,7 @@ public sealed partial class SeasonsPanel
     private CommunityBrowserPage activeCommunityPage;
     public bool GroupsSelected => (requestedCommunityPage ?? activeCommunityPage) == CommunityBrowserPage.Groups;
     public void SelectGroupsPage() => requestedCommunityPage = CommunityBrowserPage.Groups;
+    public bool CanOpenRecipeCreation => session != null && (CanDefinePotions || CanDefineCooking);
     public bool CanOpenCommunityManagement => CanCreateSeasons || IsSeasonAdministrator || WorkspaceAccess.CommunityManagement(community, session?.Character.Id);
     private bool CanManageCommunityMembers => Owner || CanManageGameplay || CanCoins || community?.MyCapabilities.Contains("inventory.remove") == true;
 
@@ -39,7 +40,8 @@ public sealed partial class SeasonsPanel
         ImGui.BeginChild("WorkspaceContent", System.Numerics.Vector2.Zero, false);
         switch (kind)
         {
-            case WorkspaceKind.Crafting: DrawCraftingTabs(includeWriting: false); break;
+            case WorkspaceKind.Crafting: DrawCraftingTabs(); break;
+            case WorkspaceKind.RecipeCreation: DrawRecipeCreationTabs(); break;
             case WorkspaceKind.CommunityManagement:
                 if (CanOpenCommunityManagement) DrawCommunityManagementWorkspace();
                 else Wrapped("Season management requires an owner or a relevant delegated permission.");

@@ -1,5 +1,6 @@
 using AmorRP.Plugin.Features.Seasons;
 using AmorRP.Plugin.Features.Shell;
+using AmorRP.Plugin.Features.Trading;
 using AmorRP.Plugin.Services.Api;
 using AmorRP.Plugin.Services.Game;
 using AmorRP.Plugin.Services.Ui;
@@ -34,7 +35,8 @@ public sealed class Plugin : IDalamudPlugin
     private readonly FavoriteEventsWindow favoriteEventsWindow;
     private readonly MainWindow mainWindow;
     private readonly AmorRP.Plugin.Features.Inventory.CompactWindow compactWindow;
-    private readonly AmorRP.Plugin.Features.Trading.TradeWindow tradeWindow;
+    private readonly TradeWindow tradeWindow;
+    private readonly TradeRequestWindow tradeRequestWindow;
     private readonly SeasonFormWindow createCommunityWindow;
     private readonly CharacterContext context;
 
@@ -51,7 +53,7 @@ public sealed class Plugin : IDalamudPlugin
         if (configuration.Version < 4) { configuration.Version = 4; pluginInterface.SavePluginConfig(configuration); }
         mainWindow = new MainWindow(playerState, party, configuration, () => pluginInterface.SavePluginConfig(configuration), textures, pluginInterface.UiBuilder.FontAtlas);
         mainWindow.CheckForPluginUpdates = CheckForUpdates;
-        hub = new(configuration, mainWindow.DrawWorkspace, () => playerState.IsLoaded);
+        hub = new(configuration, mainWindow.DrawWorkspace, () => playerState.IsLoaded, () => mainWindow.CanOpenRecipeCreation);
         foreach (var kind in Enum.GetValues<WorkspaceKind>().Where(kind => kind != WorkspaceKind.Groups && !HubWindow.Contains(kind)))
             workspaceWindows[kind] = new(kind, mainWindow.DrawWorkspace, () => playerState.IsLoaded);
         mainWindow.OpenWorkspace = kind =>
@@ -66,7 +68,17 @@ public sealed class Plugin : IDalamudPlugin
         };
         compactWindow = new(mainWindow.DrawCompact);
         tradeWindow = new(mainWindow.DrawTrade, mainWindow.TradeOpened, mainWindow.TradeClosed);
-        mainWindow.OpenTrade = () => tradeWindow.IsOpen = true;
+        tradeRequestWindow = new(mainWindow.DrawTradeRequest);
+        mainWindow.OpenTrade = () =>
+        {
+            tradeWindow.IsOpen = true;
+            tradeWindow.BringToFront();
+        };
+        mainWindow.SetTradeRequest = visible =>
+        {
+            tradeRequestWindow.IsOpen = visible;
+            if (visible) tradeRequestWindow.BringToFront();
+        };
         createCommunityWindow = new("Amor RP — Prepare season###AmorRPCreateCommunity", mainWindow.DrawCreateCommunity, () => mainWindow.CanDrawCommunityForms, new(560, 660), mainWindow.ClearFeedback);
         mainWindow.OpenCreateCommunity = () => createCommunityWindow.IsOpen = true;
         mainWindow.CloseCreateCommunity = () => createCommunityWindow.IsOpen = false;
@@ -75,7 +87,7 @@ public sealed class Plugin : IDalamudPlugin
             () => ToggleWorkspace(WorkspaceKind.Writing),
             ToggleTrade,
             ToggleWorkspace,
-            () => IsWorkspaceOpen(WorkspaceKind.Writing), () => GameplayAvailable && tradeWindow.IsOpen, IsWorkspaceOpen,
+            () => IsWorkspaceOpen(WorkspaceKind.Writing), () => GameplayAvailable && (tradeWindow.IsOpen || tradeRequestWindow.IsOpen), IsWorkspaceOpen,
             () => GameplayAvailable ? mainWindow.PendingTradeRequests : 0,
             () => GameplayAvailable ? mainWindow.UnreadAnnouncements : 0, () => playerState.IsLoaded,
             () => configuration.ShowAttachedInterfaces, ToggleAttachedInterfaces,
@@ -94,7 +106,7 @@ public sealed class Plugin : IDalamudPlugin
             () => playerState.IsLoaded && configuration.ShowAttachedInterfaces) { IsOpen = configuration.ShowFavoriteEvents };
         mainWindow.SetFavoriteEventsVisible = visible => favoriteEventsWindow.IsOpen = visible;
         windows.AddWindow(favoriteEventsWindow);
-        foreach (var menu in (Window[])[mainWindow, hub, compactWindow, tradeWindow, createCommunityWindow, billingForm, .. workspaceWindows.Values])
+        foreach (var menu in (Window[])[mainWindow, hub, compactWindow, tradeWindow, tradeRequestWindow, createCommunityWindow, billingForm, .. workspaceWindows.Values])
         {
             if (MenuWindowButtons.Add(menu, Open, OpenLog) is { } logButton) logButtons.Add(logButton);
             windows.AddWindow(menu);
@@ -208,7 +220,9 @@ public sealed class Plugin : IDalamudPlugin
 
     private void ToggleTrade()
     {
-        if (TryUseGameplay()) ToggleWindow(tradeWindow, mainWindow.OpenTradeFromLauncher);
+        if (!TryUseGameplay()) return;
+        if (tradeWindow.IsOpen) tradeWindow.IsOpen = false;
+        else ToggleWindow(tradeRequestWindow, mainWindow.OpenTradeFromLauncher);
     }
 
     private static void ToggleWindow(Window window, Action open)

@@ -26,60 +26,67 @@ public sealed partial class SeasonsPanel
         {
             CloseFinalPopup();
             CloseTradeQuantity();
-            DrawTradeRequests();
+            if (t is { } ended && !Active(ended)) Wrapped(ended.EndReason ?? (ended.State == "completed" ? "Trade completed." : "Trade ended."));
         }
         ImGui.EndChild();
     }
-    private void DrawTradeRequests()
+
+    public void DrawTradeRequestWindow()
     {
-        if (!ImGui.BeginTabBar("TradeRequests")) return;
-        if (ImGui.BeginTabItem("Inbound", requestedTradeTab == 0 ? ImGuiTabItemFlags.SetSelected : ImGuiTabItemFlags.None))
+        ImGui.PushTextWrapPos(ImGui.GetCursorPosX() + ImGui.GetFontSize() * 25);
+        DrawTradeRequestContent();
+        ImGui.PopTextWrapPos();
+    }
+
+    private void DrawTradeRequestContent()
+    {
+        if (tradeRequestTarget != null)
         {
-            var requests = tradeInbox.Pending(DateTimeOffset.UtcNow);
-            if (requests.Length == 0)
-            {
-                Wrapped("No incoming trade requests.");
-                Wrapped("To start a trade, right-click a character and choose Amor RP: Trade in the character context menu.");
-            }
+            ImGui.TextWrapped("Finding " + tradeRequestTarget.Name + "…");
+            if (ImGui.Button("Cancel")) { tradeRequestTarget = null; SetTradeRequestWindow?.Invoke(false); }
+            return;
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        if (ActiveTrade is { State: "invited" } outgoing && outgoing.Initiator.Character.Id == session?.Character.Id)
+        {
+            ImGui.TextWrapped($"Request sent to {outgoing.Recipient.Character.DisplayName}. Awaiting response.");
+            ImGui.TextUnformatted(outgoing.ExpiresAt > now ? "Expires in " + TradeCountdown(outgoing.ExpiresAt) : "Request expired.");
+            ImGui.BeginDisabled(tradeCancelRequested || tradePreparing || outgoing.ExpiresAt <= now);
+            if (ActionButton("Cancel request")) RequestTradeCancel();
+            ImGui.EndDisabled();
+            if (tradeCancelRequested) ImGui.TextWrapped("Cancelling request…");
+        }
+        else
+        {
+            var requests = tradeInbox.Pending(now);
             foreach (var request in requests)
             {
-                var targetCommunity = communities.FirstOrDefault(x => x.Id == request.CommunityId);
-                if (targetCommunity == null) continue;
                 ImGui.PushID(request.Id.ToString());
-                Wrapped($"{request.Initiator.Character.DisplayName} @ {request.Initiator.Character.HomeWorldName} · {targetCommunity.Name}");
-                Wrapped("Expires in " + TradeCountdown(request.ExpiresAt));
-                ImGui.BeginDisabled(Busy || tradeAcceptRequested || tradePreparing || (request.CommunityId != community!.Id && TradeBlocksCommunitySwitch));
-                if (ActionButton("Accept")) AcceptIncomingTrade(request);
-                ImGui.EndDisabled(); ImGui.Separator(); ImGui.PopID();
-            }
-            ImGui.EndTabItem();
-        }
-        if (ImGui.BeginTabItem("Outbound", requestedTradeTab == 1 ? ImGuiTabItemFlags.SetSelected : ImGuiTabItemFlags.None))
-        {
-            var outgoing = ActiveTrade;
-            if (outgoing is { State: "invited" } && outgoing.Initiator.Character.Id == session!.Character.Id)
-            {
-                Wrapped($"Request sent to {outgoing.Recipient.Character.DisplayName} @ {outgoing.Recipient.Character.HomeWorldName}. Waiting to be accepted…");
-                Wrapped(outgoing.ExpiresAt > DateTimeOffset.UtcNow ? "Expires in " + TradeCountdown(outgoing.ExpiresAt) : "Request expired. Updating…");
-                ImGui.BeginDisabled(tradeCancelRequested || tradePreparing);
-                if (ActionButton("Cancel request")) RequestTradeCancel();
+                ImGui.TextWrapped(request.Initiator.Character.DisplayName + " wants to trade.");
+                ImGui.TextUnformatted("Expires in " + TradeCountdown(request.ExpiresAt));
+                ImGui.BeginDisabled(Busy || outgoingRecipient.HasValue || tradeAcceptRequested || tradeCancelRequested || tradePreparing
+                    || request.CommunityId != community?.Id && TradeBlocksCommunitySwitch);
+                if (ActionButton("Accept")) RespondToTradeRequest(request, accept: true);
+                ImGui.SameLine();
+                if (ActionButton("Decline")) RespondToTradeRequest(request, accept: false);
                 ImGui.EndDisabled();
+                ImGui.PopID();
             }
-            else
-            {
-                Wrapped("To start a trade, right-click a character and choose Amor RP: Trade in the character context menu.");
-                DrawTradeTarget();
-            }
-            ImGui.EndTabItem();
+            if (requests.Length == 0 && tradeRequestMessage.Length == 0)
+                ImGui.TextWrapped("Right-click a player and choose ♥ Amor RP → Trade.");
         }
-        ImGui.EndTabBar(); requestedTradeTab = null;
+
+        if (tradeRequestMessage.Length > 0) ImGui.TextWrapped(tradeRequestMessage);
+        if (HasPendingAction) ImGui.TextWrapped("Check the pending action in the Activity Log.");
+        if (TradeNotificationStatus.Length > 0) ImGui.TextWrapped(TradeNotificationStatus);
     }
     private static string TradeCountdown(DateTimeOffset expiresAt)
     {
         var seconds = Math.Max(0, (long)Math.Ceiling((expiresAt - DateTimeOffset.UtcNow).TotalSeconds));
         return $"{seconds / 60:00}:{seconds % 60:00}";
     }
-    private void AcceptIncomingTrade(Trade request)
+    private void RespondToTradeRequest(Trade request, bool accept)
     {
         if (session == null || request.State != "invited" || request.Recipient.Character.Id != session.Character.Id
             || request.ExpiresAt <= DateTimeOffset.UtcNow || WriteBlocked || Busy) return;
@@ -89,9 +96,15 @@ public sealed partial class SeasonsPanel
             var target = communities.FirstOrDefault(x => x.Id == request.CommunityId);
             if (target == null) return;
             SwitchCommunity(target);
+            SetTradeRequestWindow?.Invoke(true);
         }
-        contextTarget = null; contextLookup = null; tradeTargetId = null;
-        ObserveTrade(request); tradeSelection = request.Id; tradeAcceptRequested = true; nextTradePoll = default;
+        tradeWindowCloseRequested = false;
+        ObserveTrade(request);
+        tradeSelection = request.Id;
+        tradeRequestMessage = accept ? "Accepting request…" : "Declining request…";
+        if (accept) tradeAcceptRequested = true;
+        else RequestTradeCancel();
+        nextTradePoll = default;
     }
     private void DrawActiveTrade(Trade t)
     {
@@ -130,20 +143,6 @@ public sealed partial class SeasonsPanel
         if (quantity > 0 && tradeDraft!.Items.GetValueOrDefault(id) == 0 && tradeDraft.Items.Count >= (serviceLimits?.MaxTradeLinesPerSide ?? 20))
         { tradeFeedback = "The offer has reached its item-line limit."; return; }
         tradeDraft!.ChangeItem(id, quantity); tradeConflictRetries = 0;
-    }
-    private void DrawTradeTarget()
-    {
-        if (ActiveTrade != null) return;
-        var chosen = members.FirstOrDefault(x => x.Status == "active" && x.Character.Id == tradeTargetId && x.Character.Id != session!.Character.Id);
-        if (chosen == null)
-        {
-            if (contextTarget != null) Wrapped("Selected character: " + contextTarget.Name);
-            return;
-        }
-        Wrapped("Trade with " + chosen.Character.DisplayName + " @ " + chosen.Character.HomeWorldName);
-        ImGui.BeginDisabled(community!.MyTradingRestricted || chosen.TradingRestricted);
-        if (ActionButton("Send request")) Mutate("POST", $"api/v2/seasons/{community!.Id}/trades", new TradeCreate(chosen.Character.Id));
-        ImGui.EndDisabled();
     }
     private void DrawFinalConfirmation(Trade current)
     {

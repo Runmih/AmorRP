@@ -13,9 +13,10 @@ public sealed partial class SeasonsPanel
     private Holding[] tradeInventory = [];
     private bool tradeInventoryLoaded;
     private string? tradeInventoryCursor;
-    private Guid? tradeSelection, tradeTargetId;
-    private CharacterTarget? contextTarget;
-    private (CharacterTarget Target, Guid Season)? contextLookup;
+    private Guid? tradeSelection, outgoingRecipient;
+    private CharacterTarget? tradeRequestTarget;
+    private bool resolvingTradeTarget;
+    private string tradeRequestMessage = "";
     private Task<Action>? tradeWork;
     private long tradeView, tradeData;
     private DateTimeOffset nextTradePoll;
@@ -27,8 +28,8 @@ public sealed partial class SeasonsPanel
     private bool tradeWindowVisible, tradeWindowCloseRequested, confirmationStartedLocally;
     private Trade? finalReview;
     private Guid? popupForTrade;
-    private int? requestedTradeTab = 0;
     public Action? OpenTradeWindow { get; set; }
+    public Action<bool>? SetTradeRequestWindow { get; set; }
     public Action? OpenSettingsWindow { get; set; }
     private static bool Active(Trade t) => t.State is "invited" or "open" or "confirming";
     private Trade? ActiveTrade => trades.FirstOrDefault(Active);
@@ -39,13 +40,56 @@ public sealed partial class SeasonsPanel
     private bool Reviewing(Trade t) => confirmationStartedLocally || t.Initiator.Confirmed || t.Recipient.Confirmed || t.State == "confirming";
     public void SelectTradeTarget(CharacterTarget target)
     {
-        contextTarget = target; contextLookup = null; tradeTargetId = null; tradeWindowCloseRequested = false; requestedTradeTab = 1;
-        OpenTradeWindow?.Invoke();
+        if (!BeginTradeRequest()) return;
+        tradeRequestTarget = target;
     }
+
+    private bool BeginTradeRequest()
+    {
+        if (ActiveTrade is { State: "open" or "confirming" })
+        {
+            OpenTradeFromLauncher();
+            return false;
+        }
+
+        SetTradeRequestWindow?.Invoke(true);
+        if (ActiveTrade != null || outgoingRecipient.HasValue || tradeRequestTarget != null || resolvingTradeTarget) return false;
+        if (session == null || community == null || SeasonReadOnly || community.MyTradingRestricted)
+        {
+            tradeRequestMessage = session == null ? "Sign in from Settings to trade."
+                : community == null || SeasonReadOnly ? "An active season is required to trade."
+                : "Trading is restricted for your character.";
+            return false;
+        }
+        if (WriteBlocked)
+        {
+            tradeRequestMessage = HasUnresolvedAction ? "Check the pending action in the Activity Log before sending a request."
+                : "Amor RP is still connecting. Try again shortly.";
+            return false;
+        }
+
+        tradeWindowCloseRequested = false;
+        tradeRequestMessage = "";
+        return true;
+    }
+
+    private void SendTradeRequest(Member target)
+    {
+        if (session == null || community == null || ActiveTrade != null || outgoingRecipient.HasValue || WriteBlocked
+            || SeasonReadOnly || community.MyTradingRestricted || target.TradingRestricted || target.Character.Id == session.Character.Id
+            || target.Status != "active")
+        {
+            tradeRequestMessage = "This trade request could not be sent. Check both players’ trading access and any pending request.";
+            return;
+        }
+        outgoingRecipient = target.Character.Id;
+        tradeRequestMessage = "Sending request to " + target.Character.DisplayName + "…";
+        Mutate("POST", $"api/v2/seasons/{community.Id}/trades", new TradeCreate(target.Character.Id));
+    }
+
     public void TradeWindowOpened()
     {
         ClearTransientFeedback(); tradeWindowVisible = true; tradeWindowCloseRequested = false; nextTradePoll = default;
-        requestedTradeTab = contextTarget != null || tradeTargetId.HasValue || ActiveTrade is { State: "invited" } invitation && invitation.Initiator.Character.Id == session?.Character.Id ? 1 : 0;
     }
     public void TradeWindowClosed()
     {
@@ -59,9 +103,10 @@ public sealed partial class SeasonsPanel
     }
     private void ClearTradeViews()
     {
-        contextLookup = null; requestedTradeTab = 0;
+        tradeRequestTarget = null; outgoingRecipient = null; resolvingTradeTarget = false; tradeRequestMessage = "";
+        SetTradeRequestWindow?.Invoke(false);
         trades = []; tradeInventory = []; tradeInventoryCursor = null;
-        tradeSearch = tradeInventoryQuery = ""; tradeQuantityMove = null; tradeSelection = tradeTargetId = null;
+        tradeSearch = tradeInventoryQuery = ""; tradeQuantityMove = null; tradeSelection = null;
         draftTradeHoldings.Clear(); tradeInventoryLoaded = openTradeQuantity = false;
         tradeDraft = null; finalReview = null; popupForTrade = null; submittedTradeGeneration = 0;
         tradeCancelRequested = tradeReadyRequested = tradeAcceptRequested = tradePreparing = confirmationStartedLocally = false;
@@ -84,7 +129,16 @@ public sealed partial class SeasonsPanel
         tradeInbox.Observe(t.CommunityId, t);
         if (Active(t)) tradeSelection = t.Id;
         if (session == null) return;
-        if (previous == null && t.State == "invited" && t.Initiator.Character.Id == session.Character.Id && tradeWindowVisible) requestedTradeTab = 1;
+        var isOutgoingRequest = t.Initiator.Character.Id == session.Character.Id && t.Recipient.Character.Id == outgoingRecipient
+            && (Active(t) || previous == null && !HasUnresolvedAction);
+        if (t.State is "open" or "confirming" && (previous?.State == "invited" || previous == null && isOutgoingRequest)
+            && !tradeWindowCloseRequested && !tradeCancelRequested)
+        {
+            tradeRequestMessage = "";
+            SetTradeRequestWindow?.Invoke(false);
+            OpenTradeWindow?.Invoke();
+        }
+        if (isOutgoingRequest) outgoingRecipient = null;
         if (tradeDraft?.TradeId != t.Id && SelectedTrade?.Id == t.Id)
         {
             tradeDraft = new(t, session.Character.Id);
@@ -95,6 +149,10 @@ public sealed partial class SeasonsPanel
         else if (tradeDraft?.TradeId == t.Id) tradeDraft.Observe(t, session.Character.Id);
         if (!Active(t))
         {
+            if (previous?.State == "invited" || isOutgoingRequest)
+                tradeRequestMessage = t.State == "expired" ? "Trade request expired."
+                    : t.State == "cancelled" ? "Trade request cancelled."
+                    : t.EndReason ?? "The trade request ended.";
             if (tradeSelection == t.Id && previous != null && Active(previous)) tradeOutcomeUntil = DateTimeOffset.UtcNow + FeedbackLifetime;
             if (tradeDraft?.TradeId == t.Id) { finalReview = null; tradeCancelRequested = tradeReadyRequested = tradeAcceptRequested = false; confirmationStartedLocally = false; }
             if (switchAfterTrade != null) { var next = switchAfterTrade; switchAfterTrade = null; SwitchCommunity(next); }
@@ -159,25 +217,22 @@ public sealed partial class SeasonsPanel
     }
     private void PumpContextTargetResolution()
     {
-        if (!tradeWindowVisible || contextTarget == null || community == null || session == null || origin == null
-            || ActiveTrade != null || WriteBlocked || Busy || SyncBusy || refreshNeeded
-            || session.AccessExpiresAt <= DateTimeOffset.UtcNow || contextLookup == (contextTarget, community.Id)) return;
-        ResolveContextTarget();
-    }
-    private void ResolveContextTarget()
-    {
-        if (community == null || contextTarget == null) return;
-        var target = contextTarget; var communityId = community.Id; var uri = origin!; var token = session!.AccessToken;
-        var actor = session.Character.Id;
-        contextLookup = (target, communityId); tradeFeedback = "Finding " + target.Name + " in this season…";
+        if (tradeRequestTarget is not { } target || resolvingTradeTarget || community == null || session == null
+            || origin == null || WriteBlocked || Busy || SyncBusy || refreshNeeded
+            || session.AccessExpiresAt <= DateTimeOffset.UtcNow) return;
+
+        var seasonId = community.Id;
+        var uri = origin;
+        var token = session.AccessToken;
+        resolvingTradeTarget = true;
         Start(async ct => {
-            var match = await FindSeasonCharacterAsync(uri, token, communityId, target, ct);
+            var match = await FindSeasonCharacterAsync(uri, token, seasonId, target, ct);
             return () => {
-                if (contextTarget != target || community?.Id != communityId) return;
-                if (match?.Character.Id == actor) match = null;
-                tradeTargetId = match?.Character.Id;
-                if (match != null) members = members.Append(match).DistinctBy(x => x.Character.Id).ToArray();
-                tradeFeedback = match != null ? $"Selected {match.Character.DisplayName} @ {match.Character.HomeWorldName}." : "That character is not an active member of this season. Select a shared season in the main window to try again.";
+                resolvingTradeTarget = false;
+                if (!ReferenceEquals(tradeRequestTarget, target) || community?.Id != seasonId) return;
+                tradeRequestTarget = null;
+                if (match == null) tradeRequestMessage = "That character isn’t an active member of this season.";
+                else SendTradeRequest(match);
             };
         }, "Resolving season member…");
     }
@@ -187,7 +242,7 @@ public sealed partial class SeasonsPanel
     private void PumpTradeChanges()
     {
         var t = SelectedTrade;
-        if (!tradeWindowVisible && !tradeCancelRequested) return;
+        if (!tradeWindowVisible && !tradeCancelRequested && !tradeAcceptRequested) return;
         if (t == null || !Active(t) || session == null || origin == null || community == null || WriteBlocked || Busy || tradePreparing) return;
         var action = tradeCancelRequested ? "cancel" : tradeAcceptRequested ? "accept" : tradeDraft?.Dirty == true && !tradeDraft.CurrencyFocused && tradeDraft.Error == null ? "offer" : tradeReadyRequested ? "confirm" : null;
         if (action == null) return;
@@ -203,7 +258,7 @@ public sealed partial class SeasonsPanel
                 ObserveTrade(fresh);
                 if (!Active(fresh)) { tradeFeedback = fresh.EndReason ?? "Trade ended."; return; }
                 if (tradeCancelRequested || action == "offer" && Reviewing(fresh))
-                { tradeCancelRequested = false; tradeReadyRequested = tradeAcceptRequested = false; Mutate("POST", path + "/cancel", new TradeRevision(fresh.Revision)); return; }
+                { tradeCancelRequested = true; tradeReadyRequested = tradeAcceptRequested = false; Mutate("POST", path + "/cancel", new TradeRevision(fresh.Revision)); return; }
                 if (action == "offer")
                 {
                     if (!canRebase) { tradeDraft!.AdoptExternal(fresh, session.Character.Id); tradeFeedback = tradeDraft.Error!; return; }
@@ -213,7 +268,7 @@ public sealed partial class SeasonsPanel
                 else if (action == "accept")
                 {
                     tradeAcceptRequested = false;
-                    if (tradeWindowVisible && fresh.State == "invited" && fresh.Recipient.Character.Id == session.Character.Id)
+                    if (fresh.State == "invited" && fresh.Recipient.Character.Id == session.Character.Id)
                         Mutate("POST", path + "/accept", new TradeRevision(fresh.Revision));
                 }
                 else
@@ -229,8 +284,33 @@ public sealed partial class SeasonsPanel
     }
     private void NoteTradeFailure(CommandRequest? request, Exception? failure)
     {
+        var preparing = tradePreparing;
         tradePreparing = false;
-        if (request == null || request.Operation.Handler != CommandHandler.Trade) return;
+        if (request == null)
+        {
+            if (resolvingTradeTarget)
+            {
+                resolvingTradeTarget = false;
+                if (tradeRequestTarget != null) tradeRequestMessage = status;
+                tradeRequestTarget = null;
+            }
+            if (preparing && !tradeWindowVisible && (tradeAcceptRequested || tradeCancelRequested))
+            {
+                tradeAcceptRequested = tradeCancelRequested = false;
+                tradeRequestMessage = status;
+                nextTradePoll = default;
+            }
+            return;
+        }
+        if (request.Operation.Handler != CommandHandler.Trade) return;
+        if (request.Operation.Kind is CommandKind.CreateTrade or CommandKind.AcceptTrade or CommandKind.CancelTrade)
+        {
+            tradeRequestMessage = status;
+            if (request.Operation.Kind == CommandKind.CreateTrade && failure is FoundationApiException { OutcomeUncertain: false })
+                outgoingRecipient = null;
+            if (request.Operation.Kind == CommandKind.CancelTrade && failure is FoundationApiException { OutcomeUncertain: false })
+                tradeCancelRequested = false;
+        }
         tradeFeedback = status;
         if (failure is FoundationApiException { Code: "trade_changed", OutcomeUncertain: false } && ++tradeConflictRetries <= 3)
         {
@@ -250,7 +330,10 @@ public sealed partial class SeasonsPanel
         tradeFeedback = "";
         actionResult = t.State == "completed" ? "Trade completed. Items and currency have been exchanged." : t.State == "cancelled" ? t.EndReason ?? "Trade cancelled." : UserFeedback.Success(request);
         if (request.Operation.Kind == CommandKind.CreateTrade)
-        { requestedTradeTab = 1; if (!tradeWindowCloseRequested) OpenTradeWindow?.Invoke(); }
+        {
+            outgoingRecipient = null;
+            if (ActiveTrade?.State == "invited") tradeRequestMessage = "";
+        }
         nextTradePoll = default;
     }
 }

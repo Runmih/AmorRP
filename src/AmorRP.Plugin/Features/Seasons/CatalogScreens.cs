@@ -9,10 +9,15 @@ public sealed partial class SeasonsPanel
 {
     private string definitionName = "", definitionDescription = "", definitionMessage = "";
     private int definitionCost = 1, definitionCategory, definitionType;
-    private bool craftCooking;
-    private string[] RecipeTypes => craftCooking ? CraftingTypes.Cooking : CraftingTypes.Alchemy;
+    private bool recipeCooking;
+    private string[] RecipeTypes => recipeCooking ? CraftingTypes.Cooking : CraftingTypes.Alchemy;
     private string RecipeType => RecipeTypes[Math.Clamp(definitionType, 0, RecipeTypes.Length - 1)];
-    private void SetCraftMode(bool cooking) { if (craftCooking == cooking) return; craftCooking = cooking; recipeChoice = 0; productionSearch = ""; productionSelection.Reset(); NewRecipe(); }
+    private void SetRecipeMode(bool cooking)
+    {
+        if (recipeCooking == cooking) return;
+        recipeCooking = cooking;
+        NewRecipe();
+    }
     private bool definitionEnabled = true;
     private Guid? definitionEditId;
     private int? definitionEditRevision;
@@ -27,7 +32,7 @@ public sealed partial class SeasonsPanel
     { definitionEditId = null; definitionEditRevision = null; definitionName = definitionDescription = definitionMessage = ""; definitionCost = 1; definitionEnabled = true; definitionCategory = definitionType = 0; }
     private void DrawCatalogEditor()
     {
-        if (!(craftCooking ? CanDefineCooking : CanDefinePotions)) return;
+        if (!(recipeCooking ? CanDefineCooking : CanDefinePotions)) return;
         var narrow = ImGui.GetContentRegionAvail().X < ImGui.GetFontSize() * 38;
         if (!ImGui.BeginTable("RecipeLayout", narrow ? 1 : 2, ImGuiTableFlags.Resizable | ImGuiTableFlags.BordersInnerV)) return;
         ImGui.TableSetupColumn("Recipes", ImGuiTableColumnFlags.WidthStretch, .35f); if (!narrow) ImGui.TableSetupColumn("Editor", ImGuiTableColumnFlags.WidthStretch, .65f);
@@ -45,7 +50,7 @@ public sealed partial class SeasonsPanel
         ImGui.EndChild(); ImGui.TableNextColumn(); ImGui.BeginChild("RecipeEditor", Vector2.Zero, true);
         ImGui.PushItemWidth(-1);
         var editing = definitions.FirstOrDefault(x => x.Id == definitionEditId);
-        ImGui.TextUnformatted(editing == null ? craftCooking ? "New Cooking recipe" : "New Alchemy recipe" : editing.Name);
+        ImGui.TextUnformatted(editing == null ? recipeCooking ? "New Cooking recipe" : "New Alchemy recipe" : editing.Name);
         Wrapped("A recipe defines future units. Existing items keep their original description and use message.");
         FieldLabel("Item type"); ImGui.BeginDisabled(editing != null);
         if (ImGui.Combo("##RecipeType", ref definitionType, RecipeTypes.Select(TypeName).ToArray(), RecipeTypes.Length)) definitionCategory = 0;
@@ -67,7 +72,7 @@ public sealed partial class SeasonsPanel
         FieldNote("RecipeMessage", messageError, $"{PlainText.Characters(definitionMessage)}/{ChatLimit} characters · {Encoding.UTF8.GetByteCount(definitionMessage)}/{LiteralChatText.MaximumBytes} bytes · <3 is allowed");
         ImGui.TextUnformatted("Exact text players will post");
         ImGui.BeginChild("RecipePreview", new(0, ImGui.GetTextLineHeightWithSpacing() * 3), true); Wrapped(definitionMessage.Length == 0 ? "Enter a use message above." : definitionMessage); ImGui.EndChild();
-        FieldLabel(craftCooking ? "Cooking points per unit" : "Alchemy points per unit"); ImGui.InputInt("##RecipeCost", ref definitionCost);
+        FieldLabel(recipeCooking ? "Cooking points per unit" : "Alchemy points per unit"); ImGui.InputInt("##RecipeCost", ref definitionCost);
         var costValid = definitionCost >= 1 && definitionCost <= (serviceLimits?.MaxWeeklyPotionPoints ?? 1000000);
         FieldNote("RecipeCost", costValid ? null : "Enter a positive cost within the season's supported point limit.", "Each authorized character spends their own weekly points to create copies.");
         ImGui.Checkbox("Allow members to create copies of this recipe", ref definitionEnabled);

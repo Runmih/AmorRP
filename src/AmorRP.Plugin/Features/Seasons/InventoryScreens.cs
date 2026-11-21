@@ -2,6 +2,7 @@ using System.Text.Json;
 using AmorRP.Contracts.Common;
 using AmorRP.Contracts.Inventory;
 using AmorRP.Contracts.Seasons;
+using AmorRP.Core.Items;
 using AmorRP.Plugin.Services.Api;
 using AmorRP.Plugin.Services.Game;
 using Dalamud.Bindings.ImGui;
@@ -66,12 +67,13 @@ public sealed partial class SeasonsPanel
     {
         if (state == null) { ClearInventoryViews(); return; }
         var filterId = filterCategory > 0 && filterCategory <= categories.Length ? (Guid?)categories[filterCategory - 1].Id : null;
-        var currentRecipes = definitions.Where(x => !x.Retired && x.Enabled && RecipeTypes.Contains(x.TypeId)).ToArray();
+        var productionTypes = craftCooking ? CraftingTypes.Cooking : CraftingTypes.Alchemy;
+        var currentRecipes = definitions.Where(x => !x.Retired && x.Enabled && productionTypes.Contains(x.TypeId)).ToArray();
         var recipeId = recipeChoice < currentRecipes.Length ? (Guid?)currentRecipes[recipeChoice].Id : null;
         categories = state.Categories; definitions = state.Definitions; holdings = state.Holdings.Items; holdingCursor = state.Holdings.NextCursor;
         compact = state.Compact.Items; compactCursor = state.Compact.NextCursor; quotas = state.Quotas;
         filterCategory = filterId.HasValue ? Array.FindIndex(categories, x => x.Id == filterId) + 1 : 0;
-        if (recipeId.HasValue) recipeChoice = Math.Max(0, Array.FindIndex(definitions.Where(x => !x.Retired && x.Enabled && RecipeTypes.Contains(x.TypeId)).ToArray(), x => x.Id == recipeId));
+        if (recipeId.HasValue) recipeChoice = Math.Max(0, Array.FindIndex(definitions.Where(x => !x.Retired && x.Enabled && productionTypes.Contains(x.TypeId)).ToArray(), x => x.Id == recipeId));
         if (state.Details?.Holding.Id == holdingSelection) details = state.Details;
         else if (holdingSelection.HasValue && !holdings.Any(x => x.Id == holdingSelection)) { details = null; holdingSelection = null; }
 
@@ -204,7 +206,7 @@ public sealed partial class SeasonsPanel
             var recipe = JsonSerializer.Deserialize<CommandResult<Definition>>(response.Json, FoundationClient.Json)!.Result;
             // Binding the receipt must not redirect a new/different draft that
             // the player opened while the request was in flight.
-            if (definitionEditId == null && definitionName.Trim() == recipe.Name && definitionDescription == recipe.Description
+            if (definitionEditId == null && RecipeType == recipe.TypeId && definitionName.Trim() == recipe.Name && definitionDescription == recipe.Description
                 && definitionMessage == recipe.Potion.UseMessage && definitionCost == recipe.Potion.CreationCost && definitionEnabled == recipe.Enabled)
             { definitionEditId = recipe.Id; definitionEditRevision = recipe.Revision; }
         }

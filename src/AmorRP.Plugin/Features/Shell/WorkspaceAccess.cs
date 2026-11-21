@@ -4,7 +4,7 @@ using GroupProfile = AmorRP.Contracts.Groups.Group;
 
 namespace AmorRP.Plugin.Features.Shell;
 
-public enum WorkspaceKind { Crafting, Groups, CommunityManagement, Season, Inventory, Writing }
+public enum WorkspaceKind { Crafting, Groups, CommunityManagement, Season, Inventory, Writing, RecipeCreation }
 
 internal static class WorkspaceAccess
 {

@@ -69,7 +69,7 @@ public sealed partial class SeasonsPanel
             {
                 DrawMemberDescription(target);
                 if (!SeasonReadOnly && target.Status == "active" && target.Character.Id != session!.Character.Id && !target.TradingRestricted && !community.MyTradingRestricted && ImGui.Button("Trade with this member"))
-                { contextTarget = null; tradeTargetId = target.Character.Id; requestedTradeTab = 1; OpenTradeWindow?.Invoke(); }
+                { if (BeginTradeRequest()) SendTradeRequest(target); }
                 DrawPersonalNote(target);
             }
             if (view == MemberView.Directory && CanManageCommunityMembers && ImGui.Button("Manage this member"))

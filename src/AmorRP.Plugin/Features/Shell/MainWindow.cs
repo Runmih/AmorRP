@@ -23,6 +23,7 @@ public sealed class MainWindow : Window, IDisposable
         communities.OpenSettingsWindow = () => IsOpen = true;
         communities.OpenWorkspaceWindow = kind => OpenWorkspace?.Invoke(kind);
         communities.OpenTradeWindow = () => OpenTrade?.Invoke();
+        communities.SetTradeRequestWindow = visible => SetTradeRequest?.Invoke(visible);
         communities.OpenCreateCommunity = () => OpenCreateCommunity?.Invoke();
         communities.CloseCreateCommunity = () => CloseCreateCommunity?.Invoke();
         communities.SetFavoriteEventsVisible = visible => SetFavoriteEventsVisible?.Invoke(visible);
@@ -34,6 +35,7 @@ public sealed class MainWindow : Window, IDisposable
     public int UnreadAnnouncements => communities.UnreadAnnouncements;
     public bool GroupsSelected => communities.GroupsSelected;
     public void SelectGroupsPage() => communities.SelectGroupsPage();
+    public bool CanOpenRecipeCreation => communities.CanOpenRecipeCreation;
     public bool CanOpenCommunityManagement => communities.CanOpenCommunityManagement;
     public Action<WorkspaceKind>? OpenWorkspace { get; set; }
     public void ShowWorkspace(WorkspaceKind kind) => communities.OpenWorkspace(kind);
@@ -48,6 +50,8 @@ public sealed class MainWindow : Window, IDisposable
     public Action<bool>? SetLauncherVisible { get; set; }
     internal Action? CheckForPluginUpdates { set => communities.CheckForPluginUpdates = value; }
     public Action? OpenTrade { get; set; }
+    public Action<bool>? SetTradeRequest { get; set; }
+    public void DrawTradeRequest() => communities.DrawTradeRequestWindow();
     public void DrawTrade() => communities.DrawTradeWindow();
     public void TradeOpened() => communities.TradeWindowOpened();
     public void TradeClosed() => communities.TradeWindowClosed();

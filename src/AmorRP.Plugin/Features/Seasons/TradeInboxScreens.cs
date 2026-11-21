@@ -20,26 +20,16 @@ public sealed partial class SeasonsPanel
 
     public void OpenTradeFromLauncher()
     {
-        var request = tradeInbox.Pending(DateTimeOffset.UtcNow)
-            .OrderBy(t => t.CommunityId == community?.Id ? 0 : 1).FirstOrDefault();
-        if (request != null)
+        if (ActiveTrade is { State: "open" or "confirming" })
         {
-            if (request.CommunityId != community?.Id)
-            {
-                if (TradeBlocksCommunitySwitch || WriteBlocked || Busy)
-                {
-                    tradeFeedback = "Finish or recover the current action before opening another season's request.";
-                    OpenTradeWindow?.Invoke(); return;
-                }
-                var target = communities.FirstOrDefault(g => g.Id == request.CommunityId);
-                if (target == null) return;
-                SwitchCommunity(target);
-            }
-            ObserveTrade(request); tradeSelection = request.Id;
-            contextTarget = null; tradeTargetId = null; requestedTradeTab = 0;
+            SetTradeRequestWindow?.Invoke(false);
+            OpenTradeWindow?.Invoke();
         }
-        tradeWindowCloseRequested = false;
-        OpenTradeWindow?.Invoke();
+        else
+        {
+            nextTradePoll = default;
+            SetTradeRequestWindow?.Invoke(true);
+        }
     }
 
     private void TickTradeInbox()

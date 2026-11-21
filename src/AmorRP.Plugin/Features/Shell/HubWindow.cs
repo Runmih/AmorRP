@@ -13,19 +13,21 @@ internal sealed class HubWindow : Window
         (WorkspaceKind.Season, FontAwesomeIcon.Home),
         (WorkspaceKind.Inventory, FontAwesomeIcon.BoxOpen),
         (WorkspaceKind.Crafting, FontAwesomeIcon.Hammer),
+        (WorkspaceKind.RecipeCreation, FontAwesomeIcon.Scroll),
         (WorkspaceKind.Writing, FontAwesomeIcon.BookOpen)
     ];
 
     private readonly Configuration configuration;
     private readonly Action<WorkspaceKind> draw;
-    private readonly Func<bool> loaded;
+    private readonly Func<bool> loaded, canCreateRecipes;
 
-    public HubWindow(Configuration configuration, Action<WorkspaceKind> draw, Func<bool> loaded)
+    public HubWindow(Configuration configuration, Action<WorkspaceKind> draw, Func<bool> loaded, Func<bool> canCreateRecipes)
         : base("###AmorRPSeasonWorkspace")
     {
         this.configuration = configuration;
         this.draw = draw;
         this.loaded = loaded;
+        this.canCreateRecipes = canCreateRecipes;
         Size = new(1040, 760);
         SizeCondition = ImGuiCond.FirstUseEver;
         SizeConstraints = new WindowSizeConstraints { MinimumSize = new(660, 480), MaximumSize = new(float.MaxValue) };
@@ -50,6 +52,8 @@ internal sealed class HubWindow : Window
 
     public override void Draw()
     {
+        var showRecipeCreation = canCreateRecipes();
+        if (!showRecipeCreation && Page == WorkspaceKind.RecipeCreation) Page = WorkspaceKind.Crafting;
         var edge = configuration.HubNavigationEdge;
         var horizontal = LauncherDock.IsHorizontal(edge);
         var button = ImGui.GetFrameHeight() * 1.4f;
@@ -61,11 +65,11 @@ internal sealed class HubWindow : Window
         {
             DrawContent(contentSize);
             if (!horizontal) ImGui.SameLine();
-            DrawTabs(navSize, button, horizontal);
+            DrawTabs(navSize, button, horizontal, showRecipeCreation);
         }
         else
         {
-            DrawTabs(navSize, button, horizontal);
+            DrawTabs(navSize, button, horizontal, showRecipeCreation);
             if (!horizontal) ImGui.SameLine();
             DrawContent(Vector2.Zero);
         }
@@ -77,13 +81,14 @@ internal sealed class HubWindow : Window
         ImGui.EndChild();
     }
 
-    private void DrawTabs(Vector2 size, float button, bool horizontal)
+    private void DrawTabs(Vector2 size, float button, bool horizontal, bool showRecipeCreation)
     {
         if (ImGui.BeginChild("HubNavigation", size, false, ImGuiWindowFlags.NoScrollbar))
         {
             for (var i = 0; i < Tabs.Length; i++)
             {
                 var (page, icon) = Tabs[i];
+                if (page == WorkspaceKind.RecipeCreation && !showRecipeCreation) continue;
                 if (i > 0 && horizontal) ImGui.SameLine();
                 var selected = page == Page;
                 if (selected) ImGui.PushStyleColor(ImGuiCol.Button, PluginTheme.SelectedButton);

@@ -7,10 +7,10 @@ multi-character interaction still require [in-game acceptance](../delivery/accep
 | Window | Entry and purpose |
 | --- | --- |
 | Settings | `/amorrp` or `/amorrp settings`. Interface has collapsible sections alongside the Account and About tabs. |
-| Home | Icon tabs for season overview/directory/noticeboard, Inventory, Crafting, and the Writing Log. Commands `/amorrp season`, `/amorrp inventory`, `/amorrp crafting`, and `/amorrp writing` select their respective tabs. |
+| Home | Icon tabs for season overview/directory/noticeboard, Inventory, Crafting, Recipe Creation, and the Writing Log. Recipe Creation appears beside Crafting for players with Alchemy or Cooking recipe permissions. Commands `/amorrp season`, `/amorrp inventory`, `/amorrp crafting`, and `/amorrp writing` select their respective tabs. |
 | Groups | Home → Groups, the launcher flag, or `/amorrp groups`. Search and favorite groups from the directory. Open a profile for its activity and any controls you have permission to use. Group owners select members in the Members tab to manage staff permissions. |
 | Season management | `/amorrp manage`; authorized profile, permissions, economy and administration |
-| Trade | `/amorrp trade`, member action or character context menu → ♥ Amor RP → Trade; requests and exchange |
+| Trade | The launcher or `/amorrp trade` opens the request popup. A member action or ♥ Amor RP → Trade sends the request directly. The exchange opens after acceptance. |
 
 Home, Inventory, Crafting and Writing shortcuts open the shared window on the
 corresponding tab. Its gold heading appears above the page content. The title bar
@@ -81,6 +81,8 @@ Noticeboard entries show the title, request, and offered reward in a card.
 The footer pairs the group's logo with its name as a handwritten signature.
 Groups without a logo show their initial. Selecting the seal or signature
 opens the group profile.
+Event cards use the same footer and show the date, time, location, and description.
+Selecting a favorite event brings its card to the top of Home → Events.
 
 Writing reads only currently owned private bodies. Creation/edits use bounded
 wrapped text without adding soft-wrap characters to stored content. In an accepted
