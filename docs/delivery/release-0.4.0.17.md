@@ -9,3 +9,6 @@ details. Use and Discard expand when needed. The Writing Log has a Type column.
 Home tabs and View bills use plain text labels.
 
 The minimum server version remains 0.4.0.3. In-game appearance is pending verification.
+
+The stable release uses the [Windows package from CI](https://github.com/Runmih/AmorRP/actions/runs/44910588090).
+The matching [server workflow](https://github.com/Runmih/AmorRP/actions/runs/44910588125) passed.
