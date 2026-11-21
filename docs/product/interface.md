@@ -8,7 +8,7 @@ multi-character interaction still require [in-game acceptance](../delivery/accep
 | --- | --- |
 | Settings | `/amorrp` or `/amorrp settings`. Interface has collapsible sections alongside the Account and About tabs. |
 | Home | Icon tabs for season overview/directory/noticeboard, Inventory, Crafting, and the Writing Log. Commands `/amorrp season`, `/amorrp inventory`, `/amorrp crafting`, and `/amorrp writing` select their respective tabs. |
-| Group management | `/amorrp groups`. Main contains the logo, name, description, and joining options. Activity and staff tools use separate tabs. Groups can be favorited from Home → Groups. |
+| Group management | `/amorrp groups`. Main contains the logo, name, description, and joining options. Activity and staff tools use separate tabs. Home → Groups has name search, a favorite star beside each group, and a Favorites only filter. |
 | Season management | `/amorrp manage`; authorized profile, permissions, economy and administration |
 | Trade | `/amorrp trade`, member action or character context menu; requests and exchange |
 
@@ -53,8 +53,9 @@ membership removal/block/restore or inactive-member controls remain.
 
 ## Data, drafts and feedback
 
-Inventory supports tabs, categories, search, sorting, an item type column, item
-details, pins and bounded pagination. Home and Inventory show one balance based
+Inventory supports tabs, categories, search, sorting, item type and available
+quantity columns, pins and bounded pagination. Click the selected row again to
+close its details. The Writing Log also has a Type column. Home and Inventory show one balance based
 on spendable coins less outstanding debt. Home also shows numbered resource
 bars and a shared weekly reset date. Inventory filters and selection
 are independent of the Writing reader. Future Supplies

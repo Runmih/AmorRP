@@ -170,24 +170,21 @@ public sealed partial class SeasonsPanel
     private void DrawDetails(HoldingDetails? selectedItem, ref bool discardConfirmed, ref int discardQuantity)
     {
         if (selectedItem == null) return;
-        var item = selectedItem.Holding; ImGui.TextUnformatted(item.Name);
-        ImGui.TextDisabled(TypeName(item.TypeId) + " · " + (categories.FirstOrDefault(x => x.Id == item.CategoryId)?.Name ?? "Retained category"));
-        Wrapped($"{item.Available} available · {item.Reserved} reserved for trading");
-        ImGui.Separator();
-        if (selectedItem.Definition != null)
+        var item = selectedItem.Holding;
+        ImGui.PushStyleColor(ImGuiCol.Text, InventoryGold);
+        Wrapped(item.Name);
+        ImGui.PopStyleColor();
+        ImGui.TextDisabled($"{TypeName(item.TypeId)} · {item.Available:N0} available");
+        if (selectedItem.Definition is { } definition)
         {
-            Wrapped(selectedItem.Definition.Description); ImGui.TextDisabled("Recipe revision " + selectedItem.Definition.Revision);
-            if (ImGui.Button(pinned.Contains(item.Id) ? "Unpin from consumables" : "Pin to consumables")) TogglePin(item.Id);
-            DrawPotionUse(selectedItem);
+            if (definition.Description.Length > 0) Wrapped(definition.Description);
+            if (ImGui.SmallButton(pinned.Contains(item.Id) ? "Unpin from consumables" : "Pin to consumables")) TogglePin(item.Id);
+            if (ImGui.CollapsingHeader("Use item")) DrawPotionUse(selectedItem);
         }
-        if (selectedItem.Letter != null)
-        {
-            Wrapped($"By {selectedItem.Letter.Author.DisplayName} @ {selectedItem.Letter.Author.HomeWorldName}");
-            if (ImGui.Button("Read in writing log")) OpenWritingLog(item);
-        }
+        if (selectedItem.Letter != null && ImGui.SmallButton("Read in Writing Log")) OpenWritingLog(item);
         if (lastUse != null && ImGui.CollapsingHeader("Last use / resend")) DrawResend();
-        if (!ImGui.CollapsingHeader("Discard this item")) return;
-        Wrapped("Discarding removes your own copies permanently and does not refund creation allowance.");
+        if (!ImGui.CollapsingHeader("Discard item###Discard this item")) return;
+        Wrapped("Discarding permanently removes copies without refunding allowance.");
         FieldLabel("Quantity to discard"); if (ImGui.InputInt("##DiscardQuantity", ref discardQuantity)) discardConfirmed = false;
         var error = item.Available == 0 ? "All copies are reserved for a trade. End the trade before discarding them." : discardQuantity < 1 || discardQuantity > item.Available ? $"Choose 1–{item.Available} unreserved copies." : null;
         FieldNote("DiscardQuantity", error, $"Discard {discardQuantity} × {item.Name}");

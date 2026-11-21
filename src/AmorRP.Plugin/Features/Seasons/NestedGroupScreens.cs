@@ -19,6 +19,8 @@ public sealed partial class SeasonsPanel
     private GroupProfile[] communityGroups = [];
     private Guid? selectedGroupId;
     private bool creatingGroup;
+    private string groupSearch = "";
+    private bool favoriteGroupsOnly;
     private readonly GroupProfileDraft groupDraft = new();
     private string requestedGroupLogo = "";
     private readonly SeasonImageCache groupLogos = new(textures, "group logo");
@@ -52,17 +54,16 @@ public sealed partial class SeasonsPanel
     {
         ClearNoticeLogos();
         pendingGroupSelection = requestedDirectoryGroup = null; pendingGroupCreation = false;
-        ClearTreasuryReturns();
         ClearGroupPermissions(); ClearTreasury(); ClearGroupBilling();
         groupPrivate = null; privateRequestedFor = null; hub = new([], []); groupJoinPassword = ""; noticeDraftFor = null;
         communityGroups = []; selectedGroupId = null; creatingGroup = false;
+        groupSearch = ""; favoriteGroupsOnly = false;
         groupDraft.Clear(); requestedGroupLogo = ""; groupLogos.Clear();
     }
     private void DrawCommunityGroups(GroupView view)
     {
         var management = view == GroupView.Management;
         var administration = view == GroupView.CommunityAdministration;
-        if (!administration) DrawTreasuryReturns();
         if (community == null) { Wrapped("Choose a season first to see its groups."); return; }
         DrawRefreshState(groupsRefresh, "Groups");
         groupLogos.Draw();
@@ -75,16 +76,20 @@ public sealed partial class SeasonsPanel
         if (!narrow) ImGui.TableSetupColumn("Profile", ImGuiTableColumnFlags.WidthStretch, .68f);
         ImGui.TableNextColumn(); ImGui.BeginChild("CommunityGroupList", new(0, narrow ? ImGui.GetTextLineHeightWithSpacing() * 7 : 0), true);
         if (createRequested) RequestGroupChange(null);
-        if (requestedDirectoryGroup is { } requested && view == GroupView.Browse)
-        { requestedDirectoryGroup = null; if (communityGroups.FirstOrDefault(x => x.Id == requested) is { } requestedGroup) RequestGroupChange(requestedGroup); }
-        var shownGroups = communityGroups.Where(x => !management || WorkspaceAccess.GroupManagement(community, session?.Character.Id, x)).OrderBy(x => x.Name, StringComparer.OrdinalIgnoreCase).ToArray();
-        foreach (var row in shownGroups)
-            if (ImGui.Selectable(row.Name + "###nested" + row.Id, selectedGroupId == row.Id)) RequestGroupChange(row);
-        if (shownGroups.Length == 0) Wrapped(management ? "No groups you can manage yet." : "No groups yet.");
+        if (view == GroupView.Browse) DrawGroupDirectory();
+        else
+        {
+            var shownGroups = communityGroups.Where(x => !management || WorkspaceAccess.GroupManagement(community, session?.Character.Id, x))
+                .OrderBy(x => x.Name, StringComparer.OrdinalIgnoreCase).ToArray();
+            foreach (var row in shownGroups)
+                if (ImGui.Selectable(row.Name + "###nested" + row.Id, selectedGroupId == row.Id)) RequestGroupChange(row);
+            if (shownGroups.Length == 0) Wrapped(management ? "No groups you can manage yet." : "No groups yet.");
+        }
         DrawGroupSwitchDialog();
         ImGui.EndChild(); ImGui.TableNextColumn(); ImGui.BeginChild("CommunityGroupProfile", Vector2.Zero, true); ImGui.PushItemWidth(-1);
         var current = SelectedGroup;
         if (management && current != null && !WorkspaceAccess.GroupManagement(community, session?.Character.Id, current)) current = null;
+        if (view == GroupView.Browse && current != null && !MatchesGroupFilter(current)) current = null;
         if (creatingGroup && canCreateHere)
             DrawGroupSections(null, view);
         else if (current == null)
@@ -107,13 +112,8 @@ public sealed partial class SeasonsPanel
         if (group == null) return;
 
         ImGui.Separator();
-        if (view == GroupView.Browse)
-        {
-            if (ActionButton(group.IsFavorite ? "★ Unfavorite group###FavoriteGroup" : "☆ Favorite group###FavoriteGroup"))
-                Mutate(group.IsFavorite ? "DELETE" : "PUT", GroupPath(group) + "/favorite", null);
-            if (WorkspaceAccess.GroupManagement(community, session?.Character.Id, group)
-                && ImGui.Button("Manage this group")) OpenWorkspace(WorkspaceKind.GroupManagement);
-        }
+        if (view == GroupView.Browse && WorkspaceAccess.GroupManagement(community, session?.Character.Id, group)
+            && ImGui.Button("Manage this group")) OpenWorkspace(WorkspaceKind.GroupManagement);
         DrawTrust(group);
         if (management && OwnSelectedGroup) DrawGroupDelete(group);
     }
@@ -274,7 +274,6 @@ public sealed partial class SeasonsPanel
             groupPrivate = null; privateRequestedFor = null; return;
         }
         var deleted = request.Operation.Kind == CommandKind.DeleteGroup;
-        if (deleted) ClearTreasuryReturns();
         communityGroups = communityGroups.Where(x => x.Id != row.Id).Concat(deleted ? [] : new[] { row }).ToArray();
         if (deleted) { selectedGroupId = null; if (communityGroups.FirstOrDefault() is { } next) SelectGroup(next); }
         else

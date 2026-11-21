@@ -131,15 +131,24 @@ public sealed partial class SeasonsPanel
         if (ImGui.Combo("##WritingSort", ref sortOrder, new[] { "Sort: title", "Sort: type" }, 2))
         { writingLogQuery.Sort = sortOrder; ResetWritingLogFilters(); }
         DrawRefreshState(writingLogRefresh, "Writing"); ImGui.Separator();
-        foreach (var item in writingLogPage.Items)
+        if (ImGui.BeginTable("WritingEntries", 2, ImGuiTableFlags.RowBg | ImGuiTableFlags.BordersInnerH))
         {
-            ImGui.PushID(item.Id.ToString()); DrawItemTypeIcon(item.TypeId); ImGui.SameLine();
-            if (ImGui.Selectable(item.Name + "###WritingEntry", writingLogSelection == item.Id))
+            ImGui.TableSetupColumn("Title", ImGuiTableColumnFlags.WidthStretch);
+            ImGui.TableSetupColumn("Type", ImGuiTableColumnFlags.WidthFixed);
+            ImGui.TableHeadersRow();
+            foreach (var item in writingLogPage.Items)
             {
-                writingLogSelection = item.Id; writingLogDetails = null; writingLogComposing = false;
-                writingLogRefresh.Invalidate();
+                ImGui.PushID(item.Id.ToString());
+                ImGui.TableNextRow(); ImGui.TableNextColumn();
+                if (ImGui.Selectable(item.Name + "###WritingEntry", writingLogSelection == item.Id, ImGuiSelectableFlags.SpanAllColumns))
+                {
+                    writingLogSelection = item.Id; writingLogDetails = null; writingLogComposing = false;
+                    writingLogRefresh.Invalidate();
+                }
+                ImGui.TableNextColumn(); ImGui.TextUnformatted(TypeName(item.TypeId));
+                ImGui.PopID();
             }
-            ImGui.TextDisabled(TypeName(item.TypeId)); ImGui.Separator(); ImGui.PopID();
+            ImGui.EndTable();
         }
         if (writingLogPage.Items.Length == 0 && writingLogRefresh.HasLoaded)
             Wrapped("No matching writing. Clear the search, create a text item or receive one in a trade.");

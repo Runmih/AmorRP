@@ -11,10 +11,16 @@ public sealed partial class SeasonsPanel
     private void ApplyCommandSuccess(CommandRequest request, CommandResponse response, bool recovering)
     {
         if (request.Operation.Kind == CommandKind.SetSeasonCreationPermission) seasonCreationAccessLoaded = false;
-        if (request.Operation.Kind == CommandKind.CollectTreasuryReturn) ClearTreasuryReturns();
         // A recovered action may belong to another community. Its durable
         // receipt is still acknowledged, but must not overwrite this editor.
         if (!request.AppliesToSeason(community?.Id)) return;
+        if (request.Operation.Kind is CommandKind.FavoriteGroup or CommandKind.UnfavoriteGroup)
+        {
+            var groupId = request.TargetGroupId();
+            var favorite = request.Operation.Kind == CommandKind.FavoriteGroup;
+            communityGroups = communityGroups.Select(group => group.Id == groupId ? group with { IsFavorite = favorite } : group).ToArray();
+            return;
+        }
         if (request.Operation.Handler is CommandHandler.GroupProfile or CommandHandler.GroupActivity or CommandHandler.Treasury or CommandHandler.Billing
             && !request.AppliesToGroup(selectedGroupId)) return;
         switch (request.Operation.Handler)

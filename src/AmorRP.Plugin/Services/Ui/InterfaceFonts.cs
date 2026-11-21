@@ -6,9 +6,6 @@ namespace AmorRP.Plugin.Services.Ui;
 
 internal sealed class InterfaceFonts(IFontAtlas atlas) : IDisposable
 {
-    private readonly IFontHandle labels = atlas.NewDelegateFontHandle(step =>
-        step.OnPreBuild(toolkit => toolkit.AddDalamudDefaultFont(UiBuilder.DefaultFontSizePx)));
-
     private readonly IFontHandle signature = atlas.NewDelegateFontHandle(step => step.OnPreBuild(toolkit =>
     {
         using var resource = typeof(InterfaceFonts).Assembly.GetManifestResourceStream(
@@ -22,21 +19,6 @@ internal sealed class InterfaceFonts(IFontAtlas atlas) : IDisposable
         }, "Caveat Regular");
     }));
 
-    public bool BeginTab(FontAwesomeIcon icon, string label, ImGuiTabItemFlags flags)
-    {
-        using var font = labels.Push();
-        return ImGui.BeginTabItem(Label(icon, label), flags);
-    }
-
-    public bool SmallButton(FontAwesomeIcon icon, string label)
-    {
-        using var font = labels.Push();
-        return ImGui.SmallButton(Label(icon, label));
-    }
-
-    private string Label(FontAwesomeIcon icon, string label) =>
-        labels.Available ? $"{icon.ToIconString()}  {label}###{label}" : $"{label}###{label}";
-
     public unsafe IDisposable? PushSignature(string text)
     {
         using var loaded = signature.TryLock(out _);
@@ -48,9 +30,5 @@ internal sealed class InterfaceFonts(IFontAtlas atlas) : IDisposable
         return signature.Push();
     }
 
-    public void Dispose()
-    {
-        labels.Dispose();
-        signature.Dispose();
-    }
+    public void Dispose() => signature.Dispose();
 }

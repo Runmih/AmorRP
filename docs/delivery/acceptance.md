@@ -54,7 +54,11 @@ records current acceptance status; this checklist describes what to verify.
 - Interface: switch between Home tabs to check the gold page heading and verify
   the title bar controls. Expand and collapse
   Interface settings. Create a password-protected group, save a profile edit,
-  switch activity tabs, and favorite the group from Home → Groups.
+  switch activity tabs, and use the row star, name search, and Favorites only
+  filter in Home → Groups. Open a group from a notice while filters are enabled.
+- Inventory and Writing Log: check the Type column in both lists. Select and
+  deselect an Inventory item, expand Use or Discard, and verify quantity limits
+  and chat preview.
 - Plugin updates: run an older build with the checker against a newer published
   version. Leave the quick bar idle and verify that no prompt opens. Try opening
   a feature from the bar, `/amorrp`, and Dalamud. Verify that gameplay remains

@@ -1,7 +1,6 @@
 using AmorRP.Plugin.Features.Shell;
 using AmorRP.Plugin.Services.Identity;
 using Dalamud.Bindings.ImGui;
-using Dalamud.Interface;
 
 namespace AmorRP.Plugin.Features.Seasons;
 
@@ -58,14 +57,7 @@ public sealed partial class SeasonsPanel
         foreach (var page in Enum.GetValues<CommunityBrowserPage>())
         {
             var flags = requestedCommunityPage == page ? ImGuiTabItemFlags.SetSelected : ImGuiTabItemFlags.None;
-            var open = page switch
-            {
-                CommunityBrowserPage.Members => interfaceFonts.BeginTab(FontAwesomeIcon.UserFriends, "Members", flags),
-                CommunityBrowserPage.Groups => interfaceFonts.BeginTab(FontAwesomeIcon.Flag, "Groups", flags),
-                CommunityBrowserPage.Noticeboard => interfaceFonts.BeginTab(FontAwesomeIcon.Clipboard, "Noticeboard", flags),
-                _ => ImGui.BeginTabItem(page.ToString(), flags)
-            };
-            if (!open) continue;
+            if (!ImGui.BeginTabItem(page.ToString(), flags)) continue;
             if (requestedCommunityPage == page) requestedCommunityPage = null;
             switch (page)
             {

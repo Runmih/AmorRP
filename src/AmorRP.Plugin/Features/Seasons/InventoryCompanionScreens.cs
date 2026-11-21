@@ -158,24 +158,23 @@ public sealed partial class SeasonsPanel
         var available = ImGui.GetContentRegionAvail().Y;
         var listHeight = companionSelection.HasValue ? Math.Max(ImGui.GetFrameHeight() * 2, available * .48f) : 0;
         ImGui.BeginChild("CompanionItemList", new(0, listHeight), true);
-        if (ImGui.BeginTable("CompanionHoldings", 4, ImGuiTableFlags.RowBg | ImGuiTableFlags.BordersInnerH))
+        if (ImGui.BeginTable("CompanionHoldings", 3, ImGuiTableFlags.RowBg | ImGuiTableFlags.BordersInnerH))
         {
             ImGui.TableSetupColumn("Item", ImGuiTableColumnFlags.WidthStretch);
             ImGui.TableSetupColumn("Type", ImGuiTableColumnFlags.WidthFixed);
             ImGui.TableSetupColumn("Available", ImGuiTableColumnFlags.WidthFixed, ImGui.CalcTextSize("Available").X);
-            ImGui.TableSetupColumn("Reserved", ImGuiTableColumnFlags.WidthFixed, ImGui.CalcTextSize("Reserved").X);
             ImGui.TableHeadersRow();
             foreach (var item in companionHoldings.Items)
             {
                 ImGui.PushID(item.Id.ToString()); ImGui.TableNextRow(); ImGui.TableNextColumn();
                 if (ImGui.Selectable(item.Name + "###CompanionHolding", companionSelection == item.Id, ImGuiSelectableFlags.SpanAllColumns))
                 {
-                    companionSelection = item.Id; companionDetails = null; companionDiscardConfirmed = false; companionDiscardQuantity = 1;
+                    companionSelection = companionSelection == item.Id ? null : item.Id;
+                    companionDetails = null; companionDiscardConfirmed = false; companionDiscardQuantity = 1;
                     companionInventoryRefresh.Invalidate();
                 }
                 ImGui.TableNextColumn(); DrawItemTypeIcon(item.TypeId); ImGui.SameLine(); ImGui.TextUnformatted(TypeName(item.TypeId));
                 ImGui.TableNextColumn(); ImGui.TextUnformatted(item.Available.ToString("N0"));
-                ImGui.TableNextColumn(); ImGui.TextDisabled(item.Reserved.ToString("N0"));
                 ImGui.PopID();
             }
             ImGui.EndTable();
@@ -187,8 +186,7 @@ public sealed partial class SeasonsPanel
         if (!companionSelection.HasValue) return;
         ImGui.BeginChild("CompanionItemDetails", new(0, 0), true);
         ImGui.PushItemWidth(-1);
-        if (ImGui.SmallButton("Back to full list")) { companionSelection = null; companionDetails = null; }
-        else if (companionDetails != null) DrawDetails(companionDetails, ref companionDiscardConfirmed, ref companionDiscardQuantity);
+        if (companionDetails != null) DrawDetails(companionDetails, ref companionDiscardConfirmed, ref companionDiscardQuantity);
         else Wrapped("Loading item details…");
         ImGui.PopItemWidth(); ImGui.EndChild();
     }
@@ -217,7 +215,7 @@ public sealed partial class SeasonsPanel
         ImGui.TextDisabled("PERSONAL FINANCES");
         UiIcons.Draw(FontAwesomeIcon.Coins); ImGui.SameLine();
         ImGui.TextColored(InventoryGold, PersonalCoinBalance());
-        if (interfaceFonts.SmallButton(FontAwesomeIcon.Receipt, "View bills")) { requestedCommunityPage = CommunityBrowserPage.Overview; OpenWorkspace(AmorRP.Plugin.Features.Shell.WorkspaceKind.Season); }
+        if (ImGui.SmallButton("View bills")) { requestedCommunityPage = CommunityBrowserPage.Overview; OpenWorkspace(AmorRP.Plugin.Features.Shell.WorkspaceKind.Season); }
         ImGui.SameLine();
         if (ImGui.SmallButton("Refresh")) { companionInventoryRefresh.Invalidate(); myBillsRefresh.Invalidate(); refreshNeeded = true; }
         if (myBillsRefresh.Error != null) { ImGui.SameLine(); ImGui.TextDisabled("Debt update unavailable"); }

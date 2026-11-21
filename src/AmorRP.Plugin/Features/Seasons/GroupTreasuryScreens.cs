@@ -13,17 +13,12 @@ public sealed partial class SeasonsPanel
     private Guid? treasuryRequestedFor;
     private int treasuryReadVersion;
     private string treasuryAmount = "", treasuryNote = "";
-    private TreasuryReturnPage? treasuryReturns;
-    private bool treasuryReturnsRequested;
-    private int treasuryReturnsVersion;
 
     private void ClearTreasury()
     {
         treasuryReadVersion++; treasuryRequestedFor = null; treasuryBalance = null;
         treasuryRecords = null; lastTreasuryReceipt = null; treasuryAmount = treasuryNote = "";
     }
-    private void ClearTreasuryReturns()
-    { treasuryReturnsVersion++; treasuryReturnsRequested = false; treasuryReturns = null; }
     private void LoadTreasury(GroupProfile group, bool force = false, bool more = false)
     {
         if (!force && treasuryRequestedFor == group.Id) return;
@@ -92,34 +87,6 @@ public sealed partial class SeasonsPanel
         Wrapped($"Character balance: {entry.CharacterBefore} → {entry.CharacterAfter}");
         if (entry.Note.Length > 0) Wrapped(entry.Note);
         Wrapped("Receipt: " + entry.Id);
-    }
-    private void DrawTreasuryReturns()
-    {
-        if (!ImGui.CollapsingHeader("Treasury returns")) return;
-        Wrapped("Disbanding returns treasury coins to the group owner automatically. If their balance was full, the remaining coins stay here for collection into their original season account.");
-        if (!treasuryReturnsRequested || ActionButton("Refresh returns", mutation: false)) LoadTreasuryReturns();
-        if (treasuryReturns == null) return;
-        if (treasuryReturns.Items.Length == 0) Wrapped("No treasury returns waiting.");
-        foreach (var item in treasuryReturns.Items)
-        {
-            ImGui.PushID(item.GroupId.ToString());
-            Wrapped($"{item.CommunityName} · {item.GroupName}: {item.Amount} {item.CurrencyName}");
-            if (ActionButton("Collect return")) Mutate("POST", $"api/v2/seasons/{item.CommunityId}/groups/{item.GroupId}/treasury/return", null);
-            ImGui.PopID();
-        }
-        if (treasuryReturns.NextCursor != null && ActionButton("More returns", mutation: false)) LoadTreasuryReturns(true);
-    }
-    private void LoadTreasuryReturns(bool more = false)
-    {
-        treasuryReturnsRequested = true; var version = ++treasuryReturnsVersion;
-        var uri = origin!; var token = session!.AccessToken; var previous = more ? treasuryReturns : null;
-        Start(async ct => {
-            var page = await client.GetAsync<TreasuryReturnPage>(uri, "api/v2/me/treasury-returns" + (previous?.NextCursor == null ? "" : "?cursor=" + Uri.EscapeDataString(previous.NextCursor)), token, ct);
-            return () => {
-                if (version != treasuryReturnsVersion) return;
-                treasuryReturns = previous == null ? page : page with { Items = previous.Items.Concat(page.Items).DistinctBy(x => x.GroupId).ToArray() };
-            };
-        }, "Checking treasury returns…");
     }
     private void ApplyTreasurySuccess(string json)
     {
