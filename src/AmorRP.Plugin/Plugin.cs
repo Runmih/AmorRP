@@ -13,16 +13,17 @@ namespace AmorRP.Plugin;
 public sealed class Plugin : IDalamudPlugin
 {
     private const string Command = "/amorrp";
+    private const string WindowNamespace = "AmorRP";
     private readonly IDalamudPluginInterface pluginInterface;
     private readonly ICommandManager commands;
     private readonly IPlayerState playerState;
     private readonly List<TitleBarButton> logButtons = [];
     private readonly ActivityLogWindow activityLogWindow;
-    private readonly WindowSystem windows = new("AmorRP");
+    private readonly WindowSystem windows = new(WindowNamespace);
+    private readonly WindowSystem launcherWindows = new(WindowNamespace);
     private readonly WindowSystem updateWindows = new("AmorRPUpdate");
     private readonly PluginUpdateCheck updates;
     private readonly PluginUpdateWindow updateWindow;
-    private PluginUpdateStatus? announcedUpdateStatus;
     private bool showVersionStatus;
     private bool GameplayAvailable => updates.Status == PluginUpdateStatus.Current;
     private readonly Configuration configuration;
@@ -65,11 +66,12 @@ public sealed class Plugin : IDalamudPlugin
         mainWindow.CloseCreateCommunity = () => createCommunityWindow.IsOpen = false;
         activityLogWindow = new(mainWindow.DrawActivityLog);
         launcherWindow = new(configuration, () => pluginInterface.SavePluginConfig(configuration), Open, OpenLog,
-            () => hub.TogglePage(WorkspaceKind.Writing),
-            () => ToggleWindow(tradeWindow, mainWindow.OpenTradeFromLauncher),
+            () => ToggleWorkspace(WorkspaceKind.Writing),
+            ToggleTrade,
             ToggleWorkspace,
-            () => IsWorkspaceOpen(WorkspaceKind.Writing), () => tradeWindow.IsOpen, IsWorkspaceOpen,
-            () => mainWindow.PendingTradeRequests, () => mainWindow.UnreadAnnouncements, () => playerState.IsLoaded,
+            () => IsWorkspaceOpen(WorkspaceKind.Writing), () => GameplayAvailable && tradeWindow.IsOpen, IsWorkspaceOpen,
+            () => GameplayAvailable ? mainWindow.PendingTradeRequests : 0,
+            () => GameplayAvailable ? mainWindow.UnreadAnnouncements : 0, () => playerState.IsLoaded,
             () => configuration.ShowAttachedInterfaces, ToggleAttachedInterfaces,
             () => mainWindow.CanOpenGroupManagement, () => mainWindow.CanOpenCommunityManagement)
             { IsOpen = configuration.ShowLauncher };
@@ -86,7 +88,7 @@ public sealed class Plugin : IDalamudPlugin
         }
         MenuWindowButtons.Add(activityLogWindow, Open, OpenLog, isLog: true);
         windows.AddWindow(activityLogWindow);
-        windows.AddWindow(launcherWindow);
+        launcherWindows.AddWindow(launcherWindow);
         commands.AddHandler(Command, new CommandInfo(OnCommand) { HelpMessage = "/amorrp → Settings" });
         pluginInterface.UiBuilder.Draw += Draw;
         pluginInterface.UiBuilder.OpenMainUi += Open;
@@ -97,19 +99,8 @@ public sealed class Plugin : IDalamudPlugin
     {
         updates.Tick(DateTimeOffset.UtcNow);
         using var theme = PluginTheme.Apply();
-        if (!GameplayAvailable)
+        if (GameplayAvailable)
         {
-            var status = updates.Status;
-            if (playerState.IsLoaded && (status is PluginUpdateStatus.Required or PluginUpdateStatus.Unavailable)
-                && announcedUpdateStatus != status)
-            {
-                announcedUpdateStatus = status;
-                ShowUpdateWindow();
-            }
-        }
-        else
-        {
-            announcedUpdateStatus = null;
             if (!showVersionStatus) updateWindow.IsOpen = false;
             mainWindow.SetInventoryVisible(IsWorkspaceOpen(WorkspaceKind.Inventory) && playerState.IsLoaded);
             mainWindow.SetWritingLogVisible(IsWorkspaceOpen(WorkspaceKind.Writing) && playerState.IsLoaded);
@@ -118,13 +109,14 @@ public sealed class Plugin : IDalamudPlugin
                 button.IconColor = mainWindow.HasPendingAction ? PluginTheme.Accent : null;
             windows.Draw();
         }
+        launcherWindows.Draw();
         updateWindows.Draw();
         if (!updateWindow.IsOpen) showVersionStatus = false;
     }
 
     private void OnCommand(string command, string arguments)
     {
-        if (!GameplayAvailable) { ShowUpdateWindow(); return; }
+        if (!TryUseGameplay()) return;
         switch (arguments.Trim().ToLowerInvariant())
         {
             case "log": OpenLog(); break;
@@ -146,9 +138,16 @@ public sealed class Plugin : IDalamudPlugin
     }
     private void Open()
     {
-        if (!GameplayAvailable) { ShowUpdateWindow(); return; }
+        if (!TryUseGameplay()) return;
         mainWindow.IsOpen = true;
         mainWindow.BringToFront();
+    }
+
+    private bool TryUseGameplay()
+    {
+        if (GameplayAvailable) return true;
+        ShowUpdateWindow();
+        return false;
     }
 
     private void ShowUpdateWindow()
@@ -173,17 +172,24 @@ public sealed class Plugin : IDalamudPlugin
 
     private void OpenLog()
     {
+        if (!TryUseGameplay()) return;
         activityLogWindow.IsOpen = true;
         activityLogWindow.BringToFront();
     }
 
-    private bool IsWorkspaceOpen(WorkspaceKind kind) =>
-        HubWindow.Contains(kind) ? hub.IsOpen && hub.Page == kind : workspaceWindows[kind].IsOpen;
+    private bool IsWorkspaceOpen(WorkspaceKind kind) => GameplayAvailable
+        && (HubWindow.Contains(kind) ? hub.IsOpen && hub.Page == kind : workspaceWindows[kind].IsOpen);
 
     private void ToggleWorkspace(WorkspaceKind kind)
     {
+        if (!TryUseGameplay()) return;
         if (HubWindow.Contains(kind)) hub.TogglePage(kind);
         else ToggleWindow(workspaceWindows[kind], () => mainWindow.ShowWorkspace(kind));
+    }
+
+    private void ToggleTrade()
+    {
+        if (TryUseGameplay()) ToggleWindow(tradeWindow, mainWindow.OpenTradeFromLauncher);
     }
 
     private static void ToggleWindow(Window window, Action open)
@@ -206,6 +212,7 @@ public sealed class Plugin : IDalamudPlugin
         commands.RemoveHandler(Command);
         context.Dispose();
         updateWindows.RemoveAllWindows();
+        launcherWindows.RemoveAllWindows();
         windows.RemoveAllWindows();
         updates.Dispose();
         mainWindow.Dispose();

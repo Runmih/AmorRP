@@ -56,9 +56,10 @@ records current acceptance status; this checklist describes what to verify.
   Interface settings. Create a password-protected group, save a profile edit,
   switch activity tabs, and favorite the group from Home → Groups.
 - Plugin updates: run an older build with the checker against a newer published
-  version. Verify that Amor RP windows and trade context actions are blocked,
-  that the notice opens Dalamud's update list, and that the current build
-  restores gameplay after installation. Simulate an unavailable feed and retry.
+  version. Leave the quick bar idle and verify that no prompt opens. Try opening
+  a feature from the bar, `/amorrp`, and Dalamud. Verify that gameplay remains
+  blocked, the prompt opens Dalamud's update list, and the current build restores
+  gameplay after installation. Simulate an unavailable feed and retry.
 
 ## Automated release checks
 

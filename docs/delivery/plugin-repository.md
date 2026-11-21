@@ -19,9 +19,11 @@ Rejected downgrade/reused-version/source evidence must leave published files int
 retrying the same publication must preserve timestamp and provenance.
 
 Starting with 0.4.0.10, the plugin checks this feed before use and every five
-minutes while running. A newer published version pauses gameplay and opens an
+minutes while running. A newer published version pauses gameplay in the
+background. Opening Amor RP from the quick bar, `/amorrp`, or Dalamud shows the
 Update required window with a shortcut to Dalamud's update list. If verification
-fails, the plugin pauses and retries. Players can also retry from the notice.
+fails, the plugin pauses and retries in the background. Players can also retry
+from the notice.
 Amor RP also uses Dalamud's update result. Each feed check requests a fresh copy.
 Settings → About → Check for updates checks both sources immediately and shows
 the installed and published versions.
