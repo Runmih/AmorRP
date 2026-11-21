@@ -11,3 +11,6 @@ and clear controls, and the collapsed quick-bar handle labels both badges on
 hover.
 
 The minimum server version remains 0.4.0.3. In-game appearance is pending verification.
+
+The stable release uses the [Windows package from CI](https://github.com/Runmih/AmorRP/actions/runs/44905371858).
+The matching [server workflow](https://github.com/Runmih/AmorRP/actions/runs/44905371863) passed.
