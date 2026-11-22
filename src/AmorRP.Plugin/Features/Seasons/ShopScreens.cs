@@ -21,6 +21,7 @@ public sealed partial class SeasonsPanel
     private void ClearShop()
     {
         shopRefresh.Reset();
+        ClearPermits();
         shopProducts = [];
         shopSelection = shopGroup = null;
         shopQuantity = 1;
@@ -44,6 +45,12 @@ public sealed partial class SeasonsPanel
         if (ImGui.BeginTabItem("Products"))
         {
             DrawShopProducts();
+            ImGui.EndTabItem();
+        }
+        if (ImGui.BeginTabItem("Slave", permitTabRequested ? ImGuiTabItemFlags.SetSelected : ImGuiTabItemFlags.None))
+        {
+            permitTabRequested = false;
+            DrawPermits();
             ImGui.EndTabItem();
         }
         if (Owner && ImGui.BeginTabItem("Manage products"))

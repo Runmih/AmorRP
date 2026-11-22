@@ -83,7 +83,7 @@ public sealed class BootstrapTests : IAsyncLifetime
         Assert.NotNull(result);
         Assert.Equal("2", result.ApiVersion);
         Assert.Equal(new[] { "potion", "poison", "explosive", "drug", "medicine", "meal", "drink", "dessert", "book", "letter", "note" }, result.SupportedTypes.Select(x => x.Id));
-        Assert.Equal(new[] { "currency.manage", "items.potion.create", "inventory.remove", "items.potion.define", "items.cooking.create", "items.cooking.define", "season.moderate", "announcements.manage", "members.gameplay.manage", "groups.create", "groups.manage" }, result.GrantableCapabilities);
+        Assert.Equal(new[] { "currency.manage", "items.potion.create", "inventory.remove", "items.potion.define", "items.cooking.create", "items.cooking.define", "season.moderate", "announcements.manage", "members.gameplay.manage", "groups.create", "groups.manage", "permits.list.manage" }, result.GrantableCapabilities);
         Assert.Equal(new[] { "emote", "say", "party", "linkshell", "crossworld-linkshell" }, result.ChatDestinationKinds);
         Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsync("/api/v2/seasons", null, TestContext.Current.CancellationToken)).StatusCode);
     }

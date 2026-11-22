@@ -29,9 +29,10 @@ public sealed partial class AmorDbContext
             e.HasOne<CharacterRow>().WithMany().HasForeignKey(x => x.IssuerCharacterId).OnDelete(DeleteBehavior.Restrict);
         });
         m.Entity<BillPaymentRow>(e => {
-            e.ToTable("bill_payments", t => t.HasCheckConstraint("ck_bill_payment", "\"Amount\" > 0 AND \"CharacterAfter\" >= 0 AND \"TreasuryBefore\" >= 0 AND \"TreasuryAfter\" >= \"TreasuryBefore\" AND \"SeasonTax\" >= 0 AND \"Commission\" >= 0 AND \"CharacterBefore\"::numeric - \"CharacterAfter\"::numeric = \"Amount\" AND \"TreasuryAfter\"::numeric - \"TreasuryBefore\"::numeric + \"SeasonTax\" + \"Commission\" = \"Amount\""));
+            e.ToTable("bill_payments", t => t.HasCheckConstraint("ck_bill_payment", "\"Amount\" > 0 AND \"CharacterAfter\" >= 0 AND \"TreasuryBefore\" >= 0 AND \"TreasuryAfter\" >= \"TreasuryBefore\" AND \"SeasonTax\" >= 0 AND \"Commission\" >= 0 AND ((\"FundingGroupId\" IS NULL AND \"CharacterBefore\"::numeric - \"CharacterAfter\"::numeric = \"Amount\") OR (\"FundingGroupId\" IS NOT NULL AND \"CharacterBefore\" = \"CharacterAfter\")) AND \"TreasuryAfter\"::numeric - \"TreasuryBefore\"::numeric + \"SeasonTax\" + \"Commission\" = \"Amount\""));
             e.HasKey(x => x.Id); e.HasIndex(x => new { x.CommunityId, x.BillId, x.Id });
             e.HasOne<BillRow>().WithMany().HasForeignKey(x => new { x.CommunityId, Id = x.BillId }).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<GroupRow>().WithMany().HasForeignKey(x => new { x.CommunityId, Id = x.FundingGroupId }).OnDelete(DeleteBehavior.Restrict);
             e.Property(x => x.Source).HasMaxLength(40);
         });
         m.Entity<MembershipRow>().HasIndex(x => new { x.CollectionPending, x.LastCollectionAttempt });

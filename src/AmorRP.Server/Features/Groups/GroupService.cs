@@ -32,7 +32,8 @@ public sealed partial class GroupService(AmorDbContext db, SessionAccess session
         return new(row.Id, row.CommunityId, row.Name, row.Description, row.LogoAssetId, row.LogoVersion, row.Version,
             CommandStore.ETag("group", row.Id, row.Version), row.OwnerCharacterId, row.JoinMode, joined.Contains(row.Id), favorites.Contains(row.Id),
             row.EnabledFeatures, GroupAuthorization.Effective(row, viewer?.CharacterId ?? Guid.Empty, viewer),
-            viewerTrusts.GetValueOrDefault(row.Id)?.Trusted ?? false, viewerTrusts.GetValueOrDefault(row.Id)?.Version ?? 0);
+            viewerTrusts.GetValueOrDefault(row.Id)?.Trusted ?? false, viewerTrusts.GetValueOrDefault(row.Id)?.Version ?? 0,
+            viewerTrusts.GetValueOrDefault(row.Id)?.PermitLocked ?? false);
     }
     private async Task<GroupRow> RequireAsync(Guid communityId, Guid groupId, CancellationToken ct)
     {

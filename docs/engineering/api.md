@@ -171,3 +171,12 @@ mode are exposed. [OpenAPI](openapi.yaml) records implemented and planned operat
 | POST | `/api/v2/seasons/{seasonId}/shop/products` | Create a shop listing | Season owner |
 | PUT | `/api/v2/seasons/{seasonId}/shop/products/{productId}` | Edit a shop listing | Season owner |
 | POST | `/api/v2/seasons/{seasonId}/shop/purchases` | Buy a shop product | Eligible season character or authorized group buyer |
+| GET | `/api/v2/seasons/{seasonId}/permits` | Read visible listings and offers | Season member with participant-scoped offers |
+| PUT | `/api/v2/seasons/{seasonId}/permits/policy` | Save permit settings | Season owner |
+| POST | `/api/v2/seasons/{seasonId}/permits/listings` | Request listing consent | Season permit listing moderator |
+| PUT | `/api/v2/seasons/{seasonId}/permits/listings/mine` | Publish or withdraw own listing | Nominated character |
+| POST | `/api/v2/seasons/{seasonId}/permits/offers` | Send a permit registration offer | Authorized buying group owner |
+| PUT | `/api/v2/seasons/{seasonId}/permits/offers/{offerId}/consent` | Accept the exact permit quote | Addressed character |
+| DELETE | `/api/v2/seasons/{seasonId}/permits/offers/{offerId}` | Withdraw a permit offer | Offer participant |
+| POST | `/api/v2/seasons/{seasonId}/permits/offers/{offerId}/register` | Pay and register a named permit | Named buyer and owning group owner |
+| DELETE | `/api/v2/seasons/{seasonId}/permits/{permitId}` | Release a registered character | Owning group owner |

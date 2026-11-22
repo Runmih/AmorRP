@@ -59,7 +59,7 @@ public sealed partial class BillingService
         var rows = await query.OrderByDescending(x => x.Id).Take(limit + 1).ToArrayAsync(ct);
         return Results.Json(new BillPaymentPage(rows.Take(limit).Select(x => new BillPayment(x.Id, x.BillId, Units(x.Amount),
             Units(x.CharacterBefore), Units(x.CharacterAfter), Units(x.TreasuryBefore), Units(x.TreasuryAfter), x.Source,
-            x.SourceId, x.OccurredAt, new BillingSplit(x.SeasonTax, x.Commission, x.TreasuryAfter - x.TreasuryBefore).View()))
+            x.SourceId, x.OccurredAt, new BillingSplit(x.SeasonTax, x.Commission, x.TreasuryAfter - x.TreasuryBefore).View(), x.FundingGroupId))
             .ToArray(), rows.Length > limit ? pages.Write(rows[limit - 1].Id, scope) : null));
     }
 }

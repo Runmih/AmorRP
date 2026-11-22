@@ -65,6 +65,8 @@ public sealed class MainWindow : Window, IDisposable
     public void ClearFeedback() => communities.WindowOpened();
     public override void OnOpen() => ClearFeedback();
     public void SelectTarget(CharacterTarget target) => communities.SelectTradeTarget(target);
+    public bool CanOfferPrivatePermit => communities.CanOfferPrivatePermit;
+    public void OpenPrivatePermit(CharacterTarget target) => communities.OpenPrivatePermit(target);
     public bool CanOpenContextBilling => communities.CanOpenContextBilling;
     public bool OpenContextBilling(CharacterTarget target) => communities.OpenContextBilling(target);
     public void DrawContextBilling() => communities.DrawContextBilling();

@@ -67,10 +67,18 @@ internal enum CommandKind
     CollectTreasuryReturn,
     SaveShopProduct,
     BuyShopProduct,
+    NominatePermit,
+    ConsentPermitListing,
+    EditPermitPolicy,
+    CreatePermitOffer,
+    ConsentPermitOffer,
+    WithdrawPermitOffer,
+    RegisterPermit,
+    ReleasePermit,
     SignOut,
 }
 
-internal enum CommandHandler { None, SeasonForm, Home, Balance, Policy, Member, Inventory, Trade, GroupProfile, GroupActivity, Treasury, Billing, BillingPolicy, GroupBilling, Shop, SignOut }
+internal enum CommandHandler { None, SeasonForm, Home, Balance, Policy, Member, Inventory, Trade, GroupProfile, GroupActivity, Treasury, Billing, BillingPolicy, GroupBilling, Shop, Permit, SignOut }
 
 [Flags]
 internal enum RefreshTargets
@@ -99,6 +107,14 @@ internal static class CommandRoutes
 
     internal static readonly IReadOnlyList<Route> All = new Route[]
     {
+        new("PUT", "api/v2/seasons/{seasonId}/permits/policy", new(CommandKind.EditPermitPolicy, CommandHandler.Permit, RefreshTargets.None)),
+        new("POST", "api/v2/seasons/{seasonId}/permits/listings", new(CommandKind.NominatePermit, CommandHandler.Permit, RefreshTargets.None)),
+        new("PUT", "api/v2/seasons/{seasonId}/permits/listings/mine", new(CommandKind.ConsentPermitListing, CommandHandler.Permit, RefreshTargets.None)),
+        new("POST", "api/v2/seasons/{seasonId}/permits/offers", new(CommandKind.CreatePermitOffer, CommandHandler.Permit, RefreshTargets.None)),
+        new("PUT", "api/v2/seasons/{seasonId}/permits/offers/{offerId}/consent", new(CommandKind.ConsentPermitOffer, CommandHandler.Permit, RefreshTargets.None)),
+        new("DELETE", "api/v2/seasons/{seasonId}/permits/offers/{offerId}", new(CommandKind.WithdrawPermitOffer, CommandHandler.Permit, RefreshTargets.None)),
+        new("POST", "api/v2/seasons/{seasonId}/permits/offers/{offerId}/register", new(CommandKind.RegisterPermit, CommandHandler.Permit, RefreshTargets.Season | RefreshTargets.Inventory | RefreshTargets.Groups)),
+        new("DELETE", "api/v2/seasons/{seasonId}/permits/{permitId}", new(CommandKind.ReleasePermit, CommandHandler.Permit, RefreshTargets.Groups)),
         new("POST", "api/v2/seasons/{seasonId}/shop/products", new(CommandKind.SaveShopProduct, CommandHandler.Shop, RefreshTargets.None)),
         new("PUT", "api/v2/seasons/{seasonId}/shop/products/{productId}", new(CommandKind.SaveShopProduct, CommandHandler.Shop, RefreshTargets.None)),
         new("POST", "api/v2/seasons/{seasonId}/shop/purchases", new(CommandKind.BuyShopProduct, CommandHandler.Shop, RefreshTargets.Season | RefreshTargets.Inventory | RefreshTargets.Groups)),

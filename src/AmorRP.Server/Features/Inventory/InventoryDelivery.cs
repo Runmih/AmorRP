@@ -25,4 +25,39 @@ public sealed class InventoryDelivery(AmorDbContext db, IOptions<ServicePolicyOp
         else holding.Version++;
         return holding;
     }
+
+    public async Task TransferAvailableAsync(Guid season, Guid from, Guid to, HoldingRow[] sources, DateTimeOffset now, CancellationToken ct)
+    {
+        if (sources.Length == 0) return;
+        var inventory = (await db.Holdings.Where(x => x.CommunityId == season && x.CharacterId == to).ToArrayAsync(ct)).ToList();
+        foreach (var source in sources)
+        {
+            var quantity = source.Quantity - source.Reserved;
+            ApiFault.Require(source.CommunityId == season && source.CharacterId == from && quantity > 0,
+                409, "permit_quote_changed", "The available inventory changed.");
+            if (source.LetterId is { } letterId)
+            {
+                source.CharacterId = to;
+                source.Version++;
+                (await db.Letters.SingleAsync(x => x.CommunityId == season && x.Id == letterId, ct)).FirstTradedAt ??= now;
+                inventory.Add(source);
+                continue;
+            }
+            var target = inventory.FirstOrDefault(x => x.DefinitionId == source.DefinitionId && x.DefinitionRevision == source.DefinitionRevision);
+            if (target == null)
+            {
+                target = new HoldingRow { CommunityId = season, CharacterId = to, TypeId = source.TypeId, Name = source.Name,
+                    CategoryId = source.CategoryId, DefinitionId = source.DefinitionId, DefinitionRevision = source.DefinitionRevision };
+                db.Holdings.Add(target);
+                inventory.Add(target);
+            }
+            ApiFault.Require((long)target.Quantity + quantity <= int.MaxValue, 409, "quantity_overflow", "The receiving stack is full.");
+            source.Quantity -= quantity;
+            source.Version++;
+            target.Quantity += quantity;
+            target.Version++;
+        }
+        ApiFault.Require(inventory.Count(x => x.Quantity > 0) <= policy.Value.MaxHoldingsPerCharacterCommunity,
+            409, "inventory_full", "The buyer's inventory cannot hold all the offered items.");
+    }
 }

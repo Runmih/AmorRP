@@ -21,6 +21,7 @@ public sealed partial class SeasonsPanel
         ResetMemberDescription(row);
         LoadPersonalNote(row);
         grantCooking = row.Capabilities.Contains("items.cooking.create"); grantCookingDefinitions = row.Capabilities.Contains("items.cooking.define");
+        grantPermitListings = row.Capabilities.Contains(ManagePermitListings);
         grantGroupCreation = row.Capabilities.Contains("groups.create"); grantGroupManagement = row.Capabilities.Contains("groups.manage");
         grantGeneralModeration = row.Capabilities.Contains("season.moderate"); grantAnnouncements = row.Capabilities.Contains("announcements.manage"); grantGameplayPermissions = row.Capabilities.Contains("members.gameplay.manage");
         grantCoins = row.Capabilities.Contains("currency.manage"); grantPotions = row.Capabilities.Contains("items.potion.create"); grantRemoval = row.Capabilities.Contains("inventory.remove"); tradingAllowed = !row.TradingRestricted; grantDefinitions = row.Capabilities.Contains("items.potion.define");
@@ -72,6 +73,7 @@ public sealed partial class SeasonsPanel
                 { if (BeginTradeRequest()) SendTradeRequest(target); }
                 DrawPersonalNote(target);
             }
+            if (CanNominatePermit && target.Status == "active" && ActionButton("Nominate for Slave listing")) NominatePermit(target);
             if (view == MemberView.Directory && CanManageCommunityMembers && ImGui.Button("Manage this member"))
             { requestedManagementMembers = true; OpenWorkspaceWindow?.Invoke(WorkspaceKind.CommunityManagement); }
             if (view != MemberView.Directory && CanManageGameplay && target.Status == "active")
@@ -106,6 +108,7 @@ public sealed partial class SeasonsPanel
             || grantDefinitions != caps.Contains("items.potion.define") || grantCookingDefinitions != caps.Contains("items.cooking.define")
             || grantRemoval != caps.Contains("inventory.remove") || grantGeneralModeration != caps.Contains("season.moderate")
             || grantAnnouncements != caps.Contains("announcements.manage") || grantGameplayPermissions != caps.Contains("members.gameplay.manage")
+            || grantPermitListings != caps.Contains(ManagePermitListings)
             || grantGroupCreation != caps.Contains("groups.create") || grantGroupManagement != caps.Contains("groups.manage");
     }
     private void RequestMemberSelection(Member member)
@@ -165,6 +168,7 @@ public sealed partial class SeasonsPanel
         ImGui.Checkbox("General Moderation", ref grantGeneralModeration);
         ImGui.Checkbox("Manage Gameplay Permissions", ref grantGameplayPermissions);
         ImGui.Checkbox("Create Announcements", ref grantAnnouncements);
+        ImGui.Checkbox("Manage Slave listings", ref grantPermitListings);
 
         ImGui.Separator(); ImGui.TextUnformatted("Recipe creation");
         ImGui.Checkbox("Create Alchemy Recipes", ref grantDefinitions);
@@ -179,7 +183,8 @@ public sealed partial class SeasonsPanel
         if (ActionButton("Save moderator permissions"))
         {
             // Do not silently save or discard an unfinished gameplay draft.
-            var actions = target.Capabilities.Where(x => x is not ("currency.manage" or "inventory.remove" or "items.potion.define" or "season.moderate" or "announcements.manage" or "members.gameplay.manage" or "groups.create" or "groups.manage" or "items.cooking.define")).ToList();
+            var actions = target.Capabilities.Where(x => x is not ("currency.manage" or "inventory.remove" or "items.potion.define" or "season.moderate" or "announcements.manage" or "members.gameplay.manage" or "groups.create" or "groups.manage" or "items.cooking.define" or ManagePermitListings)).ToList();
+            if (grantPermitListings) actions.Add(ManagePermitListings);
             if (grantGroupCreation) actions.Add("groups.create");
             if (grantGroupManagement) actions.Add("groups.manage");
             if (grantGeneralModeration) actions.Add("season.moderate");

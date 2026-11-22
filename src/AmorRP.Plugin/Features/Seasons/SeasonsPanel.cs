@@ -61,6 +61,7 @@ public sealed partial class SeasonsPanel(IPlayerState player, Configuration conf
     private string name = "", description = "", currencyName = "Coins", symbol = "C";
     private int initialPoints, initialCooking, initialLetters = 5;
     private Guid? memberSelection;
+    private bool grantPermitListings;
     private bool grantCoins, grantPotions, grantRemoval, grantDefinitions, grantGeneralModeration, grantAnnouncements, grantGameplayPermissions, grantGroupCreation, grantGroupManagement, grantCooking, grantCookingDefinitions;
     private bool tradingAllowed = true;
     private string reason = "", delta = "";

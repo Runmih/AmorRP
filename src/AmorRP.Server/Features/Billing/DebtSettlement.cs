@@ -37,30 +37,55 @@ public sealed class DebtSettlement(AmorDbContext db, TimeProvider time)
             amount = Affordable(bill, amount, Capacity(group, member, accounts));
             if (amount == 0) { Pending(member, true); return; }
 
-            var split = BillingSplit.Payment(bill.Collected, amount, bill.TaxPercent, bill.CommissionPercent);
-            db.BillPayments.Add(new BillPaymentRow
-            {
-                CommunityId = bill.CommunityId, BillId = bill.Id, Amount = amount,
-                CharacterBefore = member.Owned, CharacterAfter = member.Owned - amount,
-                TreasuryBefore = group.TreasuryOwned, TreasuryAfter = group.TreasuryOwned + split.GroupTreasury,
-                SeasonTax = split.SeasonTax, Commission = split.Commission, Source = source, SourceId = sourceId,
-                OccurredAt = time.GetUtcNow()
-            });
-            member.Owned -= amount;
-            member.BalanceVersion++;
-            if (split.GroupTreasury > 0)
-            {
-                group.TreasuryOwned += split.GroupTreasury;
-                group.TreasuryVersion++;
-            }
-            if (split.SeasonTax > 0) accounts.Season!.SeasonTreasuryOwned += split.SeasonTax;
-            if (split.Commission > 0) CurrencyAccounts.Apply(accounts.Cashier!, split.Commission);
-            bill.Collected += amount;
-
+            RecordPayment(member, bill, group, amount, accounts, source, sourceId);
             // A recipient with a full account cannot be skipped in favor of a newer bill.
             if (bill.Collected < bill.Amount) break;
         }
         Pending(member, member.Owned > member.Reserved && (fetched.Length > BatchSize || bills.Any(x => x.Collected < x.Amount)));
+    }
+
+    internal async Task PayFromGroupAsync(MembershipRow member, GroupRow fundingGroup,
+        IReadOnlyList<BillRow> outstanding, Guid operationId, CancellationToken ct)
+    {
+        foreach (var bill in outstanding)
+        {
+            var group = await db.Groups.SingleAsync(x => x.CommunityId == bill.CommunityId && x.Id == bill.GroupId, ct);
+            var amount = bill.Amount - bill.Collected;
+            var accounts = await GetAccountsAsync(bill, member, ct);
+            var split = BillingSplit.Payment(bill.Collected, amount, bill.TaxPercent, bill.CommissionPercent);
+            var capacity = new BillingSplit(long.MaxValue - (accounts.Season?.SeasonTreasuryOwned ?? 0),
+                long.MaxValue - (accounts.Cashier?.Owned ?? 0), long.MaxValue - group.TreasuryOwned);
+            ApiFault.Require(split.Fits(capacity), 409, "balance_overflow", "A creditor cannot receive this payment.");
+            RecordPayment(member, bill, group, amount, accounts, "permit.settlement", operationId, fundingGroup.Id);
+        }
+        Pending(member, false);
+    }
+
+    private void RecordPayment(MembershipRow member, BillRow bill, GroupRow group, long amount,
+        (CommunityRow? Season, MembershipRow? Cashier) accounts, string source, Guid? sourceId, Guid? fundingGroup = null)
+    {
+        var split = BillingSplit.Payment(bill.Collected, amount, bill.TaxPercent, bill.CommissionPercent);
+        db.BillPayments.Add(new BillPaymentRow
+        {
+            CommunityId = bill.CommunityId, BillId = bill.Id, Amount = amount,
+            CharacterBefore = member.Owned, CharacterAfter = fundingGroup == null ? member.Owned - amount : member.Owned,
+            TreasuryBefore = group.TreasuryOwned, TreasuryAfter = group.TreasuryOwned + split.GroupTreasury,
+            SeasonTax = split.SeasonTax, Commission = split.Commission, Source = source, SourceId = sourceId, FundingGroupId = fundingGroup,
+            OccurredAt = time.GetUtcNow()
+        });
+        if (fundingGroup == null)
+        {
+            member.Owned -= amount;
+            member.BalanceVersion++;
+        }
+        if (split.GroupTreasury > 0)
+        {
+            group.TreasuryOwned += split.GroupTreasury;
+            group.TreasuryVersion++;
+        }
+        if (split.SeasonTax > 0) accounts.Season!.SeasonTreasuryOwned += split.SeasonTax;
+        if (split.Commission > 0) CurrencyAccounts.Apply(accounts.Cashier!, split.Commission);
+        bill.Collected += amount;
     }
 
     private async Task<(CommunityRow? Season, MembershipRow? Cashier)> GetAccountsAsync(

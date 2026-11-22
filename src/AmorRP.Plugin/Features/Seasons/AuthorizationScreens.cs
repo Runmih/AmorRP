@@ -52,6 +52,7 @@ public sealed partial class SeasonsPanel
         grantGeneralModeration = current.Capabilities.Contains("season.moderate");
         grantAnnouncements = current.Capabilities.Contains("announcements.manage");
         grantGameplayPermissions = current.Capabilities.Contains("members.gameplay.manage");
+        grantPermitListings = current.Capabilities.Contains(ManagePermitListings);
         grantGroupCreation = current.Capabilities.Contains("groups.create"); grantGroupManagement = current.Capabilities.Contains("groups.manage");
     }
 

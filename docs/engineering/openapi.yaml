@@ -8212,6 +8212,515 @@ paths:
           $ref: '#/components/responses/Problem'
       x-authorization-policy: Eligible season character or authorized group buyer
       x-implementation-status: implemented
+  /api/v2/seasons/{seasonId}/permits:
+    get:
+      operationId: readPermitShop
+      summary: Read visible listings and offers
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PermitShop'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Season member with participant-scoped offers
+      x-implementation-status: implemented
+  /api/v2/seasons/{seasonId}/permits/policy:
+    put:
+      operationId: editPermitPolicy
+      summary: Save permit settings
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PermitPolicy'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PermitPolicyResult'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Season owner
+      x-implementation-status: implemented
+  /api/v2/seasons/{seasonId}/permits/listings:
+    post:
+      operationId: nominatePermitListing
+      summary: Request listing consent
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PermitListingEdit'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PermitListingResult'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Season permit listing moderator
+      x-implementation-status: implemented
+  /api/v2/seasons/{seasonId}/permits/listings/mine:
+    put:
+      operationId: consentPermitListing
+      summary: Publish or withdraw own listing
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: If-Match
+        in: header
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PermitListingConsent'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PermitListingResult'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Nominated character
+      x-implementation-status: implemented
+  /api/v2/seasons/{seasonId}/permits/offers:
+    post:
+      operationId: offerPermitRegistration
+      summary: Send a permit registration offer
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PermitOfferCreate'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PermitOfferResult'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Authorized buying group owner
+      x-implementation-status: implemented
+  /api/v2/seasons/{seasonId}/permits/offers/{offerId}/consent:
+    put:
+      operationId: consentPermitOffer
+      summary: Accept the exact permit quote
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: offerId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PermitQuoteAction'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PermitOfferResult'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Addressed character
+      x-implementation-status: implemented
+  /api/v2/seasons/{seasonId}/permits/offers/{offerId}:
+    delete:
+      operationId: withdrawPermitOffer
+      summary: Withdraw a permit offer
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: offerId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PermitOfferResult'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Offer participant
+      x-implementation-status: implemented
+  /api/v2/seasons/{seasonId}/permits/offers/{offerId}/register:
+    post:
+      operationId: registerPermit
+      summary: Pay and register a named permit
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: offerId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PermitQuoteAction'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OwnershipPermitResult'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Named buyer and owning group owner
+      x-implementation-status: implemented
+  /api/v2/seasons/{seasonId}/permits/{permitId}:
+    delete:
+      operationId: releasePermit
+      summary: Release a registered character
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: permitId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OwnershipPermitResult'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Owning group owner
+      x-implementation-status: implemented
 components:
   securitySchemes:
     Session:
@@ -8242,6 +8751,270 @@ components:
           schema:
             $ref: '#/components/schemas/Problem'
   schemas:
+    PermitPolicy:
+      type: object
+      properties:
+        basePrice:
+          type: string
+        enabled:
+          type: boolean
+      required:
+      - basePrice
+      - enabled
+      additionalProperties: false
+    PermitPolicyResult:
+      type: object
+      properties:
+        operationId:
+          type: string
+          format: uuid
+        result:
+          $ref: '#/components/schemas/PermitPolicy'
+      required:
+      - operationId
+      - result
+      additionalProperties: false
+    PermitListing:
+      type: object
+      properties:
+        characterId:
+          type: string
+          format: uuid
+        characterName:
+          type: string
+        status:
+          type: string
+        total:
+          type: string
+        etag:
+          type: string
+      required:
+      - characterId
+      - characterName
+      - status
+      - total
+      - etag
+      additionalProperties: false
+    PermitListingResult:
+      type: object
+      properties:
+        operationId:
+          type: string
+          format: uuid
+        result:
+          $ref: '#/components/schemas/PermitListing'
+      required:
+      - operationId
+      - result
+      additionalProperties: false
+    PermitListingEdit:
+      type: object
+      properties:
+        characterId:
+          type: string
+          format: uuid
+      required:
+      - characterId
+      additionalProperties: false
+    PermitListingConsent:
+      type: object
+      properties:
+        publish:
+          type: boolean
+        expectedTotal:
+          type: string
+          nullable: true
+      required:
+      - publish
+      additionalProperties: false
+    PermitOffer:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        characterId:
+          type: string
+          format: uuid
+        characterName:
+          type: string
+        buyerId:
+          type: string
+          format: uuid
+        buyerName:
+          type: string
+        groupId:
+          type: string
+          format: uuid
+        groupName:
+          type: string
+        private:
+          type: boolean
+        status:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+        quote:
+          type: string
+        accepted:
+          type: boolean
+        basePrice:
+          type: string
+        debt:
+          type: string
+        total:
+          type: string
+        groupBalance:
+          type: string
+          nullable: true
+        assetsCurrency:
+          type: string
+        assets:
+          type: array
+          items:
+            $ref: '#/components/schemas/PermitAsset'
+      required:
+      - id
+      - characterId
+      - characterName
+      - buyerId
+      - buyerName
+      - groupId
+      - groupName
+      - private
+      - status
+      - expiresAt
+      - quote
+      - accepted
+      - basePrice
+      - debt
+      - total
+      - groupBalance
+      - assetsCurrency
+      - assets
+      additionalProperties: false
+    PermitOfferResult:
+      type: object
+      properties:
+        operationId:
+          type: string
+          format: uuid
+        result:
+          $ref: '#/components/schemas/PermitOffer'
+      required:
+      - operationId
+      - result
+      additionalProperties: false
+    PermitOfferCreate:
+      type: object
+      properties:
+        characterId:
+          type: string
+          format: uuid
+        groupId:
+          type: string
+          format: uuid
+        private:
+          type: boolean
+      required:
+      - characterId
+      - groupId
+      - private
+      additionalProperties: false
+    PermitQuoteAction:
+      type: object
+      properties:
+        quote:
+          type: string
+      required:
+      - quote
+      additionalProperties: false
+    PermitAsset:
+      type: object
+      properties:
+        holdingId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        quantity:
+          type: integer
+        version:
+          type: integer
+      required:
+      - holdingId
+      - name
+      - quantity
+      - version
+      additionalProperties: false
+    OwnershipPermit:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        characterId:
+          type: string
+          format: uuid
+        characterName:
+          type: string
+        groupId:
+          type: string
+          format: uuid
+        groupName:
+          type: string
+        registeredAt:
+          type: string
+          format: date-time
+        releasedAt:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+      - id
+      - characterId
+      - characterName
+      - groupId
+      - groupName
+      - registeredAt
+      - releasedAt
+      additionalProperties: false
+    OwnershipPermitResult:
+      type: object
+      properties:
+        operationId:
+          type: string
+          format: uuid
+        result:
+          $ref: '#/components/schemas/OwnershipPermit'
+      required:
+      - operationId
+      - result
+      additionalProperties: false
+    PermitShop:
+      type: object
+      properties:
+        policy:
+          $ref: '#/components/schemas/PermitPolicy'
+        listings:
+          type: array
+          items:
+            $ref: '#/components/schemas/PermitListing'
+        offers:
+          type: array
+          items:
+            $ref: '#/components/schemas/PermitOffer'
+        permits:
+          type: array
+          items:
+            $ref: '#/components/schemas/OwnershipPermit'
+      required:
+      - policy
+      - listings
+      - offers
+      - permits
+      additionalProperties: false
     ShopProductWrite:
       type: object
       properties:
@@ -10661,6 +11434,8 @@ components:
     Group:
       type: object
       properties:
+        billingTrustLocked:
+          type: boolean
         isTrusted:
           type: boolean
           default: false
@@ -11373,6 +12148,10 @@ components:
     BillPayment:
       type: object
       properties:
+        fundingGroupId:
+          type: string
+          format: uuid
+          nullable: true
         allocation:
           $ref: '#/components/schemas/BillAllocation'
         id:

@@ -81,6 +81,9 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("CommunityId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("FundingGroupId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTimeOffset>("OccurredAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -103,11 +106,13 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CommunityId", "FundingGroupId");
+
                     b.HasIndex("CommunityId", "BillId", "Id");
 
                     b.ToTable("bill_payments", null, t =>
                         {
-                            t.HasCheckConstraint("ck_bill_payment", "\"Amount\" > 0 AND \"CharacterAfter\" >= 0 AND \"TreasuryBefore\" >= 0 AND \"TreasuryAfter\" >= \"TreasuryBefore\" AND \"SeasonTax\" >= 0 AND \"Commission\" >= 0 AND \"CharacterBefore\"::numeric - \"CharacterAfter\"::numeric = \"Amount\" AND \"TreasuryAfter\"::numeric - \"TreasuryBefore\"::numeric + \"SeasonTax\" + \"Commission\" = \"Amount\"");
+                            t.HasCheckConstraint("ck_bill_payment", "\"Amount\" > 0 AND \"CharacterAfter\" >= 0 AND \"TreasuryBefore\" >= 0 AND \"TreasuryAfter\" >= \"TreasuryBefore\" AND \"SeasonTax\" >= 0 AND \"Commission\" >= 0 AND ((\"FundingGroupId\" IS NULL AND \"CharacterBefore\"::numeric - \"CharacterAfter\"::numeric = \"Amount\") OR (\"FundingGroupId\" IS NOT NULL AND \"CharacterBefore\" = \"CharacterAfter\")) AND \"TreasuryAfter\"::numeric - \"TreasuryBefore\"::numeric + \"SeasonTax\" + \"Commission\" = \"Amount\"");
                         });
                 });
 
@@ -336,6 +341,12 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("OwnerCharacterId")
                         .HasColumnType("uuid");
 
+                    b.Property<bool>("PermitEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<long>("PermitPrice")
+                        .HasColumnType("bigint");
+
                     b.Property<DateTimeOffset>("PolicyPeriod")
                         .HasColumnType("timestamp with time zone");
 
@@ -375,6 +386,8 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                     b.ToTable("communities", null, t =>
                         {
                             t.HasCheckConstraint("ck_community_policy", "\"CurrentPotionPoints\" >= 0 AND \"CurrentLetters\" >= 0 AND \"NextPotionPoints\" >= 0 AND \"NextLetters\" >= 0");
+
+                            t.HasCheckConstraint("ck_permit_price", " \"PermitPrice\" > 0 ");
 
                             t.HasCheckConstraint("ck_season_billing_tax", "\"BillingTaxPercent\" BETWEEN 0 AND 100 AND \"SeasonTreasuryOwned\" >= 0");
 
@@ -683,6 +696,9 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
 
                     b.Property<Guid>("CharacterId")
                         .HasColumnType("uuid");
+
+                    b.Property<bool>("PermitLocked")
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("Trusted")
                         .HasColumnType("boolean");
@@ -1118,6 +1134,37 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                     b.ToTable("operations", (string)null);
                 });
 
+            modelBuilder.Entity("AmorRP.Server.Infrastructure.Persistence.OwnershipPermitRow", b =>
+                {
+                    b.Property<Guid>("CommunityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CharacterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("GroupId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("RegisteredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("ReleasedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("CommunityId", "Id");
+
+                    b.HasIndex("CommunityId", "CharacterId")
+                        .IsUnique()
+                        .HasFilter(" \"ReleasedAt\" IS NULL ");
+
+                    b.HasIndex("CommunityId", "GroupId", "ReleasedAt");
+
+                    b.ToTable("ownership_permits", (string)null);
+                });
+
             modelBuilder.Entity("AmorRP.Server.Infrastructure.Persistence.OwnershipRow", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1149,6 +1196,76 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                     b.HasIndex("CommunityId", "Status");
 
                     b.ToTable("ownership_transfers", (string)null);
+                });
+
+            modelBuilder.Entity("AmorRP.Server.Infrastructure.Persistence.PermitListingRow", b =>
+                {
+                    b.Property<Guid>("CommunityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CharacterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("integer");
+
+                    b.HasKey("CommunityId", "CharacterId");
+
+                    b.ToTable("permit_listings", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_permit_listing_status", " \"Status\" IN ('pending', 'listed', 'withdrawn', 'completed') ");
+                        });
+                });
+
+            modelBuilder.Entity("AmorRP.Server.Infrastructure.Persistence.PermitOfferRow", b =>
+                {
+                    b.Property<Guid>("CommunityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AcceptedQuote")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("BuyerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CharacterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("GroupId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("ListingVersion")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("Private")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("CommunityId", "Id");
+
+                    b.HasIndex("CommunityId", "GroupId");
+
+                    b.HasIndex("CommunityId", "BuyerId", "Status", "ExpiresAt");
+
+                    b.HasIndex("CommunityId", "CharacterId", "Status", "ExpiresAt");
+
+                    b.ToTable("permit_offers", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_permit_offer_status", " \"Status\" IN ('pending', 'withdrawn', 'completed') AND \"CharacterId\" <> \"BuyerId\" ");
+                        });
                 });
 
             modelBuilder.Entity("AmorRP.Server.Infrastructure.Persistence.QuotaRow", b =>
@@ -1570,6 +1687,11 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                         .HasForeignKey("CommunityId", "BillId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("AmorRP.Server.Infrastructure.Persistence.GroupRow", null)
+                        .WithMany()
+                        .HasForeignKey("CommunityId", "FundingGroupId")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("AmorRP.Server.Infrastructure.Persistence.BillRow", b =>
@@ -1816,6 +1938,15 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("AmorRP.Server.Infrastructure.Persistence.OwnershipPermitRow", b =>
+                {
+                    b.HasOne("AmorRP.Server.Infrastructure.Persistence.PermitOfferRow", null)
+                        .WithMany()
+                        .HasForeignKey("CommunityId", "Id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("AmorRP.Server.Infrastructure.Persistence.OwnershipRow", b =>
                 {
                     b.HasOne("AmorRP.Server.Infrastructure.Persistence.CommunityRow", null)
@@ -1833,6 +1964,36 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                     b.HasOne("AmorRP.Server.Infrastructure.Persistence.CharacterRow", null)
                         .WithMany()
                         .HasForeignKey("ToCharacterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AmorRP.Server.Infrastructure.Persistence.PermitListingRow", b =>
+                {
+                    b.HasOne("AmorRP.Server.Infrastructure.Persistence.MembershipRow", null)
+                        .WithMany()
+                        .HasForeignKey("CommunityId", "CharacterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AmorRP.Server.Infrastructure.Persistence.PermitOfferRow", b =>
+                {
+                    b.HasOne("AmorRP.Server.Infrastructure.Persistence.MembershipRow", null)
+                        .WithMany()
+                        .HasForeignKey("CommunityId", "BuyerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AmorRP.Server.Infrastructure.Persistence.MembershipRow", null)
+                        .WithMany()
+                        .HasForeignKey("CommunityId", "CharacterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AmorRP.Server.Infrastructure.Persistence.GroupRow", null)
+                        .WithMany()
+                        .HasForeignKey("CommunityId", "GroupId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });

@@ -13,16 +13,18 @@ public sealed class CharacterContext : IDisposable
     private const string MenuName = "Amor RP";
     private const SeIconChar Heart = (SeIconChar)'♥';
     private readonly IContextMenu menus;
-    private readonly Action<CharacterTarget> trade, bill;
-    private readonly Func<bool> canBill;
+    private readonly Action<CharacterTarget> trade, bill, permit;
+    private readonly Func<bool> canBill, canOfferPermit;
     private readonly Func<bool> isAvailable;
 
-    public CharacterContext(IContextMenu menus, Action<CharacterTarget> trade, Action<CharacterTarget> bill, Func<bool> isAvailable, Func<bool> canBill)
+    public CharacterContext(IContextMenu menus, Action<CharacterTarget> trade, Action<CharacterTarget> bill, Func<bool> isAvailable, Func<bool> canBill, Action<CharacterTarget> permit, Func<bool> canOfferPermit)
     {
         this.menus = menus;
         this.trade = trade;
         this.bill = bill;
         this.canBill = canBill;
+        this.permit = permit;
+        this.canOfferPermit = canOfferPermit;
         this.isAvailable = isAvailable;
         menus.OnMenuOpened += OnMenuOpened;
     }
@@ -61,6 +63,8 @@ public sealed class CharacterContext : IDisposable
                         Name = "Billing",
                         OnClicked = _ => { if (isAvailable() && canBill()) bill(snapshot); }
                     });
+                if (canOfferPermit())
+                    actions.Add(new MenuItem { Name = "Enslave", OnClicked = _ => { if (isAvailable() && canOfferPermit()) permit(snapshot); } });
                 actions.Add(new MenuItem { Name = "Return", Priority = int.MaxValue, IsReturn = true, OnClicked = ReturnToParent });
                 click.OpenSubmenu(MenuName, actions);
             }

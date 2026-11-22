@@ -6,6 +6,7 @@ public sealed class GroupTrustRow
     public Guid GroupId { get; set; }
     public Guid CharacterId { get; set; }
     public bool Trusted { get; set; }
+    public bool PermitLocked { get; set; }
     public int Version { get; set; }
 }
 public sealed class BillRow
@@ -40,5 +41,6 @@ public sealed class BillPaymentRow
     public long Commission { get; set; }
     public string Source { get; set; } = "";
     public Guid? SourceId { get; set; }
+    public Guid? FundingGroupId { get; set; }
     public DateTimeOffset OccurredAt { get; set; }
 }

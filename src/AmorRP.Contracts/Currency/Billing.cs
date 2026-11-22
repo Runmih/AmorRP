@@ -14,5 +14,5 @@ public sealed record Bill(Guid Id, [property: System.Text.Json.Serialization.Jso
     int TaxPercent = 0, int CommissionPercent = 0, BillAllocation? Allocation = null);
 public sealed record BillPage(Bill[] Items, string? NextCursor, string TotalOutstanding = "0");
 public sealed record BillPayment(Guid Id, Guid BillId, string Amount, string CharacterBefore, string CharacterAfter,
-    string TreasuryBefore, string TreasuryAfter, string Source, Guid? SourceId, DateTimeOffset OccurredAt, BillAllocation? Allocation = null);
+    string TreasuryBefore, string TreasuryAfter, string Source, Guid? SourceId, DateTimeOffset OccurredAt, BillAllocation? Allocation = null, Guid? FundingGroupId = null);
 public sealed record BillPaymentPage(BillPayment[] Items, string? NextCursor);

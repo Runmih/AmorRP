@@ -101,7 +101,7 @@ public sealed class Plugin : IDalamudPlugin
             if (!mainWindow.OpenContextBilling(target)) return;
             billingForm.IsOpen = true;
             billingForm.BringToFront();
-        }, () => GameplayAvailable, () => mainWindow.CanOpenContextBilling);
+        }, () => GameplayAvailable, () => mainWindow.CanOpenContextBilling, mainWindow.OpenPrivatePermit, () => mainWindow.CanOfferPrivatePermit);
         favoriteEventsWindow = new(configuration, () => pluginInterface.SavePluginConfig(configuration), mainWindow.UpcomingFavoriteEvents, mainWindow.DrawFavoriteEvents,
             () => playerState.IsLoaded && configuration.ShowAttachedInterfaces) { IsOpen = configuration.ShowFavoriteEvents };
         mainWindow.SetFavoriteEventsVisible = visible => favoriteEventsWindow.IsOpen = visible;

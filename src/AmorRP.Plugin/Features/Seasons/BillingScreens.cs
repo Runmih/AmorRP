@@ -64,10 +64,11 @@ public sealed partial class SeasonsPanel
     {
         if (group.EnabledFeatures?.Contains(GroupCapabilities.Treasury) != true && !group.IsTrusted) return;
         var trusted = group.IsTrusted;
-        ImGui.BeginDisabled(WriteBlocked);
+        ImGui.BeginDisabled(WriteBlocked || group.BillingTrustLocked);
         if (ImGui.Checkbox("Trusted for automatic billing", ref trusted))
             Mutate("PUT", GroupPath(group) + "/trust", new GroupTrustEdit(trusted), $"\"group-trust:{group.Id:N}:{session!.Character.Id:N}:{group.TrustVersion}\"");
         ImGui.EndDisabled();
+        if (group.BillingTrustLocked) Wrapped("Trusted stays enabled while this group holds your permit.");
         Wrapped("Trusted groups can charge your character for services, including while you are offline. Removing trust stops new bills; existing debt remains payable.");
     }
     private void DrawMyBills()
@@ -163,7 +164,8 @@ public sealed partial class SeasonsPanel
                 {
                     foreach (var payment in payments.Items)
                     {
-                        Wrapped($"{payment.OccurredAt:dd MMM HH:mm}: {payment.Amount} paid · balance {payment.CharacterBefore} → {payment.CharacterAfter}");
+                        if (payment.FundingGroupId.HasValue) Wrapped($"{payment.OccurredAt:dd MMM HH:mm}: {payment.Amount} paid by a group treasury");
+                        else Wrapped($"{payment.OccurredAt:dd MMM HH:mm}: {payment.Amount} paid · balance {payment.CharacterBefore} → {payment.CharacterAfter}");
                         if (payment.Allocation is { } split)
                             Wrapped($"Season tax: {split.SeasonTax} · Cashier: {split.Commission} · Group treasury: {split.GroupTreasury}");
                     }
