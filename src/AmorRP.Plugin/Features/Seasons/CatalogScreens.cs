@@ -73,8 +73,8 @@ public sealed partial class SeasonsPanel
         ImGui.TextUnformatted("Exact text players will post");
         ImGui.BeginChild("RecipePreview", new(0, ImGui.GetTextLineHeightWithSpacing() * 3), true); Wrapped(definitionMessage.Length == 0 ? "Enter a use message above." : definitionMessage); ImGui.EndChild();
         FieldLabel(recipeCooking ? "Cooking points per unit" : "Alchemy points per unit"); ImGui.InputInt("##RecipeCost", ref definitionCost);
-        var costValid = definitionCost >= 1 && definitionCost <= (serviceLimits?.MaxWeeklyPotionPoints ?? 1000000);
-        FieldNote("RecipeCost", costValid ? null : "Enter a positive cost within the season's supported point limit.", "Each authorized character spends their own weekly points to create copies.");
+        var costValid = definitionCost > 0;
+        FieldNote("RecipeCost", costValid ? null : "Enter a positive whole-point cost.", "Each authorized character spends their own weekly points to create copies.");
         ImGui.Checkbox("Allow members to create copies of this recipe", ref definitionEnabled);
         var stale = editing != null && editing.Revision != definitionEditRevision;
         if (stale) { Wrapped("This recipe changed on the server. Reload it before saving a new revision."); if (ImGui.Button("Reload saved recipe")) SelectRecipe(editing!); }

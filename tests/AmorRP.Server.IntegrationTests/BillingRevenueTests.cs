@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using AmorRP.Contracts.Currency;
 using AmorRP.Contracts.Groups;
 using AmorRP.Server.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.DependencyInjection;
@@ -78,6 +79,8 @@ public sealed partial class FoundationTests
         var previousVersion = "20261115204732_SharedSeasonMemberships";
         var downgrade = await Assert.ThrowsAsync<Npgsql.PostgresException>(() => db.GetService<IMigrator>().MigrateAsync(previousVersion, ct));
         Assert.Contains("restore a matching backup", downgrade.MessageText);
+        // EF can commit removal of later migrations before reaching the guard.
+        await db.Database.MigrateAsync(ct);
         Assert.Equal("17", (await owner.GetFromJsonAsync<BillingPolicy>(policyPath, ct))!.SeasonTreasury);
     }
 }

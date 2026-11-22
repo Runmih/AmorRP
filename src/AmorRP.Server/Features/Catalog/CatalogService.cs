@@ -100,7 +100,7 @@ public sealed class CatalogService(AmorDbContext db, SessionAccess sessions, Sea
         DefinitionRevisionRow rev;
         if (body != null)
         {
-            ApiFault.Require(CraftingTypes.IsRecipe(body.TypeId) && (!id.HasValue || row!.TypeId == body.TypeId) && body.Potion != null && body.Potion.CreationCost > 0 && body.Potion.CreationCost <= policy.Value.MaxWeeklyPotionPoints, 422, "invalid_request", "Choose an Alchemy or Cooking item type and a positive supported point cost.");
+            ApiFault.Require(CraftingTypes.IsRecipe(body.TypeId) && (!id.HasValue || row!.TypeId == body.TypeId) && body.Potion != null && body.Potion.CreationCost > 0, 422, "invalid_request", "Choose an Alchemy or Cooking item type and a positive supported point cost.");
             var nameError = AmorRP.Core.Items.PlainText.Error(body.Name, policy.Value.DefinitionNameTextElements);
             var descriptionError = AmorRP.Core.Items.PlainText.Error(body.Description, policy.Value.DefinitionDescriptionTextElements, multiline: true, required: false);
             ApiFault.Require(nameError == null && descriptionError == null, 422, "invalid_request", nameError != null ? "Item name: " + nameError : "Item description: " + descriptionError);
