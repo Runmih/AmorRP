@@ -13,7 +13,7 @@ using Microsoft.Extensions.Options;
 namespace AmorRP.Server.Features.Inventory;
 
 public sealed partial class InventoryService(AmorDbContext db, SessionAccess sessions, SeasonAccess communities,
-    CatalogService catalog, CommandStore commands, PageCursor cursors, TimeProvider time, IOptions<ServicePolicyOptions> policy)
+    CatalogService catalog, InventoryDelivery delivery, CommandStore commands, PageCursor cursors, TimeProvider time, IOptions<ServicePolicyOptions> policy)
 {
     public static Holding View(HoldingRow x) => new(x.Id, x.CommunityId, x.CharacterId, x.TypeId, x.Name, x.CategoryId,
         x.Quantity, x.Reserved, x.Quantity - x.Reserved, x.Version, x.DefinitionId, x.DefinitionRevision, x.LetterId);
@@ -120,11 +120,7 @@ public sealed partial class InventoryService(AmorDbContext db, SessionAccess ses
             ApiFault.Require(rev.Enabled, 409, "definition_unavailable", "Potion production is disabled."); await catalog.RequireCategoryAsync(communityId, rev.CategoryId, row.TypeId, ct);
             var cost = (long)potion.Quantity * rev.CreationCost; ApiFault.Require(cost <= int.MaxValue, 422, "invalid_quantity", "Production cost exceeds supported bounds.");
             quota = await SpendAsync(community, actor, CraftingTypes.QuotaKind(row.TypeId), (int)cost, ct);
-            holding = await db.Holdings.SingleOrDefaultAsync(x => x.CommunityId == communityId && x.CharacterId == actor && x.DefinitionId == row.Id && x.DefinitionRevision == row.Revision, ct)
-                ?? new HoldingRow { CommunityId = communityId, CharacterId = actor, TypeId = row.TypeId, Name = rev.Name, CategoryId = rev.CategoryId, DefinitionId = row.Id, DefinitionRevision = row.Revision };
-            if (holding.Quantity == 0) await CapacityAsync(communityId, actor, ct);
-            ApiFault.Require((long)holding.Quantity + potion.Quantity <= int.MaxValue, 409, "quantity_overflow", "Potion stack is full."); holding.Quantity += potion.Quantity;
-            if (db.Entry(holding).State == EntityState.Detached) db.Holdings.Add(holding); else holding.Version++;
+            holding = await delivery.AddAsync(communityId, actor, row, rev, potion.Quantity, ct);
         }
         else
         {

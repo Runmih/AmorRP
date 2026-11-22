@@ -40,6 +40,7 @@ public sealed partial class SeasonsPanel
         ImGui.BeginChild("WorkspaceContent", System.Numerics.Vector2.Zero, false);
         switch (kind)
         {
+            case WorkspaceKind.Shop: DrawShop(); break;
             case WorkspaceKind.Crafting: DrawCraftingTabs(); break;
             case WorkspaceKind.RecipeCreation: DrawRecipeCreationTabs(); break;
             case WorkspaceKind.CommunityManagement:

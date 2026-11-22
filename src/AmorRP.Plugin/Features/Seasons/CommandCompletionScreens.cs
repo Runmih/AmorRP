@@ -31,6 +31,7 @@ public sealed partial class SeasonsPanel
         switch (request.Operation.Handler)
         {
             case CommandHandler.SeasonForm: ApplyFormSuccess(request, response.Json); break;
+            case CommandHandler.Shop: ApplyShopSuccess(request, response.Json); break;
             case CommandHandler.Home: ApplyHomeSuccess(request, response.Json); break;
             case CommandHandler.GroupProfile: ApplyGroupProfileSuccess(request, response.Json); break;
             case CommandHandler.GroupActivity: ApplyGroupActivitySuccess(request); break;

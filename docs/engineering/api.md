@@ -167,3 +167,7 @@ mode are exposed. [OpenAPI](openapi.yaml) records implemented and planned operat
 | GET | `/api/v2/seasons/{seasonId}/bills/{billId}/payments` | Read bill payment receipts | Payer or issuing character; otherwise authorized group records staff or former owner of deleted group |
 | GET | `/api/v2/seasons/creation-permissions` | Search verified characters and their global seasons.create permission | Configured provider-verified Lodestone server administrator; no individual season ownership or staff grant implies global authority |
 | PUT | `/api/v2/seasons/creation-permissions/{characterId}` | Grant or revoke seasons.create with a reason and current version | Configured provider-verified Lodestone server administrator; no individual season ownership or staff grant implies global authority |
+| GET | `/api/v2/seasons/{seasonId}/shop/products` | List shop products | Season member |
+| POST | `/api/v2/seasons/{seasonId}/shop/products` | Create a shop listing | Season owner |
+| PUT | `/api/v2/seasons/{seasonId}/shop/products/{productId}` | Edit a shop listing | Season owner |
+| POST | `/api/v2/seasons/{seasonId}/shop/purchases` | Buy a shop product | Eligible season character or authorized group buyer |

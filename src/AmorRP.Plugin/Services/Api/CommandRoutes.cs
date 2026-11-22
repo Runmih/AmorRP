@@ -65,10 +65,12 @@ internal enum CommandKind
     DepositTreasury,
     WithdrawTreasury,
     CollectTreasuryReturn,
+    SaveShopProduct,
+    BuyShopProduct,
     SignOut,
 }
 
-internal enum CommandHandler { None, SeasonForm, Home, Balance, Policy, Member, Inventory, Trade, GroupProfile, GroupActivity, Treasury, Billing, BillingPolicy, GroupBilling, SignOut }
+internal enum CommandHandler { None, SeasonForm, Home, Balance, Policy, Member, Inventory, Trade, GroupProfile, GroupActivity, Treasury, Billing, BillingPolicy, GroupBilling, Shop, SignOut }
 
 [Flags]
 internal enum RefreshTargets
@@ -97,6 +99,9 @@ internal static class CommandRoutes
 
     internal static readonly IReadOnlyList<Route> All = new Route[]
     {
+        new("POST", "api/v2/seasons/{seasonId}/shop/products", new(CommandKind.SaveShopProduct, CommandHandler.Shop, RefreshTargets.None)),
+        new("PUT", "api/v2/seasons/{seasonId}/shop/products/{productId}", new(CommandKind.SaveShopProduct, CommandHandler.Shop, RefreshTargets.None)),
+        new("POST", "api/v2/seasons/{seasonId}/shop/purchases", new(CommandKind.BuyShopProduct, CommandHandler.Shop, RefreshTargets.Season | RefreshTargets.Inventory | RefreshTargets.Groups)),
         new("PUT", "api/v2/seasons/creation-permissions/{characterId}", new(CommandKind.SetSeasonCreationPermission, CommandHandler.None, RefreshTargets.Season)),
         new("POST", "api/v2/seasons/{seasonId}/activation", new(CommandKind.ActivateSeason, CommandHandler.None, RefreshTargets.Season)),
         new("POST", "api/v2/seasons/{seasonId}/archive", new(CommandKind.ArchiveSeason, CommandHandler.None, RefreshTargets.Season)),

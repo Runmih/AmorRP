@@ -11,6 +11,7 @@ internal sealed class HubWindow : Window
     private static readonly (WorkspaceKind Page, FontAwesomeIcon Icon)[] Tabs =
     [
         (WorkspaceKind.Season, FontAwesomeIcon.Home),
+        (WorkspaceKind.Shop, FontAwesomeIcon.ShoppingBag),
         (WorkspaceKind.Inventory, FontAwesomeIcon.BoxOpen),
         (WorkspaceKind.Crafting, FontAwesomeIcon.Hammer),
         (WorkspaceKind.RecipeCreation, FontAwesomeIcon.Scroll),

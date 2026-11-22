@@ -19,6 +19,7 @@ public sealed class WorkspaceWindow : Window
     }
     public static string Title(WorkspaceKind kind) => kind switch
     {
+        WorkspaceKind.Shop => "Shop",
         WorkspaceKind.Crafting => "Crafting",
         WorkspaceKind.RecipeCreation => "Recipe Creation",
         WorkspaceKind.Groups => "Groups",

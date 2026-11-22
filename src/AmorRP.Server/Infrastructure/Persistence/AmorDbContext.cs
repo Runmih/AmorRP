@@ -38,6 +38,7 @@ public sealed partial class AmorDbContext(DbContextOptions<AmorDbContext> option
         ConfigureBilling(modelBuilder);
         ConfigureAnnouncements(modelBuilder);
         ConfigureInventory(modelBuilder);
+        ConfigureShop(modelBuilder);
         ConfigureTrading(modelBuilder);
         modelBuilder.Entity<CharacterRow>(e => {
             e.ToTable("characters"); e.HasKey(x => x.Id);

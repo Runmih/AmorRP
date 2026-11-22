@@ -7990,6 +7990,228 @@ paths:
           $ref: '#/components/responses/Problem'
         '412':
           $ref: '#/components/responses/Problem'
+  /api/v2/seasons/{seasonId}/shop/products:
+    get:
+      operationId: listShopProducts
+      summary: List shop products
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShopProducts'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Season member
+      x-implementation-status: implemented
+    post:
+      operationId: createShopProduct
+      summary: Create a shop listing
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShopProductWrite'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShopProductResult'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Season owner
+      x-implementation-status: implemented
+  /api/v2/seasons/{seasonId}/shop/products/{productId}:
+    put:
+      operationId: updateShopProduct
+      summary: Edit a shop listing
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: productId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: If-Match
+        in: header
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShopProductWrite'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShopProductResult'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Season owner
+      x-implementation-status: implemented
+  /api/v2/seasons/{seasonId}/shop/purchases:
+    post:
+      operationId: buyShopProduct
+      summary: Buy a shop product
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShopBuy'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShopPurchaseResult'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Eligible season character or authorized group buyer
+      x-implementation-status: implemented
 components:
   securitySchemes:
     Session:
@@ -8020,6 +8242,164 @@ components:
           schema:
             $ref: '#/components/schemas/Problem'
   schemas:
+    ShopProductWrite:
+      type: object
+      properties:
+        definitionId:
+          type: string
+          format: uuid
+        price:
+          type: string
+        buyer:
+          type: string
+          enum:
+          - character
+          - group
+          - either
+        stock:
+          type: integer
+          nullable: true
+        buyerLimit:
+          type: integer
+          nullable: true
+        listed:
+          type: boolean
+      required:
+      - definitionId
+      - price
+      - buyer
+      - listed
+      additionalProperties: false
+    ShopProduct:
+      type: object
+      properties:
+        definitionId:
+          type: string
+          format: uuid
+        price:
+          type: string
+        buyer:
+          type: string
+          enum:
+          - character
+          - group
+          - either
+        stock:
+          type: integer
+          nullable: true
+        buyerLimit:
+          type: integer
+          nullable: true
+        listed:
+          type: boolean
+        id:
+          type: string
+          format: uuid
+        definitionRevision:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        version:
+          type: integer
+        etag:
+          type: string
+      required:
+      - definitionId
+      - price
+      - buyer
+      - stock
+      - buyerLimit
+      - listed
+      - id
+      - definitionRevision
+      - name
+      - description
+      - version
+      - etag
+      additionalProperties: false
+    ShopProducts:
+      type: object
+      properties:
+        products:
+          type: array
+          items:
+            $ref: '#/components/schemas/ShopProduct'
+      required:
+      - products
+      additionalProperties: false
+    ShopProductResult:
+      type: object
+      properties:
+        operationId:
+          type: string
+          format: uuid
+        result:
+          $ref: '#/components/schemas/ShopProduct'
+      required:
+      - operationId
+      - result
+      additionalProperties: false
+    ShopBuy:
+      type: object
+      properties:
+        productId:
+          type: string
+          format: uuid
+        expectedVersion:
+          type: integer
+        quantity:
+          type: integer
+        groupId:
+          type: string
+          format: uuid
+          nullable: true
+      required:
+      - productId
+      - expectedVersion
+      - quantity
+      additionalProperties: false
+    ShopPurchaseResult:
+      type: object
+      properties:
+        operationId:
+          type: string
+          format: uuid
+        result:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            productId:
+              type: string
+              format: uuid
+            name:
+              type: string
+            quantity:
+              type: integer
+            total:
+              type: string
+            groupId:
+              type: string
+              format: uuid
+              nullable: true
+            delivery:
+              $ref: '#/components/schemas/Holding'
+          required:
+          - id
+          - productId
+          - name
+          - quantity
+          - total
+          - groupId
+          - delivery
+          additionalProperties: false
+      required:
+      - operationId
+      - result
+      additionalProperties: false
     SeasonSummary:
       type: object
       required:

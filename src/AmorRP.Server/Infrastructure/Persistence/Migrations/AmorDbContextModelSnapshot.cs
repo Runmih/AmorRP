@@ -1244,6 +1244,86 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                     b.ToTable("sessions", (string)null);
                 });
 
+            modelBuilder.Entity("AmorRP.Server.Infrastructure.Persistence.ShopProductRow", b =>
+                {
+                    b.Property<Guid>("CommunityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Buyer")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int?>("BuyerLimit")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("DefinitionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("DefinitionRevision")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("Listed")
+                        .HasColumnType("boolean");
+
+                    b.Property<long>("Price")
+                        .HasColumnType("bigint");
+
+                    b.Property<int?>("Stock")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("integer");
+
+                    b.HasKey("CommunityId", "Id");
+
+                    b.HasIndex("CommunityId", "DefinitionId", "DefinitionRevision");
+
+                    b.ToTable("shop_products", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_shop_product", " \"Price\" > 0 AND \"Buyer\" IN ('character', 'group', 'either') AND \"Stock\" >= 0 AND \"BuyerLimit\" > 0 ");
+                        });
+                });
+
+            modelBuilder.Entity("AmorRP.Server.Infrastructure.Persistence.ShopPurchaseRow", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CharacterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CommunityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("GroupId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CommunityId", "CharacterId");
+
+                    b.HasIndex("CommunityId", "GroupId");
+
+                    b.HasIndex("CommunityId", "ProductId", "CharacterId");
+
+                    b.HasIndex("CommunityId", "ProductId", "GroupId");
+
+                    b.ToTable("shop_purchases", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_shop_purchase", " \"Quantity\" > 0 ");
+                        });
+                });
+
             modelBuilder.Entity("AmorRP.Server.Infrastructure.Persistence.TradeLineRow", b =>
                 {
                     b.Property<Guid>("CommunityId")
@@ -1780,6 +1860,35 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                     b.HasOne("AmorRP.Server.Infrastructure.Persistence.CharacterRow", null)
                         .WithMany()
                         .HasForeignKey("CharacterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AmorRP.Server.Infrastructure.Persistence.ShopProductRow", b =>
+                {
+                    b.HasOne("AmorRP.Server.Infrastructure.Persistence.DefinitionRevisionRow", null)
+                        .WithMany()
+                        .HasForeignKey("CommunityId", "DefinitionId", "DefinitionRevision")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AmorRP.Server.Infrastructure.Persistence.ShopPurchaseRow", b =>
+                {
+                    b.HasOne("AmorRP.Server.Infrastructure.Persistence.MembershipRow", null)
+                        .WithMany()
+                        .HasForeignKey("CommunityId", "CharacterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AmorRP.Server.Infrastructure.Persistence.GroupRow", null)
+                        .WithMany()
+                        .HasForeignKey("CommunityId", "GroupId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("AmorRP.Server.Infrastructure.Persistence.ShopProductRow", null)
+                        .WithMany()
+                        .HasForeignKey("CommunityId", "ProductId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
