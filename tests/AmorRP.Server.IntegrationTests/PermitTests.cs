@@ -60,4 +60,46 @@ public sealed partial class FoundationTests
         await Command<OwnershipPermit>(owner, HttpMethod.Delete, path + "/" + permit.Id);
         Assert.False((await subject.GetFromJsonAsync<GroupProfile>(groupPath, ct))!.BillingTrustLocked);
     }
+    [Fact]
+    public async Task Private_permit_quote_is_participant_only_and_changed_assets_require_new_consent()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        using var factory = Factory();
+        await Migrate(factory);
+        using var buyer = factory.CreateClient();
+        var buyerId = (await Login(buyer, "21310")).Character.Id;
+        var season = await Create(buyer);
+        var group = await TreasuryGroup(buyer, season);
+        var path = $"/api/v2/seasons/{season.Id}/permits";
+        await Fund(buyer, season, buyerId, "60");
+        await TreasuryMove(buyer, season, group, "60");
+        await Command<PermitPolicy>(buyer, HttpMethod.Put, path + "/policy", new PermitPolicy("20", true));
+        using var subject = factory.CreateClient();
+        var subjectId = (await Login(subject, "21311")).Character.Id;
+        await Enroll(subject, season);
+        await Fund(buyer, season, subjectId, "8");
+        var offer = await Command<PermitOffer>(buyer, HttpMethod.Post, path + "/offers", new PermitOfferCreate(subjectId, group.Id, true));
+        var pathOffer = path + $"/offers/{offer.Id}";
+        Assert.Equal("0", offer.AssetsCurrency);
+        var quote = Assert.Single((await subject.GetFromJsonAsync<PermitShop>(path, ct))!.Offers);
+        Assert.Equal("8", quote.AssetsCurrency);
+        await Command<PermitOffer>(subject, HttpMethod.Put, pathOffer + "/consent", new PermitQuoteAction(quote.Quote));
+        using var stranger = factory.CreateClient();
+        await Login(stranger, "21312");
+        await Enroll(stranger, season);
+        var publicView = (await stranger.GetFromJsonAsync<PermitShop>(path, ct))!;
+        Assert.Empty(publicView.Listings);
+        Assert.Empty(publicView.Offers);
+        await Fund(buyer, season, subjectId, "2");
+        using (var req = Request(HttpMethod.Post, pathOffer + "/register", new PermitQuoteAction(quote.Quote)))
+        using (var stale = await buyer.SendAsync(req, ct))
+            Assert.Equal(HttpStatusCode.Conflict, stale.StatusCode);
+        Assert.Equal("10", (await OwnBalance(subject, season)).Owned);
+        var fresh = Assert.Single((await subject.GetFromJsonAsync<PermitShop>(path, ct))!.Offers);
+        Assert.False(fresh.Accepted);
+        await Command<PermitOffer>(subject, HttpMethod.Put, pathOffer + "/consent", new PermitQuoteAction(fresh.Quote));
+        await Command<OwnershipPermit>(buyer, HttpMethod.Post, pathOffer + "/register", new PermitQuoteAction(fresh.Quote));
+        Assert.Equal("10", (await OwnBalance(buyer, season)).Owned);
+        Assert.Equal("0", (await OwnBalance(subject, season)).Owned);
+    }
 }

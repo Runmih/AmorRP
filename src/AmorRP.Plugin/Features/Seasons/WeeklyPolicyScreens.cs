@@ -63,6 +63,7 @@ public sealed partial class SeasonsPanel
             if (ActionButton("Schedule writing limit")) SaveWeeklyPolicy(new(policies.Next.PotionPoints, nextLetters, policies.Next.CookingPoints));
             ImGui.EndDisabled(); ImGui.EndTabItem();
         }
+        if (ImGui.BeginTabItem("Gathering and Hunting")) { DrawGatheringSettings(); ImGui.EndTabItem(); }
         ImGui.EndTabBar();
     }
     private void SaveWeeklyPolicy(PolicyEdit edit) => Mutate("PUT", $"api/v2/seasons/{community!.Id}/policies", edit, ETag("policy", community.Id, policyDraftVersion));

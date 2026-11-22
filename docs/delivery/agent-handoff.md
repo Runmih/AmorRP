@@ -26,7 +26,7 @@ mutations use CurrencyAccounts/DebtSettlement/TradeReservations. Do not hide loc
 ordering or authorization inside a generic engine.
 
 S01 and S02 passed maintainer game checks. S03, S04, Seasons and the dedicated-window layout
-still need the focused [manual checks](acceptance.md). S05–S11 features,
+still need the focused [manual checks](acceptance.md). S08–S11 features,
 export/deletion and final operating drills remain planned. Do not claim new
 game checks or a production restore.
 

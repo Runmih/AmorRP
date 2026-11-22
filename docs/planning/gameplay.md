@@ -1,15 +1,22 @@
 # Gameplay expansion
 
-Planned S07–S09. Read the [decisions](decisions.md) and [work order](README.md).
+S07 is implemented with game acceptance pending. S08–S09 remain planned. Read the [decisions](decisions.md) and [work order](README.md).
 Current consumable/writing inventory and season/group membership already exist;
 new budgets/classes must preserve their authority and item provenance.
 
-## S07 — Gathering and delivery packages
+## S07 — Gathering and delivery packages (0.8)
 
 The maintainer chose a simple weekly-point button action. Players choose a delivery
 package, spend gathering points, receive its item, then RP and trade the delivery.
 No actual FFXIV gathering detection, timed runs, daily claims or minigame is required.
-A combined Gathering permission covers hunting and gathering for this version.
+A dedicated **Gathering and Hunting** gameplay permission grants access to a shared
+weekly budget for both activities. The budget resets to the season's configured
+maximum at the same Monday 00:00 UTC boundary as crafting. Unused Gathering and
+Hunting points expire at that reset.
+
+In **Home → Your resources**, show the remaining points and weekly maximum as a
+resource bar alongside the crafting bars when the player has the Gathering and
+Hunting permission. Use the existing shared reset timer.
 
 Season settings define:
 
@@ -18,14 +25,19 @@ Season settings define:
 | Weekly gathering points | One shared production budget across package choices |
 | Cost per package | Gathering points spent for that discipline's delivery |
 | Points granted per consumed package | Bonus crafting points in its discipline |
-| Weekly bonus receiving limit | Prevent unlimited points being funneled to one crafter |
-| Bonus expiry/reset policy | Clear remaining-point behavior at the weekly boundary |
 
 Alchemy Supplies grant Alchemy points; Cooking Supplies grant Cooking points. Package
 creation/use is atomic and replay-safe. Quantities, consumption and actual grant
-are server-validated; a client cannot submit arbitrary bonus points. Decide whether
-an over-limit use is rejected or grants a clamped amount before exposing the use UI.
-The item must not disappear without the player receiving the defined outcome.
+are server-validated. Consuming a package grants its full point value, even when
+the resulting balance exceeds the configured base weekly crafting maximum. There
+is no separate weekly receiving cap. Advanced recipes can cost more than the base
+weekly allowance. Show the actual available points in crafting and allow the
+player to spend the combined balance when they can cover the cost.
+
+For example, a character whose base Alchemy allowance is 100 can consume a
+30-point pack and spend 120 points on an advanced recipe. At the next shared
+weekly reset, unused bonus points expire and the crafting balance resets to the
+configured base maximum.
 
 Use stable discipline identifiers for budgets, permission associations and package
 choices. Investigate the current explicit potion/cooking/writing fields before choosing
@@ -34,12 +46,12 @@ all crafting into a generic engine. Existing recipe/holding snapshots stay valid
 
 Track weekly spending and received bonuses independently of current class selections.
 Disbanding, leaving/rejoining, new package IDs and class changes cannot reset usage.
-Numeric defaults and bonus expiry are feature-time settings; ask only if a proposed
-rule materially changes the agreed economy.
+Numeric defaults for budgets, package costs and grants remain feature-time settings.
 
 Verification: shared production limit, correct discipline, configurable costs,
 concurrent create/use, duplicate consumption, trading reservations, reset boundary,
-receiver limit, old snapshots and no budget refill through identity/group changes.
+full bonuses above the base weekly maximum, crafting a recipe above that maximum,
+bonus expiry, old snapshots and no budget refill through identity/group changes.
 
 ## S08 — Classes and reset potion
 
@@ -60,8 +72,8 @@ be decided when S08 starts, keeping the agreed hefty cost meaningful.
 
 Proposed reset flow: show the replacement selection and actual cost/outcome, then
 commit selection, payment/item consumption and receipt together. Cancellation keeps
-the old classes/item. Repeat requests cannot charge/consume again. Preserve used
-weekly budgets and bonus receiving counters across every class change.
+the old classes/item. Repeat requests cannot charge/consume again. Preserve current
+weekly spending and supply bonuses across every class change.
 
 Increasing slot count allows more selections. Decreasing it needs an explicit
 transition for existing characters; proposed default is a free corrective selection,

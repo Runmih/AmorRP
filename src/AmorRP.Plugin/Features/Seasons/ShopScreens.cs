@@ -104,10 +104,11 @@ public sealed partial class SeasonsPanel
         var fromGroup = selected.Buyer != "character" ? shopGroup : null;
         var validBuyer = fromGroup is { } id ? groups.Any(group => group.Id == id) : selected.Buyer != "group";
         var validQuantity = shopQuantity > 0 && shopQuantity <= max && (selected.Stock == null || shopQuantity <= selected.Stock);
-        var total = (Int128)long.Parse(selected.Price, System.Globalization.CultureInfo.InvariantCulture) * shopQuantity;
+        var validPrice = WholeUnits.TryNormalize(selected.Price, out _, out var unitPrice) && unitPrice > 0;
+        var total = (Int128)unitPrice * shopQuantity;
         if (validQuantity) Wrapped($"Total: {total} {community!.Currency.Name}");
         if (fromGroup.HasValue) Wrapped("Purchased items go to your character’s inventory.");
-        ImGui.BeginDisabled(!validBuyer || !validQuantity || total > long.MaxValue);
+        ImGui.BeginDisabled(!validBuyer || !validQuantity || !validPrice || total > long.MaxValue);
         if (ActionButton("Buy"))
         {
             shopReceipt = "";
@@ -142,7 +143,7 @@ public sealed partial class SeasonsPanel
         ImGui.BeginDisabled(editingProduct != null);
         if (ImGui.BeginCombo("Item", chosen?.Name ?? editingProduct?.Name ?? "Choose an item"))
         {
-            foreach (var row in definitions.Where(x => !x.Retired))
+            foreach (var row in definitions.Where(x => !x.Retired && CraftingTypes.IsRecipe(x.TypeId)))
                 if (ImGui.Selectable(row.Name + "###shopDefinition" + row.Id, shopDefinition == row.Id)) shopDefinition = row.Id;
             ImGui.EndCombo();
         }

@@ -61,7 +61,7 @@ public sealed partial class SeasonsPanel(IPlayerState player, Configuration conf
     private string name = "", description = "", currencyName = "Coins", symbol = "C";
     private int initialPoints, initialCooking, initialLetters = 5;
     private Guid? memberSelection;
-    private bool grantPermitListings;
+    private bool grantPermitListings, grantGathering;
     private bool grantCoins, grantPotions, grantRemoval, grantDefinitions, grantGeneralModeration, grantAnnouncements, grantGameplayPermissions, grantGroupCreation, grantGroupManagement, grantCooking, grantCookingDefinitions;
     private bool tradingAllowed = true;
     private string reason = "", delta = "";
@@ -282,6 +282,12 @@ public sealed partial class SeasonsPanel(IPlayerState player, Configuration conf
             if (currentCommand != null)
             {
                 actionResult = status;
+                switch (currentCommand.Read().Operation.Handler)
+                {
+                    case CommandHandler.Shop: shopReceipt = status; shopRefresh.Invalidate(); break;
+                    case CommandHandler.Permit: permitFeedback = status; permitsRefresh.Invalidate(); break;
+                    case CommandHandler.Gathering: gatheringFeedback = status; gatheringRefresh.Invalidate(); break;
+                }
                 if (ContextBillFor(currentCommand.Read()) is { } draft) draft.Feedback = status;
                 actionDiagnostic = UserFeedback.Details(failure) + "\nAction ID: " + currentCommand.Key;
                 if (currentCommand.Read().Operation.Kind == CommandKind.PublishAnnouncement)
@@ -371,5 +377,5 @@ public sealed partial class SeasonsPanel(IPlayerState player, Configuration conf
     private void Clear()
     { connectedServerVersion = null; ResetSeasons(); ClearFavoriteEvents(); ClearMemberSearch(); personalNote = savedPersonalNote = noteKey = ""; ClearAnnouncementNotifications(); ClearTradeInbox(); ResetCommunityForms(); ResetLogin(); loginFeedback = loginDiagnostic = ""; syncFailures = 0; scope = ""; serviceCompatible = false; ClearWork(); origin = null; session = null; saved = null; selected = null; community = null; communities = []; members = []; transfer = null; refreshNeeded = false; ClearTransientFeedback(); feedback.ClearHistory(); connectionError = connectionDiagnostic = ""; lastRefresh = default; nextRefresh = default; ClearCommunityViews(); }
     private static void Wrapped(string message) { ImGui.PushTextWrapPos(); ImGui.TextUnformatted(message); ImGui.PopTextWrapPos(); }
-    public void Dispose() { ClearShop(); ClearContextBilling(); ResetCommunityRefreshes(); ClearFavoriteEvents(); ClearMemberSearch(); personalNote = savedPersonalNote = noteKey = ""; ClearAnnouncementNotifications(); ClearTradeInbox(); ClearWork(); requests.Dispose(); icons.Dispose(); logos.Dispose(); groupLogos.Dispose(); ClearGroupCardLogos(); interfaceFonts.Dispose(); client.Dispose(); }
+    public void Dispose() { ClearGathering(); ClearShop(); ClearContextBilling(); ResetCommunityRefreshes(); ClearFavoriteEvents(); ClearMemberSearch(); personalNote = savedPersonalNote = noteKey = ""; ClearAnnouncementNotifications(); ClearTradeInbox(); ClearWork(); requests.Dispose(); icons.Dispose(); logos.Dispose(); groupLogos.Dispose(); ClearGroupCardLogos(); interfaceFonts.Dispose(); client.Dispose(); }
 }

@@ -40,6 +40,14 @@ records current acceptance status; this checklist describes what to verify.
 - Home → Groups: open the directory from Home, the flag and `/amorrp groups`.
   As group owner, select a member to change permissions or clock them out.
   Check that members can view the roster and nonmembers can join from Members.
+- 0.6 Shop: create and hide a listing, test personal and group purchases and
+  verify inventory delivery, stock, buyer limits and season treasury receipts.
+- 0.7 permits: nominate and publish from different accounts. Compare public
+  and private views, change the quote before settlement, and confirm new consent
+  is required. Check debt settlement, transferred assets, release and disband.
+- 0.8 Gathering: grant the permission, configure supplies, gather and trade
+  both package types, use one to craft an item above the base allowance, and
+  verify the shared reset clears unused bonus points.
 - Seasons: configured administrator creates and activates while a draft is selected.
   Existing and newly verified players follow the active season automatically.
   Creation controls require seasons.create. Repeated refresh preserves assets.

@@ -296,6 +296,9 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                     b.Property<int>("CurrentCookingPoints")
                         .HasColumnType("integer");
 
+                    b.Property<int>("CurrentGatheringPoints")
+                        .HasColumnType("integer");
+
                     b.Property<int>("CurrentLetters")
                         .HasColumnType("integer");
 
@@ -312,6 +315,9 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
+
+                    b.Property<int>("GatheringVersion")
+                        .HasColumnType("integer");
 
                     b.Property<int>("InventoryVersion")
                         .HasColumnType("integer");
@@ -330,6 +336,9 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(80)");
 
                     b.Property<int>("NextCookingPoints")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("NextGatheringPoints")
                         .HasColumnType("integer");
 
                     b.Property<int>("NextLetters")
@@ -387,6 +396,8 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                         {
                             t.HasCheckConstraint("ck_community_policy", "\"CurrentPotionPoints\" >= 0 AND \"CurrentLetters\" >= 0 AND \"NextPotionPoints\" >= 0 AND \"NextLetters\" >= 0");
 
+                            t.HasCheckConstraint("ck_gathering_budget", " \"CurrentGatheringPoints\" >= 0 AND \"NextGatheringPoints\" >= 0 AND \"GatheringVersion\" >= 0 ");
+
                             t.HasCheckConstraint("ck_permit_price", " \"PermitPrice\" > 0 ");
 
                             t.HasCheckConstraint("ck_season_billing_tax", "\"BillingTaxPercent\" BETWEEN 0 AND 100 AND \"SeasonTreasuryOwned\" >= 0");
@@ -404,6 +415,9 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<int>("Revision")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("BonusPoints")
                         .HasColumnType("integer");
 
                     b.Property<Guid>("CategoryId")
@@ -436,7 +450,7 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
 
                     b.ToTable("definition_revisions", null, t =>
                         {
-                            t.HasCheckConstraint("ck_definition_cost", "\"CreationCost\" > 0");
+                            t.HasCheckConstraint("ck_definition_cost", "\"CreationCost\" > 0 AND \"BonusPoints\" >= 0");
                         });
                 });
 
@@ -769,7 +783,7 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
 
                     b.ToTable("holdings", null, t =>
                         {
-                            t.HasCheckConstraint("ck_holding_payload", "(\"TypeId\" IN ('potion','poison','explosive','drug','medicine','meal','drink','dessert') AND \"DefinitionId\" IS NOT NULL AND \"DefinitionRevision\" IS NOT NULL AND \"LetterId\" IS NULL) OR (\"TypeId\" IN ('letter','book','note') AND \"LetterId\" IS NOT NULL AND \"DefinitionId\" IS NULL AND \"DefinitionRevision\" IS NULL AND \"Quantity\" <= 1)");
+                            t.HasCheckConstraint("ck_holding_payload", "(\"TypeId\" IN ('potion','poison','explosive','drug','medicine','meal','drink','dessert','alchemy-supplies','cooking-supplies') AND \"DefinitionId\" IS NOT NULL AND \"DefinitionRevision\" IS NOT NULL AND \"LetterId\" IS NULL) OR (\"TypeId\" IN ('letter','book','note') AND \"LetterId\" IS NOT NULL AND \"DefinitionId\" IS NULL AND \"DefinitionRevision\" IS NULL AND \"Quantity\" <= 1)");
 
                             t.HasCheckConstraint("ck_holding_quantity", "\"Quantity\" >= 0 AND \"Reserved\" >= 0 AND \"Reserved\" <= \"Quantity\"");
                         });
@@ -1282,6 +1296,9 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset>("PeriodStart")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int>("Bonus")
+                        .HasColumnType("integer");
+
                     b.Property<int>("Limit")
                         .HasColumnType("integer");
 
@@ -1292,7 +1309,7 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
 
                     b.ToTable("quota_usage", null, t =>
                         {
-                            t.HasCheckConstraint("ck_quota_usage", "\"Used\" >= 0 AND \"Used\" <= \"Limit\"");
+                            t.HasCheckConstraint("ck_quota_usage", "\"Used\" >= 0 AND \"Bonus\" >= 0 AND \"Used\" <= \"Limit\"::bigint + \"Bonus\" AND \"Limit\"::bigint + \"Bonus\" <= 2147483647");
                         });
                 });
 

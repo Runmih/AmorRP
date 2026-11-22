@@ -53,7 +53,7 @@ public sealed partial class SeasonsPanel
         while (rows.Count < requestedCount && pageHoldings.NextCursor != null)
         { var next = await client.GetAsync<HoldingPage>(uri, prefix + "inventory?" + query + "&cursor=" + Uri.EscapeDataString(pageHoldings.NextCursor), token, ct); rows.AddRange(next.Items); pageHoldings = next; }
         pageHoldings = pageHoldings with { Items = rows.ToArray() };
-        var potions = await client.GetAsync<HoldingPage>(uri, prefix + "inventory?typeIds=potion,poison,explosive,drug,medicine,meal,drink,dessert&sort=name", token, ct);
+        var potions = await client.GetAsync<HoldingPage>(uri, prefix + "inventory?typeIds=potion,poison,explosive,drug,medicine,meal,drink,dessert,alchemy-supplies,cooking-supplies&sort=name", token, ct);
         var allowance = await client.GetAsync<Quotas>(uri, prefix + "quotas", token, ct);
         HoldingDetails? selectedDetails = null;
         if (requestedSelection.HasValue)

@@ -8721,6 +8721,223 @@ paths:
           $ref: '#/components/responses/Problem'
       x-authorization-policy: Owning group owner
       x-implementation-status: implemented
+  /api/v2/seasons/{seasonId}/gathering:
+    get:
+      operationId: readGathering
+      summary: Read supply packages and weekly settings
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GatheringSettings'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Season member
+      x-implementation-status: implemented
+    put:
+      operationId: editGathering
+      summary: Save weekly gathering and package settings
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GatheringSettingsEdit'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GatheringSettingsResult'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Season owner
+      x-implementation-status: implemented
+  /api/v2/seasons/{seasonId}/gathering/packages:
+    post:
+      operationId: gatherSupplies
+      summary: Produce supply packages
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GatherSupplies'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupplyProductionResult'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Gathering and Hunting permission
+      x-implementation-status: implemented
+  /api/v2/seasons/{seasonId}/inventory/{holdingId}/use-supplies:
+    post:
+      operationId: useSupplies
+      summary: Consume a pack for crafting points
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: holdingId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UseSupplies'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupplyProductionResult'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Holding owner with the matching crafting permission
+      x-implementation-status: implemented
 components:
   securitySchemes:
     Session:
@@ -8751,6 +8968,118 @@ components:
           schema:
             $ref: '#/components/schemas/Problem'
   schemas:
+    SupplyPackage:
+      type: object
+      properties:
+        typeId:
+          type: string
+        name:
+          type: string
+        revision:
+          type: integer
+        cost:
+          type: integer
+        bonusPoints:
+          type: integer
+      required:
+      - typeId
+      - name
+      - revision
+      - cost
+      - bonusPoints
+      additionalProperties: false
+    GatheringSettings:
+      type: object
+      properties:
+        version:
+          type: integer
+        weeklyPoints:
+          type: integer
+        nextWeeklyPoints:
+          type: integer
+        resetAt:
+          type: string
+          format: date-time
+        packages:
+          type: array
+          items:
+            $ref: '#/components/schemas/SupplyPackage'
+      required:
+      - version
+      - weeklyPoints
+      - nextWeeklyPoints
+      - resetAt
+      - packages
+      additionalProperties: false
+    GatheringSettingsResult:
+      type: object
+      properties:
+        operationId:
+          type: string
+          format: uuid
+        result:
+          $ref: '#/components/schemas/GatheringSettings'
+      required:
+      - operationId
+      - result
+      additionalProperties: false
+    GatheringSettingsEdit:
+      type: object
+      properties:
+        expectedVersion:
+          type: integer
+        weeklyPoints:
+          type: integer
+        alchemyCost:
+          type: integer
+        alchemyBonus:
+          type: integer
+        cookingCost:
+          type: integer
+        cookingBonus:
+          type: integer
+      required:
+      - expectedVersion
+      - weeklyPoints
+      - alchemyCost
+      - alchemyBonus
+      - cookingCost
+      - cookingBonus
+      additionalProperties: false
+    GatherSupplies:
+      type: object
+      properties:
+        typeId:
+          type: string
+        expectedRevision:
+          type: integer
+        quantity:
+          type: integer
+      required:
+      - typeId
+      - expectedRevision
+      - quantity
+      additionalProperties: false
+    UseSupplies:
+      type: object
+      properties:
+        expectedHoldingVersion:
+          type: integer
+      required:
+      - expectedHoldingVersion
+      additionalProperties: false
+    SupplyProductionResult:
+      type: object
+      properties:
+        operationId:
+          type: string
+          format: uuid
+        result:
+          $ref: '#/components/schemas/ProductionResult'
+      required:
+      - operationId
+      - result
+      additionalProperties: false
     PermitPolicy:
       type: object
       properties:
@@ -9992,6 +10321,8 @@ components:
     Definition:
       type: object
       properties:
+        bonusPoints:
+          type: integer
         id: *id002
         seasonId: *id002
         typeId:
@@ -10184,6 +10515,8 @@ components:
     Quota:
       type: object
       properties:
+        bonus:
+          type: integer
         kind:
           type: string
           description: potion_points (Alchemy), cooking_points, or letters (Writing); extensible identifier.

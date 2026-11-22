@@ -172,11 +172,14 @@ public sealed partial class SeasonsPanel
         }
         if (permitShop.Offers.FirstOrDefault(x => x.Id == permitReviewId) is not { } reviewing) return;
         Wrapped($"Buyer: {reviewing.BuyerName} · Owning group: {reviewing.GroupName}");
-        Wrapped($"Permit: {reviewing.BasePrice} · Debt: {reviewing.Debt} · Total: {reviewing.Total} {community!.Currency.Name}");
+        var currency = community!.Currency.Name;
+        if (reviewing.Total.Length > 0) Wrapped($"Permit: {reviewing.BasePrice} · Debt: {reviewing.Debt} · Total: {reviewing.Total} {currency}");
+        else Wrapped($"Base permit price: {reviewing.BasePrice} {currency}. Waiting for the player to share the full quote.");
         Wrapped("Registration locks Trusted billing on for the owning group until release.");
-        if (reviewing.Private)
+        if (reviewing.Private && (reviewing.CharacterId == session!.Character.Id || reviewing.Accepted))
         {
-            Wrapped($"Assets to the buyer: {reviewing.AssetsCurrency} {community.Currency.Name}");
+            if (reviewing.CharacterId == session!.Character.Id && !reviewing.Accepted) Wrapped("Accepting shares this asset list with the named buyer.");
+            Wrapped($"Assets to the buyer: {reviewing.AssetsCurrency} {currency}");
             foreach (var asset in reviewing.Assets) Wrapped($"{asset.Quantity} × {asset.Name}");
         }
         var endpoint = PermitsPath + "/offers/" + reviewing.Id;

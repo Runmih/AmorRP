@@ -31,6 +31,7 @@ public sealed partial class SeasonsPanel
         switch (request.Operation.Handler)
         {
             case CommandHandler.SeasonForm: ApplyFormSuccess(request, response.Json); break;
+            case CommandHandler.Gathering: ApplyGatheringSuccess(request, response.Json); break;
             case CommandHandler.Permit: ApplyPermitSuccess(request, response.Json); break;
             case CommandHandler.Shop: ApplyShopSuccess(request, response.Json); break;
             case CommandHandler.Home: ApplyHomeSuccess(request, response.Json); break;

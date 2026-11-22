@@ -60,8 +60,8 @@ public sealed partial class SeasonResourceService
                     422, "invalid_request", "Unknown or repeated capability.");
                 if (community.OwnerCharacterId != session.CharacterId)
                 {
-                    var protectedBefore = target.Capabilities.Where(x => x is not ("items.potion.create" or "items.cooking.create")).Order();
-                    var protectedAfter = grant.Capabilities!.Where(x => x is not ("items.potion.create" or "items.cooking.create")).Order();
+                    var protectedBefore = target.Capabilities.Where(x => x is not ("items.potion.create" or "items.cooking.create" or AmorRP.Core.Items.CraftingTypes.GatherPermission)).Order();
+                    var protectedAfter = grant.Capabilities!.Where(x => x is not ("items.potion.create" or "items.cooking.create" or AmorRP.Core.Items.CraftingTypes.GatherPermission)).Order();
                     ApiFault.Require(protectedBefore.SequenceEqual(protectedAfter), 403, "owner_required", "Only the owner may change moderator permissions.");
                 }
                 target.Capabilities = grant.Capabilities!.Order().ToArray();

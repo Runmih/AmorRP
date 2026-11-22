@@ -5,8 +5,8 @@ Source package/assembly version lives once in
 The package validator and home updater read that same value. Do not hardcode a
 second server version in capabilities or an obsolete milestone label in build tools.
 
-ApiProtocol defines application API v2. The 0.5 plugin requires server 0.5.0.0 or
-newer. The 0.5 server continues accepting clients from 0.4.0.3. XIVAuth independently uses external API
+ApiProtocol defines application API v2. The 0.8 plugin requires server 0.8.0.0 or
+newer. The server continues accepting clients from 0.4.0.3. XIVAuth independently uses external API
 v1. ServiceCompatibility validates the advertised API/server/minimum-client tuple;
 malformed, unsupported and too-old tuples fail closed. There is no API adapter or
 alternative community mode.
@@ -37,7 +37,7 @@ Use main only. Versions follow 0.feature.0.patch; immutable package bytes requir
 new version when they change. Both Windows package and server/contracts CI must
 succeed on the exact source SHA. Publish the downloaded Windows inner latest.zip,
 record its source/build/digest in packages/*.json, and verify public feed/download
-bytes. For 0.5, apply and verify the home-server update before changing the installer
+bytes. For 0.8, apply and verify the home-server update before changing the installer
 feed, because publication requires installed plugins to update. Never publish a
 Linux-built plugin ZIP. repo.json records what is actually
 published; source versions do not prove a home-server deployment.

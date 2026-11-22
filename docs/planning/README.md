@@ -1,6 +1,6 @@
 # Current milestone plan
 
-Updated 2026-11-21. This is the working plan; it replaces the old M0–M5 roadmaps.
+Updated 2026-11-22. This is the working plan; it replaces the old M0–M5 roadmaps.
 Use main for source and distribution. Release numbers identify shipped packages,
 not permission to mark a milestone accepted.
 
@@ -45,8 +45,7 @@ manual checklist. Do not infer game or production acceptance from a successful b
 ## Next work
 
 1. Finish the focused S03/S04, season, and window checks in game.
-2. Settle shop revenue and purchase eligibility for S05. S07 gathering can proceed
-   independently once its configuration and budget rules are settled.
+2. Verify the Shop, permit registration and Gathering workflows in game. S08 classes and resets are next.
 3. Keep integration adapters isolated. Discord linking is opt-in. Moodles failures
    are silent and never affect successful gameplay or accounting.
 
@@ -55,9 +54,9 @@ manual checklist. Do not infer game or production acceptance from a successful b
 | ID | Work | Requires | Completion evidence |
 | --- | --- | --- | --- |
 | S04 | Taxes, cashier commission, basic clock-in | S03; tax/rounding decisions | Exact splits, saved allocation on partial repayment, cashier debt and permission changes |
-| S05 | Season shop | S02/S03; revenue destination | Atomic affordable purchases, replay-safe outcomes and buyer authorization |
-| S06 | RP ownership permits and release | S03/S05 | Initial OOC acceptance, full quote, atomic settlement, owner-only release and disband release |
-| S07 | Gathering packages and budget bonuses | S01/inventory | Shared weekly production budget, costs, receiving limits, consistent reset and replay-safe use |
+| S05 | Season shop (0.6), with a Shop tab between Home and Inventory | S02/S03; revenue destination | Shared-window navigation, atomic affordable purchases, replay-safe outcomes and buyer authorization |
+| S06 | RP ownership permits and release (0.7) | S03/S05 | Moderator listings, private offers, explicit OOC consent, atomic registration, owner-only release and disband release |
+| S07 | Gathering packages and budget bonuses (0.8) | S01/inventory | Dedicated gameplay permission, shared weekly reset, advanced recipes above the base allowance and replay-safe use |
 | S08 | Classes and reset potion | S05/S07 | Slot limits, permanent choices until reset, no weekly-budget refill exploit |
 | S09 | Group-restricted recipes | S01/S07 budget rules | Membership and recipe/crafting authority remain separate; bounded durable limits |
 | S10 | Silent optional Moodles | Consumable use; S06 for permit effect | Best-effort IPC; absence/rejection never blocks a committed action or displays errors |

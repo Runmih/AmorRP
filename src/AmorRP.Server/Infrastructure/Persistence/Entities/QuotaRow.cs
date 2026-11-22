@@ -7,5 +7,6 @@ public sealed class QuotaRow
     public string Kind { get; set; } = "";
     public DateTimeOffset PeriodStart { get; set; }
     public int Limit { get; set; }
+    public int Bonus { get; set; }
     public int Used { get; set; }
 }

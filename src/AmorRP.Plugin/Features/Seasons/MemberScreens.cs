@@ -20,6 +20,7 @@ public sealed partial class SeasonsPanel
         memberSelection = row.Character.Id; memberDraftEtag = row.Etag;
         ResetMemberDescription(row);
         LoadPersonalNote(row);
+        grantGathering = row.Capabilities.Contains(AmorRP.Core.Items.CraftingTypes.GatherPermission);
         grantCooking = row.Capabilities.Contains("items.cooking.create"); grantCookingDefinitions = row.Capabilities.Contains("items.cooking.define");
         grantPermitListings = row.Capabilities.Contains(ManagePermitListings);
         grantGroupCreation = row.Capabilities.Contains("groups.create"); grantGroupManagement = row.Capabilities.Contains("groups.manage");
@@ -104,6 +105,7 @@ public sealed partial class SeasonsPanel
         return personalNote != savedPersonalNote || memberDescription != savedMemberDescription
             || delta.Length > 0 || reason.Length > 0 || itemRemovalReason.Length > 0
             || tradingAllowed == current.TradingRestricted || grantCoins != caps.Contains("currency.manage")
+            || grantGathering != caps.Contains(AmorRP.Core.Items.CraftingTypes.GatherPermission)
             || grantPotions != caps.Contains("items.potion.create") || grantCooking != caps.Contains("items.cooking.create")
             || grantDefinitions != caps.Contains("items.potion.define") || grantCookingDefinitions != caps.Contains("items.cooking.define")
             || grantRemoval != caps.Contains("inventory.remove") || grantGeneralModeration != caps.Contains("season.moderate")
@@ -138,13 +140,15 @@ public sealed partial class SeasonsPanel
         ImGui.Checkbox("Trading", ref tradingAllowed);
         ImGui.Checkbox("Craft Alchemy Items", ref grantPotions);
         ImGui.Checkbox("Craft Cooking Items", ref grantCooking);
+        ImGui.Checkbox("Gathering and Hunting", ref grantGathering);
         ImGui.BeginDisabled(memberDraftEtag != target.Etag);
         if (ActionButton("Save permissions"))
         {
             // Preserve moderator grants; this form only changes gameplay actions.
-            var actions = target.Capabilities.Where(x => x is not ("items.potion.create" or "items.cooking.create")).ToList();
+            var actions = target.Capabilities.Where(x => x is not ("items.potion.create" or "items.cooking.create" or AmorRP.Core.Items.CraftingTypes.GatherPermission)).ToList();
             if (grantPotions) actions.Add("items.potion.create");
             if (grantCooking) actions.Add("items.cooking.create");
+            if (grantGathering) actions.Add(AmorRP.Core.Items.CraftingTypes.GatherPermission);
             SaveMemberPermissions(target, new MemberCapabilities(actions.ToArray(), tradingAllowed));
         }
         ImGui.EndDisabled(); DrawAuthorizationFeedback(target);

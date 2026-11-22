@@ -16,7 +16,7 @@ public sealed class CatalogService(AmorDbContext db, SessionAccess sessions, Sea
 {
     public static Category View(CategoryRow row) => new(row.Id, row.CommunityId, row.Name, row.AllowedTypeIds, row.Retired, row.Version);
     public static Definition View(DefinitionRow row, DefinitionRevisionRow rev) => new(row.Id, row.CommunityId, row.TypeId,
-        rev.Revision, rev.TypeDataVersion, rev.Name, rev.CategoryId, rev.Description, rev.Enabled, row.Retired, new(rev.CreationCost, rev.UseMessage));
+        rev.Revision, rev.TypeDataVersion, rev.Name, rev.CategoryId, rev.Description, rev.Enabled, row.Retired, new(rev.CreationCost, rev.UseMessage), rev.BonusPoints);
     public static void Seed(AmorDbContext db, Guid communityId)
     {
         db.Categories.AddRange(new CategoryRow { CommunityId = communityId, Name = "Alchemy", AllowedTypeIds = CraftingTypes.Alchemy },
@@ -91,6 +91,7 @@ public sealed class CatalogService(AmorDbContext db, SessionAccess sessions, Sea
         var (community, member) = await communities.RequireAsync(communityId, actor, ct);
         var row = id.HasValue ? await db.Definitions.SingleOrDefaultAsync(x => x.CommunityId == communityId && x.Id == id, ct) : new DefinitionRow { CommunityId = communityId };
         ApiFault.Require(row != null, 404, "not_found", "Definition not found.");
+        ApiFault.Require(row == null || !CraftingTypes.IsSupply(row.TypeId), 422, "invalid_type", "Use Gathering settings for supply packages.");
         SeasonAccess.Action(community, member, CraftingTypes.RecipePermission(id.HasValue ? row!.TypeId : body?.TypeId ?? "potion"));
         var scope = "character:" + actor; var replay = await commands.ReplayAsync(h, scope, body, ct); if (replay != null) return commands.Replay(replay);
         ApiFault.Require(id.HasValue || await db.Definitions.CountAsync(x => x.CommunityId == communityId, ct) < policy.Value.MaxDefinitionsPerCommunity, 409, "catalog_full", "Definition limit reached.");
@@ -99,7 +100,7 @@ public sealed class CatalogService(AmorDbContext db, SessionAccess sessions, Sea
         DefinitionRevisionRow rev;
         if (body != null)
         {
-            ApiFault.Require(CraftingTypes.IsConsumable(body.TypeId) && (!id.HasValue || row!.TypeId == body.TypeId) && body.Potion != null && body.Potion.CreationCost > 0 && body.Potion.CreationCost <= policy.Value.MaxWeeklyPotionPoints, 422, "invalid_request", "Choose an Alchemy or Cooking item type and a positive supported point cost.");
+            ApiFault.Require(CraftingTypes.IsRecipe(body.TypeId) && (!id.HasValue || row!.TypeId == body.TypeId) && body.Potion != null && body.Potion.CreationCost > 0 && body.Potion.CreationCost <= policy.Value.MaxWeeklyPotionPoints, 422, "invalid_request", "Choose an Alchemy or Cooking item type and a positive supported point cost.");
             var nameError = AmorRP.Core.Items.PlainText.Error(body.Name, policy.Value.DefinitionNameTextElements);
             var descriptionError = AmorRP.Core.Items.PlainText.Error(body.Description, policy.Value.DefinitionDescriptionTextElements, multiline: true, required: false);
             ApiFault.Require(nameError == null && descriptionError == null, 422, "invalid_request", nameError != null ? "Item name: " + nameError : "Item description: " + descriptionError);

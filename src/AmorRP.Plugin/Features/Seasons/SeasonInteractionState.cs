@@ -25,6 +25,7 @@ public sealed partial class SeasonsPanel
         ResetCommunityRefreshes();
         ClearNestedGroups();
         ClearShop();
+        ClearGathering();
         ClearContextBilling();
         requests.ChangeView(); reads.Clear(); ClearTradeViews();
         icons.Clear(); logos.Clear(); community = null; members = []; policies = null; transfer = null;

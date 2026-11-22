@@ -13,6 +13,8 @@ public sealed partial class AmorDbContext
     public DbSet<MediaAssetRow> MediaAssets => Set<MediaAssetRow>();
     private static void ConfigureInventory(ModelBuilder m)
     {
+        m.Entity<CommunityRow>().ToTable(t => t.HasCheckConstraint("ck_gathering_budget",
+            """ "CurrentGatheringPoints" >= 0 AND "NextGatheringPoints" >= 0 AND "GatheringVersion" >= 0 """));
         m.Entity<CategoryRow>(e => {
             e.ToTable("categories"); e.HasKey(x => new { x.CommunityId, x.Id });
             e.HasOne<CommunityRow>().WithMany().HasForeignKey(x => x.CommunityId).OnDelete(DeleteBehavior.Restrict);
@@ -22,7 +24,7 @@ public sealed partial class AmorDbContext
             e.HasOne<CommunityRow>().WithMany().HasForeignKey(x => x.CommunityId).OnDelete(DeleteBehavior.Restrict);
         });
         m.Entity<DefinitionRevisionRow>(e => {
-            e.ToTable("definition_revisions", t => t.HasCheckConstraint("ck_definition_cost", "\"CreationCost\" > 0"));
+            e.ToTable("definition_revisions", t => t.HasCheckConstraint("ck_definition_cost", "\"CreationCost\" > 0 AND \"BonusPoints\" >= 0"));
             e.HasKey(x => new { x.CommunityId, x.DefinitionId, x.Revision });
             e.HasOne<DefinitionRow>().WithMany().HasForeignKey(x => new { x.CommunityId, x.DefinitionId }).OnDelete(DeleteBehavior.Restrict);
             e.HasOne<CategoryRow>().WithMany().HasForeignKey(x => new { x.CommunityId, x.CategoryId }).OnDelete(DeleteBehavior.Restrict);
@@ -36,7 +38,7 @@ public sealed partial class AmorDbContext
         m.Entity<HoldingRow>(e => {
             e.ToTable("holdings", t => {
                 t.HasCheckConstraint("ck_holding_quantity", "\"Quantity\" >= 0 AND \"Reserved\" >= 0 AND \"Reserved\" <= \"Quantity\"");
-                t.HasCheckConstraint("ck_holding_payload", "(\"TypeId\" IN ('potion','poison','explosive','drug','medicine','meal','drink','dessert') AND \"DefinitionId\" IS NOT NULL AND \"DefinitionRevision\" IS NOT NULL AND \"LetterId\" IS NULL) OR (\"TypeId\" IN ('letter','book','note') AND \"LetterId\" IS NOT NULL AND \"DefinitionId\" IS NULL AND \"DefinitionRevision\" IS NULL AND \"Quantity\" <= 1)");
+                t.HasCheckConstraint("ck_holding_payload", "(\"TypeId\" IN ('potion','poison','explosive','drug','medicine','meal','drink','dessert','alchemy-supplies','cooking-supplies') AND \"DefinitionId\" IS NOT NULL AND \"DefinitionRevision\" IS NOT NULL AND \"LetterId\" IS NULL) OR (\"TypeId\" IN ('letter','book','note') AND \"LetterId\" IS NOT NULL AND \"DefinitionId\" IS NULL AND \"DefinitionRevision\" IS NULL AND \"Quantity\" <= 1)");
             });
             e.HasKey(x => new { x.CommunityId, x.Id });
             e.HasIndex(x => new { x.CommunityId, x.CharacterId, x.DefinitionId, x.DefinitionRevision }).IsUnique();
@@ -48,7 +50,7 @@ public sealed partial class AmorDbContext
             e.HasOne<LetterRow>().WithMany().HasForeignKey(x => new { x.CommunityId, x.LetterId }).OnDelete(DeleteBehavior.Restrict);
         });
         m.Entity<QuotaRow>(e => {
-            e.ToTable("quota_usage", t => t.HasCheckConstraint("ck_quota_usage", "\"Used\" >= 0 AND \"Used\" <= \"Limit\""));
+            e.ToTable("quota_usage", t => t.HasCheckConstraint("ck_quota_usage", "\"Used\" >= 0 AND \"Bonus\" >= 0 AND \"Used\" <= \"Limit\"::bigint + \"Bonus\" AND \"Limit\"::bigint + \"Bonus\" <= 2147483647"));
             e.HasKey(x => new { x.CommunityId, x.CharacterId, x.Kind, x.PeriodStart });
             e.HasOne<MembershipRow>().WithMany().HasForeignKey(x => new { x.CommunityId, x.CharacterId }).OnDelete(DeleteBehavior.Restrict);
         });

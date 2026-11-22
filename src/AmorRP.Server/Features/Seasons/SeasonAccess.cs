@@ -11,7 +11,7 @@ namespace AmorRP.Server.Features.Seasons;
 
 public sealed class SeasonAccess(AmorDbContext db)
 {
-    public static readonly string[] GrantableActions = ["currency.manage", "items.potion.create", "inventory.remove", "items.potion.define", "items.cooking.create", "items.cooking.define", "season.moderate", "announcements.manage", "members.gameplay.manage", "groups.create", "groups.manage", AmorRP.Server.Features.Permits.PermitService.ManageListings];
+    public static readonly string[] GrantableActions = ["currency.manage", "items.potion.create", "inventory.remove", "items.potion.define", "items.cooking.create", "items.cooking.define", "season.moderate", "announcements.manage", "members.gameplay.manage", "groups.create", "groups.manage", AmorRP.Server.Features.Permits.PermitService.ManageListings, AmorRP.Core.Items.CraftingTypes.GatherPermission];
     public async Task<(CommunityRow Season, MembershipRow Member)> RequireAsync(Guid communityId, Guid actor, CancellationToken ct)
     {
         var community = await db.Seasons.SingleOrDefaultAsync(x => x.Id == communityId && !x.Deleted, ct);
@@ -54,10 +54,13 @@ public sealed class SeasonAccess(AmorDbContext db)
             new(promoted ? community.NextPotionPoints : community.CurrentPotionPoints, promoted ? community.NextLetters : community.CurrentLetters, promoted ? community.NextCookingPoints : community.CurrentCookingPoints),
             new(community.NextPotionPoints, community.NextLetters, community.NextCookingPoints));
     }
+    public static int GatheringPoints(CommunityRow season, DateTimeOffset now) =>
+        Period(now) > season.PolicyPeriod ? season.NextGatheringPoints : season.CurrentGatheringPoints;
     public static void PromotePolicy(CommunityRow community, DateTimeOffset now)
     {
         var period = Period(now);
         if (period <= community.PolicyPeriod) return;
+        community.CurrentGatheringPoints = community.NextGatheringPoints;
         community.CurrentCookingPoints = community.NextCookingPoints; community.CurrentPotionPoints = community.NextPotionPoints; community.CurrentLetters = community.NextLetters; community.PolicyPeriod = period;
     }
 }

@@ -94,6 +94,7 @@ public sealed partial class SeasonsPanel
     private void DrawPotionUse(HoldingDetails item)
     {
         if (item.Definition == null) return;
+        if (AmorRP.Core.Items.CraftingTypes.IsSupply(item.Holding.TypeId)) { DrawSupplyUse(item); return; }
         FieldLabel("Message destination");
         ImGui.Combo("##MessageDestination", ref destination, ChatCommand.Destinations, ChatCommand.Destinations.Length);
         var message = item.Definition.Potion.UseMessage;

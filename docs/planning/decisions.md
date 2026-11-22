@@ -1,7 +1,7 @@
 # Expansion decisions
 
 Accepted feature requirements from 2026-10-29, updated for Seasons on 2026-11-16.
-S01–S04 are implemented. S05–S11 remain planned. Follow the [milestone plan](README.md).
+S01–S07 are implemented. S08–S11 remain planned. Follow the [milestone plan](README.md).
 Every verified player belongs to every season. No season join/leave/block controls
 exist; user bans belong to separate account moderation. Creation requires seasons.create.
 
@@ -20,13 +20,13 @@ exist; user bans belong to separate account moderation. Creation requires season
 | D09 | Use cashier commission, not a shift pool. The group owner sets the percentage; the cashier receives their share and the treasury receives the remainder of collected proceeds. |
 | D10 | Add group currency treasury, later group item storage, season taxes, group staff permissions and basic clock-in. Shift scheduling and more elaborate payroll can follow later. |
 | D11 | On group disbanding, remaining treasury assets transfer to the group's owner. The deleting moderator does not become the beneficiary. Preserve receipts and assets. |
-| D12 | A season shop supplies owner-controlled, priced/regulated products. Planned initial uses include the reset potion and ownership documents. |
-| D13 | Register RP slave status only with explicit initial OOC acceptance. The owning group must afford the document plus payment of all existing character debts; otherwise the entire action fails with clear total/shortfall feedback. |
+| D12 | A season shop supplies owner-controlled, priced products such as the planned reset potion. Its Slave tab lists consenting characters. Registration issues a permit in the character's name. |
+| D13 | A dedicated season moderator permission authorizes submitting characters for the Slave list. The affected player must consent OOC before publication and accept the specific group before registration. Private offers target a specific buyer without a public listing. The owning group must afford the base price and payment of all existing character debts. |
 | D14 | While enslaved, automatic billing authorization for the owning group remains enabled. The affected character cannot avoid it by toggling Trusted off. |
 | D15 | The owning group owner releases the character by destroying/deleting the active permit. Ordinary treasury/item access does not grant release authority. Group disbanding releases all affected characters. Release preserves outstanding debts and previous payments. |
 | D16 | Keep ownership RP player-managed: a registered document/tag, owning group and billing lock. No automation of character actions. Permit trading is a later expansion, not an ordinary item transfer in the first version. |
-| D17 | Gathering is a weekly-point button action: select a delivery-package discipline, spend points, receive an item, then RP/trade the delivery. Season settings control weekly amounts, production costs, point rewards and receiving limits. |
-| D18 | Start with Alchemy and Cooking supplies. Future crafting disciplines must fit the same package/budget system without duplicating it. |
+| D17 | A dedicated Gathering and Hunting gameplay permission grants a shared weekly budget that resets to the configured maximum with crafting. Show the bar for eligible players in Home → Your resources using the existing reset timer. Players spend points to make delivery packages they can use or trade. Season settings control package costs and point grants. |
+| D18 | Start with Alchemy and Cooking supplies. Packs grant their full bonus even above the base weekly crafting maximum so players can afford advanced recipes. Unused bonus points expire at the shared weekly reset. Future crafting disciplines use the same package and budget rules. |
 | D19 | Season owners set the number of class slots, initially one. Chosen classes are permanent until a default Alchemy reset potion is used. The potion is expensive; switching never refills used budgets. |
 | D20 | Group-only recipes are wanted, with limits. Membership, definition permission and crafting permission remain distinct checks. |
 | D21 | Moodles runs automatically when available: no Amor RP opt-in, installation requests, setup prompts, missing-plugin messages or failure notifications. Silently skip failure; bounded Dalamud debug logging is permitted. No Moodles failure blocks gameplay/accounting. |
@@ -51,7 +51,8 @@ only the relevant entries when their feature starts; none requires a question no
 | Tax revenue destination | Credit tax to the season treasury and show the split on each receipt. | S04 |
 | Staff cut | One group-wide commission percentage, paid to the issuing cashier. Per-staff rates are later. | S04 |
 | Clock-in | Simple on/off staff state and optional group requirement for billing. No scheduled shifts or paid time accrual initially. | S04 |
-| Shop payment | Require actual available funds; ordinary shop purchases do not create debt. Owner-configured shop revenue may serve as a currency sink. | S05 |
+| Shop payment | Require actual available funds; ordinary shop purchases do not create debt. Shop revenue credits the season treasury. | S05 |
+| Private ownership offer | Start from a trade action and show the named buyer, owning group, price, and exact transferable items and available currency. Both players confirm the same quote. The group receives the named permit and the buyer receives the agreed assets. | S06 |
 | Reset potion price | Season shop price supplies the hefty cost. Consume/charge only when replacement classes are confirmed; preserve current classes on cancellation. | S08 |
 | Changed class slots | Increasing slots permits additional selection; reducing slots offers affected players a correction without a paid reset. Exact transition is feature-time detail. | S08 |
 | Group recipe behavior | Restrict crafting to members; finished items remain tradeable. Resolve recipe visibility and numeric limits when implementing. | S09 |

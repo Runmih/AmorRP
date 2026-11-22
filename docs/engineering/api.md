@@ -1,7 +1,7 @@
 # API contract and endpoint catalog
 
 The current implementation has one model: **Seasons**, with RP groups inside each
-season. The wire-support floors are client 0.4.0.3 and server 0.5.0.0; package versions are independent. The application's API is
+season. The wire-support floors are client 0.4.0.3 and server 0.8.0.0; package versions are independent. The application's API is
 v2; XIVAuth separately uses its own API v1. No old application routes or community
 mode are exposed. [OpenAPI](openapi.yaml) records implemented and planned operations.
 
@@ -180,3 +180,7 @@ mode are exposed. [OpenAPI](openapi.yaml) records implemented and planned operat
 | DELETE | `/api/v2/seasons/{seasonId}/permits/offers/{offerId}` | Withdraw a permit offer | Offer participant |
 | POST | `/api/v2/seasons/{seasonId}/permits/offers/{offerId}/register` | Pay and register a named permit | Named buyer and owning group owner |
 | DELETE | `/api/v2/seasons/{seasonId}/permits/{permitId}` | Release a registered character | Owning group owner |
+| GET | `/api/v2/seasons/{seasonId}/gathering` | Read supply packages and weekly settings | Season member |
+| PUT | `/api/v2/seasons/{seasonId}/gathering` | Save weekly gathering and package settings | Season owner |
+| POST | `/api/v2/seasons/{seasonId}/gathering/packages` | Produce supply packages | Gathering and Hunting permission |
+| POST | `/api/v2/seasons/{seasonId}/inventory/{holdingId}/use-supplies` | Consume a pack for crafting points | Holding owner with the matching crafting permission |

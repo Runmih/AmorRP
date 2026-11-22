@@ -67,7 +67,7 @@ public sealed class ShopService(AmorDbContext db, SessionAccess sessions, Season
             db.ShopProducts.Add(row);
         }
         var definition = await db.Definitions.SingleOrDefaultAsync(x => x.CommunityId == seasonId && x.Id == body.DefinitionId, ct);
-        ApiFault.Require(definition != null && CraftingTypes.IsConsumable(definition.TypeId) && (!body.Listed || !definition.Retired),
+        ApiFault.Require(definition != null && CraftingTypes.IsRecipe(definition.TypeId) && (!body.Listed || !definition.Retired),
             422, "invalid_product", "Choose an available Alchemy or Cooking item.");
         var revisionNumber = definition!.Retired ? row.DefinitionRevision : definition.Revision;
         var revision = await db.DefinitionRevisions.SingleAsync(x => x.CommunityId == seasonId && x.DefinitionId == body.DefinitionId && x.Revision == revisionNumber, ct);

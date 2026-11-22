@@ -11,7 +11,7 @@ public static class CapabilitiesEndpoints
     {
         app.MapGet("/api/v2/capabilities", (IOptions<ServicePolicyOptions> policy) =>
             new CapabilitiesResponse(ApiProtocol.Version, typeof(Program).Assembly.GetName().Version!.ToString(), ApiProtocol.MinimumClientVersion, false,
-                "Seasons, owned RP groups, crafting, writing, trading, notices and events.",
+                "Seasons, RP groups, shops, permits, gathering, crafting, writing, trading and events.",
                 CraftingTypes.All.Select(x => new ItemTypeInfo(x, 1, CraftingTypes.IsConsumable(x), CraftingTypes.IsConsumable(x))).ToArray(), AmorRP.Server.Features.Seasons.SeasonAccess.GrantableActions, ["emote", "say", "party", "linkshell", "crossworld-linkshell"], policy.Value.ToContract()));
     }
 }

@@ -75,10 +75,13 @@ internal enum CommandKind
     WithdrawPermitOffer,
     RegisterPermit,
     ReleasePermit,
+    SaveGatheringSettings,
+    GatherSupplies,
+    UseSupplies,
     SignOut,
 }
 
-internal enum CommandHandler { None, SeasonForm, Home, Balance, Policy, Member, Inventory, Trade, GroupProfile, GroupActivity, Treasury, Billing, BillingPolicy, GroupBilling, Shop, Permit, SignOut }
+internal enum CommandHandler { None, SeasonForm, Home, Balance, Policy, Member, Inventory, Trade, GroupProfile, GroupActivity, Treasury, Billing, BillingPolicy, GroupBilling, Shop, Permit, Gathering, SignOut }
 
 [Flags]
 internal enum RefreshTargets
@@ -107,6 +110,9 @@ internal static class CommandRoutes
 
     internal static readonly IReadOnlyList<Route> All = new Route[]
     {
+        new("PUT", "api/v2/seasons/{seasonId}/gathering", new(CommandKind.SaveGatheringSettings, CommandHandler.Gathering, RefreshTargets.Inventory)),
+        new("POST", "api/v2/seasons/{seasonId}/gathering/packages", new(CommandKind.GatherSupplies, CommandHandler.Gathering, RefreshTargets.Inventory)),
+        new("POST", "api/v2/seasons/{seasonId}/inventory/{holdingId}/use-supplies", new(CommandKind.UseSupplies, CommandHandler.Gathering, RefreshTargets.Inventory)),
         new("PUT", "api/v2/seasons/{seasonId}/permits/policy", new(CommandKind.EditPermitPolicy, CommandHandler.Permit, RefreshTargets.None)),
         new("POST", "api/v2/seasons/{seasonId}/permits/listings", new(CommandKind.NominatePermit, CommandHandler.Permit, RefreshTargets.None)),
         new("PUT", "api/v2/seasons/{seasonId}/permits/listings/mine", new(CommandKind.ConsentPermitListing, CommandHandler.Permit, RefreshTargets.None)),

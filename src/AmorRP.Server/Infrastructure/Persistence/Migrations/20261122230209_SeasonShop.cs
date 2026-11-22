@@ -102,6 +102,15 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.Sql("""
+                DO $$
+                BEGIN
+                    IF EXISTS (SELECT 1 FROM shop_products) OR EXISTS (SELECT 1 FROM shop_purchases)
+                    THEN RAISE EXCEPTION 'Cannot discard shop records. Restore a matching backup.';
+                    END IF;
+                END $$;
+                """);
+
             migrationBuilder.DropTable(
                 name: "shop_purchases");
 

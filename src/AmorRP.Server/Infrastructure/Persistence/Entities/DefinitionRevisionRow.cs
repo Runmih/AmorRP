@@ -11,5 +11,6 @@ public sealed class DefinitionRevisionRow
     public string Description { get; set; } = "";
     public bool Enabled { get; set; }
     public int CreationCost { get; set; }
+    public int BonusPoints { get; set; }
     public string UseMessage { get; set; } = "";
 }

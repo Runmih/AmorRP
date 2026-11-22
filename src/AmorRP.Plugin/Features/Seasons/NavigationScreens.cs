@@ -16,7 +16,7 @@ public sealed partial class SeasonsPanel
     }
     private void DrawCraftingTabs()
     {
-        if (!CanCraftPotions && !CanCraftCooking)
+        if (!CanCraftPotions && !CanCraftCooking && !CanGather)
         {
             Wrapped("Ask the season owner or an authorized moderator for Alchemy or Cooking access.");
             return;
@@ -26,6 +26,7 @@ public sealed partial class SeasonsPanel
         if (!ImGui.BeginTabBar("CraftingSubtabs")) return;
         if (CanCraftPotions && ImGui.BeginTabItem("Alchemy")) { SetCraftMode(false); DrawQuota("potion_points"); DrawPotionCreation(); ImGui.EndTabItem(); }
         if (CanCraftCooking && ImGui.BeginTabItem("Cooking")) { SetCraftMode(true); DrawQuota("cooking_points"); DrawPotionCreation(); ImGui.EndTabItem(); }
+        if (CanGather && ImGui.BeginTabItem("Gathering and Hunting")) { DrawGathering(); ImGui.EndTabItem(); }
         ImGui.EndTabBar();
     }
 

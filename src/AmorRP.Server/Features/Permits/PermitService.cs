@@ -97,6 +97,12 @@ public sealed class PermitService(AmorDbContext db, SessionAccess sessions, Seas
             }
             listing!.Status = body.Publish ? "listed" : "withdrawn";
             listing.Version++;
+            if (!body.Publish)
+            {
+                var offers = await db.PermitOffers.Where(x => x.CommunityId == season && x.CharacterId == actor.CharacterId
+                    && !x.Private && x.Status == "pending").ToArrayAsync(ct);
+                foreach (var offer in offers) offer.Status = "withdrawn";
+            }
             op.SubjectCharacterId = actor.CharacterId;
             return new PermitListing(actor.CharacterId, await NameAsync(actor.CharacterId, ct), listing.Status,
                 Units(await ListedTotalAsync(model, actor.CharacterId, ct)), ListingEtag(listing));
@@ -320,10 +326,13 @@ public sealed class PermitService(AmorDbContext db, SessionAccess sessions, Seas
     private async Task<PermitOffer> ViewOfferAsync(CommunityRow season, MembershipRow target, GroupRow group, PermitOfferRow offer, Guid actor, CancellationToken ct)
     {
         var quote = await QuoteAsync(season, target, offer, ct);
+        var accepted = offer.AcceptedQuote == quote.Key;
+        var maySeeAssets = actor == offer.CharacterId || accepted;
+        var maySeeQuote = !offer.Private || maySeeAssets;
         return new(offer.Id, offer.CharacterId, await NameAsync(offer.CharacterId, ct), offer.BuyerId, await NameAsync(offer.BuyerId, ct),
-            group.Id, group.Name, offer.Private, offer.Status, offer.ExpiresAt, quote.Key, offer.AcceptedQuote == quote.Key,
-            Units(season.PermitPrice), Units(quote.Debt), Units(season.PermitPrice + quote.Debt),
-            actor == offer.BuyerId ? Units(group.TreasuryOwned) : null, Units(quote.Currency), quote.Assets);
+            group.Id, group.Name, offer.Private, offer.Status, offer.ExpiresAt, maySeeQuote ? quote.Key : "", accepted,
+            Units(season.PermitPrice), maySeeQuote ? Units(quote.Debt) : "", maySeeQuote ? Units(season.PermitPrice + quote.Debt) : "",
+            actor == offer.BuyerId ? Units(group.TreasuryOwned) : null, maySeeAssets ? Units(quote.Currency) : "0", maySeeAssets ? quote.Assets : []);
     }
 
     private async Task<OwnershipPermit> ViewPermitAsync(OwnershipPermitRow permit, GroupRow group, CancellationToken ct) =>

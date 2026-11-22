@@ -7,7 +7,7 @@ multi-character interaction still require [in-game acceptance](../delivery/accep
 | Window | Entry and purpose |
 | --- | --- |
 | Settings | `/amorrp` or `/amorrp settings`. Interface has collapsible sections alongside the Account and About tabs. |
-| Home | Icon tabs for season overview/directory/noticeboard, Inventory, Crafting, Recipe Creation, and the Writing Log. Recipe Creation appears beside Crafting for players with Alchemy or Cooking recipe permissions. Commands `/amorrp season`, `/amorrp inventory`, `/amorrp crafting`, and `/amorrp writing` select their respective tabs. |
+| Home | Icon tabs for season overview/directory/noticeboard, Shop, Inventory, Crafting, Recipe Creation, and the Writing Log. Recipe Creation appears beside Crafting for players with Alchemy or Cooking recipe permissions. Commands `/amorrp season`, `/amorrp inventory`, `/amorrp crafting`, and `/amorrp writing` select their respective tabs. |
 | Groups | Home → Groups, the launcher flag, or `/amorrp groups`. Search and favorite groups from the directory. Open a profile for its activity and any controls you have permission to use. Group owners select members in the Members tab to manage staff permissions. |
 | Season management | `/amorrp manage`; authorized profile, permissions, economy and administration |
 | Trade | The launcher or `/amorrp trade` opens the request popup. A member action or ♥ Amor RP → Trade sends the request directly. The exchange opens after acceptance. |
@@ -102,6 +102,13 @@ payment has its own receipt. Billing and treasury controls require their approve
 group permissions. Manage Groups
 never exposes group-private content. Financial success/failure leaves a durable
 receipt and accurate available/reserved balances.
+
+Shop offers personal purchases and authorized group treasury purchases. The
+Slave tab holds listings, private requests, and registered permits. Players
+explicitly consent to publication and to the specific registration quote.
+The Crafting workspace includes Gathering and Hunting for authorized players.
+Use supply packs from Inventory to get crafting points until the next weekly
+reset.
 
 ## Shared theme
 
