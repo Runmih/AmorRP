@@ -82,6 +82,7 @@ internal enum CommandKind
     EditClassPolicy,
     SelectClasses,
     EditOwnershipEffect,
+    BuyPermit,
 }
 
 internal enum CommandHandler { None, SeasonForm, Home, Balance, Policy, Member, Inventory, Trade, GroupProfile, GroupActivity, Treasury, Billing, BillingPolicy, GroupBilling, Shop, Permit, Gathering, SignOut }
@@ -122,6 +123,7 @@ internal static class CommandRoutes
         new("PUT", "api/v2/seasons/{seasonId}/permits/policy", new(CommandKind.EditPermitPolicy, CommandHandler.Permit, RefreshTargets.None)),
         new("POST", "api/v2/seasons/{seasonId}/permits/listings", new(CommandKind.NominatePermit, CommandHandler.Permit, RefreshTargets.None)),
         new("PUT", "api/v2/seasons/{seasonId}/permits/listings/mine", new(CommandKind.ConsentPermitListing, CommandHandler.Permit, RefreshTargets.None)),
+        new("POST", "api/v2/seasons/{seasonId}/permits/purchases", new(CommandKind.BuyPermit, CommandHandler.Permit, RefreshTargets.Season | RefreshTargets.Groups | RefreshTargets.Effects)),
         new("POST", "api/v2/seasons/{seasonId}/permits/offers", new(CommandKind.CreatePermitOffer, CommandHandler.Permit, RefreshTargets.None)),
         new("PUT", "api/v2/seasons/{seasonId}/permits/offers/{offerId}/consent", new(CommandKind.ConsentPermitOffer, CommandHandler.Permit, RefreshTargets.None)),
         new("DELETE", "api/v2/seasons/{seasonId}/permits/offers/{offerId}", new(CommandKind.WithdrawPermitOffer, CommandHandler.Permit, RefreshTargets.None)),
@@ -141,7 +143,7 @@ internal static class CommandRoutes
         new("PUT", "api/v2/seasons/{seasonId}/currency/icon", new(CommandKind.SetCurrencyIcon, CommandHandler.None, RefreshTargets.Season | RefreshTargets.CurrencyIcon)),
         new("DELETE", "api/v2/seasons/{seasonId}/currency/icon", new(CommandKind.RemoveCurrencyIcon, CommandHandler.None, RefreshTargets.Season | RefreshTargets.CurrencyIcon)),
         new("POST", "api/v2/seasons/{seasonId}/currency/adjustments", new(CommandKind.AdjustCurrency, CommandHandler.Balance, RefreshTargets.Season)),
-        new("PUT", "api/v2/seasons/{seasonId}/policies", new(CommandKind.EditPolicy, CommandHandler.Policy, RefreshTargets.Season | RefreshTargets.Policy)),
+        new("PUT", "api/v2/seasons/{seasonId}/policies", new(CommandKind.EditPolicy, CommandHandler.Policy, RefreshTargets.Season | RefreshTargets.Policy | RefreshTargets.Inventory)),
         new("POST", "api/v2/seasons/{seasonId}/ownership-transfers", new(CommandKind.ProposeOwnership, CommandHandler.None, RefreshTargets.Season | RefreshTargets.Members)),
         new("POST", "api/v2/seasons/{seasonId}/ownership-transfers/{transferId}/accept", new(CommandKind.AcceptOwnership, CommandHandler.None, RefreshTargets.Season | RefreshTargets.Members)),
         new("POST", "api/v2/seasons/{seasonId}/ownership-transfers/{transferId}/cancel", new(CommandKind.CancelOwnership, CommandHandler.None, RefreshTargets.Season | RefreshTargets.Members)),

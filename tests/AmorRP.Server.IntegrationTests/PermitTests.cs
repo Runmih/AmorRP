@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using AmorRP.Contracts.Common;
 using AmorRP.Contracts.Currency;
 using AmorRP.Contracts.Groups;
 using AmorRP.Contracts.Inventory;
@@ -12,7 +13,7 @@ namespace AmorRP.Server.IntegrationTests;
 public sealed partial class FoundationTests
 {
     [Fact]
-    public async Task Permit_listing_requires_consent_and_registration_pays_debt_then_locks_trust_until_release()
+    public async Task Public_permit_buys_after_one_approval_and_settles_debt_once()
     {
         var ct = TestContext.Current.CancellationToken;
         using var factory = Factory();
@@ -38,17 +39,45 @@ public sealed partial class FoundationTests
         await Charge(owner, season, creditor, subjectId, "15");
         var pending = await Command<PermitListing>(owner, HttpMethod.Post, path + "/listings", new PermitListingEdit(subjectId));
         Assert.Empty((await owner.GetFromJsonAsync<PermitShop>(path, ct))!.Listings);
+        var purchasePath = path + "/purchases";
+        var purchase = new PermitPurchase(subjectId, buyerGroup.Id, "35");
+        using (var req = Request(HttpMethod.Post, purchasePath, purchase, etag: pending.Etag))
+        using (var denied = await owner.SendAsync(req, ct))
+            Assert.Equal(HttpStatusCode.Conflict, denied.StatusCode);
+
         var listing = await Command<PermitListing>(subject, HttpMethod.Put, path + "/listings/mine",
             new PermitListingConsent(true, pending.Total), pending.Etag);
         Assert.Equal("35", listing.Total);
+        Assert.Equal(listing, Assert.Single((await owner.GetFromJsonAsync<PermitShop>(path, ct))!.Listings));
 
-        var offer = await Command<PermitOffer>(owner, HttpMethod.Post, path + "/offers", new PermitOfferCreate(subjectId, buyerGroup.Id, false));
-        var registerPath = path + $"/offers/{offer.Id}/register";
-        using (var req = Request(HttpMethod.Post, registerPath, new PermitQuoteAction(offer.Quote)))
+        using (var req = Request(HttpMethod.Post, purchasePath, purchase, etag: pending.Etag))
+        using (var denied = await owner.SendAsync(req, ct))
+            Assert.Equal(HttpStatusCode.PreconditionFailed, denied.StatusCode);
+        using (var req = Request(HttpMethod.Post, purchasePath, purchase with { ExpectedTotal = "20" }, etag: listing.Etag))
         using (var denied = await owner.SendAsync(req, ct))
             Assert.Equal(HttpStatusCode.Conflict, denied.StatusCode);
-        await Command<PermitOffer>(subject, HttpMethod.Put, path + $"/offers/{offer.Id}/consent", new PermitQuoteAction(offer.Quote));
-        var permit = await Command<OwnershipPermit>(owner, HttpMethod.Post, registerPath, new PermitQuoteAction(offer.Quote));
+        using (var req = Request(HttpMethod.Post, path + "/offers", new PermitOfferCreate(subjectId, buyerGroup.Id, false)))
+        using (var denied = await owner.SendAsync(req, ct))
+            Assert.Equal(HttpStatusCode.UnprocessableEntity, denied.StatusCode);
+
+        var key = Guid.CreateVersion7(clock.UtcNow);
+        using var buyRequest = Request(HttpMethod.Post, purchasePath, purchase, key, listing.Etag);
+        using var competingRequest = Request(HttpMethod.Post, purchasePath, purchase, etag: listing.Etag);
+        var results = await Task.WhenAll(owner.SendAsync(buyRequest, ct), owner.SendAsync(competingRequest, ct));
+        using var bought = Assert.Single(results, x => x.IsSuccessStatusCode);
+        using var lost = Assert.Single(results, x => x.StatusCode == HttpStatusCode.Conflict);
+        var permit = (await bought.Content.ReadFromJsonAsync<CommandResult<OwnershipPermit>>(ct))!.Result;
+        var winningKey = results[0].IsSuccessStatusCode ? key : Guid.Parse(competingRequest.Headers.GetValues("Idempotency-Key").Single());
+        using (var req = Request(HttpMethod.Post, purchasePath, purchase, winningKey, listing.Etag))
+        using (var replay = await owner.SendAsync(req, ct))
+        {
+            Assert.True(replay.Headers.Contains("Idempotency-Replayed"));
+            Assert.Equal(permit, (await replay.Content.ReadFromJsonAsync<CommandResult<OwnershipPermit>>(ct))!.Result);
+        }
+        var shop = (await owner.GetFromJsonAsync<PermitShop>(path, ct))!;
+        Assert.Empty(shop.Listings);
+        Assert.Empty(shop.Offers);
+        Assert.Equal(permit.Id, Assert.Single(shop.Permits).Id);
         Assert.Equal(subjectId, permit.CharacterId);
         const string effectsPath = "/api/v2/me/moodle-effects";
         var granted = Assert.Single((await subject.GetFromJsonAsync<MoodleGrants>(effectsPath, ct))!.Active);

@@ -10,7 +10,6 @@ namespace AmorRP.Plugin.Features.Seasons;
 
 public sealed partial class SeasonsPanel
 {
-    private bool policyDraftLoaded;
     private readonly FileDialogManager files = new();
     private string iconPath = "";
     private void SwitchCommunity(Season entry)
@@ -30,7 +29,7 @@ public sealed partial class SeasonsPanel
         requests.ChangeView(); reads.Clear(); ClearTradeViews();
         icons.Clear(); logos.Clear(); community = null; members = []; policies = null; transfer = null;
         ClearMemberDescription(); memberSelection = null; memberDraftEtag = null; memberSearch = ""; policyDraftVersion = editCommunityVersion = editCurrencyVersion = 0; membersCursor = null;
-        policyDraftLoaded = false;
+        scheduledPolicyDraft = null;
         ClearHomeViews(); editDescription = editCurrencyName = ""; iconPath = "";
         ClearMemberBalance();
         reason = delta = ""; tradingAllowed = true; grantDefinitions = false;

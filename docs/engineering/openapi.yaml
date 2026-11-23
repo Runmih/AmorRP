@@ -8429,10 +8429,71 @@ paths:
           $ref: '#/components/responses/Problem'
       x-authorization-policy: Nominated character
       x-implementation-status: implemented
+  /api/v2/seasons/{seasonId}/permits/purchases:
+    post:
+      operationId: buyPermitListing
+      summary: Buy and register a public permit
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: If-Match
+        in: header
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PermitPurchase'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OwnershipPermitResult'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Owner of the buying group with treasury withdrawal access
+      x-implementation-status: implemented
   /api/v2/seasons/{seasonId}/permits/offers:
     post:
       operationId: offerPermitRegistration
-      summary: Send a permit registration offer
+      summary: Send a private permit offer
       security:
       - Session: []
       parameters:
@@ -9728,6 +9789,23 @@ components:
       - operationId
       - result
       additionalProperties: false
+    PermitPurchase:
+      type: object
+      properties:
+        characterId:
+          type: string
+          format: uuid
+        groupId:
+          type: string
+          format: uuid
+        expectedTotal:
+          type: string
+          description: Whole currency units shown in the current listing price.
+      required:
+      - characterId
+      - groupId
+      - expectedTotal
+      additionalProperties: false
     PermitOfferCreate:
       type: object
       properties:
@@ -9739,6 +9817,7 @@ components:
           format: uuid
         private:
           type: boolean
+          enum: [true]
       required:
       - characterId
       - groupId
@@ -10646,6 +10725,8 @@ components:
           $ref: '#/components/schemas/PolicyValues'
         next:
           $ref: '#/components/schemas/PolicyValues'
+        gathering:
+          $ref: '#/components/schemas/GatheringSettings'
       required:
       - seasonId
       - version
@@ -10669,11 +10750,13 @@ components:
           type: integer
           minimum: 0
           maximum: 1000000
+        gathering:
+          $ref: '#/components/schemas/GatheringSettingsEdit'
       required:
       - potionPoints
       - letters
       additionalProperties: false
-      description: Schedules values for next server weekly period; no client-selected effective date.
+      description: Schedules next-week limits and optionally updates Gathering settings in the same transaction.
     Member:
       type: object
       properties:

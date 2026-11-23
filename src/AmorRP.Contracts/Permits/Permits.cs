@@ -4,6 +4,7 @@ public sealed record PermitPolicy(string BasePrice, bool Enabled);
 public sealed record PermitListingEdit(Guid CharacterId);
 public sealed record PermitListing(Guid CharacterId, string CharacterName, string Status, string Total, string Etag);
 public sealed record PermitListingConsent(bool Publish, string? ExpectedTotal = null);
+public sealed record PermitPurchase(Guid CharacterId, Guid GroupId, string ExpectedTotal);
 public sealed record PermitOfferCreate(Guid CharacterId, Guid GroupId, bool Private);
 public sealed record PermitQuoteAction(string Quote);
 public sealed record PermitAsset(Guid HoldingId, string Name, int Quantity, int Version);

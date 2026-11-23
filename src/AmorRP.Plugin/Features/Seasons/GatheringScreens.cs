@@ -10,7 +10,11 @@ public sealed partial class SeasonsPanel
     private readonly BackgroundRefresh<GatheringSettings> gatheringRefresh = new(TimeSpan.FromSeconds(20));
     private GatheringSettings? gathering;
     private int gatherQuantity = 1, gatherWeeklyPoints, alchemySupplyCost = 1, alchemySupplyBonus = 1, cookingSupplyCost = 1, cookingSupplyBonus = 1;
-    private int gatheringDraftVersion = -1;
+    private GatheringSettingsEdit? savedGatheringDraft;
+    private bool configureSupplies;
+    private GatheringSettingsEdit GatheringDraft => new(savedGatheringDraft!.ExpectedVersion, gatherWeeklyPoints,
+        alchemySupplyCost, alchemySupplyBonus, cookingSupplyCost, cookingSupplyBonus);
+    private bool GatheringEdited => savedGatheringDraft != null && (configureSupplies || savedGatheringDraft != GatheringDraft);
     private string gatheringFeedback = "";
     private bool CanGather => Owner || community?.MyCapabilities.Contains(CraftingTypes.GatherPermission) == true;
     private string GatheringPath => $"api/v2/seasons/{community!.Id}/gathering";
@@ -19,7 +23,8 @@ public sealed partial class SeasonsPanel
     {
         gatheringRefresh.Reset();
         gathering = null;
-        gatheringDraftVersion = -1;
+        savedGatheringDraft = null;
+        configureSupplies = false;
         gatherQuantity = 1;
         gatheringFeedback = "";
     }
@@ -30,7 +35,7 @@ public sealed partial class SeasonsPanel
         if (gatheringRefresh.TryCollect(now, dataGeneration, out var result))
         {
             gathering = result;
-            if (gatheringDraftVersion == -1) LoadGatheringDraft(result);
+            if (!GatheringEdited) LoadGatheringDraft(result);
         }
         if (origin is { } uri && session is { } actor && !SessionRenewalInProgress)
         {
@@ -38,13 +43,13 @@ public sealed partial class SeasonsPanel
             gatheringRefresh.Start(now, dataGeneration, requests.Token,
                 ct => client.GetAsync<GatheringSettings>(uri, path, actor.AccessToken, ct));
         }
-        DrawRefreshState(gatheringRefresh, "Gathering");
-        if (gatheringFeedback.Length > 0) Wrapped(gatheringFeedback);
     }
 
     private void DrawGathering()
     {
         ReadGathering();
+        DrawRefreshState(gatheringRefresh, "Gathering");
+        if (gatheringFeedback.Length > 0) Wrapped(gatheringFeedback);
         if (gathering == null) return;
         if (gathering.Packages.Length == 0)
         {
@@ -78,31 +83,26 @@ public sealed partial class SeasonsPanel
         alchemySupplyBonus = alchemy?.BonusPoints ?? 1;
         cookingSupplyCost = cooking?.Cost ?? 1;
         cookingSupplyBonus = cooking?.BonusPoints ?? 1;
-        gatheringDraftVersion = settings.Version;
+        savedGatheringDraft = new(settings.Version, gatherWeeklyPoints, alchemySupplyCost, alchemySupplyBonus, cookingSupplyCost, cookingSupplyBonus);
+        configureSupplies = false;
     }
+
+    private bool ValidGatheringDraft(int max) => gatherWeeklyPoints >= 0 && gatherWeeklyPoints <= max &&
+        new[] { alchemySupplyCost, alchemySupplyBonus, cookingSupplyCost, cookingSupplyBonus }.All(x => x > 0 && x <= max);
 
     private void DrawGatheringSettings()
     {
-        ReadGathering();
+        DrawRefreshState(gatheringRefresh, "Gathering");
         if (gathering == null) return;
-        var stale = gathering.Version != gatheringDraftVersion;
-        if (stale) Wrapped("Settings changed. Reload before saving.");
-        if (ActionButton("Reload Gathering settings", mutation: false)) LoadGatheringDraft(gathering);
-        Wrapped($"Active weekly allowance: {gathering.WeeklyPoints:N0}");
-        Wrapped("Later budget changes take effect at the weekly reset. New packages use the saved cost and bonus immediately.");
-        ImGui.InputInt("Weekly Gathering and Hunting points", ref gatherWeeklyPoints);
+        ImGui.TextDisabled($"Active limit: {gathering.WeeklyPoints:N0}");
+        ImGui.InputInt("Weekly points per character", ref gatherWeeklyPoints);
+        if (gathering.Packages.Length == 0)
+            ImGui.Checkbox("Configure supply packages", ref configureSupplies);
         ImGui.InputInt("Alchemy Supplies cost", ref alchemySupplyCost);
         ImGui.InputInt("Alchemy Supplies bonus", ref alchemySupplyBonus);
         ImGui.InputInt("Cooking Supplies cost", ref cookingSupplyCost);
         ImGui.InputInt("Cooking Supplies bonus", ref cookingSupplyBonus);
-        var max = serviceLimits?.MaxWeeklyPotionPoints ?? 1000000;
-        var valid = gatherWeeklyPoints >= 0 && gatherWeeklyPoints <= max
-            && new[] { alchemySupplyCost, alchemySupplyBonus, cookingSupplyCost, cookingSupplyBonus }.All(x => x > 0 && x <= max);
-        ImGui.BeginDisabled(!valid || stale);
-        if (ActionButton("Save Gathering settings"))
-            Mutate("PUT", GatheringPath, new GatheringSettingsEdit(gatheringDraftVersion, gatherWeeklyPoints,
-                alchemySupplyCost, alchemySupplyBonus, cookingSupplyCost, cookingSupplyBonus));
-        ImGui.EndDisabled();
+        ImGui.TextDisabled("Supply costs and bonuses apply to new packages immediately.");
     }
 
     private void DrawSupplyUse(HoldingDetails detail)

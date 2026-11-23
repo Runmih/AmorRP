@@ -26,23 +26,28 @@ public sealed class GatheringService(AmorDbContext db, SessionAccess sessions, S
     }
 
     public Task<IResult> WriteAsync(HttpContext h, Guid seasonId, GatheringSettingsEdit body, CancellationToken ct) =>
-        RunAsync(h, seasonId, body, "gathering.policy", async (season, member, op) =>
+        RunAsync(h, seasonId, body, "gathering.policy", (season, member, _) =>
         {
             SeasonAccess.Owner(season, member.CharacterId);
-            var max = limits.Value.MaxWeeklyPotionPoints;
-            ApiFault.Require(season.GatheringVersion == body.ExpectedVersion, 409, "gathering_policy_changed", "Gathering settings changed. Reload them before saving.");
-            ApiFault.Require(body.WeeklyPoints >= 0 && body.WeeklyPoints <= max
-                && new[] { body.AlchemyCost, body.AlchemyBonus, body.CookingCost, body.CookingBonus }.All(x => x > 0 && x <= max),
-                422, "invalid_gathering_policy", "Use a valid budget and positive costs and bonuses.");
-            SeasonAccess.PromotePolicy(season, time.GetUtcNow());
-            if (season.GatheringVersion == 0) season.CurrentGatheringPoints = body.WeeklyPoints;
-            season.NextGatheringPoints = body.WeeklyPoints;
-            season.GatheringVersion++;
-            var alchemy = await SavePackageAsync(season.Id, CraftingTypes.AlchemySupplies, "Alchemy Supplies", body.AlchemyCost, body.AlchemyBonus, ct);
-            var cooking = await SavePackageAsync(season.Id, CraftingTypes.CookingSupplies, "Cooking Supplies", body.CookingCost, body.CookingBonus, ct);
-            season.InventoryVersion++;
-            return View(season, [alchemy, cooking], time.GetUtcNow());
+            return ApplySettingsAsync(season, body, time.GetUtcNow(), ct);
         }, ct);
+
+    internal async Task<GatheringSettings> ApplySettingsAsync(CommunityRow season, GatheringSettingsEdit body, DateTimeOffset now, CancellationToken ct)
+    {
+        var max = limits.Value.MaxWeeklyPotionPoints;
+        ApiFault.Require(season.GatheringVersion == body.ExpectedVersion, 409, "gathering_policy_changed", "Gathering settings changed. Reload them before saving.");
+        ApiFault.Require(body.WeeklyPoints >= 0 && body.WeeklyPoints <= max
+            && new[] { body.AlchemyCost, body.AlchemyBonus, body.CookingCost, body.CookingBonus }.All(x => x > 0 && x <= max),
+            422, "invalid_gathering_policy", "Use a valid budget and positive costs and bonuses.");
+        SeasonAccess.PromotePolicy(season, now);
+        if (season.GatheringVersion == 0) season.CurrentGatheringPoints = body.WeeklyPoints;
+        season.NextGatheringPoints = body.WeeklyPoints;
+        season.GatheringVersion++;
+        var alchemy = await SavePackageAsync(season.Id, CraftingTypes.AlchemySupplies, "Alchemy Supplies", body.AlchemyCost, body.AlchemyBonus, ct);
+        var cooking = await SavePackageAsync(season.Id, CraftingTypes.CookingSupplies, "Cooking Supplies", body.CookingCost, body.CookingBonus, ct);
+        season.InventoryVersion++;
+        return View(season, [alchemy, cooking], now);
+    }
 
     public Task<IResult> GatherAsync(HttpContext h, Guid seasonId, GatherSupplies body, CancellationToken ct) =>
         RunAsync(h, seasonId, body, "gathering.create", async (season, member, op) =>

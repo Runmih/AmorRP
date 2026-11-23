@@ -4,6 +4,7 @@ using AmorRP.Contracts.Currency;
 using AmorRP.Contracts.History;
 using AmorRP.Contracts.Common;
 using AmorRP.Server.Features.Authentication;
+using AmorRP.Server.Features.Gathering;
 using AmorRP.Server.Infrastructure.Persistence;
 using AmorRP.Server.Infrastructure.Security;
 using AmorRP.Server.Options;
@@ -13,7 +14,7 @@ using Microsoft.Extensions.Options;
 namespace AmorRP.Server.Features.Seasons;
 
 public sealed partial class SeasonResourceService(AmorDbContext db, SessionAccess sessions, SeasonAccess access, CommandStore commands,
-    PageCursor pages, IOptions<ServicePolicyOptions> policy, TimeProvider time, AmorRP.Server.Features.Trading.TradeReservations trades, SeasonService seasons)
+    PageCursor pages, IOptions<ServicePolicyOptions> policy, TimeProvider time, AmorRP.Server.Features.Trading.TradeReservations trades, SeasonService seasons, GatheringService gathering)
 {
     public async Task<IResult> ListAsync(HttpContext http, CancellationToken ct)
     {
@@ -99,8 +100,16 @@ public sealed partial class SeasonResourceService(AmorDbContext db, SessionAcces
             case PolicyEdit edit:
                 CommandStore.Match(http, CommandStore.ETag("policy", community.Id, community.PolicyVersion)); ValidatePolicy(edit.PotionPoints, edit.Letters);
                 ApiFault.Require(edit.CookingPoints >= 0 && edit.CookingPoints <= policy.Value.MaxWeeklyPotionPoints, 422, "invalid_policy", "Cooking points exceed the supported range.");
-                SeasonAccess.PromotePolicy(community, time.GetUtcNow()); community.NextCookingPoints = edit.CookingPoints; community.NextPotionPoints = edit.PotionPoints; community.NextLetters = edit.Letters; community.PolicyVersion++;
-                payload = SeasonAccess.Policies(community, time.GetUtcNow()); http.Response.Headers.ETag = CommandStore.ETag("policy", community.Id, community.PolicyVersion); break;
+                var now = time.GetUtcNow();
+                SeasonAccess.PromotePolicy(community, now);
+                var gatheringSettings = edit.Gathering == null ? null : await gathering.ApplySettingsAsync(community, edit.Gathering, now, ct);
+                community.NextCookingPoints = edit.CookingPoints;
+                community.NextPotionPoints = edit.PotionPoints;
+                community.NextLetters = edit.Letters;
+                community.PolicyVersion++;
+                payload = SeasonAccess.Policies(community, now) with { Gathering = gatheringSettings };
+                http.Response.Headers.ETag = CommandStore.ETag("policy", community.Id, community.PolicyVersion);
+                break;
             case CurrencyEdit edit:
                 ApiFault.Require(community.OwnerCharacterId == session.CharacterId || edit.Symbol == community.CurrencySymbol, 403, "owner_required", "General Moderation permits changing the currency name only.");
                 CommandStore.Match(http, CommandStore.ETag("currency", community.CurrencyId, community.CurrencyVersion));

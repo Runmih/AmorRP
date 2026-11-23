@@ -74,7 +74,7 @@ public sealed partial class SeasonsPanel
                 { if (BeginTradeRequest()) SendTradeRequest(target); }
                 DrawPersonalNote(target);
             }
-            if (CanNominatePermit && target.Status == "active" && ActionButton("Nominate for Slave listing")) NominatePermit(target);
+            if (CanNominatePermit && target.Status == "active" && ActionButton("Request Slave listing")) NominatePermit(target);
             if (view == MemberView.Directory && CanManageCommunityMembers && ImGui.Button("Manage this member"))
             { requestedManagementMembers = true; OpenWorkspaceWindow?.Invoke(WorkspaceKind.CommunityManagement); }
             if (view != MemberView.Directory && CanManageGameplay && target.Status == "active")

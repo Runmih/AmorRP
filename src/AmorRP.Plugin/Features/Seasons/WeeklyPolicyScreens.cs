@@ -1,70 +1,82 @@
 using AmorRP.Contracts.Seasons;
-using AmorRP.Plugin.Services.Api;
-using System.Text.Json;
 using Dalamud.Bindings.ImGui;
+
 namespace AmorRP.Plugin.Features.Seasons;
 
 public sealed partial class SeasonsPanel
 {
-    private bool policyPointsDirty, policyLettersDirty, policyCookingDirty;
-    private int activePolicyPoints, activePolicyLetters, activePolicyCooking;
-    private void LoadActivePolicy(SeasonPolicies current)
+    private PolicyValues? scheduledPolicyDraft;
+
+    private bool WeeklyLimitsEdited => scheduledPolicyDraft != new PolicyValues(nextPoints, nextLetters, nextCooking);
+
+    private void LoadScheduledPolicy(SeasonPolicies current)
     {
-        policyDraftLoaded = true; policyDraftVersion = current.Version;
-        nextPoints = activePolicyPoints = current.Current.PotionPoints;
-        nextLetters = activePolicyLetters = current.Current.Letters;
-        nextCooking = activePolicyCooking = current.Current.CookingPoints;
-        policyPointsDirty = policyLettersDirty = policyCookingDirty = false;
+        policyDraftVersion = current.Version;
+        scheduledPolicyDraft = current.Next;
+        nextPoints = current.Next.PotionPoints;
+        nextLetters = current.Next.Letters;
+        nextCooking = current.Next.CookingPoints;
     }
-    private void AcceptPolicySave(CommandRequest request, SeasonPolicies updated)
+
+    private void AcceptPolicySave(SeasonPolicies updated)
     {
-        policies = updated; policyDraftVersion = updated.Version;
-        var sent = JsonSerializer.Deserialize<PolicyEdit>(request.Json!, FoundationClient.Json)!;
-        if (sent.PotionPoints == nextPoints) policyPointsDirty = false;
-        if (sent.Letters == nextLetters) policyLettersDirty = false;
-        if (sent.CookingPoints == nextCooking) policyCookingDirty = false;
+        policies = updated;
+        LoadScheduledPolicy(updated);
+        if (updated.Gathering is { } settings)
+        {
+            gathering = settings;
+            LoadGatheringDraft(settings);
+            gatheringRefresh.Invalidate();
+        }
     }
-    private void DrawWeeklyPolicy(bool expanded = false)
+
+    private void DrawWeeklyPolicy()
     {
-        if (!expanded && !ImGui.CollapsingHeader("Weekly Policy")) return;
+        ReadGathering();
+        var maxPoints = serviceLimits?.MaxWeeklyPotionPoints ?? 1000000;
+        var maxLetters = serviceLimits?.MaxWeeklyLetters ?? 10000;
+        var gatheringEdit = GatheringEdited ? GatheringDraft : null;
+        var stale = policies != null && policyDraftVersion != policies.Version ||
+            gatheringEdit != null && gathering?.Version != gatheringEdit.ExpectedVersion;
+        var valid = nextPoints >= 0 && nextPoints <= maxPoints && nextCooking >= 0 && nextCooking <= maxPoints &&
+            nextLetters >= 0 && nextLetters <= maxLetters && (gatheringEdit == null || ValidGatheringDraft(maxPoints));
+
+        ImGui.BeginDisabled(policies == null || stale || !valid || (!WeeklyLimitsEdited && gatheringEdit == null));
+        if (ActionButton("Save weekly limits"))
+            Mutate("PUT", $"api/v2/seasons/{community!.Id}/policies", new PolicyEdit(nextPoints, nextLetters, nextCooking, gatheringEdit),
+                ETag("policy", community.Id, policyDraftVersion));
+        ImGui.EndDisabled();
+        if (stale && policies != null)
+        {
+            ImGui.SameLine();
+            if (ActionButton("Reload saved settings", mutation: false))
+            {
+                LoadScheduledPolicy(policies);
+                if (gathering != null) LoadGatheringDraft(gathering);
+            }
+            Wrapped("The saved settings changed while you were editing.");
+        }
+        if (!valid) Wrapped("Enter weekly limits within range and positive supply costs and bonuses.");
+
         DrawRefreshState(policyRefresh, "Weekly policy");
         if (policies == null) return;
-        if (!policyDraftLoaded) LoadActivePolicy(policies);
-        if (activePolicyPoints != policies.Current.PotionPoints && !policyPointsDirty) nextPoints = policies.Current.PotionPoints;
-        if (activePolicyLetters != policies.Current.Letters && !policyLettersDirty) nextLetters = policies.Current.Letters;
-        if (activePolicyCooking != policies.Current.CookingPoints && !policyCookingDirty) nextCooking = policies.Current.CookingPoints;
-        activePolicyPoints = policies.Current.PotionPoints; activePolicyLetters = policies.Current.Letters; activePolicyCooking = policies.Current.CookingPoints;
-        var stale = policyDraftVersion != policies.Version;
-        if (stale) Wrapped("The policy changed. Reload active settings before saving.");
-        if (ActionButton("Reload active settings", mutation: false)) LoadActivePolicy(policies);
-        Wrapped("Changes take effect at the next weekly reset: " + policies.NextResetAt.LocalDateTime.ToString("g"));
-        if (!ImGui.BeginTabBar("WeeklyPolicyTypes")) return;
-        if (ImGui.BeginTabItem("Alchemy"))
-        {
-            Wrapped($"Active: {policies.Current.PotionPoints} points per character. Scheduled: {policies.Next.PotionPoints}.");
-            FieldLabel("Alchemy points per character / week"); policyPointsDirty |= ImGui.InputInt("##WeeklyAlchemyPoints", ref nextPoints);
-            ImGui.BeginDisabled(stale || nextPoints < 0 || nextPoints > (serviceLimits?.MaxWeeklyPotionPoints ?? 1000000));
-            if (ActionButton("Schedule Alchemy points")) SaveWeeklyPolicy(new(nextPoints, policies.Next.Letters, policies.Next.CookingPoints));
-            ImGui.EndDisabled(); ImGui.EndTabItem();
-        }
-        if (ImGui.BeginTabItem("Cooking"))
-        {
-            Wrapped($"Active: {policies.Current.CookingPoints} points per character. Scheduled: {policies.Next.CookingPoints}.");
-            FieldLabel("Cooking points per character / week"); policyCookingDirty |= ImGui.InputInt("##WeeklyCookingPoints", ref nextCooking);
-            ImGui.BeginDisabled(stale || nextCooking < 0 || nextCooking > (serviceLimits?.MaxWeeklyPotionPoints ?? 1000000));
-            if (ActionButton("Schedule Cooking points")) SaveWeeklyPolicy(new(policies.Next.PotionPoints, policies.Next.Letters, nextCooking));
-            ImGui.EndDisabled(); ImGui.EndTabItem();
-        }
-        if (ImGui.BeginTabItem("Writing"))
-        {
-            Wrapped($"Active: {policies.Current.Letters} written items per character. Scheduled: {policies.Next.Letters}.");
-            FieldLabel("Books, letters and notes per character / week"); policyLettersDirty |= ImGui.InputInt("##WeeklyWrittenItems", ref nextLetters);
-            ImGui.BeginDisabled(stale || nextLetters < 0 || nextLetters > (serviceLimits?.MaxWeeklyLetters ?? 10000));
-            if (ActionButton("Schedule writing limit")) SaveWeeklyPolicy(new(policies.Next.PotionPoints, nextLetters, policies.Next.CookingPoints));
-            ImGui.EndDisabled(); ImGui.EndTabItem();
-        }
-        if (ImGui.BeginTabItem("Gathering and Hunting")) { DrawGatheringSettings(); ImGui.EndTabItem(); }
-        ImGui.EndTabBar();
+        ImGui.TextUnformatted($"Weekly limits reset on {policies.NextResetAt.LocalDateTime:g}.");
+        ImGui.BeginDisabled(WriteBlocked || SeasonReadOnly);
+        DrawWeeklyLimitField("Alchemy", "Points per character", "##WeeklyAlchemyPoints", policies.Current.PotionPoints, ref nextPoints);
+        DrawWeeklyLimitField("Cooking", "Points per character", "##WeeklyCookingPoints", policies.Current.CookingPoints, ref nextCooking);
+        DrawWeeklyLimitField("Writing", "Books, letters and notes per character", "##WeeklyWrittenItems", policies.Current.Letters, ref nextLetters);
+        ImGui.Spacing();
+        DrawSectionHeading("Gathering and Hunting");
+        DrawGatheringSettings();
+        ImGui.EndDisabled();
     }
-    private void SaveWeeklyPolicy(PolicyEdit edit) => Mutate("PUT", $"api/v2/seasons/{community!.Id}/policies", edit, ETag("policy", community.Id, policyDraftVersion));
+
+    private static void DrawWeeklyLimitField(string section, string label, string id, int current, ref int scheduled)
+    {
+        ImGui.Spacing();
+        DrawSectionHeading(section);
+        ImGui.TextDisabled($"Active limit: {current:N0}");
+        FieldLabel(label);
+        ImGui.InputInt(id, ref scheduled);
+    }
 }

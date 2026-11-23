@@ -50,18 +50,15 @@ unauthorized buyer, duplicate request and sufficient funds after reservations/de
 
 ### Public listings
 
-A dedicated season moderator permission allows its holders to submit any verified
-character in the season who has no active permit for the **Slave** list. The
-character receives a private OOC consent
-request with a preview of their public name and price. Their listing becomes visible
-after they accept, and they can withdraw it until registration completes. Being in
-debt does not create a listing. A character with zero debt can still participate.
+A season moderator with listing permission can request a listing for a verified
+character without an active permit. **Allow listing** publishes the character's
+name and price. The character can withdraw until someone buys the listing.
+Characters can be listed regardless of their debt balance.
 
-The public card shows the total price, calculated as the season's base price plus
-the character's outstanding season debt. A group owner can request registration
-from the card. The listed character must explicitly accept that group out of
-character before the purchase can complete. That consent covers the group's
-Trusted billing lock after registration.
+The **Slave** shop table shows **Slave name** and **Price**. The price includes
+the season's base price and the character's outstanding season debt. An eligible
+group owner buys from the row, using their group treasury. The purchase registers
+the permit and applies the owning group's Trusted billing lock.
 
 ### Private offer
 
@@ -82,10 +79,10 @@ transaction so the offer cannot turn into an ordinary item transfer.
 
 ### Registration and release
 
-For either route, show the owning group, base price, outstanding debts, total cost,
-available group treasury balance and any shortfall to the authorized group owner.
-Recheck consents, eligibility, quote, assets and funds at commit. Insufficient funds
-or a stale confirmation leaves balances, items, the listing and status intact.
+For private offers, show the owning group, cost breakdown, treasury balance and
+any shortfall. For public listings, recheck the listing version and displayed
+price when the buyer clicks Buy. Both paths verify eligibility and funds at
+commit. Insufficient funds or changed terms leave the purchase uncommitted.
 
 In a single transaction, pay existing creditors, register the named permit,
 transfer the confirmed assets for a private offer, remove any public listing, set

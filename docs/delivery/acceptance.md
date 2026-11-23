@@ -42,9 +42,10 @@ records current acceptance status; this checklist describes what to verify.
   Check that members can view the roster and nonmembers can join from Members.
 - 0.6 Shop: create and hide a listing, test personal and group purchases and
   verify inventory delivery, stock, buyer limits and season treasury receipts.
-- 0.7 permits: nominate and publish from different accounts. Compare public
-  and private views, change the quote before settlement, and confirm new consent
-  is required. Check debt settlement, transferred assets, release and disband.
+- Permits: request a public listing and approve it from the listed character.
+  Buy from the Slave name and Price table. Check automatic group selection for a
+  single eligible group, price changes, concurrent buyers, debt settlement,
+  release and disband. Check the separate private offer's exact asset quote.
 - 0.8 Gathering: grant the permission, configure supplies, gather and trade
   both package types, use one to craft an item above the base allowance, and
   verify the shared reset clears unused bonus points.

@@ -64,7 +64,7 @@ public sealed partial class SeasonsPanel
         if (policyRefresh.TryCollect(now, dataGeneration, out var policy))
         {
             policies = policy;
-            if (!policyDraftLoaded) LoadActivePolicy(policy);
+            if (scheduledPolicyDraft == null || !WeeklyLimitsEdited) LoadScheduledPolicy(policy);
         }
         if (ownershipRefresh.TryCollect(now, dataGeneration, out var ownership)) transfer = ownership;
         if (groupsRefresh.TryCollect(now, dataGeneration, out var groups)) AcceptCommunityGroups(groups);

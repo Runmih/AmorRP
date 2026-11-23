@@ -54,7 +54,7 @@ public sealed partial class SeasonsPanel
                 if (memberSelection == updated.Result.Character.Id) memberDraftEtag = updated.Result.Etag;
                 AcceptAuthorizationSave(request, updated); AcceptMemberDescriptionSave(request, updated.Result);
                 break;
-            case CommandHandler.Policy: AcceptPolicySave(request, ReadCommand<SeasonPolicies>(response.Json)); break;
+            case CommandHandler.Policy: AcceptPolicySave(ReadCommand<SeasonPolicies>(response.Json)); break;
         }
     }
 

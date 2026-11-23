@@ -61,7 +61,7 @@ and carry their original recipe revision and optional consumable effect.
 | GET | `/api/v2/seasons/{seasonId}` | Season and own permissions/balance | Active member |
 | PATCH | `/api/v2/seasons/{seasonId}` | Edit season name/description | Owner; season.moderate can change description only |
 | GET | `/api/v2/seasons/{seasonId}/policies` | Current and next weekly policies | Active member |
-| PUT | `/api/v2/seasons/{seasonId}/policies` | Schedule next-week limits | Owner |
+| PUT | `/api/v2/seasons/{seasonId}/policies` | Schedule next-week limits and optionally update Gathering settings in one save | Owner |
 | GET | `/api/v2/seasons/{seasonId}/members` | All verified players in the season | Active member |
 | PUT | `/api/v2/seasons/{seasonId}/members/{characterId}/capabilities` | Replace individually granted actions | Owner; members.gameplay.manage can change Trading and items.potion.create only |
 | PUT | `/api/v2/seasons/{seasonId}/members/{characterId}/trade-restriction` | Restrict/restore both trade directions and cancel affected trades | Owner; active nonowner |
@@ -182,7 +182,8 @@ and carry their original recipe revision and optional consumable effect.
 | PUT | `/api/v2/seasons/{seasonId}/permits/policy` | Save permit settings | Season owner |
 | POST | `/api/v2/seasons/{seasonId}/permits/listings` | Request listing consent | Season permit listing moderator |
 | PUT | `/api/v2/seasons/{seasonId}/permits/listings/mine` | Publish or withdraw own listing | Nominated character |
-| POST | `/api/v2/seasons/{seasonId}/permits/offers` | Send a permit registration offer | Authorized buying group owner |
+| POST | `/api/v2/seasons/{seasonId}/permits/purchases` | Buy and register a public permit using the displayed price and listing ETag | Owner of the buying group with treasury withdrawal access |
+| POST | `/api/v2/seasons/{seasonId}/permits/offers` | Send a private permit offer | Authorized buying group owner |
 | PUT | `/api/v2/seasons/{seasonId}/permits/offers/{offerId}/consent` | Accept the exact permit quote | Addressed character |
 | DELETE | `/api/v2/seasons/{seasonId}/permits/offers/{offerId}` | Withdraw a permit offer | Offer participant |
 | POST | `/api/v2/seasons/{seasonId}/permits/offers/{offerId}/register` | Pay and register a named permit | Named buyer and owning group owner |

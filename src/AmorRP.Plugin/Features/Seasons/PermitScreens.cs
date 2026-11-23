@@ -6,6 +6,7 @@ using AmorRP.Plugin.Features.Shell;
 using AmorRP.Plugin.Services.Api;
 using AmorRP.Plugin.Services.Game;
 using Dalamud.Bindings.ImGui;
+using GroupProfile = AmorRP.Contracts.Groups.Group;
 
 namespace AmorRP.Plugin.Features.Seasons;
 
@@ -16,12 +17,12 @@ public sealed partial class SeasonsPanel
     private PermitShop? permitShop;
     private string permitBasePrice = "", permitFeedback = "";
     private bool permitEnabled, permitTabRequested;
-    private Guid? permitBuyerGroup, permitTargetId, permitReviewId;
+    private Guid? permitBuyerGroup, permitReviewId;
     private CharacterTarget? privatePermitTarget;
     private Member? privatePermitMember;
     private bool CanNominatePermit => Owner || community?.MyCapabilities.Contains(ManagePermitListings) == true;
     public bool CanOfferPrivatePermit => session != null && community != null && !SeasonReadOnly
-        && communityGroups.Any(group => group.OwnerCharacterId == session.Character.Id && CanGroupAction(group, GroupCapabilities.TreasuryWithdraw));
+        && communityGroups.Any(CanBuyPermitForGroup);
 
     private string PermitsPath => $"api/v2/seasons/{community!.Id}/permits";
 
@@ -31,7 +32,7 @@ public sealed partial class SeasonsPanel
         permitShop = null;
         permitBasePrice = permitFeedback = "";
         permitEnabled = permitTabRequested = false;
-        permitBuyerGroup = permitTargetId = permitReviewId = null;
+        permitBuyerGroup = permitReviewId = null;
         privatePermitTarget = null;
         privatePermitMember = null;
     }
@@ -53,7 +54,7 @@ public sealed partial class SeasonsPanel
         var token = session.AccessToken;
         privatePermitTarget = target;
         privatePermitMember = null;
-        permitTargetId = permitReviewId = null;
+        permitReviewId = null;
         permitFeedback = "Finding " + target.Name + "…";
         permitTabRequested = true;
         OpenWorkspace(WorkspaceKind.Shop);
@@ -99,6 +100,10 @@ public sealed partial class SeasonsPanel
             if (ActionButton("Save permit settings")) Mutate("PUT", PermitsPath + "/policy", new PermitPolicy(normalized, permitEnabled));
             ImGui.EndDisabled();
         }
+        var groups = communityGroups.Where(CanBuyPermitForGroup).ToArray();
+        DrawPermitListings(groups);
+        DrawPrivatePermitDraft(groups);
+        DrawPermitOffers();
         if (permitShop.Permits.Length > 0 && ImGui.CollapsingHeader("Registered permits", ImGuiTreeNodeFlags.DefaultOpen))
         {
             foreach (var permit in permitShop.Permits)
@@ -111,59 +116,94 @@ public sealed partial class SeasonsPanel
                 ImGui.PopID();
             }
         }
-        DrawPermitOffers();
-        DrawPermitListings();
     }
 
-    private void DrawPermitListings()
+    private bool CanBuyPermitForGroup(GroupProfile group) =>
+        group.OwnerCharacterId == session?.Character.Id && CanGroupAction(group, GroupCapabilities.TreasuryWithdraw);
+
+    private bool DrawPermitBuyer(GroupProfile[] groups)
+    {
+        if (groups.Length == 1) permitBuyerGroup = groups[0].Id;
+        var selected = groups.FirstOrDefault(x => x.Id == permitBuyerGroup);
+        if (groups.Length > 1 && ImGui.BeginCombo("Buying group", selected?.Name ?? "Choose a group"))
+        {
+            foreach (var group in groups)
+                if (ImGui.Selectable(group.Name.Replace("##", "# #") + "###permitGroup" + group.Id, permitBuyerGroup == group.Id))
+                    permitBuyerGroup = group.Id;
+            ImGui.EndCombo();
+        }
+        return groups.Any(x => x.Id == permitBuyerGroup);
+    }
+
+    private void DrawPermitListings(GroupProfile[] groups)
     {
         var playerId = session!.Character.Id;
         var mine = permitShop!.Listings.FirstOrDefault(x => x.CharacterId == playerId);
         if (mine != null)
         {
-            ImGui.Separator();
-            Wrapped($"Your listing: {mine.CharacterName} · {mine.Total} {community!.Currency.Name}");
-            if (mine.Status == "pending")
+            ImGui.TextUnformatted($"Your listing · {mine.Total} {community!.Currency.Name}");
+            if (mine.Status == "pending" && permitShop.Policy.Enabled)
             {
-                Wrapped("Publishing is optional. It makes this character name and price visible in the Season Shop.");
-                if (permitShop.Policy.Enabled && ActionButton("I consent OOC — publish my listing"))
+                if (ActionButton("Allow listing"))
                     Mutate("PUT", PermitsPath + "/listings/mine", new PermitListingConsent(true, mine.Total), mine.Etag);
+                ImGui.SameLine();
             }
-            if (ActionButton(mine.Status == "pending" ? "Decline listing" : "Withdraw my listing"))
+            if (ActionButton(mine.Status == "pending" ? "Decline" : "Withdraw listing"))
                 Mutate("PUT", PermitsPath + "/listings/mine", new PermitListingConsent(false), mine.Etag);
+            ImGui.Spacing();
         }
-        if (!permitShop.Policy.Enabled) return;
+
+        var listings = permitShop.Listings.Where(x => x.Status == "listed" && permitShop.Policy.Enabled).ToArray();
+        if (listings.Length == 0)
+        {
+            ImGui.TextDisabled(permitShop.Policy.Enabled ? "No active listings." : "The shop is closed.");
+            return;
+        }
+
+        var hasBuyer = DrawPermitBuyer(groups);
+        if (groups.Length == 0) ImGui.TextDisabled("Purchases use a group treasury and require a group owner.");
+        if (!ImGui.BeginTable("PermitListings", 2, ImGuiTableFlags.RowBg | ImGuiTableFlags.BordersInnerH)) return;
+        ImGui.TableSetupColumn("Slave name", ImGuiTableColumnFlags.WidthStretch, 0.55f);
+        ImGui.TableSetupColumn("Price", ImGuiTableColumnFlags.WidthStretch, 0.45f);
+        ImGui.TableHeadersRow();
+        foreach (var listing in listings)
+        {
+            ImGui.PushID(listing.CharacterId.ToString());
+            ImGui.TableNextRow();
+            ImGui.TableNextColumn();
+            ImGui.TextUnformatted(listing.CharacterName);
+            ImGui.TableNextColumn();
+            ImGui.TextUnformatted($"{listing.Total} {community!.Currency.Name}");
+            if (listing.CharacterId != playerId && groups.Length > 0)
+            {
+                ImGui.SameLine();
+                ImGui.BeginDisabled(!hasBuyer);
+                if (ActionButton("Buy") && permitBuyerGroup is { } groupId)
+                    Mutate("POST", PermitsPath + "/purchases", new PermitPurchase(listing.CharacterId, groupId, listing.Total), listing.Etag);
+                ImGui.EndDisabled();
+            }
+            ImGui.PopID();
+        }
+        ImGui.EndTable();
+    }
+
+    private void DrawPrivatePermitDraft(GroupProfile[] groups)
+    {
+        if (privatePermitMember is not { } target || !CanOfferPrivatePermit || !permitShop!.Policy.Enabled) return;
         ImGui.Separator();
-        foreach (var listing in permitShop.Listings.Where(x => x.Status == "listed" && x.CharacterId != playerId))
-        {
-            if (!ImGui.Selectable($"{listing.CharacterName} · {listing.Total} {community!.Currency.Name}###permit{listing.CharacterId}", listing.CharacterId == permitTargetId)) continue;
-            permitTargetId = listing.CharacterId;
-            privatePermitTarget = null;
-            privatePermitMember = null;
-            permitFeedback = "";
-        }
-        var target = privatePermitMember?.Character.Id ?? permitTargetId;
-        if (target == null || !CanOfferPrivatePermit) return;
-        var name = privatePermitMember?.Character.DisplayName ?? permitShop.Listings.FirstOrDefault(x => x.CharacterId == target)?.CharacterName;
-        if (name == null) return;
-        Wrapped(privatePermitMember != null ? $"Private offer to {name}" : $"Request registration for {name}");
-        var groups = communityGroups.Where(group => group.OwnerCharacterId == playerId && CanGroupAction(group, GroupCapabilities.TreasuryWithdraw)).ToArray();
-        if (groups.Length == 1) permitBuyerGroup = groups[0].Id;
-        if (ImGui.BeginCombo("Owning group", groups.FirstOrDefault(x => x.Id == permitBuyerGroup)?.Name ?? "Choose a group"))
-        {
-            foreach (var group in groups)
-                if (ImGui.Selectable(group.Name + "###permitGroup" + group.Id, permitBuyerGroup == group.Id)) permitBuyerGroup = group.Id;
-            ImGui.EndCombo();
-        }
-        if (permitBuyerGroup is { } groupId && groups.Any(x => x.Id == groupId) && ActionButton("Send offer"))
-            Mutate("POST", PermitsPath + "/offers", new PermitOfferCreate(target.Value, groupId, privatePermitMember != null));
+        ImGui.TextUnformatted($"Private offer to {target.Character.DisplayName}");
+        ImGui.PushID("PrivatePermitBuyer");
+        var hasBuyer = DrawPermitBuyer(groups);
+        ImGui.PopID();
+        if (hasBuyer && permitBuyerGroup is { } groupId && ActionButton("Send offer"))
+            Mutate("POST", PermitsPath + "/offers", new PermitOfferCreate(target.Character.Id, groupId, true));
     }
 
     private void DrawPermitOffers()
     {
         if (permitShop!.Offers.Length == 0) return;
         ImGui.Separator();
-        ImGui.TextUnformatted("Registration offers");
+        ImGui.TextUnformatted("Private offers");
         foreach (var offer in permitShop.Offers)
         {
             ImGui.PushID(offer.Id.ToString());
@@ -175,22 +215,20 @@ public sealed partial class SeasonsPanel
         var currency = community!.Currency.Name;
         if (reviewing.Total.Length > 0) Wrapped($"Permit: {reviewing.BasePrice} · Debt: {reviewing.Debt} · Total: {reviewing.Total} {currency}");
         else Wrapped($"Base permit price: {reviewing.BasePrice} {currency}. Waiting for the player to share the full quote.");
-        Wrapped("Registration locks Trusted billing on for the owning group until release.");
-        if (reviewing.Private && (reviewing.CharacterId == session!.Character.Id || reviewing.Accepted))
+        if (reviewing.CharacterId == session!.Character.Id || reviewing.Accepted)
         {
-            if (reviewing.CharacterId == session!.Character.Id && !reviewing.Accepted) Wrapped("Accepting shares this asset list with the named buyer.");
             Wrapped($"Assets to the buyer: {reviewing.AssetsCurrency} {currency}");
             foreach (var asset in reviewing.Assets) Wrapped($"{asset.Quantity} × {asset.Name}");
         }
         var endpoint = PermitsPath + "/offers/" + reviewing.Id;
-        if (reviewing.CharacterId == session!.Character.Id && !reviewing.Accepted && permitShop.Policy.Enabled && ActionButton("I consent OOC — accept this offer"))
+        if (reviewing.CharacterId == session!.Character.Id && !reviewing.Accepted && permitShop.Policy.Enabled && ActionButton("Accept"))
             Mutate("PUT", endpoint + "/consent", new PermitQuoteAction(reviewing.Quote));
         if (reviewing.GroupBalance is { } balance && Int128.TryParse(balance, out var available) && Int128.TryParse(reviewing.Total, out var total))
         {
             Wrapped($"Group treasury: {balance}");
             if (available < total) Wrapped($"Shortfall: {total - available}");
-            if (!reviewing.Accepted) Wrapped("Waiting for the player to accept this exact quote.");
-            if (reviewing.Accepted && available >= total && permitShop.Policy.Enabled && ActionButton("Pay and register"))
+            if (!reviewing.Accepted) Wrapped("Waiting for acceptance.");
+            if (reviewing.Accepted && available >= total && permitShop.Policy.Enabled && ActionButton("Buy"))
                 Mutate("POST", endpoint + "/register", new PermitQuoteAction(reviewing.Quote));
         }
         else if (reviewing.Accepted) Wrapped("Accepted. Waiting for the group owner to register.");
@@ -199,18 +237,27 @@ public sealed partial class SeasonsPanel
 
     private void ApplyPermitSuccess(CommandRequest request, string json)
     {
+        var purchased = request.Operation.Kind == CommandKind.BuyPermit ? ReadCommand<OwnershipPermit>(json) : null;
         permitFeedback = request.Operation.Kind switch
         {
-            CommandKind.NominatePermit => "Private listing consent request sent.",
+            CommandKind.NominatePermit => "Listing request sent.",
+            CommandKind.BuyPermit => "Purchased " + purchased!.CharacterName + ".",
             CommandKind.CreatePermitOffer => "Registration offer sent.",
             CommandKind.RegisterPermit => "The named permit was registered.",
             CommandKind.ReleasePermit => "The character was released.",
             _ => "Permit changes saved."
         };
-        if (request.Operation.Kind == CommandKind.CreatePermitOffer)
+        if (purchased is { } permit && permitShop != null)
+        {
+            permitShop = permitShop with
+            {
+                Listings = permitShop.Listings.Where(listing => listing.CharacterId != permit.CharacterId).ToArray(),
+                Permits = permitShop.Permits.Where(x => x.Id != permit.Id).Append(permit).ToArray()
+            };
+        }
+        else if (request.Operation.Kind == CommandKind.CreatePermitOffer)
         {
             permitReviewId = ReadCommand<PermitOffer>(json).Id;
-            permitTargetId = null;
             privatePermitMember = null;
             privatePermitTarget = null;
         }

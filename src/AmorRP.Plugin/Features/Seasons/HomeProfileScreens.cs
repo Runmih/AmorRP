@@ -146,6 +146,6 @@ public sealed partial class SeasonsPanel
     private void ClearHomeViews()
     {
         homeDraftLoaded = homeDescriptionExpanded = false; editCommunityName = savedCommunityName = savedHomeDescription = savedCurrencyName = "";
-        ClearSelectedAnnouncements(); policyPointsDirty = policyLettersDirty = false;
+        ClearSelectedAnnouncements();
     }
 }

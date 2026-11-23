@@ -97,7 +97,7 @@ public sealed partial class SeasonsPanel
         { DrawCommunityGroups(administration: true); ImGui.EndTabItem(); }
         if (CanGeneralModerate && ImGui.BeginTabItem("Currency"))
         { LoadHomeDrafts(); DrawCurrencyNameEditor(); if (Owner) DrawCurrencyIconEditor(); ImGui.EndTabItem(); }
-        if (Owner && ImGui.BeginTabItem("Weekly limits")) { DrawWeeklyPolicy(expanded: true); ImGui.EndTabItem(); }
+        if (Owner && ImGui.BeginTabItem("Weekly limits")) { DrawWeeklyPolicy(); ImGui.EndTabItem(); }
         if (Owner && ImGui.BeginTabItem("Classes")) { DrawClassPolicy(); ImGui.EndTabItem(); }
         if (Owner && ImGui.BeginTabItem("Ownership effect")) { DrawOwnershipEffect(); ImGui.EndTabItem(); }
         if (Owner && ImGui.BeginTabItem("Economy")) { DrawBillingPolicy(); ImGui.EndTabItem(); }

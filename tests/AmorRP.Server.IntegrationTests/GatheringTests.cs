@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using AmorRP.Contracts.Inventory;
+using AmorRP.Contracts.Seasons;
 using AmorRP.Core.Items;
 using Xunit;
 
@@ -54,5 +55,33 @@ public sealed partial class FoundationTests
         Assert.Equal(12, Assert.Single(reset.Items, x => x.Kind == "potion_points").Remaining);
         Assert.Equal(0, Assert.Single(reset.Items, x => x.Kind == "potion_points").Bonus);
         Assert.Equal(8, Assert.Single(reset.Items, x => x.Kind == "gathering_points").Remaining);
+    }
+
+    [Fact]
+    public async Task Weekly_limits_and_gathering_save_together_and_reject_stale_drafts()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        using var factory = Factory();
+        await Migrate(factory);
+        using var owner = factory.CreateClient();
+        await Login(owner, "21323");
+        var season = await Create(owner);
+        var prefix = $"/api/v2/seasons/{season.Id}";
+        var policyPath = prefix + "/policies";
+        using var initial = await owner.GetAsync(policyPath, ct);
+
+        var draft = new PolicyEdit(20, 9, 15, new GatheringSettingsEdit(0, 8, 2, 20, 3, 10));
+        var saved = await Command<SeasonPolicies>(owner, HttpMethod.Put, policyPath, draft, initial.Headers.ETag!.ToString());
+        Assert.Equal(12, saved.Current.PotionPoints);
+        Assert.Equal(new PolicyValues(20, 9, 15), saved.Next);
+        Assert.Equal(8, saved.Gathering!.NextWeeklyPoints);
+        Assert.Equal(20, Assert.Single(saved.Gathering.Packages, package => package.TypeId == CraftingTypes.AlchemySupplies).BonusPoints);
+
+        using var latest = await owner.GetAsync(policyPath, ct);
+        using var stale = Request(HttpMethod.Put, policyPath, draft with { PotionPoints = 21 }, etag: latest.Headers.ETag!.ToString());
+        using var denied = await owner.SendAsync(stale, ct);
+        Assert.Equal(HttpStatusCode.Conflict, denied.StatusCode);
+        Assert.Equal(saved.Next, (await owner.GetFromJsonAsync<SeasonPolicies>(policyPath, ct))!.Next);
+        Assert.Equal(saved.Gathering.Version, (await owner.GetFromJsonAsync<GatheringSettings>(prefix + "/gathering", ct))!.Version);
     }
 }

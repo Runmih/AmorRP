@@ -286,6 +286,7 @@ public sealed partial class SeasonsPanel(IPlayerState player, Configuration conf
                 {
                     case CommandHandler.Shop: shopReceipt = status; shopRefresh.Invalidate(); break;
                     case CommandHandler.Permit: permitFeedback = status; permitsRefresh.Invalidate(); break;
+                    case CommandHandler.Policy: policyRefresh.Invalidate(); gatheringRefresh.Invalidate(); break;
                     case CommandHandler.Gathering: gatheringFeedback = status; gatheringRefresh.Invalidate(); break;
                 }
                 if (ContextBillFor(currentCommand.Read()) is { } draft) draft.Feedback = status;
