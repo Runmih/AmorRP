@@ -45,7 +45,8 @@ records current acceptance status; this checklist describes what to verify.
 - Permits: request a public listing and approve it from the listed character.
   Buy from the Slave name and Price table. Check automatic group selection for a
   single eligible group, price changes, concurrent buyers, debt settlement,
-  release and disband. Check the separate private offer's exact asset quote.
+  release and disband. Verify that one Accept settles the private offer, stale
+  terms leave funds and assets intact, and a replay charges once.
 - 0.8 Gathering: grant the permission, configure supplies, gather and trade
   both package types, use one to craft an item above the base allowance, and
   verify the shared reset clears unused bonus points.

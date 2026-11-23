@@ -56,10 +56,6 @@ public sealed partial class FoundationTests
         using (var req = Request(HttpMethod.Post, purchasePath, purchase with { ExpectedTotal = "20" }, etag: listing.Etag))
         using (var denied = await owner.SendAsync(req, ct))
             Assert.Equal(HttpStatusCode.Conflict, denied.StatusCode);
-        using (var req = Request(HttpMethod.Post, path + "/offers", new PermitOfferCreate(subjectId, buyerGroup.Id, false)))
-        using (var denied = await owner.SendAsync(req, ct))
-            Assert.Equal(HttpStatusCode.UnprocessableEntity, denied.StatusCode);
-
         var key = Guid.CreateVersion7(clock.UtcNow);
         using var buyRequest = Request(HttpMethod.Post, purchasePath, purchase, key, listing.Etag);
         using var competingRequest = Request(HttpMethod.Post, purchasePath, purchase, etag: listing.Etag);
@@ -102,7 +98,7 @@ public sealed partial class FoundationTests
         Assert.Equal(granted.Id, Assert.Single(after.Remove));
     }
     [Fact]
-    public async Task Private_permit_quote_is_participant_only_and_changed_assets_require_new_consent()
+    public async Task Private_permit_accepts_and_settles_once_with_the_authorized_price()
     {
         var ct = TestContext.Current.CancellationToken;
         using var factory = Factory();
@@ -119,27 +115,50 @@ public sealed partial class FoundationTests
         var subjectId = (await Login(subject, "21311")).Character.Id;
         await Enroll(subject, season);
         await Fund(buyer, season, subjectId, "8");
-        var offer = await Command<PermitOffer>(buyer, HttpMethod.Post, path + "/offers", new PermitOfferCreate(subjectId, group.Id, true));
-        var pathOffer = path + $"/offers/{offer.Id}";
+        var offer = await Command<PermitOffer>(buyer, HttpMethod.Post, path + "/offers", new PermitOfferCreate(subjectId, group.Id, "20"));
+        var acceptPath = path + $"/offers/{offer.Id}/accept";
         Assert.Equal("0", offer.AssetsCurrency);
         var quote = Assert.Single((await subject.GetFromJsonAsync<PermitShop>(path, ct))!.Offers);
         Assert.Equal("8", quote.AssetsCurrency);
-        await Command<PermitOffer>(subject, HttpMethod.Put, pathOffer + "/consent", new PermitQuoteAction(quote.Quote));
+
         using var stranger = factory.CreateClient();
         await Login(stranger, "21312");
         await Enroll(stranger, season);
         var publicView = (await stranger.GetFromJsonAsync<PermitShop>(path, ct))!;
-        Assert.Empty(publicView.Listings);
         Assert.Empty(publicView.Offers);
+        using (var req = Request(HttpMethod.Put, acceptPath, new PermitQuoteAction(quote.Quote)))
+        using (var denied = await stranger.SendAsync(req, ct))
+            Assert.Equal(HttpStatusCode.Forbidden, denied.StatusCode);
+
         await Fund(buyer, season, subjectId, "2");
-        using (var req = Request(HttpMethod.Post, pathOffer + "/register", new PermitQuoteAction(quote.Quote)))
-        using (var stale = await buyer.SendAsync(req, ct))
+        using (var req = Request(HttpMethod.Put, acceptPath, new PermitQuoteAction(quote.Quote)))
+        using (var stale = await subject.SendAsync(req, ct))
             Assert.Equal(HttpStatusCode.Conflict, stale.StatusCode);
         Assert.Equal("10", (await OwnBalance(subject, season)).Owned);
+
+        await Command<PermitPolicy>(buyer, HttpMethod.Put, path + "/policy", new PermitPolicy("21", true));
+        var changed = Assert.Single((await subject.GetFromJsonAsync<PermitShop>(path, ct))!.Offers);
+        using (var req = Request(HttpMethod.Put, acceptPath, new PermitQuoteAction(changed.Quote)))
+        using (var stale = await subject.SendAsync(req, ct))
+            Assert.Equal(HttpStatusCode.Conflict, stale.StatusCode);
+        Assert.Equal("60", (await buyer.GetFromJsonAsync<TreasuryBalance>(TreasuryPath(season, group), ct))!.Owned);
+
+        await Command<PermitPolicy>(buyer, HttpMethod.Put, path + "/policy", new PermitPolicy("20", true));
         var fresh = Assert.Single((await subject.GetFromJsonAsync<PermitShop>(path, ct))!.Offers);
-        Assert.False(fresh.Accepted);
-        await Command<PermitOffer>(subject, HttpMethod.Put, pathOffer + "/consent", new PermitQuoteAction(fresh.Quote));
-        await Command<OwnershipPermit>(buyer, HttpMethod.Post, pathOffer + "/register", new PermitQuoteAction(fresh.Quote));
+        var key = Guid.CreateVersion7(clock.UtcNow);
+        for (var attempt = 0; attempt < 2; attempt++)
+        {
+            using var req = Request(HttpMethod.Put, acceptPath, new PermitQuoteAction(fresh.Quote), key);
+            using var completed = await subject.SendAsync(req, ct);
+            Assert.Equal(HttpStatusCode.OK, completed.StatusCode);
+            Assert.Equal(attempt == 1, completed.Headers.Contains("Idempotency-Replayed"));
+            var permit = (await completed.Content.ReadFromJsonAsync<CommandResult<OwnershipPermit>>(ct))!.Result;
+            Assert.Equal(offer.Id, permit.Id);
+        }
+        var buyerShop = (await buyer.GetFromJsonAsync<PermitShop>(path, ct))!;
+        Assert.Empty(buyerShop.Offers);
+        Assert.Equal(offer.Id, Assert.Single(buyerShop.Permits).Id);
+        Assert.Equal("40", (await buyer.GetFromJsonAsync<TreasuryBalance>(TreasuryPath(season, group), ct))!.Owned);
         Assert.Equal("10", (await OwnBalance(buyer, season)).Owned);
         Assert.Equal("0", (await OwnBalance(subject, season)).Owned);
     }

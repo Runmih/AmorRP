@@ -7,16 +7,17 @@ namespace AmorRP.Plugin.Tests;
 public sealed class ServiceCompatibilityTests
 {
     [Theory]
-    [InlineData("2", "0.11.0.1", "0.4.0.3", true)]
+    [InlineData("2", "0.11.0.2", "0.4.0.3", true)]
     [InlineData("2", "0.11.0.0", "0.4.0.3", false)]
+    [InlineData("2", "0.11.0.1", "0.4.0.3", false)]
     [InlineData("2", "0.7.0.0", "0.4.0.3", false)]
-    [InlineData("2", "0.11.0.1", "0.5.0.0", true)]
+    [InlineData("2", "0.11.0.2", "0.5.0.0", true)]
     [InlineData("2", "0.4.0.18", "0.4.0.3", false)]
     [InlineData("1", "0.5.0.0", "0.4.0.3", false)]
     [InlineData("3", "0.5.0.0", "0.4.0.3", false)]
     [InlineData("2", "invalid", "0.4.0.3", false)]
-    [InlineData("2", "0.11.0.1", "invalid", false)]
-    [InlineData("2", "0.11.0.1", "0.11.0.2", false)]
+    [InlineData("2", "0.11.0.2", "invalid", false)]
+    [InlineData("2", "0.11.0.2", "0.11.0.3", false)]
     public void Maintenance_versions_share_one_protocol_floor_and_incompatible_services_fail_closed(string api, string server, string minimumClient, bool accepted)
     {
         var capabilities = new CapabilitiesResponse(api, server, minimumClient, false, "", [], [], [], null!);

@@ -184,9 +184,8 @@ and carry their original recipe revision and optional consumable effect.
 | PUT | `/api/v2/seasons/{seasonId}/permits/listings/mine` | Publish or withdraw own listing | Nominated character |
 | POST | `/api/v2/seasons/{seasonId}/permits/purchases` | Buy and register a public permit using the displayed price and listing ETag | Owner of the buying group with treasury withdrawal access |
 | POST | `/api/v2/seasons/{seasonId}/permits/offers` | Send a private permit offer | Authorized buying group owner |
-| PUT | `/api/v2/seasons/{seasonId}/permits/offers/{offerId}/consent` | Accept the exact permit quote | Addressed character |
+| PUT | `/api/v2/seasons/{seasonId}/permits/offers/{offerId}/accept` | Accept the private offer and register the permit | Addressed character |
 | DELETE | `/api/v2/seasons/{seasonId}/permits/offers/{offerId}` | Withdraw a permit offer | Offer participant |
-| POST | `/api/v2/seasons/{seasonId}/permits/offers/{offerId}/register` | Pay and register a named permit | Named buyer and owning group owner |
 | DELETE | `/api/v2/seasons/{seasonId}/permits/{permitId}` | Release a registered character | Owning group owner |
 | GET | `/api/v2/seasons/{seasonId}/gathering` | Read supply packages and weekly settings | Season member |
 | PUT | `/api/v2/seasons/{seasonId}/gathering` | Save weekly gathering and package settings | Season owner |

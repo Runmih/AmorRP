@@ -17,7 +17,7 @@ public sealed partial class SeasonsPanel
     private PermitShop? permitShop;
     private string permitBasePrice = "", permitFeedback = "";
     private bool permitEnabled, permitTabRequested;
-    private Guid? permitBuyerGroup, permitReviewId;
+    private Guid? permitBuyerGroup;
     private CharacterTarget? privatePermitTarget;
     private Member? privatePermitMember;
     private bool CanNominatePermit => Owner || community?.MyCapabilities.Contains(ManagePermitListings) == true;
@@ -32,7 +32,7 @@ public sealed partial class SeasonsPanel
         permitShop = null;
         permitBasePrice = permitFeedback = "";
         permitEnabled = permitTabRequested = false;
-        permitBuyerGroup = permitReviewId = null;
+        permitBuyerGroup = null;
         privatePermitTarget = null;
         privatePermitMember = null;
     }
@@ -54,7 +54,6 @@ public sealed partial class SeasonsPanel
         var token = session.AccessToken;
         privatePermitTarget = target;
         privatePermitMember = null;
-        permitReviewId = null;
         permitFeedback = "Finding " + target.Name + "…";
         permitTabRequested = true;
         OpenWorkspace(WorkspaceKind.Shop);
@@ -101,9 +100,9 @@ public sealed partial class SeasonsPanel
             ImGui.EndDisabled();
         }
         var groups = communityGroups.Where(CanBuyPermitForGroup).ToArray();
-        DrawPermitListings(groups);
         DrawPrivatePermitDraft(groups);
         DrawPermitOffers();
+        DrawPermitListings(groups);
         if (permitShop.Permits.Length > 0 && ImGui.CollapsingHeader("Registered permits", ImGuiTreeNodeFlags.DefaultOpen))
         {
             foreach (var permit in permitShop.Permits)
@@ -192,11 +191,12 @@ public sealed partial class SeasonsPanel
         if (privatePermitMember is not { } target || !CanOfferPrivatePermit || !permitShop!.Policy.Enabled) return;
         ImGui.Separator();
         ImGui.TextUnformatted($"Private offer to {target.Character.DisplayName}");
+        Wrapped($"{permitShop.Policy.BasePrice} {community!.Currency.Name} plus outstanding debt, paid from the group treasury when accepted.");
         ImGui.PushID("PrivatePermitBuyer");
         var hasBuyer = DrawPermitBuyer(groups);
         ImGui.PopID();
         if (hasBuyer && permitBuyerGroup is { } groupId && ActionButton("Send offer"))
-            Mutate("POST", PermitsPath + "/offers", new PermitOfferCreate(target.Character.Id, groupId, true));
+            Mutate("POST", PermitsPath + "/offers", new PermitOfferCreate(target.Character.Id, groupId, permitShop.Policy.BasePrice));
     }
 
     private void DrawPermitOffers()
@@ -207,43 +207,39 @@ public sealed partial class SeasonsPanel
         foreach (var offer in permitShop.Offers)
         {
             ImGui.PushID(offer.Id.ToString());
-            if (ImGui.Selectable($"{offer.CharacterName} · {offer.GroupName}###Offer", permitReviewId == offer.Id)) permitReviewId = offer.Id;
+            var incoming = offer.CharacterId == session!.Character.Id;
+            ImGui.TextUnformatted(incoming
+                ? $"{offer.BuyerName} · {offer.GroupName}"
+                : $"{offer.CharacterName} · Awaiting acceptance");
+            var endpoint = PermitsPath + "/offers/" + offer.Id;
+            if (incoming)
+            {
+                ImGui.TextUnformatted($"Price for the buyer: {offer.Total} {community!.Currency.Name}");
+                Wrapped($"To the buyer: {offer.AssetsCurrency} {community.Currency.Name}");
+                foreach (var asset in offer.Assets) Wrapped($"{asset.Quantity} × {asset.Name}");
+                if (permitShop.Policy.Enabled)
+                {
+                    if (ActionButton("Accept")) Mutate("PUT", endpoint + "/accept", new PermitQuoteAction(offer.Quote));
+                    ImGui.SameLine();
+                }
+            }
+            if (ActionButton(incoming ? "Decline" : "Cancel offer"))
+                Mutate("DELETE", endpoint, null);
+            ImGui.Separator();
             ImGui.PopID();
         }
-        if (permitShop.Offers.FirstOrDefault(x => x.Id == permitReviewId) is not { } reviewing) return;
-        Wrapped($"Buyer: {reviewing.BuyerName} · Owning group: {reviewing.GroupName}");
-        var currency = community!.Currency.Name;
-        if (reviewing.Total.Length > 0) Wrapped($"Permit: {reviewing.BasePrice} · Debt: {reviewing.Debt} · Total: {reviewing.Total} {currency}");
-        else Wrapped($"Base permit price: {reviewing.BasePrice} {currency}. Waiting for the player to share the full quote.");
-        if (reviewing.CharacterId == session!.Character.Id || reviewing.Accepted)
-        {
-            Wrapped($"Assets to the buyer: {reviewing.AssetsCurrency} {currency}");
-            foreach (var asset in reviewing.Assets) Wrapped($"{asset.Quantity} × {asset.Name}");
-        }
-        var endpoint = PermitsPath + "/offers/" + reviewing.Id;
-        if (reviewing.CharacterId == session!.Character.Id && !reviewing.Accepted && permitShop.Policy.Enabled && ActionButton("Accept"))
-            Mutate("PUT", endpoint + "/consent", new PermitQuoteAction(reviewing.Quote));
-        if (reviewing.GroupBalance is { } balance && Int128.TryParse(balance, out var available) && Int128.TryParse(reviewing.Total, out var total))
-        {
-            Wrapped($"Group treasury: {balance}");
-            if (available < total) Wrapped($"Shortfall: {total - available}");
-            if (!reviewing.Accepted) Wrapped("Waiting for acceptance.");
-            if (reviewing.Accepted && available >= total && permitShop.Policy.Enabled && ActionButton("Buy"))
-                Mutate("POST", endpoint + "/register", new PermitQuoteAction(reviewing.Quote));
-        }
-        else if (reviewing.Accepted) Wrapped("Accepted. Waiting for the group owner to register.");
-        if (ActionButton("Withdraw offer")) Mutate("DELETE", endpoint, null);
     }
 
     private void ApplyPermitSuccess(CommandRequest request, string json)
     {
-        var purchased = request.Operation.Kind == CommandKind.BuyPermit ? ReadCommand<OwnershipPermit>(json) : null;
+        var purchased = request.Operation.Kind is CommandKind.BuyPermit or CommandKind.ConsentPermitOffer ? ReadCommand<OwnershipPermit>(json) : null;
         permitFeedback = request.Operation.Kind switch
         {
             CommandKind.NominatePermit => "Listing request sent.",
             CommandKind.BuyPermit => "Purchased " + purchased!.CharacterName + ".",
             CommandKind.CreatePermitOffer => "Registration offer sent.",
-            CommandKind.RegisterPermit => "The named permit was registered.",
+            CommandKind.ConsentPermitOffer => "Private offer completed.",
+            CommandKind.WithdrawPermitOffer => "Offer closed.",
             CommandKind.ReleasePermit => "The character was released.",
             _ => "Permit changes saved."
         };
@@ -251,13 +247,13 @@ public sealed partial class SeasonsPanel
         {
             permitShop = permitShop with
             {
+                Offers = permitShop.Offers.Where(offer => offer.CharacterId != permit.CharacterId).ToArray(),
                 Listings = permitShop.Listings.Where(listing => listing.CharacterId != permit.CharacterId).ToArray(),
                 Permits = permitShop.Permits.Where(x => x.Id != permit.Id).Append(permit).ToArray()
             };
         }
         else if (request.Operation.Kind == CommandKind.CreatePermitOffer)
         {
-            permitReviewId = ReadCommand<PermitOffer>(json).Id;
             privatePermitMember = null;
             privatePermitTarget = null;
         }

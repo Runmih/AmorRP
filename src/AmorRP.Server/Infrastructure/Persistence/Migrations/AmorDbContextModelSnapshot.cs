@@ -1330,6 +1330,9 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                     b.Property<string>("AcceptedQuote")
                         .HasColumnType("text");
 
+                    b.Property<long?>("AuthorizedTotal")
+                        .HasColumnType("bigint");
+
                     b.Property<Guid>("BuyerId")
                         .HasColumnType("uuid");
 

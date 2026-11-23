@@ -8546,128 +8546,10 @@ paths:
           $ref: '#/components/responses/Problem'
       x-authorization-policy: Authorized buying group owner
       x-implementation-status: implemented
-  /api/v2/seasons/{seasonId}/permits/offers/{offerId}/consent:
+  /api/v2/seasons/{seasonId}/permits/offers/{offerId}/accept:
     put:
-      operationId: consentPermitOffer
-      summary: Accept the exact permit quote
-      security:
-      - Session: []
-      parameters:
-      - name: seasonId
-        in: path
-        required: true
-        schema:
-          type: string
-          format: uuid
-      - name: offerId
-        in: path
-        required: true
-        schema:
-          type: string
-          format: uuid
-      - name: Idempotency-Key
-        in: header
-        required: true
-        schema:
-          type: string
-          format: uuid
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PermitQuoteAction'
-      responses:
-        '200':
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PermitOfferResult'
-        '400':
-          $ref: '#/components/responses/Problem'
-        '401':
-          $ref: '#/components/responses/Problem'
-        '403':
-          $ref: '#/components/responses/Problem'
-        '404':
-          $ref: '#/components/responses/Problem'
-        '409':
-          $ref: '#/components/responses/Problem'
-        '412':
-          $ref: '#/components/responses/Problem'
-        '422':
-          $ref: '#/components/responses/Problem'
-        '428':
-          $ref: '#/components/responses/Problem'
-        '429':
-          $ref: '#/components/responses/Problem'
-        '500':
-          $ref: '#/components/responses/Problem'
-        '503':
-          $ref: '#/components/responses/Problem'
-      x-authorization-policy: Addressed character
-      x-implementation-status: implemented
-  /api/v2/seasons/{seasonId}/permits/offers/{offerId}:
-    delete:
-      operationId: withdrawPermitOffer
-      summary: Withdraw a permit offer
-      security:
-      - Session: []
-      parameters:
-      - name: seasonId
-        in: path
-        required: true
-        schema:
-          type: string
-          format: uuid
-      - name: offerId
-        in: path
-        required: true
-        schema:
-          type: string
-          format: uuid
-      - name: Idempotency-Key
-        in: header
-        required: true
-        schema:
-          type: string
-          format: uuid
-      responses:
-        '200':
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PermitOfferResult'
-        '400':
-          $ref: '#/components/responses/Problem'
-        '401':
-          $ref: '#/components/responses/Problem'
-        '403':
-          $ref: '#/components/responses/Problem'
-        '404':
-          $ref: '#/components/responses/Problem'
-        '409':
-          $ref: '#/components/responses/Problem'
-        '412':
-          $ref: '#/components/responses/Problem'
-        '422':
-          $ref: '#/components/responses/Problem'
-        '428':
-          $ref: '#/components/responses/Problem'
-        '429':
-          $ref: '#/components/responses/Problem'
-        '500':
-          $ref: '#/components/responses/Problem'
-        '503':
-          $ref: '#/components/responses/Problem'
-      x-authorization-policy: Offer participant
-      x-implementation-status: implemented
-  /api/v2/seasons/{seasonId}/permits/offers/{offerId}/register:
-    post:
-      operationId: registerPermit
-      summary: Pay and register a named permit
+      operationId: acceptPermitOffer
+      summary: Accept the offer and register the permit
       security:
       - Session: []
       parameters:
@@ -8724,7 +8606,63 @@ paths:
           $ref: '#/components/responses/Problem'
         '503':
           $ref: '#/components/responses/Problem'
-      x-authorization-policy: Named buyer and owning group owner
+      x-authorization-policy: Addressed character
+      x-implementation-status: implemented
+  /api/v2/seasons/{seasonId}/permits/offers/{offerId}:
+    delete:
+      operationId: withdrawPermitOffer
+      summary: Withdraw a permit offer
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: offerId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Receipt'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Offer participant
       x-implementation-status: implemented
   /api/v2/seasons/{seasonId}/permits/{permitId}:
     delete:
@@ -9740,17 +9678,12 @@ components:
           format: date-time
         quote:
           type: string
-        accepted:
-          type: boolean
         basePrice:
           type: string
         debt:
           type: string
         total:
           type: string
-        groupBalance:
-          type: string
-          nullable: true
         assetsCurrency:
           type: string
         assets:
@@ -9769,11 +9702,9 @@ components:
       - status
       - expiresAt
       - quote
-      - accepted
       - basePrice
       - debt
       - total
-      - groupBalance
       - assetsCurrency
       - assets
       additionalProperties: false
@@ -9815,13 +9746,13 @@ components:
         groupId:
           type: string
           format: uuid
-        private:
-          type: boolean
-          enum: [true]
+        expectedBasePrice:
+          type: string
+          description: Base price displayed to the buyer before they send the offer.
       required:
       - characterId
       - groupId
-      - private
+      - expectedBasePrice
       additionalProperties: false
     PermitQuoteAction:
       type: object

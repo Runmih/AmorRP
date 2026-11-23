@@ -29,7 +29,7 @@ public sealed class PermitService(AmorDbContext db, SessionAccess sessions, Seas
         var now = time.GetUtcNow();
         var listings = await ListingsAsync(season, actor, ct);
         var offers = await db.PermitOffers.AsNoTracking().Where(x => x.CommunityId == seasonId
-            && x.Private && (x.CharacterId == actor || x.BuyerId == actor) && x.Status == "pending" && x.ExpiresAt > now)
+            && x.Private && x.AuthorizedTotal != null && (x.CharacterId == actor || x.BuyerId == actor) && x.Status == "pending" && x.ExpiresAt > now)
             .OrderBy(x => x.ExpiresAt).ToArrayAsync(ct);
         var visible = new List<PermitOffer>();
         foreach (var offer in offers)
@@ -135,9 +135,9 @@ public sealed class PermitService(AmorDbContext db, SessionAccess sessions, Seas
             var group = await BuyerGroupAsync(season, body.GroupId, actor.CharacterId, ct);
             var participant = await seasons.TargetAsync(season, body.CharacterId, true, ct);
             await RequireAvailableAsync(season, body.CharacterId, ct);
-            ApiFault.Require(body.Private, 422, "private_offer_required", "Use the shop to buy a public listing.");
+            ApiFault.Require(body.ExpectedBasePrice == Units(model.PermitPrice), 409, "permit_quote_changed", "The base price changed. Review the current price.");
             var now = time.GetUtcNow();
-            var pending = db.PermitOffers.Where(x => x.CommunityId == season && x.Private && x.Status == "pending" && x.ExpiresAt > now);
+            var pending = db.PermitOffers.Where(x => x.CommunityId == season && x.Private && x.AuthorizedTotal != null && x.Status == "pending" && x.ExpiresAt > now);
             ApiFault.Require(!await pending.AnyAsync(x => x.GroupId == body.GroupId && x.CharacterId == body.CharacterId, ct),
                 409, "offer_exists", "This group already has a pending offer for that character.");
             ApiFault.Require(await pending.CountAsync(x => x.BuyerId == actor.CharacterId, ct) < 20
@@ -145,47 +145,44 @@ public sealed class PermitService(AmorDbContext db, SessionAccess sessions, Seas
                 409, "offers_full", "Too many offers are pending.");
             var offer = new PermitOfferRow { CommunityId = season, CharacterId = body.CharacterId, GroupId = body.GroupId,
                 BuyerId = actor.CharacterId, Private = true, ExpiresAt = now.AddDays(2) };
+            var quote = await QuoteAsync(model, participant, offer, ct);
+            var total = Total(model.PermitPrice, quote.Debt);
+            ApiFault.Require(group.TreasuryOwned >= total, 409, "insufficient_funds", "The group treasury cannot cover the offer.");
+            offer.AuthorizedTotal = total;
             db.PermitOffers.Add(offer);
             op.SubjectCharacterId = body.CharacterId;
             return await ViewOfferAsync(model, participant, group, offer, actor.CharacterId, ct);
         }, ct);
 
-    public Task<IResult> RespondAsync(HttpContext h, Guid season, Guid id, PermitQuoteAction? body, CancellationToken ct) =>
-        RunAsync(h, season, body, body == null ? "permit.withdraw" : "permit.accept", async (model, actor, op) =>
+    public Task<IResult> WithdrawAsync(HttpContext h, Guid season, Guid id, CancellationToken ct) =>
+        RunAsync(h, season, null, "permit.withdraw", async (_, actor, op) =>
         {
             var offer = await FindOfferAsync(season, id, ct);
-            ApiFault.Require(actor.CharacterId == offer.CharacterId || body == null && actor.CharacterId == offer.BuyerId,
-                403, "offer_participant", "Only the addressed player can accept this offer.");
-            var group = await db.Groups.SingleAsync(x => x.CommunityId == season && x.Id == offer.GroupId, ct);
-            var participant = await seasons.TargetAsync(season, offer.CharacterId, true, ct);
-            if (body == null) offer.Status = "withdrawn";
-            else
-            {
-                RequireEnabled(model);
-                await RequireAvailableAsync(season, offer.CharacterId, ct);
-                ApiFault.Require(!group.Deleted && group.OwnerCharacterId == offer.BuyerId && group.EnabledFeatures.Contains(GroupCapabilities.Treasury),
-                    409, "group_unavailable", "The buying group is no longer eligible.");
-                var quote = await QuoteAsync(model, participant, offer, ct);
-                MatchQuote(quote.Key, body.Quote);
-                offer.AcceptedQuote = quote.Key;
-            }
-            op.SubjectCharacterId = offer.CharacterId;
-            return await ViewOfferAsync(model, participant, group, offer, actor.CharacterId, ct);
+            ApiFault.Require(actor.CharacterId == offer.CharacterId || actor.CharacterId == offer.BuyerId,
+                403, "offer_participant", "Only an offer participant can withdraw it.");
+            offer.Status = "withdrawn";
+            op.SubjectCharacterId = actor.CharacterId == offer.CharacterId ? offer.BuyerId : offer.CharacterId;
+            return new Receipt(op.Id);
         }, ct);
 
-    public Task<IResult> RegisterAsync(HttpContext h, Guid season, Guid id, PermitQuoteAction body, CancellationToken ct) =>
-        RunAsync(h, season, body, "permit.register", async (model, actor, op) =>
+    public Task<IResult> AcceptAsync(HttpContext h, Guid season, Guid id, PermitQuoteAction body, CancellationToken ct) =>
+        RunAsync(h, season, body, "permit.accept_and_register", async (model, recipient, op) =>
         {
             RequireEnabled(model);
             var offer = await FindOfferAsync(season, id, ct);
-            ApiFault.Require(offer.BuyerId == actor.CharacterId, 403, "offer_participant", "Only the named buyer can register this permit.");
-            var group = await BuyerGroupAsync(season, offer.GroupId, actor.CharacterId, ct);
-            await RequireAvailableAsync(season, offer.CharacterId, ct);
-            var participant = await seasons.TargetAsync(season, offer.CharacterId, true, ct);
-            var quote = await QuoteAsync(model, participant, offer, ct);
+            ApiFault.Require(offer.CharacterId == recipient.CharacterId, 403, "offer_participant", "Only the addressed player can accept this offer.");
+            var group = await BuyerGroupAsync(season, offer.GroupId, offer.BuyerId, ct);
+            var buyer = await seasons.TargetAsync(season, offer.BuyerId, true, ct);
+            await RequireAvailableAsync(season, recipient.CharacterId, ct);
+
+            var quote = await QuoteAsync(model, recipient, offer, ct);
             MatchQuote(quote.Key, body.Quote);
-            ApiFault.Require(offer.AcceptedQuote == quote.Key, 409, "consent_required", "The player must accept this exact offer before registration.");
-            return await SettlePermitAsync(model, actor, group, participant, offer, quote, op, ct);
+            ApiFault.Require(offer.AuthorizedTotal == Total(model.PermitPrice, quote.Debt),
+                409, "permit_price_changed", "The price changed. Ask the buyer to send a fresh offer.");
+            offer.AcceptedQuote = quote.Key;
+            var permit = await SettlePermitAsync(model, buyer, group, recipient, offer, quote, op, ct);
+            op.SubjectCharacterId = buyer.CharacterId;
+            return permit;
         }, ct);
 
     private async Task<OwnershipPermit> SettlePermitAsync(CommunityRow model, MembershipRow actor, GroupRow group,
@@ -283,7 +280,7 @@ public sealed class PermitService(AmorDbContext db, SessionAccess sessions, Seas
 
     private async Task<PermitOfferRow> FindOfferAsync(Guid season, Guid id, CancellationToken ct)
     {
-        var offer = await db.PermitOffers.SingleOrDefaultAsync(x => x.CommunityId == season && x.Id == id && x.Private, ct);
+        var offer = await db.PermitOffers.SingleOrDefaultAsync(x => x.CommunityId == season && x.Id == id && x.Private && x.AuthorizedTotal != null, ct);
         ApiFault.Require(offer != null && offer.Status == "pending" && offer.ExpiresAt > time.GetUtcNow(), 404, "not_found", "Offer unavailable.");
         return offer!;
     }
@@ -341,13 +338,11 @@ public sealed class PermitService(AmorDbContext db, SessionAccess sessions, Seas
     private async Task<PermitOffer> ViewOfferAsync(CommunityRow season, MembershipRow target, GroupRow group, PermitOfferRow offer, Guid actor, CancellationToken ct)
     {
         var quote = await QuoteAsync(season, target, offer, ct);
-        var accepted = offer.AcceptedQuote == quote.Key;
-        var maySeeAssets = actor == offer.CharacterId || accepted;
-        var maySeeQuote = !offer.Private || maySeeAssets;
+        var maySeeTerms = actor == offer.CharacterId;
         return new(offer.Id, offer.CharacterId, await NameAsync(offer.CharacterId, ct), offer.BuyerId, await NameAsync(offer.BuyerId, ct),
-            group.Id, group.Name, offer.Private, offer.Status, offer.ExpiresAt, maySeeQuote ? quote.Key : "", accepted,
-            Units(season.PermitPrice), maySeeQuote ? Units(quote.Debt) : "", maySeeQuote ? Units(season.PermitPrice + quote.Debt) : "",
-            actor == offer.BuyerId ? Units(group.TreasuryOwned) : null, maySeeAssets ? Units(quote.Currency) : "0", maySeeAssets ? quote.Assets : []);
+            group.Id, group.Name, offer.Private, offer.Status, offer.ExpiresAt, maySeeTerms ? quote.Key : "",
+            Units(season.PermitPrice), maySeeTerms ? Units(quote.Debt) : "", maySeeTerms ? Units(season.PermitPrice + quote.Debt) : "",
+            maySeeTerms ? Units(quote.Currency) : "0", maySeeTerms ? quote.Assets : []);
     }
 
     private async Task<OwnershipPermit> ViewPermitAsync(OwnershipPermitRow permit, GroupRow group, CancellationToken ct) =>

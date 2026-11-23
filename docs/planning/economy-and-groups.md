@@ -62,27 +62,18 @@ the permit and applies the owning group's Trusted billing lock.
 
 ### Private offer
 
-From the character's trade actions, a group owner can choose **Enslave** to send a
-private offer naming their character as the buyer and their group as the owner.
-This route does not create a public listing. Both players review the named buyer,
-owning group, total cost, billing lock and asset transfer, then explicitly
-confirm. Either can withdraw the offer before settlement. The buyer's character
-receives the agreed assets and the named permit is registered to their group.
-Direct individual permit ownership would require its own funding, billing and
-release rules.
-
-The proposed private offer includes the character's available, transferable season
-items and currency at settlement. Existing trade reservations and item transfer
-rules apply. Show the exact assets on the offer. Changes to the asset list or price
-require a fresh preview and confirmation. Issue the permit through the registration
-transaction so the offer cannot turn into an ordinary item transfer.
+From **♥ Amor RP → Enslave**, the buyer sends a private offer for a group
+they own. Sending authorizes the displayed base price and outstanding debt using
+the group treasury. The recipient sees the current price and the available
+items and currency that will transfer. **Accept** settles and registers the
+permit immediately. The buyer can cancel, or the recipient can decline, before
+acceptance. Trade reservations still apply to assets.
 
 ### Registration and release
 
-For private offers, show the owning group, cost breakdown, treasury balance and
-any shortfall. For public listings, recheck the listing version and displayed
-price when the buyer clicks Buy. Both paths verify eligibility and funds at
-commit. Insufficient funds or changed terms leave the purchase uncommitted.
+At acceptance, match the recipient's preview and the price authorized by the
+buyer. At public purchase, match the listing version and displayed price. Both
+paths verify eligibility and funds at commit.
 
 In a single transaction, pay existing creditors, register the named permit,
 transfer the confirmed assets for a private offer, remove any public listing, set

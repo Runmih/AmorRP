@@ -21,6 +21,7 @@ public sealed class PermitOfferRow
     public int? ListingVersion { get; set; }
     public string Status { get; set; } = "pending";
     public string? AcceptedQuote { get; set; }
+    public long? AuthorizedTotal { get; set; }
     public DateTimeOffset ExpiresAt { get; set; }
 }
 
