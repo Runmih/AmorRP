@@ -9,7 +9,11 @@ public sealed partial class SeasonsPanel
     private void RefreshAffected(RefreshTargets targets)
     {
         if (session == null || origin == null) return;
-        if (targets.HasFlag(RefreshTargets.Effects)) moodleRefresh.Invalidate();
+        if (targets.HasFlag(RefreshTargets.Effects))
+        {
+            moodleRefresh.Invalidate();
+            if (hadActiveMoodleGrants == false) hadActiveMoodleGrants = null;
+        }
         if (targets.HasFlag(RefreshTargets.OwnershipEffect)) ownershipEffectRefresh.Invalidate();
         if (targets.HasFlag(RefreshTargets.Classes)) classRefresh.Invalidate();
         if (targets.HasFlag(RefreshTargets.Groups))

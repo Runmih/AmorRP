@@ -43,6 +43,19 @@ public sealed class FeedbackQueueTests
     }
 
     [Fact]
+    public void History_only_diagnostics_keep_details_without_displacing_live_feedback()
+    {
+        var queue = new FeedbackQueue();
+        queue.Add("action", "Potion consumed", Start);
+        queue.AddHistory("Moodles", "Effect absent", Start.AddSeconds(5), "Status IPC returned no matching effect.");
+
+        Assert.Equal("Potion consumed", Assert.Single(queue.Messages).Text);
+        Assert.Equal("Status IPC returned no matching effect.", queue.History.Last().Details);
+        Assert.Equal("Moodles", queue.History.Last().Origin);
+        Assert.NotEqual(queue.Messages[0].Id, queue.History.Last().Id);
+    }
+
+    [Fact]
     public void Activity_history_survives_elapsed_time_and_window_opening_until_the_character_scope_is_cleared()
     {
         var queue = new FeedbackQueue();

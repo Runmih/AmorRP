@@ -4,14 +4,13 @@ S10 is implemented in the local 0.11 build. S11 remains planned. These adapters 
 they do not become alternative identity, currency or ownership authorities.
 See [decisions](decisions.md), [economy](economy-and-groups.md) and [work order](README.md).
 
-## S10 — Silent Moodles integration
+## S10 — Optional Moodles integration
 
-Accepted behavior: when Moodles is available, automatically try applying the configured
-effects. No Amor RP opt-in switch, installer suggestion, setup prompt, missing-plugin
-message, error badge/toast or application-failure feedback. Silently skip unavailable,
-unsupported or rejected IPC. Optional rate-limited Dalamud debug logging is the only
-integration diagnostic. Never block consumption, billing, release or disbanding on IPC.
-Do not secretly change Moodles settings to bypass its own application permissions.
+Amor RP applies configured effects when Moodles is available. The activity log
+records IPC readiness, application and removal attempts, errors, and the
+status readback. Moodles actions return no success value or rejection reason,
+so Amor RP checks the reported status list. The integration respects Moodles
+settings and never blocks consumption, billing, release or disbanding.
 
 Configuration is author-side: season administrators define the ownership debuff;
 authorized recipe authors define consumable effects. Store enough definition data

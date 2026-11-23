@@ -16,11 +16,17 @@ internal sealed class FeedbackQueue
         var last = messages.LastOrDefault();
         if (last?.Origin == origin && last.Text == text) { last.Remaining = Lifetime; last.UpdatedAt = now; return; }
         if (messages.Count == 3) messages.RemoveAt(0);
-        var message = new Message(++nextId, origin, text, now);
-        messages.Add(message);
+        messages.Add(AddHistory(origin, text, now));
+    }
+
+    public Message AddHistory(string origin, string text, DateTimeOffset now, string details = "")
+    {
+        var message = new Message(++nextId, origin, text, now) { Details = details };
         if (history.Count == 100) history.RemoveAt(0);
         history.Add(message);
+        return message;
     }
+
     public void Clear(string? origin = null) => messages.RemoveAll(x => origin == null || x.Origin == origin);
     public void Dismiss(long id) => messages.RemoveAll(x => x.Id == id);
     public void Tick(DateTimeOffset now, bool protectAction)

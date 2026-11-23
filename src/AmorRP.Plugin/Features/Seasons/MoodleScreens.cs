@@ -13,6 +13,8 @@ public sealed partial class SeasonsPanel
     private readonly BackgroundRefresh<MoodleGrants> moodleRefresh = new(TimeSpan.FromSeconds(5));
     private readonly BackgroundRefresh<OwnershipEffectPolicy> ownershipEffectRefresh = new(TimeSpan.FromSeconds(30));
     private OwnershipEffectPolicy? ownershipEffectPolicy;
+    private string? lastMoodleGrantError;
+    private bool? hadActiveMoodleGrants;
     private MoodleEffect? ownershipEffectDraft, recipeEffectDraft;
 
     private void TickMoodles()
@@ -20,10 +22,25 @@ public sealed partial class SeasonsPanel
         var now = DateTimeOffset.UtcNow;
         if (Moodles == null || origin is not { } uri || session is not { } actor ||
             actor.AccessExpiresAt <= now || !serviceCompatible) return;
-        if (Moodles.IsReady(now))
+        if (Moodles.IsReady($"{uri}|{actor.Character.Id}", now, LogMoodleActivity))
         {
             if (moodleRefresh.TryCollect(now, dataGeneration, out var grants))
-                Moodles.Reconcile($"{uri}|{actor.Character.Id}", actor.Character.DisplayName, actor.Character.HomeWorldName, grants, now);
+            {
+                lastMoodleGrantError = null;
+                var hadEffects = hadActiveMoodleGrants;
+                if (grants.Active.Length == 0 && hadEffects != false)
+                    LogMoodleActivity("Amor RP returned no active Moodle effects.", "The server returned 0 active effects for this character.");
+                hadActiveMoodleGrants = grants.Active.Length > 0;
+                if (hadActiveMoodleGrants == true || hadEffects == true || grants.Remove.Length > 0)
+                    Moodles.Reconcile(actor.Character.DisplayName, actor.Character.HomeWorldName, grants, now, LogMoodleActivity);
+            }
+            else if (moodleRefresh.Error is { } error)
+            {
+                var reason = error is FoundationApiException api ? $"{api.Status} · {api.Code}" : error.GetType().Name;
+                if (lastMoodleGrantError != reason)
+                    LogMoodleActivity("Amor RP could not load active Moodle effects.", UserFeedback.Details(error));
+                lastMoodleGrantError = reason;
+            }
             moodleRefresh.Start(now, dataGeneration, requests.Token,
                 ct => client.GetAsync<MoodleGrants>(uri, "api/v2/me/moodle-effects", actor.AccessToken, ct));
         }
@@ -39,9 +56,14 @@ public sealed partial class SeasonsPanel
             ct => client.GetAsync<OwnershipEffectPolicy>(uri, $"api/v2/seasons/{season.Id}/ownership-effect", actor.AccessToken, ct));
     }
 
+    private void LogMoodleActivity(string text, string details) =>
+        feedback.AddHistory("Moodles", text, DateTimeOffset.UtcNow, details);
+
     private void ResetMoodles()
     {
         moodleRefresh.Reset();
+        hadActiveMoodleGrants = null;
+        lastMoodleGrantError = null;
         ownershipEffectRefresh.Reset();
         ownershipEffectPolicy = null;
         ownershipEffectDraft = null;

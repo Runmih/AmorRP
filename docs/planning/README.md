@@ -46,8 +46,8 @@ manual checklist. Do not infer game or production acceptance from a successful b
 
 1. Finish the focused S03/S04, season, and window checks in game.
 2. Verify the Shop, permits, Gathering, class reset, group recipes and optional Moodles in game. Classes, group recipes and Moodles are implemented in the local 0.11 build.
-3. Keep integration adapters isolated. Discord linking is opt-in. Moodles failures
-   are silent and never affect successful gameplay or accounting.
+3. Keep integration adapters isolated. Discord linking is opt-in. Moodles diagnostics
+   appear in the activity log. Integration failures never affect gameplay or accounting.
 
 ## Expansion dependencies
 
@@ -59,7 +59,7 @@ manual checklist. Do not infer game or production acceptance from a successful b
 | S07 | Gathering packages and budget bonuses (0.8) | S01/inventory | Dedicated gameplay permission, shared weekly reset, advanced recipes above the base allowance and replay-safe use |
 | S08 | Classes and reset potion (0.9) | S05/S07 | Slot limits, permanent choices until reset, no weekly-budget refill exploit |
 | S09 | Group-restricted recipes (0.10) | S01/S07 budget rules | Membership and recipe/crafting authority remain separate; bounded durable limits |
-| S10 | Silent optional Moodles (0.11) | Consumable use; S06 for permit effect | Best-effort IPC; absence/rejection never blocks a committed action or displays errors |
+| S10 | Optional Moodles (0.11) | Consumable use; S06 for permit effect | Best-effort IPC; absence/rejection never blocks a committed action or displays errors |
 | S11 | Discord writing earnings | S01/S03; home host | Opt-in linking, weekly/balance limits, account selection, deduplication and automatic unlink |
 
 Detailed requirements: [decisions](decisions.md), [economy](economy-and-groups.md),

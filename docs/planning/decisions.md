@@ -29,7 +29,7 @@ exist; user bans belong to separate account moderation. Creation requires season
 | D18 | Start with Alchemy and Cooking supplies. Packs grant their full bonus even above the base weekly crafting maximum so players can afford advanced recipes. Unused bonus points expire at the shared weekly reset. Future crafting disciplines use the same package and budget rules. |
 | D19 | Season owners set the number of class slots, initially one. Chosen classes are permanent until a default Alchemy reset potion is used. The potion is expensive; switching never refills used budgets. |
 | D20 | Group-only recipes are wanted, with limits. Membership, definition permission and crafting permission remain distinct checks. |
-| D21 | Moodles runs automatically when available: no Amor RP opt-in, installation requests, setup prompts, missing-plugin messages or failure notifications. Silently skip failure; bounded Dalamud debug logging is permitted. No Moodles failure blocks gameplay/accounting. |
+| D21 | Moodles runs automatically when available. The activity log records IPC readiness, attempts, errors, and status readback. Moodles needs no Amor RP opt-in or setup prompt and never blocks gameplay or accounting. |
 | D22 | Consumed items can carry defined Moodle effects. Active slave status continually attempts its configured debuff. Losing the visual effect never releases server-side ownership or billing authorization. |
 | D23 | Discord earnings are fully opt-in. One season can connect multiple Discord servers through groups with Discord Bot Permission. Only the permitted group owner can initiate Amor RP linking; Discord administrators still control installation/channel/role authority. |
 | D24 | Use one selected earning character per Discord account in a season. Changing character or connected server must not reset earning usage. |
@@ -70,4 +70,4 @@ into a new approval request.
 Change accepted rows only when the maintainer changes the requirement; record the
 reason/date. Keep proposed defaults visibly separate from accepted behavior.
 Never silently reintroduce per-bill confirmations, voluntary debt approval,
-Moodles setup/error messages, self-service permit deletion or a shift pool.
+Moodles setup prompts and popups, self-service permit deletion or a shift pool.
