@@ -21,8 +21,10 @@ public sealed class SeasonAccess(AmorDbContext db)
         return (community!, member!);
     }
     public static void Owner(CommunityRow community, Guid actor) => ApiFault.Require(community.OwnerCharacterId == actor, 403, "owner_required", "Only the season owner may do this.");
+    public static bool HasAction(CommunityRow season, MembershipRow member, string capability) =>
+        season.OwnerCharacterId == member.CharacterId || member.Capabilities.Contains(capability) || member.ClassCapabilities.Contains(capability);
     public static void Action(CommunityRow community, MembershipRow member, string capability) =>
-        ApiFault.Require(community.OwnerCharacterId == member.CharacterId || member.Capabilities.Contains(capability), 403, "capability_required", "This action requires an individual authorization.");
+        ApiFault.Require(HasAction(community, member, capability), 403, "capability_required", "This action requires an individual authorization.");
     public async Task<MembershipRow> TargetAsync(Guid communityId, Guid target, bool activeOnly, CancellationToken ct)
     {
         var member = await db.Memberships.SingleOrDefaultAsync(x => x.CommunityId == communityId && x.CharacterId == target, ct);
@@ -39,7 +41,7 @@ public sealed class SeasonAccess(AmorDbContext db)
     {
         var transfer = await db.OwnershipTransfers.Where(x => x.CommunityId == community.Id && x.Status == "proposed" && x.ExpiresAt > now).Select(x => (Guid?)x.Id).SingleOrDefaultAsync(ct);
         return new(community.Id, community.Name, community.Description, community.OwnerCharacterId, community.Version, Currency(community),
-            community.OwnerCharacterId == member.CharacterId ? GrantableActions : member.Capabilities, member.TradingRestricted, Balance(community, member), transfer, community.LogoAssetId, community.LogoVersion, community.SeasonState);
+            community.OwnerCharacterId == member.CharacterId ? GrantableActions : member.Capabilities.Union(member.ClassCapabilities).ToArray(), member.TradingRestricted, Balance(community, member), transfer, community.LogoAssetId, community.LogoVersion, community.SeasonState);
     }
     public static DateTimeOffset Period(DateTimeOffset now)
     {

@@ -3,6 +3,7 @@ using AmorRP.Contracts.Inventory;
 using AmorRP.Core.Items;
 using AmorRP.Server.Features.Authentication;
 using AmorRP.Server.Features.Seasons;
+using AmorRP.Server.Features.Moodles;
 using AmorRP.Server.Infrastructure.Persistence;
 using AmorRP.Server.Infrastructure.Security;
 using AmorRP.Server.Options;
@@ -16,7 +17,7 @@ public sealed class CatalogService(AmorDbContext db, SessionAccess sessions, Sea
 {
     public static Category View(CategoryRow row) => new(row.Id, row.CommunityId, row.Name, row.AllowedTypeIds, row.Retired, row.Version);
     public static Definition View(DefinitionRow row, DefinitionRevisionRow rev) => new(row.Id, row.CommunityId, row.TypeId,
-        rev.Revision, rev.TypeDataVersion, rev.Name, rev.CategoryId, rev.Description, rev.Enabled, row.Retired, new(rev.CreationCost, rev.UseMessage), rev.BonusPoints);
+        rev.Revision, rev.TypeDataVersion, rev.Name, rev.CategoryId, rev.Description, rev.Enabled, row.Retired, new(rev.CreationCost, rev.UseMessage), rev.BonusPoints, row.GroupId, MoodleService.Decode(rev.MoodleEffectJson));
     public static void Seed(AmorDbContext db, Guid communityId)
     {
         db.Categories.AddRange(new CategoryRow { CommunityId = communityId, Name = "Alchemy", AllowedTypeIds = CraftingTypes.Alchemy },
@@ -68,17 +69,23 @@ public sealed class CatalogService(AmorDbContext db, SessionAccess sessions, Sea
     }
     public async Task<IResult> DefinitionsAsync(HttpContext h, Guid communityId, Guid? id, int? revision, CancellationToken ct)
     {
-        var actor = (await sessions.GetAsync(h, ct)).CharacterId; var (community, _) = await communities.RequireAsync(communityId, actor, ct);
+        var actor = (await sessions.GetAsync(h, ct)).CharacterId;
+        var (community, member) = await communities.RequireAsync(communityId, actor, ct);
+        var groups = GroupRecipes.Memberships(db, communityId, actor);
+        var visibleTypes = CraftingTypes.All.Where(CraftingTypes.IsRecipe).Where(type =>
+            SeasonAccess.HasAction(community, member, CraftingTypes.CraftPermission(type)) ||
+            SeasonAccess.HasAction(community, member, CraftingTypes.RecipePermission(type))).ToArray();
+        var query = db.Definitions.Where(x => x.CommunityId == communityId &&
+            (x.GroupId == null || (groups.Contains(x.GroupId.Value) && visibleTypes.Contains(x.TypeId))));
         if (id.HasValue)
         {
-            var row = await db.Definitions.SingleOrDefaultAsync(x => x.CommunityId == communityId && x.Id == id, ct);
+            var row = await query.SingleOrDefaultAsync(x => x.Id == id, ct);
             ApiFault.Require(row != null, 404, "not_found", "Definition not found.");
             var rev = await db.DefinitionRevisions.SingleOrDefaultAsync(x => x.CommunityId == communityId && x.DefinitionId == id && x.Revision == (revision ?? row!.Revision), ct);
             ApiFault.Require(rev != null, 404, "not_found", "Definition revision not found.");
             h.Response.Headers.ETag = CommandStore.ETag("definition", row!.Id, row.Revision); return Results.Json(View(row, rev!));
         }
         var scope = $"definitions:{communityId}:{actor}"; var (limit, after) = cursors.Read(h, scope);
-        var query = db.Definitions.Where(x => x.CommunityId == communityId);
         if (after.HasValue) query = query.Where(x => x.Id.CompareTo(after.Value) > 0);
         var rows = await query.OrderBy(x => x.Id).Take(limit + 1).ToArrayAsync(ct); var items = new List<Definition>();
         foreach (var row in rows.Take(limit)) items.Add(View(row, await db.DefinitionRevisions.SingleAsync(x => x.CommunityId == communityId && x.DefinitionId == row.Id && x.Revision == row.Revision, ct)));
@@ -91,6 +98,9 @@ public sealed class CatalogService(AmorDbContext db, SessionAccess sessions, Sea
         var (community, member) = await communities.RequireAsync(communityId, actor, ct);
         var row = id.HasValue ? await db.Definitions.SingleOrDefaultAsync(x => x.CommunityId == communityId && x.Id == id, ct) : new DefinitionRow { CommunityId = communityId };
         ApiFault.Require(row != null, 404, "not_found", "Definition not found.");
+        var groupId = id.HasValue ? row!.GroupId : body?.GroupId;
+        await GroupRecipes.RequireAsync(db, communityId, actor, groupId, ct);
+        ApiFault.Require(body == null || !id.HasValue || body.GroupId == row!.GroupId, 422, "recipe_scope", "A recipe's group cannot change.");
         ApiFault.Require(row == null || !CraftingTypes.IsSupply(row.TypeId), 422, "invalid_type", "Use Gathering settings for supply packages.");
         SeasonAccess.Action(community, member, CraftingTypes.RecipePermission(id.HasValue ? row!.TypeId : body?.TypeId ?? "potion"));
         var scope = "character:" + actor; var replay = await commands.ReplayAsync(h, scope, body, ct); if (replay != null) return commands.Replay(replay);
@@ -107,21 +117,25 @@ public sealed class CatalogService(AmorDbContext db, SessionAccess sessions, Sea
             var messageError = AmorRP.Core.Items.LiteralChatText.Error(body.Potion!.UseMessage, policy.Value.ChatMessageTextElements);
             ApiFault.Require(messageError == null, 422, "invalid_message", messageError ?? "Invalid potion message.");
             await RequireCategoryAsync(communityId, body.CategoryId, body.TypeId, ct);
+            if (!id.HasValue && groupId is { } group)
+                ApiFault.Require(await db.Definitions.CountAsync(x => x.CommunityId == communityId && x.GroupId == group && !x.Retired, ct) < community.GroupRecipeLimit,
+                    409, "group_recipe_limit", "This group has reached its recipe limit.");
+            row.GroupId = groupId;
             row.TypeId = body.TypeId;
             if (id.HasValue) row.Revision++;
-            rev = new() { CommunityId = communityId, DefinitionId = row.Id, Revision = row.Revision, Name = body.Name.Trim(), CategoryId = body.CategoryId, Description = body.Description ?? "", Enabled = body.Enabled, CreationCost = body.Potion.CreationCost, UseMessage = body.Potion.UseMessage };
+            rev = new() { CommunityId = communityId, DefinitionId = row.Id, Revision = row.Revision, Name = body.Name.Trim(), CategoryId = body.CategoryId, Description = body.Description ?? "", Enabled = body.Enabled, CreationCost = body.Potion.CreationCost, UseMessage = body.Potion.UseMessage, MoodleEffectJson = MoodleService.Encode(body.Effect) };
             db.DefinitionRevisions.Add(rev); if (!id.HasValue) db.Definitions.Add(row);
         }
         else
         {
             var previous = await db.DefinitionRevisions.SingleAsync(x => x.CommunityId == communityId && x.DefinitionId == row.Id && x.Revision == row.Revision, ct);
             row.Retired = true; row.Revision++;
-            rev = new() { CommunityId = communityId, DefinitionId = row.Id, Revision = row.Revision, Name = previous.Name, CategoryId = previous.CategoryId, Description = previous.Description, Enabled = false, CreationCost = previous.CreationCost, UseMessage = previous.UseMessage };
+            rev = new() { CommunityId = communityId, DefinitionId = row.Id, Revision = row.Revision, Name = previous.Name, CategoryId = previous.CategoryId, Description = previous.Description, Enabled = false, CreationCost = previous.CreationCost, UseMessage = previous.UseMessage, MoodleEffectJson = previous.MoodleEffectJson };
             db.DefinitionRevisions.Add(rev);
         }
         community.InventoryVersion++;
         var op = commands.New(h, scope, body, actor, communityId, id == null ? "definition.create" : body == null ? "definition.retire" : "definition.revise");
-        op.Summary = $"{op.Kind}: {rev.Name}, revision {rev.Revision}."; h.Response.Headers.ETag = CommandStore.ETag("definition", row.Id, row.Revision);
+        op.Summary = row.GroupId != null ? $"{op.Kind}: group recipe, revision {rev.Revision}." : $"{op.Kind}: {rev.Name}, revision {rev.Revision}."; h.Response.Headers.ETag = CommandStore.ETag("definition", row.Id, row.Revision);
         var result = await commands.SaveAsync(h, op, new CommandResult<Definition>(op.Id, View(row, rev)), ct); await tx.CommitAsync(ct); return result;
     }
 }

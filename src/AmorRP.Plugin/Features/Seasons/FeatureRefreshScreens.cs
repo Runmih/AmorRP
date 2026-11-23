@@ -29,6 +29,8 @@ public sealed partial class SeasonsPanel
     private void ResetCommunityRefreshes()
     {
         ResetInventoryCompanion();
+        ResetClasses();
+        ResetMoodles();
         ResetWritingLog();
         ClearBilling(); myBillsRefresh.Reset(); billingPolicyRefresh.Reset();
         inventoryRefresh.Reset(); rosterRefresh.Reset(); policyRefresh.Reset();

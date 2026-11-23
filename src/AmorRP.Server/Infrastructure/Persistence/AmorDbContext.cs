@@ -38,8 +38,17 @@ public sealed partial class AmorDbContext(DbContextOptions<AmorDbContext> option
         ConfigureBilling(modelBuilder);
         ConfigureAnnouncements(modelBuilder);
         ConfigureInventory(modelBuilder);
+        modelBuilder.Entity<CommunityRow>().Property(x => x.ClassSlots).HasDefaultValue(1);
+        modelBuilder.Entity<CommunityRow>().Property(x => x.ClassResetPrice).HasDefaultValue(1000L);
+        modelBuilder.Entity<CommunityRow>().Property(x => x.ClassCatalog).HasDefaultValue("[]");
+        modelBuilder.Entity<CommunityRow>().Property(x => x.ClassPolicyVersion).HasDefaultValue(1);
+        modelBuilder.Entity<CommunityRow>().Property(x => x.GroupRecipeLimit).HasDefaultValue(10).HasSentinel(-1);
+        modelBuilder.Entity<MembershipRow>().Property(x => x.ClassSelectionVersion).HasDefaultValue(1);
+        modelBuilder.Entity<MembershipRow>().Property(x => x.ClassIds).HasDefaultValueSql("ARRAY[]::uuid[]");
+        modelBuilder.Entity<MembershipRow>().Property(x => x.ClassCapabilities).HasDefaultValueSql("ARRAY[]::text[]");
         ConfigureShop(modelBuilder);
         ConfigurePermits(modelBuilder);
+        ConfigureMoodles(modelBuilder);
         ConfigureTrading(modelBuilder);
         modelBuilder.Entity<CharacterRow>(e => {
             e.ToTable("characters"); e.HasKey(x => x.Id);

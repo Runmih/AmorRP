@@ -28,6 +28,13 @@ mode are exposed. [OpenAPI](openapi.yaml) records implemented and planned operat
 - Error bodies include a user-facing title, stable code and requestId. Session
   credentials stay out of URLs, clipboard diagnostics and ordinary logs.
 
+Group-scoped recipes require active group membership and the matching discipline
+permission. Authors can read recipes they can edit. Crafting still requires the
+crafting grant. The season owner can set a per-group cap, and retirement frees a
+slot. Group recipes stay out of the season shop. Finished items can still trade
+and carry their original recipe revision and optional consumable effect.
+
+
 ## Endpoint catalog
 
 | Method | Path | Purpose | Authorization |
@@ -183,4 +190,10 @@ mode are exposed. [OpenAPI](openapi.yaml) records implemented and planned operat
 | GET | `/api/v2/seasons/{seasonId}/gathering` | Read supply packages and weekly settings | Season member |
 | PUT | `/api/v2/seasons/{seasonId}/gathering` | Save weekly gathering and package settings | Season owner |
 | POST | `/api/v2/seasons/{seasonId}/gathering/packages` | Produce supply packages | Gathering and Hunting permission |
+| GET | `/api/v2/seasons/{seasonId}/classes` | Read class policy and own class selection | Season member |
+| PUT | `/api/v2/seasons/{seasonId}/classes/policy` | Set class slots, reset potion price, class grants and group recipe limits | Season owner |
+| PUT | `/api/v2/seasons/{seasonId}/classes/selection` | Confirm class choices and pay for a reset potion when required | Season member selecting their own classes |
+| GET | `/api/v2/me/moodle-effects` | Read active optional effects and IDs to clear | Authenticated character |
+| GET | `/api/v2/seasons/{seasonId}/ownership-effect` | Read the configured ownership debuff | Season owner |
+| PUT | `/api/v2/seasons/{seasonId}/ownership-effect` | Set or clear the ownership debuff | Season owner |
 | POST | `/api/v2/seasons/{seasonId}/inventory/{holdingId}/use-supplies` | Consume a pack for crafting points | Holding owner with the matching crafting permission |

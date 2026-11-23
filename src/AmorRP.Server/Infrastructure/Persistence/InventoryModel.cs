@@ -21,6 +21,7 @@ public sealed partial class AmorDbContext
         });
         m.Entity<DefinitionRow>(e => {
             e.ToTable("item_definitions"); e.HasKey(x => new { x.CommunityId, x.Id });
+            e.HasOne<GroupRow>().WithMany().HasForeignKey(x => new { x.CommunityId, Id = x.GroupId }).OnDelete(DeleteBehavior.Restrict);
             e.HasOne<CommunityRow>().WithMany().HasForeignKey(x => x.CommunityId).OnDelete(DeleteBehavior.Restrict);
         });
         m.Entity<DefinitionRevisionRow>(e => {

@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using AmorRP.Contracts.Currency;
 using AmorRP.Contracts.Groups;
+using AmorRP.Contracts.Inventory;
 using AmorRP.Contracts.Permits;
 using Xunit;
 using GroupProfile = AmorRP.Contracts.Groups.Group;
@@ -26,6 +27,9 @@ public sealed partial class FoundationTests
         await TreasuryMove(owner, season, buyerGroup, "70");
         await Command<PermitPolicy>(owner, HttpMethod.Put, path + "/policy", new PermitPolicy("20", true));
         await DebtPolicy(owner, season, true);
+        var effect = new MoodleEffect("Registered", "Permit is active.", 200001, 30, true);
+        await Command<OwnershipEffectPolicy>(owner, HttpMethod.Put, $"/api/v2/seasons/{season.Id}/ownership-effect",
+            new OwnershipEffectPolicy(1, effect));
 
         using var subject = factory.CreateClient();
         var subjectId = (await Login(subject, "21301")).Character.Id;
@@ -46,6 +50,11 @@ public sealed partial class FoundationTests
         await Command<PermitOffer>(subject, HttpMethod.Put, path + $"/offers/{offer.Id}/consent", new PermitQuoteAction(offer.Quote));
         var permit = await Command<OwnershipPermit>(owner, HttpMethod.Post, registerPath, new PermitQuoteAction(offer.Quote));
         Assert.Equal(subjectId, permit.CharacterId);
+        const string effectsPath = "/api/v2/me/moodle-effects";
+        var granted = Assert.Single((await subject.GetFromJsonAsync<MoodleGrants>(effectsPath, ct))!.Active);
+        Assert.Equal(effect, granted.Effect);
+        Assert.Null(granted.ExpiresAt);
+        Assert.Empty((await owner.GetFromJsonAsync<MoodleGrants>(effectsPath, ct))!.Active);
         var groupPath = TreasuryPath(season, buyerGroup)[..^9];
         var group = (await subject.GetFromJsonAsync<GroupProfile>(groupPath, ct))!;
         Assert.True(group.BillingTrustLocked && group.IsTrusted);
@@ -59,6 +68,9 @@ public sealed partial class FoundationTests
         Assert.Equal("0", (await subject.GetFromJsonAsync<BillPage>($"/api/v2/seasons/{season.Id}/bills/mine", ct))!.TotalOutstanding);
         await Command<OwnershipPermit>(owner, HttpMethod.Delete, path + "/" + permit.Id);
         Assert.False((await subject.GetFromJsonAsync<GroupProfile>(groupPath, ct))!.BillingTrustLocked);
+        var after = (await subject.GetFromJsonAsync<MoodleGrants>(effectsPath, ct))!;
+        Assert.Empty(after.Active);
+        Assert.Equal(granted.Id, Assert.Single(after.Remove));
     }
     [Fact]
     public async Task Private_permit_quote_is_participant_only_and_changed_assets_require_new_consent()

@@ -271,6 +271,27 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                     b.Property<int>("BillingTaxPercent")
                         .HasColumnType("integer");
 
+                    b.Property<string>("ClassCatalog")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("[]");
+
+                    b.Property<int>("ClassPolicyVersion")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
+                    b.Property<long>("ClassResetPrice")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasDefaultValue(1000L);
+
+                    b.Property<int>("ClassSlots")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
                     b.Property<Guid>("CreatedByCharacterId")
                         .HasColumnType("uuid");
 
@@ -319,6 +340,11 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                     b.Property<int>("GatheringVersion")
                         .HasColumnType("integer");
 
+                    b.Property<int>("GroupRecipeLimit")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(10);
+
                     b.Property<int>("InventoryVersion")
                         .HasColumnType("integer");
 
@@ -349,6 +375,14 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
 
                     b.Property<Guid>("OwnerCharacterId")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("OwnershipEffectJson")
+                        .HasColumnType("text");
+
+                    b.Property<int>("OwnershipEffectVersion")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
 
                     b.Property<bool>("PermitEnabled")
                         .HasColumnType("boolean");
@@ -433,6 +467,9 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                     b.Property<bool>("Enabled")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("MoodleEffectJson")
+                        .HasColumnType("text");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
@@ -462,6 +499,9 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("GroupId")
+                        .HasColumnType("uuid");
+
                     b.Property<bool>("Retired")
                         .HasColumnType("boolean");
 
@@ -473,6 +513,8 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                         .HasColumnType("text");
 
                     b.HasKey("CommunityId", "Id");
+
+                    b.HasIndex("CommunityId", "GroupId");
 
                     b.ToTable("item_definitions", (string)null);
                 });
@@ -1029,6 +1071,23 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("text[]");
 
+                    b.PrimitiveCollection<string[]>("ClassCapabilities")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text[]")
+                        .HasDefaultValueSql("ARRAY[]::text[]");
+
+                    b.PrimitiveCollection<Guid[]>("ClassIds")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid[]")
+                        .HasDefaultValueSql("ARRAY[]::uuid[]");
+
+                    b.Property<int>("ClassSelectionVersion")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
                     b.Property<bool>("CollectionPending")
                         .HasColumnType("boolean");
 
@@ -1071,6 +1130,31 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
 
                             t.HasCheckConstraint("ck_membership_status", "\"Status\" = 'active'");
                         });
+                });
+
+            modelBuilder.Entity("AmorRP.Server.Infrastructure.Persistence.MoodleGrantRow", b =>
+                {
+                    b.Property<Guid>("CommunityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CharacterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("EffectJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("CommunityId", "CharacterId", "Id");
+
+                    b.HasIndex("CharacterId", "ExpiresAt");
+
+                    b.ToTable("moodle_grants", (string)null);
                 });
 
             modelBuilder.Entity("AmorRP.Server.Infrastructure.Persistence.OperationRow", b =>
@@ -1788,6 +1872,11 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                         .HasForeignKey("CommunityId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("AmorRP.Server.Infrastructure.Persistence.GroupRow", null)
+                        .WithMany()
+                        .HasForeignKey("CommunityId", "GroupId")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("AmorRP.Server.Infrastructure.Persistence.GroupAnnouncementRow", b =>
@@ -1951,6 +2040,15 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                     b.HasOne("AmorRP.Server.Infrastructure.Persistence.CommunityRow", null)
                         .WithMany()
                         .HasForeignKey("CommunityId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AmorRP.Server.Infrastructure.Persistence.MoodleGrantRow", b =>
+                {
+                    b.HasOne("AmorRP.Server.Infrastructure.Persistence.MembershipRow", null)
+                        .WithMany()
+                        .HasForeignKey("CommunityId", "CharacterId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });

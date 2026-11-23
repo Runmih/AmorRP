@@ -53,6 +53,7 @@ public sealed partial class SeasonsPanel
             DrawPermits();
             ImGui.EndTabItem();
         }
+        if (classState?.Selected.Length > 0 && ImGui.BeginTabItem("Class reset")) { DrawClassSelection(shop: true); ImGui.EndTabItem(); }
         if (Owner && ImGui.BeginTabItem("Manage products"))
         {
             DrawShopEditor();
@@ -143,7 +144,7 @@ public sealed partial class SeasonsPanel
         ImGui.BeginDisabled(editingProduct != null);
         if (ImGui.BeginCombo("Item", chosen?.Name ?? editingProduct?.Name ?? "Choose an item"))
         {
-            foreach (var row in definitions.Where(x => !x.Retired && CraftingTypes.IsRecipe(x.TypeId)))
+            foreach (var row in definitions.Where(x => !x.Retired && x.GroupId == null && CraftingTypes.IsRecipe(x.TypeId)))
                 if (ImGui.Selectable(row.Name + "###shopDefinition" + row.Id, shopDefinition == row.Id)) shopDefinition = row.Id;
             ImGui.EndCombo();
         }

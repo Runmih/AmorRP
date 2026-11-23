@@ -19,17 +19,19 @@ public sealed partial class SeasonsPanel
         NewRecipe();
     }
     private bool definitionEnabled = true;
-    private Guid? definitionEditId;
+    private Guid? definitionEditId, definitionGroup;
     private int? definitionEditRevision;
     private void SelectRecipe(Definition recipe)
     {
+        definitionGroup = recipe.GroupId;
+        recipeEffectDraft = recipe.Effect;
         definitionType = Math.Max(0, Array.IndexOf(RecipeTypes, recipe.TypeId));
         definitionEditId = recipe.Id; definitionEditRevision = recipe.Revision; definitionName = recipe.Name;
         definitionDescription = recipe.Description; definitionMessage = recipe.Potion.UseMessage; definitionCost = recipe.Potion.CreationCost; definitionEnabled = recipe.Enabled;
         definitionCategory = Math.Max(0, Array.FindIndex(categories.Where(x => !x.Retired && x.AllowedTypeIds.Contains(RecipeType)).ToArray(), x => x.Id == recipe.CategoryId));
     }
     private void NewRecipe()
-    { definitionEditId = null; definitionEditRevision = null; definitionName = definitionDescription = definitionMessage = ""; definitionCost = 1; definitionEnabled = true; definitionCategory = definitionType = 0; }
+    { recipeEffectDraft = null; definitionGroup = null; definitionEditId = null; definitionEditRevision = null; definitionName = definitionDescription = definitionMessage = ""; definitionCost = 1; definitionEnabled = true; definitionCategory = definitionType = 0; }
     private void DrawCatalogEditor()
     {
         if (!(recipeCooking ? CanDefineCooking : CanDefinePotions)) return;
@@ -51,7 +53,7 @@ public sealed partial class SeasonsPanel
         ImGui.PushItemWidth(-1);
         var editing = definitions.FirstOrDefault(x => x.Id == definitionEditId);
         ImGui.TextUnformatted(editing == null ? recipeCooking ? "New Cooking recipe" : "New Alchemy recipe" : editing.Name);
-        Wrapped("A recipe defines future units. Existing items keep their original description and use message.");
+        Wrapped("A recipe defines future units. Existing items keep their original description, use message, and effect.");
         FieldLabel("Item type"); ImGui.BeginDisabled(editing != null);
         if (ImGui.Combo("##RecipeType", ref definitionType, RecipeTypes.Select(TypeName).ToArray(), RecipeTypes.Length)) definitionCategory = 0;
         ImGui.EndDisabled();
@@ -59,6 +61,17 @@ public sealed partial class SeasonsPanel
         if (choices.Length == 0) Wrapped("No active category accepts this item type. Ask the season owner to check the catalog.");
         definitionCategory = Math.Clamp(definitionCategory, 0, Math.Max(0, choices.Length - 1));
         if (choices.Length > 1) { FieldLabel("Category"); ImGui.Combo("##RecipeCategory", ref definitionCategory, choices.Select(x => x.Name).ToArray(), choices.Length); }
+        var recipeGroups = communityGroups.Where(g => g.IsMember).ToArray();
+        var groupName = recipeGroups.FirstOrDefault(g => g.Id == definitionGroup)?.Name;
+        FieldLabel("Recipe access");
+        if (definitionEditId.HasValue) ImGui.TextUnformatted(groupName ?? (definitionGroup.HasValue ? "Group members" : "Season"));
+        else if (ImGui.BeginCombo("##RecipeGroup", groupName ?? "Season"))
+        {
+            if (ImGui.Selectable("Season", definitionGroup == null)) definitionGroup = null;
+            foreach (var group in recipeGroups)
+                if (ImGui.Selectable(group.Name.Replace("##", "# #") + "###" + group.Id, definitionGroup == group.Id)) definitionGroup = group.Id;
+            ImGui.EndCombo();
+        }
         var nameLimit = serviceLimits?.DefinitionNameTextElements ?? 80;
         var descriptionLimit = Math.Min(300, serviceLimits?.DefinitionDescriptionTextElements ?? 300);
         FieldLabel("Item name"); LimitedInput("##RecipeName", ref definitionName, nameLimit);
@@ -73,16 +86,17 @@ public sealed partial class SeasonsPanel
         ImGui.TextUnformatted("Exact text players will post");
         ImGui.BeginChild("RecipePreview", new(0, ImGui.GetTextLineHeightWithSpacing() * 3), true); Wrapped(definitionMessage.Length == 0 ? "Enter a use message above." : definitionMessage); ImGui.EndChild();
         FieldLabel(recipeCooking ? "Cooking points per unit" : "Alchemy points per unit"); ImGui.InputInt("##RecipeCost", ref definitionCost);
+        var effectValid = DrawMoodleEditor("Moodle effect", ref recipeEffectDraft);
         var costValid = definitionCost > 0;
         FieldNote("RecipeCost", costValid ? null : "Enter a positive whole-point cost.", "Each authorized character spends their own weekly points to create copies.");
         ImGui.Checkbox("Allow members to create copies of this recipe", ref definitionEnabled);
         var stale = editing != null && editing.Revision != definitionEditRevision;
         if (stale) { Wrapped("This recipe changed on the server. Reload it before saving a new revision."); if (ImGui.Button("Reload saved recipe")) SelectRecipe(editing!); }
         if (editing?.Retired == true) Wrapped("This recipe is retired. Its existing copies still work. Select New recipe to define another.");
-        ImGui.BeginDisabled(choices.Length == 0 || nameError != null || descriptionError != null || messageError != null || !costValid || stale || editing?.Retired == true);
+        ImGui.BeginDisabled(choices.Length == 0 || nameError != null || descriptionError != null || messageError != null || !costValid || !effectValid || stale || editing?.Retired == true);
         if (ActionButton(definitionEditId == null ? "Define recipe" : "Save recipe revision"))
         {
-            var body = new DefinitionWrite(RecipeType, definitionName, choices[definitionCategory].Id, definitionDescription, definitionEnabled, new(definitionCost, definitionMessage));
+            var body = new DefinitionWrite(RecipeType, definitionName, choices[definitionCategory].Id, definitionDescription, definitionEnabled, new(definitionCost, definitionMessage), definitionGroup, recipeEffectDraft);
             if (definitionEditId.HasValue) Mutate("PATCH", $"api/v2/seasons/{community!.Id}/item-definitions/{definitionEditId}", body, ETag("definition", definitionEditId.Value, definitionEditRevision ?? 0));
             else Mutate("POST", $"api/v2/seasons/{community!.Id}/item-definitions", body);
         }

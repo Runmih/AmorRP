@@ -1,3 +1,3 @@
 namespace AmorRP.Contracts.Inventory;
 
-public sealed record Definition(Guid Id, [property: System.Text.Json.Serialization.JsonPropertyName("seasonId")] Guid CommunityId, string TypeId, int Revision, int TypeDataVersion, string Name, Guid CategoryId, string Description, bool Enabled, bool Retired, PotionData Potion, int BonusPoints = 0);
+public sealed record Definition(Guid Id, [property: System.Text.Json.Serialization.JsonPropertyName("seasonId")] Guid CommunityId, string TypeId, int Revision, int TypeDataVersion, string Name, Guid CategoryId, string Description, bool Enabled, bool Retired, PotionData Potion, int BonusPoints = 0, [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] Guid? GroupId = null, [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)] MoodleEffect? Effect = null);

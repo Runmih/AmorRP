@@ -48,6 +48,16 @@ records current acceptance status; this checklist describes what to verify.
 - 0.8 Gathering: grant the permission, configure supplies, gather and trade
   both package types, use one to craft an item above the base allowance, and
   verify the shared reset clears unused bonus points.
+- 0.9 Classes: choose a class as a normal player, check that unavailable disciplines
+  disappear, and grant a second discipline manually. Cancel a class reset, then
+  buy it from Shop → Class reset. Verify the price, both grants, and the weekly
+  points. Lower the slot count as owner and verify the free correction.
+- 0.10 Group recipes: create a scoped recipe, craft it as a permitted group
+  member, and check availability before joining and after leaving. Trade a
+  finished item and verify the recipient can use it.
+- 0.11 Moodles: save a status icon and preview in Recipe Creation. Use two copies
+  and check that one timer refreshes. Test reconnect with time remaining, use
+  without Moodles, and confirm that permit release clears only its effect.
 - Seasons: configured administrator creates and activates while a draft is selected.
   Existing and newly verified players follow the active season automatically.
   Creation controls require seasons.create. Repeated refresh preserves assets.

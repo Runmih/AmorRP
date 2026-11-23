@@ -6,6 +6,9 @@ public static class SeasonEndpoints
 {
     public static void MapSeasonEndpoints(this WebApplication app)
     {
+        app.MapGet("/api/v2/seasons/{seasonId}/classes", (HttpContext h, Guid seasonId, SeasonClassService s, CancellationToken ct) => s.ReadAsync(h, seasonId, ct));
+        app.MapPut("/api/v2/seasons/{seasonId}/classes/policy", (HttpContext h, Guid seasonId, ClassPolicyEdit b, SeasonClassService s, CancellationToken ct) => s.PolicyAsync(h, seasonId, b, ct));
+        app.MapPut("/api/v2/seasons/{seasonId}/classes/selection", (HttpContext h, Guid seasonId, ClassSelectionEdit b, SeasonClassService s, CancellationToken ct) => s.SelectAsync(h, seasonId, b, ct));
         app.MapGet("/api/v2/seasons/context", (HttpContext h, SeasonService s, CancellationToken ct) => s.ContextAsync(h, ct));
         app.MapGet("/api/v2/seasons/creation-permissions", (HttpContext h, SeasonService s, CancellationToken ct) => s.CreationPermissionsAsync(h, ct));
         app.MapPut("/api/v2/seasons/creation-permissions/{characterId}", (HttpContext h, Guid characterId, SeasonCreationPermissionEdit b, SeasonService s, CancellationToken ct) => s.CreationPermissionAsync(h, characterId, b, ct));

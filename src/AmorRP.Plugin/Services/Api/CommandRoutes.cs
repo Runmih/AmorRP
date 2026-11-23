@@ -79,6 +79,9 @@ internal enum CommandKind
     GatherSupplies,
     UseSupplies,
     SignOut,
+    EditClassPolicy,
+    SelectClasses,
+    EditOwnershipEffect,
 }
 
 internal enum CommandHandler { None, SeasonForm, Home, Balance, Policy, Member, Inventory, Trade, GroupProfile, GroupActivity, Treasury, Billing, BillingPolicy, GroupBilling, Shop, Permit, Gathering, SignOut }
@@ -87,7 +90,7 @@ internal enum CommandHandler { None, SeasonForm, Home, Balance, Policy, Member, 
 internal enum RefreshTargets
 {
     None = 0, Season = 1, Inventory = 2, Members = 4, Policy = 8,
-    Groups = 32, SeasonLogo = 64, CurrencyIcon = 128
+    Groups = 32, SeasonLogo = 64, CurrencyIcon = 128, Classes = 256, Effects = 512, OwnershipEffect = 1024
 }
 
 internal sealed record CommandOperation(CommandKind Kind, CommandHandler Handler, RefreshTargets Refresh);
@@ -110,6 +113,9 @@ internal static class CommandRoutes
 
     internal static readonly IReadOnlyList<Route> All = new Route[]
     {
+        new("PUT", "api/v2/seasons/{seasonId}/ownership-effect", new(CommandKind.EditOwnershipEffect, CommandHandler.None, RefreshTargets.OwnershipEffect | RefreshTargets.Effects)),
+        new("PUT", "api/v2/seasons/{seasonId}/classes/policy", new(CommandKind.EditClassPolicy, CommandHandler.None, RefreshTargets.Classes | RefreshTargets.Season | RefreshTargets.Inventory)),
+        new("PUT", "api/v2/seasons/{seasonId}/classes/selection", new(CommandKind.SelectClasses, CommandHandler.None, RefreshTargets.Classes | RefreshTargets.Season | RefreshTargets.Inventory)),
         new("PUT", "api/v2/seasons/{seasonId}/gathering", new(CommandKind.SaveGatheringSettings, CommandHandler.Gathering, RefreshTargets.Inventory)),
         new("POST", "api/v2/seasons/{seasonId}/gathering/packages", new(CommandKind.GatherSupplies, CommandHandler.Gathering, RefreshTargets.Inventory)),
         new("POST", "api/v2/seasons/{seasonId}/inventory/{holdingId}/use-supplies", new(CommandKind.UseSupplies, CommandHandler.Gathering, RefreshTargets.Inventory)),
@@ -154,7 +160,7 @@ internal static class CommandRoutes
         new("DELETE", "api/v2/seasons/{seasonId}/members/{characterId}/holdings/{holdingId}", new(CommandKind.DeleteHolding, CommandHandler.Inventory, RefreshTargets.Season | RefreshTargets.Inventory)),
         new("POST", "api/v2/seasons/{seasonId}/inventory/{holdingId}/discard", new(CommandKind.DiscardHolding, CommandHandler.Inventory, RefreshTargets.Season | RefreshTargets.Inventory)),
         new("POST", "api/v2/seasons/{seasonId}/inventory/removals", new(CommandKind.RemoveInventory, CommandHandler.Inventory, RefreshTargets.Season | RefreshTargets.Inventory)),
-        new("POST", "api/v2/seasons/{seasonId}/inventory/{holdingId}/use", new(CommandKind.UseItem, CommandHandler.Inventory, RefreshTargets.Season | RefreshTargets.Inventory)),
+        new("POST", "api/v2/seasons/{seasonId}/inventory/{holdingId}/use", new(CommandKind.UseItem, CommandHandler.Inventory, RefreshTargets.Season | RefreshTargets.Inventory | RefreshTargets.Effects)),
         new("POST", "api/v2/seasons/{seasonId}/trades", new(CommandKind.CreateTrade, CommandHandler.Trade, RefreshTargets.Season | RefreshTargets.Inventory)),
         new("POST", "api/v2/seasons/{seasonId}/trades/{tradeId}/accept", new(CommandKind.AcceptTrade, CommandHandler.Trade, RefreshTargets.Season | RefreshTargets.Inventory)),
         new("PUT", "api/v2/seasons/{seasonId}/trades/{tradeId}/offers/mine", new(CommandKind.EditTradeOffer, CommandHandler.Trade, RefreshTargets.Season | RefreshTargets.Inventory)),

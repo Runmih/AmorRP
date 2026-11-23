@@ -5,7 +5,7 @@ Source package/assembly version lives once in
 The package validator and home updater read that same value. Do not hardcode a
 second server version in capabilities or an obsolete milestone label in build tools.
 
-ApiProtocol defines application API v2. The 0.8 plugin requires server 0.8.0.0 or
+ApiProtocol defines application API v2. The 0.11 plugin requires server 0.11.0.0 or
 newer. The server continues accepting clients from 0.4.0.3. XIVAuth independently uses external API
 v1. ServiceCompatibility validates the advertised API/server/minimum-client tuple;
 malformed, unsupported and too-old tuples fail closed. There is no API adapter or

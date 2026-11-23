@@ -6,7 +6,7 @@ namespace AmorRP.Plugin.Features.Seasons;
 
 public sealed partial class SeasonsPanel
 {
-    private enum CommunityBrowserPage { Overview, Members, Groups, Noticeboard, Events }
+    private enum CommunityBrowserPage { Overview, Members, Groups, Noticeboard, Events, Classes }
     private CommunityBrowserPage? requestedCommunityPage;
     private bool requestedManagementMembers;
     public Action<WorkspaceKind>? OpenWorkspaceWindow { get; set; }
@@ -75,6 +75,7 @@ public sealed partial class SeasonsPanel
                         DrawHomeOverview(editable: false); DrawMyBills(); DrawOwnershipOffer(); break;
                     case CommunityBrowserPage.Members: DrawMembers(MemberView.Directory); break;
                     case CommunityBrowserPage.Groups: DrawCommunityGroups(); break;
+                    case CommunityBrowserPage.Classes: DrawClassSelection(); break;
                     case CommunityBrowserPage.Noticeboard: DrawNoticeboard(); break;
                 }
             }
@@ -97,6 +98,8 @@ public sealed partial class SeasonsPanel
         if (CanGeneralModerate && ImGui.BeginTabItem("Currency"))
         { LoadHomeDrafts(); DrawCurrencyNameEditor(); if (Owner) DrawCurrencyIconEditor(); ImGui.EndTabItem(); }
         if (Owner && ImGui.BeginTabItem("Weekly limits")) { DrawWeeklyPolicy(expanded: true); ImGui.EndTabItem(); }
+        if (Owner && ImGui.BeginTabItem("Classes")) { DrawClassPolicy(); ImGui.EndTabItem(); }
+        if (Owner && ImGui.BeginTabItem("Ownership effect")) { DrawOwnershipEffect(); ImGui.EndTabItem(); }
         if (Owner && ImGui.BeginTabItem("Economy")) { DrawBillingPolicy(); ImGui.EndTabItem(); }
         if (IsSeasonAdministrator && ImGui.BeginTabItem("Creation access")) { DrawSeasonCreationAccess(); ImGui.EndTabItem(); }
         ImGui.EndTabBar();

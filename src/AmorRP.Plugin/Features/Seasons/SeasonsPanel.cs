@@ -196,7 +196,7 @@ public sealed partial class SeasonsPanel(IPlayerState player, Configuration conf
         if (session != null && !Busy && saved != null && session.AccessExpiresAt < DateTimeOffset.UtcNow.AddMinutes(5) && DateTimeOffset.UtcNow >= nextRenewAttempt) Resume(saved);
         if (refreshNeeded && !Busy && !SyncBusy && session != null && session.AccessExpiresAt > DateTimeOffset.UtcNow) { refreshNeeded = false; Refresh(); }
         if (session != null && !Busy && !SyncBusy && !WriteBlocked && DateTimeOffset.UtcNow >= nextRefresh) Refresh();
-        TickFeatureRefreshes(); TickFavoriteEvents();
+        TickFeatureRefreshes(); TickClasses(); TickMoodles(); TickFavoriteEvents();
         PumpContextTargetResolution(); TickTradeInbox(); TickTrades(); TickAnnouncements();
     }
     private bool Owner => community != null && session?.Character.Id == community.OwnerCharacterId;

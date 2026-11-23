@@ -8938,6 +8938,274 @@ paths:
           $ref: '#/components/responses/Problem'
       x-authorization-policy: Holding owner with the matching crafting permission
       x-implementation-status: implemented
+  /api/v2/seasons/{seasonId}/classes:
+    get:
+      operationId: readSeasonClasses
+      summary: Read class policy and own class selection
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClassSelection'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Season member
+      x-implementation-status: implemented
+  /api/v2/seasons/{seasonId}/classes/policy:
+    put:
+      operationId: editSeasonClasses
+      summary: Set class slots, reset potion price, class grants and group recipe limits
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClassPolicyEdit'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClassSelectionCommand'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Season owner
+      x-implementation-status: implemented
+  /api/v2/seasons/{seasonId}/classes/selection:
+    put:
+      operationId: selectSeasonClasses
+      summary: Confirm class choices and pay for a reset potion when required
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClassSelectionEdit'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClassSelectionCommand'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Season member selecting their own classes
+      x-implementation-status: implemented
+  /api/v2/me/moodle-effects:
+    get:
+      operationId: readMyMoodleEffects
+      summary: Read active optional effects and IDs to clear
+      security:
+      - Session: []
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MoodleGrants'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Authenticated character
+      x-implementation-status: implemented
+  /api/v2/seasons/{seasonId}/ownership-effect:
+    get:
+      operationId: readOwnershipEffect
+      summary: Read the configured ownership debuff
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OwnershipEffectPolicy'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Season owner
+      x-implementation-status: implemented
+    put:
+      operationId: editOwnershipEffect
+      summary: Set or clear the ownership debuff
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OwnershipEffectPolicy'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OwnershipEffectCommand'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Season owner
+      x-implementation-status: implemented
 components:
   securitySchemes:
     Session:
@@ -8968,6 +9236,231 @@ components:
           schema:
             $ref: '#/components/schemas/Problem'
   schemas:
+    SeasonClass:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          maxLength: 80
+        description:
+          type: string
+          maxLength: 300
+        grants:
+          type: array
+          items:
+            type: string
+            enum:
+            - items.potion.create
+            - items.cooking.create
+            - items.gather.create
+          maxItems: 3
+      required:
+      - id
+      - name
+      - description
+      - grants
+      additionalProperties: false
+    ClassPolicy:
+      type: object
+      properties:
+        slots:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 8
+        resetPrice:
+          type: integer
+          format: int64
+          minimum: 1
+        classes:
+          type: array
+          items:
+            $ref: '#/components/schemas/SeasonClass'
+          maxItems: 32
+        groupRecipeLimit:
+          type: integer
+          format: int32
+          minimum: 0
+          maximum: 100
+      required:
+      - slots
+      - resetPrice
+      - classes
+      additionalProperties: false
+    ClassSelection:
+      type: object
+      properties:
+        policy:
+          $ref: '#/components/schemas/ClassPolicy'
+        policyVersion:
+          type: integer
+          format: int32
+          minimum: 1
+        selected:
+          type: array
+          items:
+            type: string
+            format: uuid
+        selectionVersion:
+          type: integer
+          format: int32
+          minimum: 1
+        freeCorrection:
+          type: boolean
+      required:
+      - policy
+      - policyVersion
+      - selected
+      - selectionVersion
+      - freeCorrection
+      additionalProperties: false
+    ClassPolicyEdit:
+      type: object
+      properties:
+        expectedVersion:
+          type: integer
+          format: int32
+          minimum: 1
+        policy:
+          $ref: '#/components/schemas/ClassPolicy'
+      required:
+      - expectedVersion
+      - policy
+      additionalProperties: false
+    ClassSelectionEdit:
+      type: object
+      properties:
+        policyVersion:
+          type: integer
+          format: int32
+          minimum: 1
+        selectionVersion:
+          type: integer
+          format: int32
+          minimum: 1
+        selected:
+          type: array
+          items:
+            type: string
+            format: uuid
+          maxItems: 8
+        confirmedPrice:
+          type: integer
+          format: int64
+          minimum: 0
+      required:
+      - policyVersion
+      - selectionVersion
+      - selected
+      - confirmedPrice
+      additionalProperties: false
+    ClassSelectionCommand:
+      type: object
+      properties:
+        operationId:
+          type: string
+          format: uuid
+        result:
+          $ref: '#/components/schemas/ClassSelection'
+      required:
+      - operationId
+      - result
+      additionalProperties: false
+    MoodleEffect:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 80
+        description:
+          type: string
+          maxLength: 300
+        iconId:
+          type: integer
+          format: int32
+          minimum: 200000
+          maximum: 299999
+        durationSeconds:
+          type: integer
+          format: int32
+          minimum: 15
+          maximum: 86400
+        debuff:
+          type: boolean
+      required:
+      - name
+      - description
+      - iconId
+      - durationSeconds
+      - debuff
+      additionalProperties: false
+    MoodleGrant:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        effect:
+          $ref: '#/components/schemas/MoodleEffect'
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+      - id
+      - effect
+      - expiresAt
+      additionalProperties: false
+    MoodleGrants:
+      type: object
+      properties:
+        active:
+          type: array
+          items:
+            $ref: '#/components/schemas/MoodleGrant'
+        remove:
+          type: array
+          items:
+            type: string
+            format: uuid
+        serverTime:
+          type: string
+          format: date-time
+      required:
+      - active
+      - remove
+      - serverTime
+      additionalProperties: false
+    OwnershipEffectPolicy:
+      type: object
+      properties:
+        version:
+          type: integer
+          format: int32
+          minimum: 1
+        effect:
+          nullable: true
+          allOf:
+          - $ref: '#/components/schemas/MoodleEffect'
+      required:
+      - version
+      - effect
+      additionalProperties: false
+    OwnershipEffectCommand:
+      type: object
+      properties:
+        operationId:
+          type: string
+          format: uuid
+        result:
+          $ref: '#/components/schemas/OwnershipEffectPolicy'
+      required:
+      - operationId
+      - result
+      additionalProperties: false
     SupplyPackage:
       type: object
       properties:
@@ -10321,6 +10814,12 @@ components:
     Definition:
       type: object
       properties:
+        groupId:
+          type: string
+          format: uuid
+          description: Optional immutable group scope. Authoring and crafting enforce separate permissions.
+        effect:
+          $ref: '#/components/schemas/MoodleEffect'
         bonusPoints:
           type: integer
         id: *id002
@@ -10377,6 +10876,12 @@ components:
     DefinitionWrite:
       type: object
       properties:
+        groupId:
+          type: string
+          format: uuid
+          description: Optional immutable group scope. Authoring and crafting enforce separate permissions.
+        effect:
+          $ref: '#/components/schemas/MoodleEffect'
         typeId:
           type: string
           enum:

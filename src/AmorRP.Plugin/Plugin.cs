@@ -41,7 +41,7 @@ public sealed class Plugin : IDalamudPlugin
     private readonly CharacterContext context;
 
     public Plugin(IDalamudPluginInterface pluginInterface, ICommandManager commands, IPlayerState playerState,
-        IContextMenu contextMenu, IPartyList party, ITextureProvider textures)
+        IContextMenu contextMenu, IPartyList party, ITextureProvider textures, IObjectTable objects)
     {
         this.pluginInterface = pluginInterface;
         this.commands = commands;
@@ -52,6 +52,7 @@ public sealed class Plugin : IDalamudPlugin
         configuration = pluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
         if (configuration.Version < 4) { configuration.Version = 4; pluginInterface.SavePluginConfig(configuration); }
         mainWindow = new MainWindow(playerState, party, configuration, () => pluginInterface.SavePluginConfig(configuration), textures, pluginInterface.UiBuilder.FontAtlas);
+        mainWindow.Moodles = new MoodleAdapter(pluginInterface, objects);
         mainWindow.CheckForPluginUpdates = CheckForUpdates;
         hub = new(configuration, mainWindow.DrawWorkspace, () => playerState.IsLoaded, () => mainWindow.CanOpenRecipeCreation);
         foreach (var kind in Enum.GetValues<WorkspaceKind>().Where(kind => kind != WorkspaceKind.Groups && !HubWindow.Contains(kind)))

@@ -95,6 +95,11 @@ public sealed partial class SeasonsPanel
     {
         if (item.Definition == null) return;
         if (AmorRP.Core.Items.CraftingTypes.IsSupply(item.Holding.TypeId)) { DrawSupplyUse(item); return; }
+        if (item.Definition.Effect is { } effect)
+        {
+            ImGui.TextUnformatted($"{effect.Name} · {(effect.Debuff ? "Debuff" : "Buff")} · {TimeSpan.FromSeconds(effect.DurationSeconds):g}");
+            if (!string.IsNullOrEmpty(effect.Description)) Wrapped(effect.Description);
+        }
         FieldLabel("Message destination");
         ImGui.Combo("##MessageDestination", ref destination, ChatCommand.Destinations, ChatCommand.Destinations.Length);
         var message = item.Definition.Potion.UseMessage;

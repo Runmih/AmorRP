@@ -30,6 +30,7 @@ public sealed class MainWindow : Window, IDisposable
         communities.SetLauncherVisible = visible => SetLauncherVisible?.Invoke(visible);
     }
 
+    public MoodleAdapter Moodles { set => communities.Moodles = value; }
     public void Tick() { communities.EnsureScope(ProductServer.Origin); communities.Tick(); }
     public int PendingTradeRequests => communities.PendingTradeRequests;
     public int UnreadAnnouncements => communities.UnreadAnnouncements;

@@ -65,20 +65,15 @@ grants without silently deleting those grants. Exact precedence/owner restrictio
 belong in the S08 checklist. The authoritative result is checked on the server and
 unavailable tabs stay hidden. No new permission-source explanation interface.
 
-Supply a default Alchemy reset potion with an expensive season-controlled price;
-the season shop is the proposed source. A sale by another player must not
-accidentally become a free reset endpoint. Recipe availability/other suppliers can
-be decided when S08 starts, keeping the agreed hefty cost meaningful.
+The Shop's Class reset tab offers an Alchemy reset potion, priced at 1,000 season
+coins by default. The season owner can change the price. The purchase applies
+one dose immediately when the player confirms replacement classes. Selection,
+payment to the season treasury and receipt commit together. Resetting preserves
+weekly spending and supply bonuses.
 
-Proposed reset flow: show the replacement selection and actual cost/outcome, then
-commit selection, payment/item consumption and receipt together. Cancellation keeps
-the old classes/item. Repeat requests cannot charge/consume again. Preserve current
-weekly spending and supply bonuses across every class change.
-
-Increasing slot count allows more selections. Decreasing it needs an explicit
-transition for existing characters; proposed default is a free corrective selection,
-not randomly deleting a class or charging for an owner policy change. This is a
-feature-time decision rather than a reason to block earlier economy work.
+Players can fill new or empty slots without payment. If the owner removes a class
+or lowers the slot count, the player can make the necessary correction for free.
+Eligible existing choices stay in place until the player confirms a change.
 
 Verification: unauthorized class grants, slot limits, concurrent selection/reset,
 current grants versus class grants, cancellation, affordability, replay, owner policy
@@ -91,14 +86,12 @@ permission. Defining a recipe requires the relevant recipe-definition authority;
 group ownership alone does not grant withheld season authority. Season owners
 or Manage Groups moderators receive no automatic access to private group content.
 
-Add configurable limits for active group recipes. Define whether retiring/deleting
-recipes frees capacity and prevent recreate cycles from evading production limits.
-Keep authoring limits distinct from the character's weekly crafting points.
-
-Proposed first version: finished goods remain tradeable normally and use existing
-character point budgets. Recipe visibility, numeric caps, ownership after author
-removal and enabled disciplines are details to settle for S09. No new group-wide
-crafting budget, research tree or recipe marketplace is implied.
+The limit defaults to 10 non-retired recipes per group and is configurable in
+Season Management → Classes. Recipes keep their original group scope. Retirement
+frees a slot. Existing finished goods remain usable and tradeable, and production
+spends the character's normal weekly points. Eligible authors can continue
+maintaining a recipe after its original author leaves. Only active group members
+with the relevant crafting or authoring grant can browse restricted recipes.
 
 Verification: outsiders/moderators denied where appropriate; membership removal;
 permission changes; concurrent creation/retirement; cap enforcement; existing goods

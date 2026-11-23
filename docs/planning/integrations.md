@@ -1,6 +1,6 @@
 # Integration plans
 
-Planned S10 and S11. These adapters depend on server-owned state and accounting;
+S10 is implemented in the local 0.11 build. S11 remains planned. These adapters depend on server-owned state and accounting;
 they do not become alternative identity, currency or ownership authorities.
 See [decisions](decisions.md), [economy](economy-and-groups.md) and [work order](README.md).
 
@@ -31,9 +31,10 @@ or play application effects. On release/disband, attempt removal of that specifi
 managed effect. Never clear the whole status manager or remove effects owned by
 other plugins. Missing visuals are not proof of release and do not unlock billing.
 
-Season and character scope must be explicit in effect IDs and reconciliation.
-Decide display behavior across selected seasons when S10 starts; state from a
-previous character must never apply to the next one. These are RP status visuals,
+Effect IDs include the season and character. The integration displays only the
+active season's effects. Identical saved effects share an ID and refresh one timer.
+Potions retain the effect stored on their item revision. Ownership effects use a
+short renewable display duration while the permit is active. These are RP status visuals,
 not actual FFXIV combat-stat changes. Visibility to other players depends on their
 compatible synchronization setup and is not guaranteed by local IPC alone.
 

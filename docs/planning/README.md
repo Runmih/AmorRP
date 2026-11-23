@@ -45,7 +45,7 @@ manual checklist. Do not infer game or production acceptance from a successful b
 ## Next work
 
 1. Finish the focused S03/S04, season, and window checks in game.
-2. Verify the Shop, permit registration and Gathering workflows in game. S08 classes and resets are next.
+2. Verify the Shop, permits, Gathering, class reset, group recipes and optional Moodles in game. Classes, group recipes and Moodles are implemented in the local 0.11 build.
 3. Keep integration adapters isolated. Discord linking is opt-in. Moodles failures
    are silent and never affect successful gameplay or accounting.
 
@@ -57,9 +57,9 @@ manual checklist. Do not infer game or production acceptance from a successful b
 | S05 | Season shop (0.6), with a Shop tab between Home and Inventory | S02/S03; revenue destination | Shared-window navigation, atomic affordable purchases, replay-safe outcomes and buyer authorization |
 | S06 | RP ownership permits and release (0.7) | S03/S05 | Moderator listings, private offers, explicit OOC consent, atomic registration, owner-only release and disband release |
 | S07 | Gathering packages and budget bonuses (0.8) | S01/inventory | Dedicated gameplay permission, shared weekly reset, advanced recipes above the base allowance and replay-safe use |
-| S08 | Classes and reset potion | S05/S07 | Slot limits, permanent choices until reset, no weekly-budget refill exploit |
-| S09 | Group-restricted recipes | S01/S07 budget rules | Membership and recipe/crafting authority remain separate; bounded durable limits |
-| S10 | Silent optional Moodles | Consumable use; S06 for permit effect | Best-effort IPC; absence/rejection never blocks a committed action or displays errors |
+| S08 | Classes and reset potion (0.9) | S05/S07 | Slot limits, permanent choices until reset, no weekly-budget refill exploit |
+| S09 | Group-restricted recipes (0.10) | S01/S07 budget rules | Membership and recipe/crafting authority remain separate; bounded durable limits |
+| S10 | Silent optional Moodles (0.11) | Consumable use; S06 for permit effect | Best-effort IPC; absence/rejection never blocks a committed action or displays errors |
 | S11 | Discord writing earnings | S01/S03; home host | Opt-in linking, weekly/balance limits, account selection, deduplication and automatic unlink |
 
 Detailed requirements: [decisions](decisions.md), [economy](economy-and-groups.md),

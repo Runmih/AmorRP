@@ -4,6 +4,7 @@ using AmorRP.Core.Items;
 using AmorRP.Server.Features.Authentication;
 using AmorRP.Server.Features.Catalog;
 using AmorRP.Server.Features.Gathering;
+using AmorRP.Server.Features.Moodles;
 using AmorRP.Server.Features.Seasons;
 using AmorRP.Server.Infrastructure.Persistence;
 using AmorRP.Server.Infrastructure.Security;
@@ -14,7 +15,7 @@ using Microsoft.Extensions.Options;
 namespace AmorRP.Server.Features.Inventory;
 
 public sealed partial class InventoryService(AmorDbContext db, SessionAccess sessions, SeasonAccess communities,
-    CatalogService catalog, InventoryDelivery delivery, CommandStore commands, PageCursor cursors, TimeProvider time, IOptions<ServicePolicyOptions> policy)
+    CatalogService catalog, InventoryDelivery delivery, MoodleService moodles, CommandStore commands, PageCursor cursors, TimeProvider time, IOptions<ServicePolicyOptions> policy)
 {
     public static Holding View(HoldingRow x) => new(x.Id, x.CommunityId, x.CharacterId, x.TypeId, x.Name, x.CategoryId,
         x.Quantity, x.Reserved, x.Quantity - x.Reserved, x.Version, x.DefinitionId, x.DefinitionRevision, x.LetterId);
@@ -49,7 +50,7 @@ public sealed partial class InventoryService(AmorDbContext db, SessionAccess ses
         var quotas = new List<Quota>();
         foreach (var kind in new[] { "potion_points", "letters", "cooking_points" })
             quotas.Add(ViewQuota(await QuotaAsync(community, actor, kind, ct)));
-        if (community.OwnerCharacterId == actor || member.Capabilities.Contains(CraftingTypes.GatherPermission))
+        if (SeasonAccess.HasAction(community, member, CraftingTypes.GatherPermission))
             quotas.Add(ViewQuota(await QuotaAsync(community, actor, GatheringService.QuotaKind, ct)));
         return Results.Json(new Quotas(communityId, actor, quotas.ToArray()));
     }
@@ -96,7 +97,7 @@ public sealed partial class InventoryService(AmorDbContext db, SessionAccess ses
         {
             var row = await db.Definitions.SingleAsync(x => x.CommunityId == communityId && x.Id == holding.DefinitionId, ct);
             var rev = await db.DefinitionRevisions.SingleAsync(x => x.CommunityId == communityId && x.DefinitionId == holding.DefinitionId && x.Revision == holding.DefinitionRevision, ct);
-            definition = CatalogService.View(row, rev);
+            definition = CatalogService.View(row, rev) with { GroupId = null };
         }
         else letter = await LetterViewAsync(await db.Letters.SingleAsync(x => x.CommunityId == communityId && x.Id == holding.LetterId, ct), holding, ct);
         h.Response.Headers.ETag = CommandStore.ETag("holding", holding.Id, holding.Version);
@@ -113,6 +114,7 @@ public sealed partial class InventoryService(AmorDbContext db, SessionAccess ses
             productionDefinition = await db.Definitions.SingleOrDefaultAsync(x => x.CommunityId == communityId && x.Id == requested.DefinitionId, ct);
             ApiFault.Require(productionDefinition != null, 404, "not_found", "Recipe unavailable.");
             ApiFault.Require(CraftingTypes.IsRecipe(productionDefinition!.TypeId), 422, "invalid_type", "Gather supply packages from Gathering and Hunting.");
+            await GroupRecipes.RequireAsync(db, communityId, actor, productionDefinition.GroupId, ct);
             SeasonAccess.Action(community, member, CraftingTypes.CraftPermission(productionDefinition.TypeId));
         }
         var scope = "character:" + actor; var replay = await commands.ReplayAsync(h, scope, body, ct); if (replay != null) return commands.Replay(replay);
@@ -140,7 +142,7 @@ public sealed partial class InventoryService(AmorDbContext db, SessionAccess ses
         }
         community.InventoryVersion++;
         var op = commands.New(h, scope, body, actor, communityId, body is PotionCreate ? "potion.create" : "letter.create"); op.SubjectCharacterId = actor;
-        op.Summary = body is PotionCreate pc ? $"Created {pc.Quantity} {holding.TypeId} units: {holding.Name}." : $"Created {holding.TypeId}: {holding.Name}.";
+        op.Summary = body is PotionCreate pc ? $"Created {pc.Quantity} {holding.TypeId} units{(productionDefinition?.GroupId == null ? ": " + holding.Name : " from a group recipe")}." : $"Created {holding.TypeId}: {holding.Name}.";
         var result = await commands.SaveAsync(h, op, new CommandResult<ProductionResult>(op.Id, new(View(holding), ViewQuota(quota))), ct); await tx.CommitAsync(ct); return result;
     }
     public async Task<IResult> ChangeAsync(HttpContext h, Guid communityId, Guid? id, object body, CancellationToken ct, Guid? targetCharacterId = null)
@@ -164,8 +166,11 @@ public sealed partial class InventoryService(AmorDbContext db, SessionAccess ses
         if (body is ConsumptionRequest use)
         {
             ApiFault.Require(CraftingTypes.IsRecipe(holding.TypeId) && use.ChatConsent && ItemText.Destination(use.Destination), 422, "invalid_use", "Potion use requires startup chat permission and an explicit supported destination.");
-            message = (await db.DefinitionRevisions.SingleAsync(x => x.CommunityId == communityId && x.DefinitionId == holding.DefinitionId && x.Revision == holding.DefinitionRevision, ct)).UseMessage;
+            ApiFault.Require(target == actor, 403, "invalid_use", "You may only use your own items.");
+            var revision = await db.DefinitionRevisions.SingleAsync(x => x.CommunityId == communityId && x.DefinitionId == holding.DefinitionId && x.Revision == holding.DefinitionRevision, ct);
+            message = revision.UseMessage;
             ApiFault.Require(ItemText.Chat(message, policy.Value.ChatMessageTextElements), 422, "invalid_message", "Potion message is not safe for posting.");
+            if (revision.MoodleEffectJson is { } effect) await moodles.RefreshConsumableAsync(communityId, actor, effect, ct);
         }
         holding.Quantity -= quantity; holding.Version++;
         community.InventoryVersion++;

@@ -2,6 +2,13 @@ namespace AmorRP.Server.Infrastructure.Persistence;
 
 public sealed class CommunityRow
 {
+    public int ClassSlots { get; set; } = 1;
+    public long ClassResetPrice { get; set; } = 1000;
+    public string ClassCatalog { get; set; } = "[]";
+    public int ClassPolicyVersion { get; set; } = 1;
+    public int GroupRecipeLimit { get; set; } = 10;
+    public string? OwnershipEffectJson { get; set; }
+    public int OwnershipEffectVersion { get; set; } = 1;
     public Guid Id { get; set; } = Guid.CreateVersion7();
     public string Name { get; set; } = "";
     public string Description { get; set; } = "";
