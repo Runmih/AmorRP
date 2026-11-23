@@ -6,7 +6,7 @@ namespace AmorRP.Plugin.Features.Seasons;
 
 public sealed partial class SeasonsPanel
 {
-    private enum CommunityBrowserPage { Overview, Members, Groups, Noticeboard, Events, Classes }
+    private enum CommunityBrowserPage { Overview, Character, Members, Groups, Noticeboard, Events }
     private CommunityBrowserPage? requestedCommunityPage;
     private bool requestedManagementMembers;
     public Action<WorkspaceKind>? OpenWorkspaceWindow { get; set; }
@@ -63,7 +63,7 @@ public sealed partial class SeasonsPanel
             if (requestedCommunityPage == page)
             {
                 requestedCommunityPage = null;
-                if (page == CommunityBrowserPage.Events) ImGui.SetScrollY(0);
+                if (page is CommunityBrowserPage.Events or CommunityBrowserPage.Character) ImGui.SetScrollY(0);
             }
             if (page == CommunityBrowserPage.Events) DrawSeasonEvents();
             else if (community == null) DrawNoSeason();
@@ -72,10 +72,10 @@ public sealed partial class SeasonsPanel
                 switch (page)
                 {
                     case CommunityBrowserPage.Overview:
-                        DrawHomeOverview(editable: false); DrawMyBills(); DrawOwnershipOffer(); break;
+                        DrawHomeOverview(); DrawOwnershipOffer(); break;
+                    case CommunityBrowserPage.Character: DrawCharacterPage(); break;
                     case CommunityBrowserPage.Members: DrawMembers(MemberView.Directory); break;
                     case CommunityBrowserPage.Groups: DrawCommunityGroups(); break;
-                    case CommunityBrowserPage.Classes: DrawClassSelection(); break;
                     case CommunityBrowserPage.Noticeboard: DrawNoticeboard(); break;
                 }
             }

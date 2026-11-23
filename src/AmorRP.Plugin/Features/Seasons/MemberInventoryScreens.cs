@@ -24,7 +24,6 @@ public sealed partial class SeasonsPanel
         if (inspectorRefresh.Error != null) DrawRefreshState(inspectorRefresh, "Member items");
         if (memberInventoryRequestedFor != target.Character.Id) LoadMemberInventory(target);
         Wrapped("Item summaries only. Written contents stay private to the holder.");
-        if (ActionButton("Refresh item summaries", mutation: false)) LoadMemberInventory(target);
         if (memberInventoryFor != target.Character.Id) { Wrapped("Waiting for this member's item summaries. Any error appears in the action/status area above."); return; }
         ImGui.BeginChild("MemberHoldings", new(0, ImGui.GetTextLineHeightWithSpacing() * 9), true);
         DrawHoldingRows("ManagedHoldings", memberHoldings, memberHoldingSelection, item => { memberHoldingSelection = item.Id; removeQuantity = 1; removeItemsConfirmed = false; });

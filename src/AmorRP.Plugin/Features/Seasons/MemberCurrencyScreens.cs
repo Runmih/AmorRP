@@ -42,8 +42,6 @@ public sealed partial class SeasonsPanel
     {
         if (community == null) return;
         ImGui.TextUnformatted("Balance — " + community.Currency.Name);
-        ImGui.SameLine();
-        if (ActionButton("Refresh##MemberBalance", mutation: false)) RefreshMemberBalance(target);
         var balance = balanceFor == target.Character.Id ? selectedMemberBalance : target.Character.Id == session!.Character.Id ? community.MyBalance : null;
         if (target.Character.Id == session!.Character.Id && (balance == null || community.MyBalance.Version > balance.Version)) balance = community.MyBalance;
         if (balance != null)

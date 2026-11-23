@@ -90,7 +90,6 @@ public sealed partial class SeasonsPanel
         if (writingLogComposing)
         { ImGui.SameLine(); if (ImGui.Button("Back to reading")) writingLogComposing = false; }
         ImGui.SameLine();
-        if (ImGui.Button("Refresh writing")) { writingLogRefresh.Invalidate(); inventoryRefresh.Invalidate(); }
         ImGui.BeginChild("WritingLogContent", System.Numerics.Vector2.Zero, false);
         var stacked = ImGui.GetContentRegionAvail().X < ImGui.GetFontSize() * 46;
         if (ImGui.BeginTable("WritingLogLayout", stacked ? 1 : 2, ImGuiTableFlags.Resizable | ImGuiTableFlags.BordersInnerV))

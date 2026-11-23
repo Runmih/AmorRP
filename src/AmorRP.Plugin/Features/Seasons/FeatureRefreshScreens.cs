@@ -48,6 +48,30 @@ public sealed partial class SeasonsPanel
         hubRefresh.Invalidate(); inspectorRefresh.Invalidate();
     }
 
+    public void RefreshData()
+    {
+        if (session == null || origin == null) return;
+        refreshNeeded = true;
+        RefreshCommunityFeatures();
+        shopRefresh.Invalidate();
+        permitsRefresh.Invalidate();
+        gatheringRefresh.Invalidate();
+        classRefresh.Invalidate();
+        moodleRefresh.Invalidate();
+        ownershipEffectRefresh.Invalidate();
+        characterDescriptionRefresh.Invalidate();
+        groupBillingRefresh.Invalidate();
+        contextCustomerRefresh.Invalidate();
+        favoriteRefresh.Invalidate();
+        iconRefresh.Invalidate();
+        logoRefresh.Invalidate();
+        InvalidateAnnouncements();
+        nextTradePoll = nextInboxPoll = default;
+        billingGroupRequested = treasuryRequestedFor = balanceRequestedFor = memberInventoryRequestedFor = null;
+        billPayments.Clear();
+        if (community != null && SelectedGroup is { IsMember: true } group) LoadGroupPrivate(group, true);
+    }
+
     private void TickFeatureRefreshes()
     {
         var now = DateTimeOffset.UtcNow;
@@ -172,8 +196,6 @@ public sealed partial class SeasonsPanel
         if (refresh.Error != null)
         {
             Wrapped(label + " could not refresh. " + (refresh.HasLoaded ? "Showing the last update." : "Retrying shortly."));
-            if (ImGui.SmallButton("Retry##" + label)) refresh.Invalidate();
-            ImGui.SameLine();
             if (ImGui.SmallButton("Details##" + label)) ImGui.OpenPopup("RefreshDetails##" + label);
             ImGui.SetNextWindowSize(new(ImGui.GetFontSize() * 25, 0), ImGuiCond.Appearing);
             if (ImGui.BeginPopup("RefreshDetails##" + label))

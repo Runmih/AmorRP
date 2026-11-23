@@ -67,7 +67,6 @@ public sealed partial class SeasonsPanel
             Wrapped(connectionError);
             Wrapped(connectionDiagnostic);
             ImGui.BeginDisabled(session == null || Busy || SyncBusy);
-            if (ImGui.Button("Retry connection")) Refresh();
             ImGui.EndDisabled();
         }
         if (loginFeedback.Length > 0)

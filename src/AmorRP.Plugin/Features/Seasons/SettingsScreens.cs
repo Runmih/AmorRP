@@ -84,6 +84,7 @@ public sealed partial class SeasonsPanel
         }
 
         if (ImGui.CollapsingHeader("Favorite Events")) DrawFavoriteEventsSettings();
+        if (ImGui.CollapsingHeader("Coins")) DrawCoinHudSettings();
     }
 
     private void DrawQuickBarSettings()
@@ -127,6 +128,26 @@ public sealed partial class SeasonsPanel
         PercentSlider("Width", configuration.FavoriteEventsSize, 60, 160, 100, x => configuration.FavoriteEventsSize = x);
         PercentSlider("Opacity", configuration.FavoriteEventsOpacity, 25, 100, 100, x => configuration.FavoriteEventsOpacity = x);
         PercentSlider("Background opacity", configuration.FavoriteEventsBackgroundOpacity, 0, 100, 100, x => configuration.FavoriteEventsBackgroundOpacity = x);
+        ImGui.PopID();
+    }
+
+    private void DrawCoinHudSettings()
+    {
+        ImGui.PushID("CoinHud");
+        var coin = configuration.CoinHud;
+        var show = coin.Visible;
+        if (ImGui.Checkbox("Show coins", ref show))
+        { coin.Visible = show; save(); SetCoinHudVisible?.Invoke(show); }
+        var header = coin.ShowHeader;
+        if (ImGui.Checkbox("Show header", ref header)) { coin.ShowHeader = header; save(); }
+        var hideEmpty = coin.HideWhenEmpty;
+        if (ImGui.Checkbox("Hide when the balance is unavailable", ref hideEmpty))
+        { coin.HideWhenEmpty = hideEmpty; save(); }
+        DrawDockSettings(HudEdges, coin.Docked, x => coin.Docked = x, coin.Edge, x => coin.Edge = x,
+            coin.AutoHide, x => coin.AutoHide = x, coin.Position, x => coin.Position = x);
+        PercentSlider("Width", coin.Width, 60, 160, 100, x => coin.Width = x);
+        PercentSlider("Opacity", coin.Opacity, 25, 100, 100, x => coin.Opacity = x);
+        PercentSlider("Background opacity", coin.BackgroundOpacity, 0, 100, 100, x => coin.BackgroundOpacity = x);
         ImGui.PopID();
     }
 

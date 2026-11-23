@@ -12,7 +12,7 @@ public sealed partial class SeasonsPanel
     private ClassSelection? classState;
     private ClassPolicy? classDraft;
     private Guid? editingClass;
-    private bool confirmClassChange;
+    private bool confirmClassChange, editCharacterClasses;
 
     private void ResetClasses()
     {
@@ -22,7 +22,7 @@ public sealed partial class SeasonsPanel
         classPriceText = null;
         editingClass = null;
         classChoices.Clear();
-        confirmClassChange = false;
+        confirmClassChange = editCharacterClasses = false;
     }
 
     private static string ClassGrantName(string grant) => grant switch
@@ -48,7 +48,7 @@ public sealed partial class SeasonsPanel
             {
                 classChoices.Clear();
                 classChoices.UnionWith(result.Selected.Where(id => result.Policy.Classes.Any(c => c.Id == id)));
-                confirmClassChange = false;
+                confirmClassChange = editCharacterClasses = false;
             }
             classState = result;
         }
@@ -56,6 +56,43 @@ public sealed partial class SeasonsPanel
             actor.AccessExpiresAt <= now || !serviceCompatible) return;
         classRefresh.Start(now, dataGeneration, requests.Token,
             ct => client.GetAsync<ClassSelection>(uri, $"api/v2/seasons/{season.Id}/classes", actor.AccessToken, ct));
+    }
+
+    private void DrawCharacterClasses()
+    {
+        DrawSectionHeading("Classes");
+        if (classState is not { } state || state.Selected.Length == 0)
+        {
+            DrawClassSelection();
+            return;
+        }
+
+        var selected = state.Policy.Classes.Where(c => state.Selected.Contains(c.Id)).ToArray();
+        foreach (var c in selected)
+        {
+            ImGui.TextUnformatted(c.Name);
+            DrawClassDetails(c);
+        }
+        var canAdd = selected.Length < state.Policy.Slots && selected.Length < state.Policy.Classes.Length;
+        if (SeasonReadOnly || !(state.FreeCorrection || canAdd)) return;
+
+        if (ImGui.SmallButton(editCharacterClasses ? "Close class selection" : state.FreeCorrection ? "Correct class selection" : "Choose another class"))
+        {
+            editCharacterClasses = !editCharacterClasses;
+            if (!editCharacterClasses)
+            {
+                classChoices.Clear();
+                classChoices.UnionWith(selected.Select(c => c.Id));
+                confirmClassChange = false;
+            }
+        }
+        if (editCharacterClasses) DrawClassSelection();
+    }
+
+    private static void DrawClassDetails(SeasonClass c)
+    {
+        if (!string.IsNullOrWhiteSpace(c.Description)) Wrapped(c.Description);
+        if (c.Grants.Length > 0) ImGui.TextDisabled(string.Join(" · ", c.Grants.Select(ClassGrantName)));
     }
 
     private void DrawClassSelection(bool shop = false)
@@ -80,8 +117,7 @@ public sealed partial class SeasonsPanel
                 else classChoices.Remove(c.Id);
                 confirmClassChange = false;
             }
-            if (!string.IsNullOrWhiteSpace(c.Description)) Wrapped(c.Description);
-            if (c.Grants.Length > 0) ImGui.TextDisabled(string.Join(" · ", c.Grants.Select(ClassGrantName)));
+            DrawClassDetails(c);
             ImGui.PopID();
         }
         var existing = state.Selected.Where(id => state.Policy.Classes.Any(c => c.Id == id)).ToArray();

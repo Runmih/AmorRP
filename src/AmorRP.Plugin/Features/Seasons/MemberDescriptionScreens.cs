@@ -7,6 +7,8 @@ namespace AmorRP.Plugin.Features.Seasons;
 
 public sealed partial class SeasonsPanel
 {
+    private readonly BackgroundRefresh<Member> characterDescriptionRefresh = new(TimeSpan.FromMinutes(1));
+    private Member? characterDescriptionProfile;
     private string memberDescription = "", savedMemberDescription = "";
     private string? descriptionEtag;
 
@@ -16,14 +18,31 @@ public sealed partial class SeasonsPanel
         descriptionEtag = member.Etag;
     }
 
-    private void ClearMemberDescription()
-    { memberDescription = savedMemberDescription = ""; descriptionEtag = null; }
-
-    private void DrawMemberDescription(Member member)
+    private void ClearCharacterDescription()
     {
-        if (member.Character.Id != session!.Character.Id || member.Status != "active")
+        characterDescriptionRefresh.Reset();
+        characterDescriptionProfile = null;
+        memberDescription = savedMemberDescription = "";
+        descriptionEtag = null;
+    }
+
+    private void DrawCharacterDescription()
+    {
+        DrawSectionHeading("Character description");
+        if (session is not { } actor || community is not { } season || origin is not { } uri) return;
+
+        var now = DateTimeOffset.UtcNow;
+        if (characterDescriptionRefresh.TryCollect(now, dataGeneration, out var loaded))
+            characterDescriptionProfile = loaded;
+        if (!SessionRenewalInProgress && !WriteBlocked)
+            characterDescriptionRefresh.Start(now, dataGeneration, requests.Token,
+                ct => client.GetAsync<Member>(uri, $"api/v2/seasons/{season.Id}/members/{actor.Character.Id}", actor.AccessToken, ct));
+
+        DrawRefreshState(characterDescriptionRefresh, "Character description");
+        if (characterDescriptionProfile is not { } member) return;
+        if (SeasonReadOnly)
         {
-            Wrapped(member.Description.Length > 0 ? member.Description : "No description yet.");
+            if (member.Description.Length > 0) Wrapped(member.Description);
             return;
         }
         // Background refreshes may update an untouched description, but must
@@ -52,7 +71,10 @@ public sealed partial class SeasonsPanel
 
     private void AcceptMemberDescriptionSave(CommandRequest request, Member member)
     {
-        if (request.Operation.Kind != CommandKind.EditMemberDescription || memberSelection != member.Character.Id) return;
-        ResetMemberDescription(member); actionResult = "Description saved.";
+        if (request.Operation.Kind != CommandKind.EditMemberDescription || session?.Character.Id != member.Character.Id) return;
+        characterDescriptionRefresh.Invalidate();
+        characterDescriptionProfile = member;
+        ResetMemberDescription(member);
+        actionResult = "Description saved.";
     }
 }

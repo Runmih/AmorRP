@@ -25,7 +25,12 @@ public sealed partial class SeasonsPanel
             // Require a fresh owned-item read before displaying it again.
             writingLogDetails = null; writingLogRefresh.Invalidate();
         }
-        if (targets.HasFlag(RefreshTargets.Members)) { rosterRefresh.Invalidate(); ownershipRefresh.Invalidate(); }
+        if (targets.HasFlag(RefreshTargets.Members))
+        {
+            rosterRefresh.Invalidate();
+            ownershipRefresh.Invalidate();
+            characterDescriptionRefresh.Invalidate();
+        }
         if (targets.HasFlag(RefreshTargets.Policy)) policyRefresh.Invalidate();
         if (targets.HasFlag(RefreshTargets.SeasonLogo)) { logos.Clear(); logoReadKey = ""; }
         if (targets.HasFlag(RefreshTargets.CurrencyIcon)) { icons.Clear(); iconReadKey = ""; }

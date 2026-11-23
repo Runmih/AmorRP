@@ -98,7 +98,7 @@ and carry their original recipe revision and optional consumable effect.
 | POST | `/api/v2/seasons/{seasonId}/inventory/letters` | Spend own letter allowance to create individual letter | Active member |
 | GET | `/api/v2/seasons/{seasonId}/letters/{letterId}` | Read currently owned letter and edit concurrency token | Current holder; active member |
 | PATCH | `/api/v2/seasons/{seasonId}/letters/{letterId}` | Edit untraded, unreserved letter held by its author | Author and current holder |
-| POST | `/api/v2/seasons/{seasonId}/inventory/{holdingId}/use` | Consume one available potion and return literal chat text | Current holder; active member; potion type |
+| POST | `/api/v2/seasons/{seasonId}/inventory/{holdingId}/use` | Consume one available potion, optionally with a chat destination | Current holder; active member; potion type |
 | POST | `/api/v2/seasons/{seasonId}/inventory/{holdingId}/discard` | Discard own available quantity; no quota refund | Current holder; active member |
 | POST | `/api/v2/seasons/{seasonId}/inventory/removals` | Remove another active member holding with reason | Owner or inventory.remove; target active |
 | GET | `/api/v2/seasons/{seasonId}/trades` | Own trades, pending invitations and recent outcomes | Verified player; only own participant trades, including terminal recovery |

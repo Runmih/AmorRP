@@ -48,7 +48,6 @@ public sealed partial class SeasonsPanel
     private void DrawGroupTreasury(GroupProfile group, bool management = true)
     {
         LoadTreasury(group);
-        if (ActionButton("Refresh treasury", mutation: false)) LoadTreasury(group, true);
         Wrapped("Currency: " + community!.Currency.Name);
         if (treasuryBalance == null) { Wrapped("Loading treasury balance…"); return; }
         Wrapped("Group treasury: " + treasuryBalance.Available);

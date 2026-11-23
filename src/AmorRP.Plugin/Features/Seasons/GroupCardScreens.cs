@@ -72,8 +72,10 @@ public sealed partial class SeasonsPanel
         }
     }
 
+    private sealed record EventCardDetails(string Schedule, string Location);
+
     private void DrawGroupCard(string childId, Guid id, string title, string groupName, Group? group, DateTimeOffset now,
-        IReadOnlyList<string> body, string reward = "")
+        IReadOnlyList<string> body, string reward = "", EventCardDetails? eventDetails = null)
     {
         var padding = ImGui.GetFontSize() * .8f;
         var stamp = ImGui.GetFontSize() * 2.7f;
@@ -88,8 +90,24 @@ public sealed partial class SeasonsPanel
 
         var footerHeight = Math.Max(stamp, signatureSize.Y);
         var lines = ImGui.GetTextLineHeightWithSpacing();
+        var fieldGap = ImGui.GetFontSize() * 1.4f;
+        var sealWidth = stamp + gap.X + signatureSize.X + linkWidth;
+        var shareFooter = eventDetails != null && width - sealWidth - fieldGap >= ImGui.GetFontSize() * 26;
+        var detailsWidth = shareFooter ? width - sealWidth - fieldGap : width;
+        var hasLocation = eventDetails != null && !string.IsNullOrWhiteSpace(eventDetails.Location);
+        var detailColumns = detailsWidth >= ImGui.GetFontSize() * 23;
+        var dateWidth = detailColumns && hasLocation
+            ? Math.Min(ImGui.CalcTextSize(eventDetails!.Schedule).X + 1, (detailsWidth - fieldGap) * .55f)
+            : detailsWidth;
+        var locationWidth = Math.Max(1, detailsWidth - dateWidth - fieldGap);
+        var dateHeight = eventDetails == null ? 0 : CardFieldHeight("Date & Time", eventDetails.Schedule, dateWidth, detailColumns);
+        var locationHeight = hasLocation ? CardFieldHeight("Location", eventDetails!.Location, detailColumns ? locationWidth : detailsWidth, detailColumns) : 0;
+        var detailsHeight = detailColumns ? Math.Max(dateHeight, locationHeight)
+            : dateHeight + (hasLocation ? gap.Y + locationHeight : 0);
+        if (shareFooter) footerHeight = Math.Max(footerHeight, detailsHeight);
         var height = padding * 2 + ImGui.CalcTextSize(title, false, width).Y
             + body.Sum(line => ImGui.CalcTextSize(line, false, width).Y) + footerHeight + gap.Y * (body.Count + 4) + 4;
+        if (eventDetails != null && !shareFooter) height += detailsHeight + gap.Y * 2;
         if (reward.Length > 0) height += lines + ImGui.CalcTextSize(reward, false, width).Y + gap.Y * 2;
 
         ImGui.PushID(id.ToString());
@@ -113,6 +131,22 @@ public sealed partial class SeasonsPanel
             }
 
             ImGui.Spacing();
+            if (eventDetails != null)
+            {
+                var top = ImGui.GetCursorScreenPos();
+                DrawCardField(top, "Date & Time", eventDetails.Schedule, dateWidth, detailColumns);
+                if (hasLocation)
+                {
+                    var position = top + (detailColumns ? new Vector2(dateWidth + fieldGap, 0) : new Vector2(0, dateHeight + gap.Y));
+                    DrawCardField(position, "Location", eventDetails.Location, detailColumns ? locationWidth : detailsWidth, detailColumns);
+                }
+                if (!shareFooter)
+                {
+                    ImGui.Dummy(new Vector2(0, detailsHeight));
+                    ImGui.Spacing();
+                }
+            }
+
             var logo = ReadGroupCardLogo(group, now);
             DrawGroupCardSeal(groupName, group, logo, signature, signatureSize, signatureWidth, stamp, footerHeight, linkWidth);
         }
@@ -120,6 +154,29 @@ public sealed partial class SeasonsPanel
         ImGui.PopStyleVar();
         ImGui.PopStyleColor(2);
         ImGui.PopID();
+    }
+
+    private static Vector2 CardFieldValueOffset(string label, float width, bool separateLines)
+    {
+        var labelWidth = ImGui.CalcTextSize(label).X + ImGui.GetStyle().ItemSpacing.X;
+        return separateLines || width - labelWidth < ImGui.GetFontSize() * 8
+            ? new(0, ImGui.GetTextLineHeightWithSpacing())
+            : new(labelWidth, 0);
+    }
+
+    private static float CardFieldHeight(string label, string value, float width, bool separateLines)
+    {
+        var offset = CardFieldValueOffset(label, width, separateLines);
+        return offset.Y + ImGui.CalcTextSize(value, false, Math.Max(1, width - offset.X)).Y;
+    }
+
+    private static void DrawCardField(Vector2 position, string label, string value, float width, bool separateLines)
+    {
+        var offset = CardFieldValueOffset(label, width, separateLines);
+        var draw = ImGui.GetWindowDrawList();
+        draw.AddText(position, ImGui.GetColorU32(InventoryGold), label);
+        draw.AddText(ImGui.GetFont(), ImGui.GetFontSize(), position + offset, ImGui.GetColorU32(ImGuiCol.Text),
+            value, Math.Max(1, width - offset.X));
     }
 
     private void DrawGroupCardSeal(string groupName, Group? group, SeasonImageCache? logo, string signature,

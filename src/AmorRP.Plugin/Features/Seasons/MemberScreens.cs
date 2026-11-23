@@ -18,7 +18,6 @@ public sealed partial class SeasonsPanel
         if (!members.Any(x => x.Character.Id == row.Character.Id)) members = [..members, row];
         inspectorRefresh.Reset();
         memberSelection = row.Character.Id; memberDraftEtag = row.Etag;
-        ResetMemberDescription(row);
         LoadPersonalNote(row);
         grantGathering = row.Capabilities.Contains(AmorRP.Core.Items.CraftingTypes.GatherPermission);
         grantCooking = row.Capabilities.Contains("items.cooking.create"); grantCookingDefinitions = row.Capabilities.Contains("items.cooking.define");
@@ -69,7 +68,7 @@ public sealed partial class SeasonsPanel
             ImGui.TextUnformatted(target.Character.DisplayName);
             if (view != MemberView.Management)
             {
-                DrawMemberDescription(target);
+                if (target.Description.Length > 0) Wrapped(target.Description);
                 if (!SeasonReadOnly && target.Status == "active" && target.Character.Id != session!.Character.Id && !target.TradingRestricted && !community.MyTradingRestricted && ImGui.Button("Trade with this member"))
                 { if (BeginTradeRequest()) SendTradeRequest(target); }
                 DrawPersonalNote(target);
@@ -102,7 +101,7 @@ public sealed partial class SeasonsPanel
         var current = SelectedMember;
         if (current == null) return false;
         var caps = current.Capabilities;
-        return personalNote != savedPersonalNote || memberDescription != savedMemberDescription
+        return personalNote != savedPersonalNote
             || delta.Length > 0 || reason.Length > 0 || itemRemovalReason.Length > 0
             || tradingAllowed == current.TradingRestricted || grantCoins != caps.Contains("currency.manage")
             || grantGathering != caps.Contains(AmorRP.Core.Items.CraftingTypes.GatherPermission)

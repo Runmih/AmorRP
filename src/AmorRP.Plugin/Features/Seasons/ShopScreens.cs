@@ -135,7 +135,6 @@ public sealed partial class SeasonsPanel
     {
         if (ImGui.Button("New listing")) LoadShopDraft(null);
         ImGui.SameLine();
-        if (ImGui.Button("Refresh listings")) shopRefresh.Invalidate();
         foreach (var product in shopProducts)
             if (ImGui.Selectable(product.Name + (product.Listed ? "" : " · hidden") + "###editShop" + product.Id, editingProduct?.Id == product.Id))
                 LoadShopDraft(product);

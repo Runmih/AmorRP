@@ -130,7 +130,12 @@ public sealed partial class FoundationTests
         await Command<Definition>(owner, HttpMethod.Patch, root + $"/item-definitions/{recipe.Id}",
             draft with { Effect = effect with { Name = "A new effect" } }, $"\"definition:{recipe.Id:N}:{recipe.Revision}\"");
         var usePath = root + $"/inventory/{holding.Id}/use";
-        var used = await Command<ConsumptionResult>(owner, HttpMethod.Post, usePath, new ConsumptionRequest(holding.Version, true, "say"));
+        using (var req = Request(HttpMethod.Post, usePath, new ConsumptionRequest(holding.Version, false, "say"), Guid.CreateVersion7(clock.UtcNow)))
+        using (var response = await owner.SendAsync(req, ct)) Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
+        var used = await Command<ConsumptionResult>(owner, HttpMethod.Post, usePath, new ConsumptionRequest(holding.Version, false, ""));
+        Assert.Equal(1, used.Holding.Quantity);
+        Assert.Empty(used.Destination);
+        Assert.Equal("none", used.ChatDelivery);
         var first = Assert.Single((await owner.GetFromJsonAsync<MoodleGrants>("/api/v2/me/moodle-effects", ct))!.Active);
         Assert.Equal(effect, first.Effect);
         clock.UtcNow = clock.UtcNow.AddSeconds(10);

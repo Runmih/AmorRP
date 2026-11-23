@@ -105,14 +105,12 @@ public sealed partial class SeasonsPanel
         ImGui.TextDisabled("Supply costs and bonuses apply to new packages immediately.");
     }
 
-    private void DrawSupplyUse(HoldingDetails detail)
+    private void DrawSupplyUseButton(HoldingDetails detail)
     {
         var alchemy = detail.Holding.TypeId == CraftingTypes.AlchemySupplies;
-        Wrapped($"Adds {detail.Definition!.BonusPoints} {(alchemy ? "Alchemy" : "Cooking")} points until the weekly reset.");
         var allowed = alchemy ? CanCraftPotions : CanCraftCooking;
-        if (!allowed) Wrapped("You need crafting permission for this discipline to use its supplies.");
         ImGui.BeginDisabled(!allowed || detail.Holding.Available == 0);
-        if (ActionButton("Use one supply pack"))
+        if (ActionButton("Use"))
             Mutate("POST", $"api/v2/seasons/{community!.Id}/inventory/{detail.Holding.Id}/use-supplies", new UseSupplies(detail.Holding.Version));
         ImGui.EndDisabled();
     }

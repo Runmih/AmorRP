@@ -13,7 +13,9 @@ internal sealed class InventoryCompanionQuery
     public string Type { get; set; } = "";
     public string Search { get; set; } = "";
     public int Sort { get; set; }
-    public bool CanLoad => Section is InventoryCompanionSection.All or InventoryCompanionSection.Consumables or InventoryCompanionSection.Writing;
+    public bool CanLoad => IsSupported(Section);
+    public static bool IsSupported(InventoryCompanionSection section) =>
+        section is InventoryCompanionSection.All or InventoryCompanionSection.Consumables or InventoryCompanionSection.Writing;
     public string[] Types => Section switch
     {
         InventoryCompanionSection.All => CraftingTypes.All,

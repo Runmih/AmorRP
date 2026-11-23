@@ -74,11 +74,10 @@ public sealed partial class SeasonsPanel
     private void DrawMyBills()
     {
         DrawRefreshState(myBillsRefresh, "Your bills");
-        if (myBills.TotalOutstanding != "0") Wrapped("Debt still owed: " + myBills.TotalOutstanding + " " + community!.Currency.Name);
         if (!ImGui.CollapsingHeader("Your bills and debt")) return;
+        if (myBills.TotalOutstanding != "0") Wrapped("Debt still owed: " + myBills.TotalOutstanding + " " + community!.Currency.Name);
         Wrapped("Available coins and future income repay your oldest bills automatically.");
         if (community!.MyBalance.HeldForDebt != "0") Wrapped("Coins awaiting automatic repayment: " + community.MyBalance.HeldForDebt);
-        if (ActionButton("Refresh your bills", mutation: false)) { myBillsRefresh.Invalidate(); billPayments.Clear(); }
         DrawBills(myBills);
         if (myBills.NextCursor != null && ActionButton("Older bills", mutation: false))
         {
@@ -92,7 +91,6 @@ public sealed partial class SeasonsPanel
     private void DrawGroupBilling(GroupProfile group)
     {
         if (billingGroupRequested != group.Id) LoadGroupBills(group);
-        if (ActionButton("Refresh bills", mutation: false)) { LoadGroupBills(group); treasuryRequestedFor = null; billPayments.Clear(); }
         if (CanGroupAction(group, GroupCapabilities.Billing) && DrawGroupBillingSettings(group)) DrawBillComposer(group);
         Wrapped("Outstanding on these bills: " + groupBills.TotalOutstanding + " " + community!.Currency.Name);
         DrawBills(groupBills);

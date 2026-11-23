@@ -1,3 +1,5 @@
+using AmorRP.Plugin.Features.Shell;
+
 using Dalamud.Configuration;
 
 namespace AmorRP.Plugin;
@@ -7,6 +9,7 @@ public sealed class Configuration : IPluginConfiguration
 {
     public int Version { get; set; } = 4;
     public Dictionary<string, string> ProtectedMemberNotes { get; set; } = [];
+    public CoinHudSettings CoinHud { get; set; } = new();
     public bool ShowFavoriteEvents { get; set; } = true;
     public bool ShowLauncher { get; set; } = true;
     public Features.Shell.LauncherEdge QuickBarEdge { get; set; } = Features.Shell.LauncherEdge.Left;
@@ -33,4 +36,29 @@ public sealed class Configuration : IPluginConfiguration
     public Dictionary<string, Guid[]> PinnedHoldings { get; set; } = [];
     public List<Services.Identity.SavedSession> SavedSessions { get; set; } = [];
     public List<Services.Identity.PendingCommand> PendingCommands { get; set; } = [];
+}
+
+public sealed class CoinHudSettings
+{
+    public bool Visible { get; set; } = true;
+    public bool ShowHeader { get; set; } = true;
+    public bool HideWhenEmpty { get; set; } = true;
+    public LauncherEdge Edge { get; set; } = LauncherEdge.Right;
+    public bool Docked { get; set; }
+    public bool AutoHide { get; set; } = true;
+    public float Position { get; set; } = 50;
+    public float FloatX { get; set; } = 85;
+    public float FloatY { get; set; } = 80;
+    public float Width { get; set; } = 100;
+    public float Opacity { get; set; } = 100;
+    public float BackgroundOpacity { get; set; } = 100;
+
+    internal HudLayout Layout() => new(Docked, Edge, AutoHide, Position, new(FloatX, FloatY),
+        Width, Opacity, BackgroundOpacity, ShowHeader, HideWhenEmpty);
+
+    internal void Move(System.Numerics.Vector2 next)
+    {
+        if (Docked) Position = next.X;
+        else { FloatX = next.X; FloatY = next.Y; }
+    }
 }

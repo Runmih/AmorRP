@@ -8,8 +8,7 @@ namespace AmorRP.Plugin.Features.Seasons;
 public sealed partial class SeasonsPanel
 {
     private Guid? authorizationResultFor, pendingAuthorizationRead;
-    private string authorizationResult = "", authorizationDiagnostic = "", potionAccessResult = "";
-    private bool pendingPotionAccessRead;
+    private string authorizationResult = "", authorizationDiagnostic = "";
 
     private static bool IsAuthorizationCommand(CommandRequest request) => request.Operation.Kind == CommandKind.EditMemberPermissions;
 
@@ -97,39 +96,11 @@ public sealed partial class SeasonsPanel
             authorizationResult = "Could not check saved permissions. " + status;
             authorizationDiagnostic = details;
         }
-        if (pendingPotionAccessRead)
-        {
-            pendingPotionAccessRead = false;
-            potionAccessResult = "Could not check potion access. " + status + details;
-        }
-    }
-
-    private void DrawPotionAccess()
-    {
-        var currentCommunity = community!; var character = session!.Character;
-        Wrapped($"Potion access for {character.DisplayName} @ {character.HomeWorldName} in {currentCommunity.Name}: {Permission(Owner || currentCommunity.MyCapabilities.Contains("items.potion.create"))}.");
-        if (Owner) Wrapped("Owner access is automatic. Creating copies still requires an enabled recipe and enough weekly points.");
-        if (potionAccessResult.Length > 0) Wrapped(potionAccessResult);
-        if (!ActionButton("Check my potion permission with server", mutation: false)) return;
-        var uri = origin!; var token = session.AccessToken; var communityId = currentCommunity.Id;
-        pendingPotionAccessRead = true; potionAccessResult = "Checking current permission…";
-        Start(async ct => {
-            var current = await client.GetAsync<Season>(uri, $"api/v2/seasons/{communityId}", token, ct);
-            return () => {
-                pendingPotionAccessRead = false;
-                if (community?.Id != communityId) return;
-                community = current; communities = communities.Select(x => x.Id == current.Id ? current : x).ToArray();
-                var allowed = current.OwnerCharacterId == character.Id || current.MyCapabilities.Contains("items.potion.create");
-                potionAccessResult = $"Server checked at {DateTimeOffset.Now:T}: potion creation is {Permission(allowed).ToLowerInvariant()}.";
-                status = potionAccessResult; refreshNeeded = true;
-            };
-        }, "Checking potion permission…");
     }
 
     private void ClearAuthorizationViews()
     {
         authorizationResultFor = pendingAuthorizationRead = null;
-        authorizationResult = authorizationDiagnostic = potionAccessResult = "";
-        pendingPotionAccessRead = false;
+        authorizationResult = authorizationDiagnostic = "";
     }
 }

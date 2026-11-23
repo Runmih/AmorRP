@@ -63,7 +63,6 @@ public sealed partial class SeasonsPanel
         if (community == null) { Wrapped("Choose a season first to see its groups."); return; }
         DrawRefreshState(groupsRefresh, "Groups");
         groupLogos.Draw();
-        if (ActionButton("Refresh groups", mutation: false)) { groupsRefresh.Invalidate(); hubRefresh.Invalidate(); ClearTreasury(); if (SelectedGroup is { IsMember: true } selectedGroup) LoadGroupPrivate(selectedGroup, true); }
         var canCreateHere = !administration && CanCreateGroups;
         var createRequested = canCreateHere && ImGui.Button("New group");
         var narrow = ImGui.GetContentRegionAvail().X < ImGui.GetFontSize() * 38;

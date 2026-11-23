@@ -165,18 +165,22 @@ public sealed partial class InventoryService(AmorDbContext db, SessionAccess ses
         string? message = null;
         if (body is ConsumptionRequest use)
         {
-            ApiFault.Require(CraftingTypes.IsRecipe(holding.TypeId) && use.ChatConsent && ItemText.Destination(use.Destination), 422, "invalid_use", "Potion use requires startup chat permission and an explicit supported destination.");
+            var validChat = use.ChatConsent ? ItemText.Destination(use.Destination) : use.Destination == "";
+            ApiFault.Require(CraftingTypes.IsRecipe(holding.TypeId) && validChat, 422, "invalid_use",
+                "Leave the destination blank or choose a supported destination with chat permission.");
             ApiFault.Require(target == actor, 403, "invalid_use", "You may only use your own items.");
             var revision = await db.DefinitionRevisions.SingleAsync(x => x.CommunityId == communityId && x.DefinitionId == holding.DefinitionId && x.Revision == holding.DefinitionRevision, ct);
             message = revision.UseMessage;
-            ApiFault.Require(ItemText.Chat(message, policy.Value.ChatMessageTextElements), 422, "invalid_message", "Potion message is not safe for posting.");
+            ApiFault.Require(!use.ChatConsent || ItemText.Chat(message, policy.Value.ChatMessageTextElements), 422, "invalid_message", "Potion message is not safe for posting.");
             if (revision.MoodleEffectJson is { } effect) await moodles.RefreshConsumableAsync(communityId, actor, effect, ct);
         }
         holding.Quantity -= quantity; holding.Version++;
         community.InventoryVersion++;
         var op = commands.New(h, scope, body, actor, communityId, body is ConsumptionRequest ? "potion.use" : body is InventoryRemoval || target != actor ? "inventory.remove" : "inventory.discard");
         op.SubjectCharacterId = target; op.Reason = removalReason; op.Summary = $"{op.Kind}: {quantity} × {holding.Name} ({holding.TypeId}).";
-        object payload = body is ConsumptionRequest u ? new ConsumptionResult(View(holding), message!, u.Destination) : View(holding);
+        object payload = body is ConsumptionRequest u
+            ? new ConsumptionResult(View(holding), message!, u.Destination, u.ChatConsent ? "client_action_required" : "none")
+            : View(holding);
         var result = await commands.SaveAsync(h, op, new CommandResult<object>(op.Id, payload), ct); await tx.CommitAsync(ct); return result;
     }
 }

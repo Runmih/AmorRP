@@ -54,7 +54,6 @@ public sealed partial class SeasonsPanel
         if (group.IsMember && ImGui.BeginTabItem("Announcements"))
         {
             LoadGroupPrivate(group);
-            if (ActionButton("Refresh announcements", mutation: false)) LoadGroupPrivate(group, true);
             if (management && CanGroupAction(group, GroupCapabilities.Announcements))
             {
                 FieldLabel("Title"); LimitedInput("##GroupAnnouncementTitle", ref groupAnnouncementTitle, AmorRP.Contracts.Announcements.AnnouncementCreate.MaximumTitleCharacters);
@@ -101,7 +100,6 @@ public sealed partial class SeasonsPanel
             Wrapped("Join to view this group's member list and announcements."); return;
         }
         LoadGroupPrivate(group);
-        if (ActionButton("Refresh group members", mutation: false)) LoadGroupPrivate(group, true);
         if (groupPrivate != null)
         {
             foreach (var member in groupPrivate.Members)

@@ -6,11 +6,12 @@ namespace AmorRP.Plugin.Features.Shell;
 
 internal static class MenuWindowButtons
 {
-    public static TitleBarButton? Add(Window window, Action openSettings, Action openLog, bool isLog = false)
+    public static TitleBarButton? Add(Window window, Action openSettings, Action openLog, Action refresh, bool isLog = false)
     {
         window.TitleBarButtons.Add(Button(FontAwesomeIcon.Cog, "Settings", 0, openSettings));
+        window.TitleBarButtons.Add(Button(FontAwesomeIcon.SyncAlt, "Refresh", 1, refresh));
         if (isLog) return null;
-        var log = Button(FontAwesomeIcon.History, "Activity Log", 1, openLog);
+        var log = Button(FontAwesomeIcon.History, "Activity Log", 2, openLog);
         window.TitleBarButtons.Add(log);
         return log;
     }

@@ -72,6 +72,12 @@ User/account moderation remains separate planned work; do not implement bans by
 changing season membership. Incremental future extraction of SeasonsPanel should
 follow feature-owned state and regression coverage, not a broad controller rewrite.
 
+## Nice to have
+
+- **Tomes & Scrolls** comes after the other planned work. Add usable skill books,
+  spell tomes and scrolls, then show their inventory tab. Define item effects and
+  how permanent learning is recorded before adding those uses.
+
 ## Working rules
 
 Reuse feature services, transactions, receipts, settlement and query state. Extract

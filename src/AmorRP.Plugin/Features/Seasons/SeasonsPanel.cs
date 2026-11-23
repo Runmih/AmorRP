@@ -284,6 +284,9 @@ public sealed partial class SeasonsPanel(IPlayerState player, Configuration conf
                 actionResult = status;
                 switch (currentCommand.Read().Operation.Handler)
                 {
+                    case CommandHandler.Member when currentCommand.Read().Operation.Kind == CommandKind.EditMemberDescription:
+                        characterDescriptionRefresh.Invalidate();
+                        break;
                     case CommandHandler.Shop: shopReceipt = status; shopRefresh.Invalidate(); break;
                     case CommandHandler.Permit: permitFeedback = status; permitsRefresh.Invalidate(); break;
                     case CommandHandler.Policy: policyRefresh.Invalidate(); gatheringRefresh.Invalidate(); break;
@@ -371,7 +374,6 @@ public sealed partial class SeasonsPanel(IPlayerState player, Configuration conf
     private void ClearWork()
     {
         if (pendingAuthorizationRead.HasValue) { authorizationResult = "Permission check cancelled. Reload saved permissions to try again."; pendingAuthorizationRead = null; }
-        if (pendingPotionAccessRead) { potionAccessResult = "Permission check cancelled. Try checking again."; pendingPotionAccessRead = false; }
         reads.Clear(); queuedCommand = null;
         requests.Reset(); currentCommand = null;
     }

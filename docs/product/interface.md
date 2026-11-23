@@ -36,8 +36,9 @@ Turn off Auto-hide to keep the bar visible across sessions. Clear Dock to edge
 in Settings or choose Undock from the handle menu to drag the bar freely.
 Favorite Events lists only upcoming event titles. Select a title to open its
 details in Home → Events. The Events tab also lists other upcoming events in the
-viewed season. Favorite Events settings control docking, width, opacity, background opacity, header
-visibility and whether to hide the panel when empty.
+viewed season. Favorite Events and Coins share docking, width, opacity,
+background opacity, header visibility and hide-when-empty controls. Coins shows
+one balance based on spendable coins less outstanding debt.
 
 ## Shared season context
 
@@ -56,17 +57,17 @@ membership removal/block/restore or inactive-member controls remain.
 
 Inventory supports tabs, categories, search, sorting, item type and available
 quantity columns, pins and bounded pagination. Click the selected row again to
-close its details. The Writing Log also has a Type column. Home and Inventory show one balance based
-on spendable coins less outstanding debt. Home also shows numbered resource
-bars and a shared weekly reset date. Inventory filters and selection
-are independent of the Writing reader. Future Supplies
-and Documents entries are honest empty states rather than unimplemented actions.
+close its details. Consumables can be used with a blank emote channel. Discard
+opens an amount dialog. The Writing Log also has a Type column. Home → Character
+shows classes, a description editor, bills, and numbered resource bars with a
+shared weekly reset date. Inventory filters and selection are independent of the
+Writing reader. Crafting recipes show Name, Cost, and Access.
 
 Drafts survive polling. Switching member/group context protects unfinished edits.
 Permission updates reload after confirmed writes and keep conflict/recovery details
 available. Background reads do not reorder or overwrite active editing unnecessarily.
 
-The note icon opens Activity Log with recent results, detail, and pending-action recovery. The cog opens Settings.
+The note icon opens Activity Log with recent results, detail, and pending-action recovery. The cog opens Settings. The refresh icon requests current data.
 Keep the original operation key and request for recovery. Checking/retrying a saved
 operation never repeats game chat. Do not reinterpret an unknown old command as a
 new action. Authentication mismatch blocks feature use while preserving assets.

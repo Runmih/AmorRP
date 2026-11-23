@@ -11138,13 +11138,10 @@ components:
         expectedHoldingVersion: *id010
         chatConsent:
           type: boolean
-          description: Existing once-per-startup chat permission, automatically supplied by the client. Never requires
-            a new per-message or per-use consent question.
-          enum:
-          - true
+          description: True when sending the item's emote to a selected channel. False when consuming quietly.
         destination:
           type: string
-          description: emote, say, party, or a selected linkshell identifier; validate locally and server-side format.
+          description: An empty string for quiet consumption, or emote, say, party, or a selected linkshell identifier.
       required:
       - expectedHoldingVersion
       - chatConsent
@@ -11163,6 +11160,7 @@ components:
           description: Server does not verify game delivery.
           enum:
           - client_action_required
+          - none
       required:
       - holding
       - message

@@ -27,11 +27,13 @@ public sealed class MainWindow : Window, IDisposable
         communities.OpenCreateCommunity = () => OpenCreateCommunity?.Invoke();
         communities.CloseCreateCommunity = () => CloseCreateCommunity?.Invoke();
         communities.SetFavoriteEventsVisible = visible => SetFavoriteEventsVisible?.Invoke(visible);
+        communities.SetCoinHudVisible = visible => SetCoinHudVisible?.Invoke(visible);
         communities.SetLauncherVisible = visible => SetLauncherVisible?.Invoke(visible);
     }
 
     public MoodleAdapter Moodles { set => communities.Moodles = value; }
     public void Tick() { communities.EnsureScope(ProductServer.Origin); communities.Tick(); }
+    public void RefreshData() => communities.RefreshData();
     public int PendingTradeRequests => communities.PendingTradeRequests;
     public int UnreadAnnouncements => communities.UnreadAnnouncements;
     public bool GroupsSelected => communities.GroupsSelected;
@@ -47,6 +49,9 @@ public sealed class MainWindow : Window, IDisposable
     public void DrawActivityLog() => communities.DrawActivityLog();
     public void DrawFavoriteEvents(GroupEvent[] events) => communities.DrawFavoriteEvents(events);
     public GroupEvent[] UpcomingFavoriteEvents() => communities.UpcomingFavoriteEvents();
+    public string[] CoinBalance() => communities.CoinBalance();
+    public void DrawCoinHud(string[] balance) => communities.DrawCoinHud(balance);
+    public Action<bool>? SetCoinHudVisible { get; set; }
     public Action<bool>? SetFavoriteEventsVisible { get; set; }
     public Action<bool>? SetLauncherVisible { get; set; }
     internal Action? CheckForPluginUpdates { set => communities.CheckForPluginUpdates = value; }

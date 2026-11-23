@@ -36,6 +36,15 @@ public sealed class FavoriteEventScheduleTests
         Assert.StartsWith("Live now", FavoriteEventSchedule.When(sameDay, sameDay.StartsAt));
     }
 
+    [Theory]
+    [InlineData("2026-11-23T20:00:00Z", "2026-11-24T00:00:00+01:00", "Mon, 23 Nov · 20:00–23:00 ST")]
+    [InlineData("2026-11-24T00:00:00+01:00", "2026-11-24T02:00:00+01:00", "23 Nov, 23:00 to 24 Nov, 01:00 ST")]
+    [InlineData("2026-12-31T23:00:00Z", "2027-01-01T01:00:00Z", "31 Dec 2026, 23:00 to 1 Jan 2027, 01:00 ST")]
+    public void Event_card_dates_follow_server_time(string start, string end, string expected)
+    {
+        Assert.Equal(expected, FavoriteEventSchedule.CardRange(Event(DateTimeOffset.Parse(start), DateTimeOffset.Parse(end))));
+    }
+
     [Fact]
     public void Rolling_five_day_filtering_compares_instants_and_moves_forward_without_another_server_request()
     {

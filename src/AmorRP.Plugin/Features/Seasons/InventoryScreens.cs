@@ -24,7 +24,7 @@ public sealed partial class SeasonsPanel
     private string filterType = "";
     private int filterCategory, sort;
     private int loadedInventoryTab;
-    private bool discardConfirmed;
+    private Holding? discardTarget;
     private int discardQuantity = 1, removeQuantity = 1;
     private string itemRemovalReason = "";
     private bool removeItemsConfirmed;
@@ -86,8 +86,8 @@ public sealed partial class SeasonsPanel
         holdingSelection = memberInventoryFor = memberInventoryRequestedFor = null; holdingCursor = compactCursor = memberHoldingCursor = null;
         pinned = []; filterType = ""; filterCategory = sort = loadedInventoryTab = inventoryTab = 0; search = ""; appliedInventoryQuery = "sort=name";
         memberHoldingSelection = null;
-        discardConfirmed = removeItemsConfirmed = false; discardQuantity = removeQuantity = 1; itemRemovalReason = "";
-        ClearCreationDrafts(); lastUse = null;
+        discardTarget = null; removeItemsConfirmed = false; discardQuantity = removeQuantity = 1; itemRemovalReason = "";
+        ClearCreationDrafts(); destination = -1;
     }
     private void DrawQuota(string kind)
     {
@@ -106,7 +106,7 @@ public sealed partial class SeasonsPanel
     }
     private void ReadHolding(Holding row)
     {
-        holdingSelection = row.Id; details = null; discardConfirmed = false;
+        holdingSelection = row.Id; details = null;
         var path = $"api/v2/seasons/{community!.Id}/inventory/{row.Id}"; var token = session!.AccessToken;
         Start(async ct => { var loaded = await client.GetAsync<HoldingDetails>(origin!, path, token, ct); return () => { if (holdingSelection == row.Id) details = loaded; }; }, "Reading selected item…");
     }
@@ -152,8 +152,10 @@ public sealed partial class SeasonsPanel
         if (visible.Length == 0) Wrapped("No items match this view. Clear the filters, create an item in Crafting or receive one in a trade.");
         LoadMoreInventory(false); ImGui.EndChild(); ImGui.TableNextColumn();
         ImGui.BeginChild("InventoryDetails", new(0, 0), true); ImGui.PushItemWidth(-1);
-        if (details == null) Wrapped(holdingSelection.HasValue ? "Reading the selected item…" : "Select an item on the left to view its details and actions."); else DrawDetails();
+        if (details == null) Wrapped(holdingSelection.HasValue ? "Reading the selected item…" : "Select an item on the left to view its details and actions.");
+        var openDiscard = DrawDetails(details);
         ImGui.PopItemWidth(); ImGui.EndChild(); ImGui.EndTable();
+        DrawDiscardDialog(details?.Holding, openDiscard);
     }
 
     private void LoadMoreInventory(bool small)
@@ -168,32 +170,64 @@ public sealed partial class SeasonsPanel
             else { holdings = holdings.Concat(page.Items).DistinctBy(x => x.Id).ToArray(); holdingCursor = page.NextCursor; }
         }; }, "Loading inventory page…");
     }
-    private void DrawDetails() => DrawDetails(details, ref discardConfirmed, ref discardQuantity);
-    private void DrawDetails(HoldingDetails? selectedItem, ref bool discardConfirmed, ref int discardQuantity)
+    private bool DrawDetails(HoldingDetails? selectedItem)
     {
-        if (selectedItem == null) return;
+        if (selectedItem == null) return false;
         var item = selectedItem.Holding;
+        var definition = selectedItem.Definition;
+        ImGui.PushID(item.Id.ToString());
+        if (definition != null && CraftingTypes.IsRecipe(item.TypeId))
+        {
+            DrawConsumeButton(selectedItem);
+            ImGui.SameLine();
+        }
+        else if (definition != null && CraftingTypes.IsSupply(item.TypeId))
+        {
+            DrawSupplyUseButton(selectedItem);
+            ImGui.SameLine();
+        }
+        ImGui.BeginDisabled(item.Available < 1);
+        var openDiscard = ActionButton("Discard", mutation: false);
+        ImGui.EndDisabled();
         ImGui.PushStyleColor(ImGuiCol.Text, InventoryGold);
         Wrapped(item.Name);
         ImGui.PopStyleColor();
-        ImGui.TextDisabled($"{TypeName(item.TypeId)} · {item.Available:N0} available");
-        if (selectedItem.Definition is { } definition)
-        {
-            if (definition.Description.Length > 0) Wrapped(definition.Description);
-            if (ImGui.SmallButton(pinned.Contains(item.Id) ? "Unpin from consumables" : "Pin to consumables")) TogglePin(item.Id);
-            if (ImGui.CollapsingHeader("Use item")) DrawPotionUse(selectedItem);
-        }
+        if (definition != null && definition.Description.Length > 0) Wrapped(definition.Description);
+        if (definition != null && CraftingTypes.IsRecipe(item.TypeId)) DrawConsumptionDetails(definition);
+        else if (definition != null && CraftingTypes.IsSupply(item.TypeId))
+            Wrapped($"Adds {definition.BonusPoints} {(item.TypeId == CraftingTypes.AlchemySupplies ? "Alchemy" : "Cooking")} points until the weekly reset.");
         if (selectedItem.Letter != null && ImGui.SmallButton("Read in Writing Log")) OpenWritingLog(item);
-        if (lastUse != null && ImGui.CollapsingHeader("Last use / resend")) DrawResend();
-        if (!ImGui.CollapsingHeader("Discard item###Discard this item")) return;
-        Wrapped("Discarding permanently removes copies without refunding allowance.");
-        FieldLabel("Quantity to discard"); if (ImGui.InputInt("##DiscardQuantity", ref discardQuantity)) discardConfirmed = false;
-        var error = item.Available == 0 ? "All copies are reserved for a trade. End the trade before discarding them." : discardQuantity < 1 || discardQuantity > item.Available ? $"Choose 1–{item.Available} unreserved copies." : null;
-        FieldNote("DiscardQuantity", error, $"Discard {discardQuantity} × {item.Name}");
-        ImGui.Checkbox("I confirm this discard", ref discardConfirmed);
-        ImGui.BeginDisabled(!discardConfirmed || error != null);
-        if (ActionButton("Discard selected quantity")) Mutate("PATCH", $"api/v2/seasons/{community!.Id}/members/{session!.Character.Id}/holdings/{item.Id}", new HoldingChange(item.Version, item.Quantity - discardQuantity));
+        if (definition != null && ImGui.SmallButton(pinned.Contains(item.Id) ? "Unpin from consumables" : "Pin to consumables")) TogglePin(item.Id);
+        ImGui.PopID();
+        return openDiscard;
+    }
+
+    private void DrawDiscardDialog(Holding? item, bool open)
+    {
+        if (open)
+        {
+            discardTarget = item;
+            discardQuantity = 1;
+            ImGui.OpenPopup("Discard item");
+        }
+        if (!ImGui.BeginPopupModal("Discard item", ImGuiWindowFlags.AlwaysAutoResize)) return;
+        ImGui.TextUnformatted(discardTarget?.Name ?? "Item unavailable");
+        ImGui.SetNextItemWidth(ImGui.GetFontSize() * 10);
+        ImGui.InputInt("Amount##DiscardQuantity", ref discardQuantity);
+        var error = item == null || discardTarget?.Id != item.Id || discardTarget.Version != item.Version
+            ? "This item changed. Reopen Discard to see the latest quantity."
+            : discardQuantity < 1 || discardQuantity > item.Available ? $"Choose 1–{item.Available} available copies." : null;
+        if (error != null) Wrapped(error);
+        ImGui.BeginDisabled(error != null);
+        if (ActionButton("Confirm") && item != null)
+        {
+            Mutate("POST", $"api/v2/seasons/{community!.Id}/inventory/{item.Id}/discard", new DiscardRequest(discardQuantity, item.Version));
+            ImGui.CloseCurrentPopup();
+        }
         ImGui.EndDisabled();
+        ImGui.SameLine();
+        if (ImGui.Button("Cancel")) ImGui.CloseCurrentPopup();
+        ImGui.EndPopup();
     }
     private string PinScope => origin!.AbsoluteUri + "|" + session!.Character.Id + "|" + community!.Id;
     private void LoadPins() { if (community != null) pinned = configuration.PinnedHoldings.TryGetValue(PinScope, out var pins) ? pins.ToHashSet() : []; }
@@ -226,6 +260,7 @@ public sealed partial class SeasonsPanel
             if (letterTitle == submittedWriting.Title && letterBody == submittedWriting.Body) letterTitle = letterBody = "";
         }
         Holding? changed = null;
+        ConsumptionResult? consumption = null;
         if (request.Operation.Kind is CommandKind.CraftConsumables or CommandKind.CreateWriting)
         {
             var produced = JsonSerializer.Deserialize<CommandResult<ProductionResult>>(response.Json, FoundationClient.Json)!.Result;
@@ -234,7 +269,11 @@ public sealed partial class SeasonsPanel
         }
         else if (request.Operation.Kind is CommandKind.ChangeHolding or CommandKind.DeleteHolding or CommandKind.DiscardHolding or CommandKind.RemoveInventory)
             changed = JsonSerializer.Deserialize<CommandResult<Holding>>(response.Json, FoundationClient.Json)!.Result;
-        else if (request.Operation.Kind == CommandKind.UseItem) changed = JsonSerializer.Deserialize<CommandResult<ConsumptionResult>>(response.Json, FoundationClient.Json)!.Result.Holding;
+        else if (request.Operation.Kind == CommandKind.UseItem)
+        {
+            consumption = JsonSerializer.Deserialize<CommandResult<ConsumptionResult>>(response.Json, FoundationClient.Json)!.Result;
+            changed = consumption.Holding;
+        }
         if (changed != null)
         {
             var h = changed;
@@ -250,16 +289,16 @@ public sealed partial class SeasonsPanel
                 if (h.Quantity == 0) companionSelection = null;
             }
             if (request.Operation.Kind is CommandKind.ChangeHolding or CommandKind.DeleteHolding or CommandKind.DiscardHolding or CommandKind.RemoveInventory)
-            { discardConfirmed = false; companionDiscardConfirmed = false; removeItemsConfirmed = false; }
+            removeItemsConfirmed = false;
         }
-        if (request.Operation.Kind != CommandKind.UseItem) return;
-        var result = JsonSerializer.Deserialize<CommandResult<ConsumptionResult>>(response.Json, FoundationClient.Json)!.Result;
-        lastUse = result; resendConfirmed = false;
-        var destination = DestinationIndex(result.Destination);
-        var submitted = !recovering && !response.Replayed && CanPost(result.Message, destination);
+        if (consumption == null) return;
+        actionResult = "Item consumed.";
+        if (consumption.Destination.Length == 0) return;
+        var channel = DestinationIndex(consumption.Destination);
+        var submitted = !recovering && !response.Replayed && CanPost(consumption.Message, channel);
         if (submitted) lastPost = DateTimeOffset.UtcNow;
-        actionResult = submitted && GameChatSender.Send(result.Message, destination, ChatLimit)
+        actionResult = submitted && GameChatSender.Send(consumption.Message, channel, ChatLimit)
             ? "Item consumed. Message submitted to the chosen game channel; delivery is not confirmed."
-            : "Item consumed. Chat was not submitted by this response. Review the outcome before a manual resend.";
+            : "Item consumed. The chat message was not submitted.";
     }
 }

@@ -32,7 +32,6 @@ public sealed class Plugin : IDalamudPlugin
     private readonly LauncherWindow launcherWindow;
     private readonly HubWindow hub;
     private readonly Dictionary<WorkspaceKind, WorkspaceWindow> workspaceWindows = [];
-    private readonly FavoriteEventsWindow favoriteEventsWindow;
     private readonly MainWindow mainWindow;
     private readonly AmorRP.Plugin.Features.Inventory.CompactWindow compactWindow;
     private readonly TradeWindow tradeWindow;
@@ -103,16 +102,36 @@ public sealed class Plugin : IDalamudPlugin
             billingForm.IsOpen = true;
             billingForm.BringToFront();
         }, () => GameplayAvailable, () => mainWindow.CanOpenContextBilling, mainWindow.OpenPrivatePermit, () => mainWindow.CanOfferPrivatePermit);
-        favoriteEventsWindow = new(configuration, () => pluginInterface.SavePluginConfig(configuration), mainWindow.UpcomingFavoriteEvents, mainWindow.DrawFavoriteEvents,
-            () => playerState.IsLoaded && configuration.ShowAttachedInterfaces) { IsOpen = configuration.ShowFavoriteEvents };
+        void SaveHud() => pluginInterface.SavePluginConfig(configuration);
+        bool HudAvailable() => playerState.IsLoaded && configuration.ShowAttachedInterfaces;
+        var favoriteEventsWindow = new DockedHudWindow<AmorRP.Contracts.Groups.GroupEvent>(
+            "Amor RP — Favorite events###AmorRPFavoriteEvents", "##EventsContent",
+            () => new(configuration.FavoriteEventsDocked, configuration.FavoriteEventsEdge, configuration.FavoriteEventsAutoHide,
+                configuration.FavoriteEventsPosition, new(configuration.FavoriteEventsFloatX, configuration.FavoriteEventsFloatY),
+                configuration.FavoriteEventsSize, configuration.FavoriteEventsOpacity, configuration.FavoriteEventsBackgroundOpacity,
+                configuration.FavoriteEventsShowHeader, configuration.FavoriteEventsHideWhenEmpty),
+            next =>
+            {
+                if (configuration.FavoriteEventsDocked) configuration.FavoriteEventsPosition = next.X;
+                else { configuration.FavoriteEventsFloatX = next.X; configuration.FavoriteEventsFloatY = next.Y; }
+            },
+            () => configuration.FavoriteEventsDocked = !configuration.FavoriteEventsDocked,
+            SaveHud, mainWindow.UpcomingFavoriteEvents, mainWindow.DrawFavoriteEvents, HudAvailable)
+            { IsOpen = configuration.ShowFavoriteEvents };
         mainWindow.SetFavoriteEventsVisible = visible => favoriteEventsWindow.IsOpen = visible;
         windows.AddWindow(favoriteEventsWindow);
+        var coin = configuration.CoinHud;
+        var coinWindow = new DockedHudWindow<string>(
+            "Amor RP — Coins###AmorRPCoins", "##CoinContent", coin.Layout, coin.Move, () => coin.Docked = !coin.Docked,
+            SaveHud, mainWindow.CoinBalance, mainWindow.DrawCoinHud, HudAvailable) { IsOpen = coin.Visible };
+        mainWindow.SetCoinHudVisible = visible => coinWindow.IsOpen = visible;
+        windows.AddWindow(coinWindow);
         foreach (var menu in (Window[])[mainWindow, hub, compactWindow, tradeWindow, tradeRequestWindow, createCommunityWindow, billingForm, .. workspaceWindows.Values])
         {
-            if (MenuWindowButtons.Add(menu, Open, OpenLog) is { } logButton) logButtons.Add(logButton);
+            if (MenuWindowButtons.Add(menu, Open, OpenLog, mainWindow.RefreshData) is { } logButton) logButtons.Add(logButton);
             windows.AddWindow(menu);
         }
-        MenuWindowButtons.Add(activityLogWindow, Open, OpenLog, isLog: true);
+        MenuWindowButtons.Add(activityLogWindow, Open, OpenLog, mainWindow.RefreshData, isLog: true);
         windows.AddWindow(activityLogWindow);
         launcherWindows.AddWindow(launcherWindow);
         commands.AddHandler(Command, new CommandInfo(OnCommand) { HelpMessage = "/amorrp → Settings" });

@@ -11,28 +11,16 @@ public sealed partial class SeasonsPanel
         ImGui.BeginChild(id, new(0, height), true);
     }
     private static void EndHomeCard() { ImGui.EndChild(); ImGui.PopStyleVar(); ImGui.PopStyleColor(); }
-    private void DrawHomeOverview(bool editable = true)
+    private void DrawHomeOverview()
     {
         if (logoRefresh.Error != null) DrawRefreshState(logoRefresh, "Season logo");
-        DrawHomeProfile(editable); ImGui.Spacing();
+        DrawHomeProfile(editable: false);
+        ImGui.Spacing();
         var lines = ImGui.GetTextLineHeightWithSpacing();
-        var announcementHeight = Math.Max(160, (editable && CanAnnounce ? lines * 7 + ImGui.GetFrameHeightWithSpacing() * 3 : 0) + Math.Max(1, announcements.Length) * lines * 2.4f + 65);
-        var bars = 1 + (CanCraftPotions ? 1 : 0) + (CanCraftCooking ? 1 : 0);
-        var resourcesHeight = lines * 5 + bars * (lines + ImGui.GetFrameHeightWithSpacing())
-            + (editable && CanGeneralModerate ? ImGui.GetFrameHeightWithSpacing() * 2 : 0) + 38;
-        if (ImGui.GetContentRegionAvail().X >= 620 && ImGui.BeginTable("HomeOverview", 2, ImGuiTableFlags.SizingStretchProp | ImGuiTableFlags.Resizable))
-        {
-            ImGui.TableSetupColumn("Announcements", ImGuiTableColumnFlags.WidthStretch, .66f);
-            ImGui.TableSetupColumn("Resources", ImGuiTableColumnFlags.WidthStretch, .34f);
-            ImGui.TableNextColumn(); BeginHomeCard("AnnouncementsCard", Math.Max(announcementHeight, resourcesHeight)); DrawAnnouncements(editable); EndHomeCard();
-            ImGui.TableNextColumn(); BeginHomeCard("ResourcesCard", Math.Max(announcementHeight, resourcesHeight)); DrawHomeResources(editable); EndHomeCard();
-            ImGui.EndTable();
-        }
-        else
-        {
-            BeginHomeCard("AnnouncementsCard", announcementHeight); DrawAnnouncements(editable); EndHomeCard(); ImGui.Spacing();
-            BeginHomeCard("ResourcesCard", resourcesHeight); DrawHomeResources(editable); EndHomeCard();
-        }
+        var announcementHeight = Math.Max(160, Math.Max(1, announcements.Length) * lines * 2.4f + 65);
+        BeginHomeCard("AnnouncementsCard", announcementHeight);
+        DrawAnnouncements(editable: false);
+        EndHomeCard();
     }
     private void DrawCommunityLogo(bool editable = true)
     {

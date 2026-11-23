@@ -28,7 +28,7 @@ public sealed partial class SeasonsPanel
         ClearContextBilling();
         requests.ChangeView(); reads.Clear(); ClearTradeViews();
         icons.Clear(); logos.Clear(); community = null; members = []; policies = null; transfer = null;
-        ClearMemberDescription(); memberSelection = null; memberDraftEtag = null; memberSearch = ""; policyDraftVersion = editCommunityVersion = editCurrencyVersion = 0; membersCursor = null;
+        ClearCharacterDescription(); memberSelection = null; memberDraftEtag = null; memberSearch = ""; policyDraftVersion = editCommunityVersion = editCurrencyVersion = 0; membersCursor = null;
         scheduledPolicyDraft = null;
         ClearHomeViews(); editDescription = editCurrencyName = ""; iconPath = "";
         ClearMemberBalance();

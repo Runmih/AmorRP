@@ -34,13 +34,12 @@ public sealed partial class SeasonsPanel
 
     private void DrawEventCard(GroupEvent item, DateTimeOffset now)
     {
-        var schedule = FormattableString.Invariant($"{item.StartsAt.UtcDateTime:yyyy-MM-dd HH:mm} → {item.EndsAt.UtcDateTime:yyyy-MM-dd HH:mm} ST");
-        var body = new List<string> { schedule };
+        var body = new List<string>();
+        if (!string.IsNullOrWhiteSpace(item.Description)) body.Add(item.Description);
         var group = communityGroups.FirstOrDefault(group => group.CommunityId == item.CommunityId && group.Id == item.GroupId);
         if (item.CommunityId != community?.Id && communities.FirstOrDefault(entry => entry.Id == item.CommunityId) is { } season)
             body.Add(season.Name);
-        if (!string.IsNullOrWhiteSpace(item.Location)) body.Add(item.Location);
-        if (!string.IsNullOrWhiteSpace(item.Description)) body.Add(item.Description);
-        DrawGroupCard("EventCard", item.Id, item.Title, item.GroupName, group, now, body);
+        DrawGroupCard("EventCard", item.Id, item.Title, item.GroupName, group, now, body,
+            eventDetails: new(FavoriteEventSchedule.CardRange(item), item.Location));
     }
 }
