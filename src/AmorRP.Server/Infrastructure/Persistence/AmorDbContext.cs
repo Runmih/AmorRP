@@ -34,6 +34,8 @@ public sealed partial class AmorDbContext(DbContextOptions<AmorDbContext> option
             e.HasOne<MediaAssetRow>().WithMany().HasForeignKey(x => new { x.CommunityId, x.LogoAssetId }).OnDelete(DeleteBehavior.Restrict);
         });
         ConfigureGroupActivity(modelBuilder);
+        ConfigureGroupResources(modelBuilder);
+        ConfigureDiscord(modelBuilder);
         ConfigureTreasury(modelBuilder);
         ConfigureBilling(modelBuilder);
         ConfigureAnnouncements(modelBuilder);
@@ -48,6 +50,7 @@ public sealed partial class AmorDbContext(DbContextOptions<AmorDbContext> option
         modelBuilder.Entity<MembershipRow>().Property(x => x.ClassCapabilities).HasDefaultValueSql("ARRAY[]::text[]");
         ConfigureShop(modelBuilder);
         ConfigurePermits(modelBuilder);
+        ConfigurePermitTransfers(modelBuilder);
         ConfigureMoodles(modelBuilder);
         ConfigureTrading(modelBuilder);
         modelBuilder.Entity<CharacterRow>(e => {

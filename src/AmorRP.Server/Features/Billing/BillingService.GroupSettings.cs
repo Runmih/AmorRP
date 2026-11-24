@@ -11,7 +11,7 @@ public sealed partial class BillingService
 {
     private static GroupBillingSettings ViewSettings(GroupRow group, GroupMembershipRow member) =>
         new(group.CommissionPercent, group.RequireClockIn, member.ClockedInAt,
-            CommandStore.ETag("group-billing", group.Id, group.BillingSettingsVersion));
+            CommandStore.ETag("group-billing", group.Id, group.BillingSettingsVersion), member.CommissionPercent);
 
     public async Task<IResult> GroupSettingsAsync(HttpContext h, Guid seasonId, Guid groupId, GroupBillingEdit? body, CancellationToken ct)
     {

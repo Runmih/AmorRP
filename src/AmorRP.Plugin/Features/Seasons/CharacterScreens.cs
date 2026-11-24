@@ -16,6 +16,7 @@ public sealed partial class SeasonsPanel
         DrawCharacterDescription();
         ImGui.Spacing();
         DrawMyBills();
+        DrawDiscordPlayer();
     }
 
     public Action<bool>? SetCoinHudVisible { get; set; }

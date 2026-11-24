@@ -9,6 +9,7 @@ public static class ShopEndpoints
         app.MapGet("/api/v2/seasons/{seasonId}/shop/products", (HttpContext h, Guid seasonId, ShopService service, CancellationToken ct) => service.ListAsync(h, seasonId, ct));
         app.MapPost("/api/v2/seasons/{seasonId}/shop/products", (HttpContext h, Guid seasonId, ShopProductWrite body, ShopService service, CancellationToken ct) => service.WriteAsync(h, seasonId, null, body, ct));
         app.MapPut("/api/v2/seasons/{seasonId}/shop/products/{productId}", (HttpContext h, Guid seasonId, Guid productId, ShopProductWrite body, ShopService service, CancellationToken ct) => service.WriteAsync(h, seasonId, productId, body, ct));
+        app.MapDelete("/api/v2/seasons/{seasonId}/shop/products/{productId}", (HttpContext h, Guid seasonId, Guid productId, ShopService service, CancellationToken ct) => service.DeleteAsync(h, seasonId, productId, ct));
         app.MapPost("/api/v2/seasons/{seasonId}/shop/purchases", (HttpContext h, Guid seasonId, ShopBuy body, ShopService service, CancellationToken ct) => service.BuyAsync(h, seasonId, body, ct));
     }
 }

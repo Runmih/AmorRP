@@ -61,7 +61,7 @@ public sealed partial class BillingService(AmorDbContext db, SessionAccess sessi
             bill = new BillRow { Id = body.BillId, CommunityId = communityId, GroupId = groupId, GroupName = group.Name,
                 IssuerCharacterId = actor, IssuerName = characters[actor].DisplayName, CharacterId = body.CharacterId, CharacterName = characters[body.CharacterId].DisplayName,
                 Service = body.Service.Trim(), Amount = amount, RequestHash = hash, CreatedAt = time.GetUtcNow(),
-                TaxPercent = community.BillingTaxPercent, CommissionPercent = group.CommissionPercent };
+                TaxPercent = community.BillingTaxPercent, CommissionPercent = staff.CommissionPercent ?? group.CommissionPercent };
             await settlement.RequireCapacityAsync(bill, payer, group, paidNow, ct);
             db.Bills.Add(bill); await settlement.CollectAsync(payer, "bill.create", bill.Id, ct);
         }

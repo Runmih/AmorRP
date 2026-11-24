@@ -19,7 +19,7 @@ public sealed class ServicePolicyOptions
     [Range(1, 10000)] public int MaxRetainedSeasonsPerCreator { get; set; } = 30;
     [Range(0, 10000)] public int DefaultLettersPerWeek { get; set; } = 5;
     [Range(0, 1000000)] public int DefaultPotionPoints { get; set; }
-    [Range(1, 500)] public int ChatMessageTextElements { get; set; } = 50;
+    [Range(1, 500)] public int ChatMessageTextElements { get; set; } = 200;
     [Range(1, 1000)] public int DefinitionNameTextElements { get; set; } = 80;
     [Range(1, 300)] public int DefinitionDescriptionTextElements { get; set; } = 300;
     [Range(1, 1000)] public int LetterTitleTextElements { get; set; } = 80;

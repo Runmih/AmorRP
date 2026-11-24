@@ -1,0 +1,35 @@
+# Opt-in overlay for the home stack. Both containers use the same private API key.
+services:
+  api:
+    environment:
+      DiscordRewards__ServiceKey: ${AMORRP_DISCORD_SERVICE_KEY:?Set a private key of 32 or more characters}
+    networks:
+      discord-api:
+
+  discord:
+    image: ${AMORRP_DISCORD_IMAGE:?Build the Discord bot image locally before deploying}
+    pull_policy: never
+    restart: unless-stopped
+    environment:
+      AMORRP_API_URL: http://api:8080
+      AMORRP_DISCORD_SERVICE_KEY: ${AMORRP_DISCORD_SERVICE_KEY:?Set the same API key for the bot and server}
+      AMORRP_DISCORD_TOKEN: ${AMORRP_DISCORD_TOKEN:?Set the private Discord bot token}
+    networks:
+      discord-api:
+      discord-outbound:
+    depends_on:
+      api:
+        condition: service_started
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+networks:
+  discord-api:
+    internal: true
+  discord-outbound:

@@ -77,9 +77,7 @@ public sealed partial class SeasonsPanel
                 ImGui.TableNextColumn();
                 ImGui.TextUnformatted($"{row.Potion.CreationCost} pts");
                 ImGui.TableNextColumn();
-                ImGui.TextUnformatted(row.GroupId is { } groupId
-                    ? communityGroups.FirstOrDefault(group => group.Id == groupId)?.Name ?? "Group"
-                    : "Global");
+                ImGui.TextUnformatted(RecipeAccessLabel(row.GroupId));
                 ImGui.PopID();
             }
             ImGui.EndTable();

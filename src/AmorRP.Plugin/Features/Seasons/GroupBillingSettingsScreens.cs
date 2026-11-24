@@ -44,7 +44,7 @@ public sealed partial class SeasonsPanel
 
         DrawRefreshState(groupBillingRefresh, "Billing settings");
         if (groupBillingSettings is not { } settings) return false;
-        Wrapped($"Cashier commission: {settings.CommissionPercent}% after tax");
+        Wrapped($"Your commission: {settings.MyCommissionPercent ?? settings.CommissionPercent}% after tax");
         var clockedIn = settings.ClockedInAt.HasValue;
         if (clockedIn) Wrapped($"Clocked in since {settings.ClockedInAt!.Value.LocalDateTime:g}");
         if (ActionButton(clockedIn ? "Clock out" : "Clock in"))
@@ -52,7 +52,7 @@ public sealed partial class SeasonsPanel
 
         if (OwnSelectedGroup && ImGui.CollapsingHeader("Group billing settings"))
         {
-            FieldLabel("Cashier commission after tax (%)");
+            FieldLabel("Default cashier commission after tax (%)");
             ImGui.InputInt("##CashierCommission", ref commissionDraft);
             ImGui.Checkbox("Require clock-in to issue bills", ref requireClockInDraft);
             var stale = groupBillingEtag != settings.Etag;

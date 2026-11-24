@@ -1,6 +1,6 @@
 # Integration plans
 
-S10 is implemented in the local 0.11 build. S11 remains planned. These adapters depend on server-owned state and accounting;
+S10 shipped with 0.11. S11 is implemented locally in the 0.16 build. Live Discord verification is pending. These adapters depend on server-owned state and accounting;
 they do not become alternative identity, currency or ownership authorities.
 See [decisions](decisions.md), [economy](economy-and-groups.md) and [work order](README.md).
 
@@ -112,12 +112,7 @@ retry it durably if the bot/network is offline. Immediate currency authorization
 must not depend on successfully contacting Discord. Removing the bot through Discord
 also disconnects its earning association. Reconcile after restart.
 
-Render remains testing infrastructure until the private Ubuntu server is ready;
-see [hosting and releases](hosting-and-releases.md). Do not provision a second paid
-Render service. Validate continuous bot
-connectivity, Discord application/intents, token storage and restart behavior on the
-chosen host before enabling real rewards. Decide process placement then; a separate
-paid machine or a new general integration framework is not a prerequisite.
+See the [home bot setup](../delivery/discord-bot.md) for the optional Compose service. Validate the Discord application and its intents, connectivity, token storage, and restart reconciliation with a test server before enabling live rewards.
 
 Verification: wrong group owner, missing approval, wrong Discord server/admin, failed
 linking, opt-out, selected-character changes, multi-server limits, ceiling crossings,

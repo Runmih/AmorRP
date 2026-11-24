@@ -10,6 +10,12 @@ public sealed partial class SeasonsPanel
 {
     private void ApplyCommandSuccess(CommandRequest request, CommandResponse response, bool recovering)
     {
+        if (request.Operation.Kind == CommandKind.MoveGroupStock)
+        {
+            groupStorageRefresh.Invalidate();
+            groupDepositRefresh.Invalidate();
+        }
+        if (request.Operation.Kind is CommandKind.CreateGroupShift or CommandKind.CancelGroupShift) groupShiftsRefresh.Invalidate();
         if (request.Operation.Kind == CommandKind.SetSeasonCreationPermission) seasonCreationAccessLoaded = false;
         // A recovered action may belong to another community. Its durable
         // receipt is still acknowledged, but must not overwrite this editor.
@@ -33,6 +39,7 @@ public sealed partial class SeasonsPanel
             case CommandHandler.SeasonForm: ApplyFormSuccess(request, response.Json); break;
             case CommandHandler.Gathering: ApplyGatheringSuccess(request, response.Json); break;
             case CommandHandler.Permit: ApplyPermitSuccess(request, response.Json); break;
+            case CommandHandler.Discord: ApplyDiscordSuccess(request, response.Json, recovering); break;
             case CommandHandler.Shop: ApplyShopSuccess(request, response.Json); break;
             case CommandHandler.Home: ApplyHomeSuccess(request, response.Json); break;
             case CommandHandler.GroupProfile: ApplyGroupProfileSuccess(request, response.Json); break;

@@ -136,7 +136,11 @@ public sealed partial class FoundationTests
         using var denied = Request(HttpMethod.Post, $"/api/v2/seasons/{a.Id}/inventory/potions", new PotionCreate(recipe.Id, 1, 1)); Assert.Equal(HttpStatusCode.Forbidden, (await member.SendAsync(denied, TestContext.Current.CancellationToken)).StatusCode);
         foreach (var request in new[] { new ConsumptionRequest(created.Holding.Version, false, "say"), new ConsumptionRequest(created.Holding.Version, true, "tell:Someone") })
         { using var invalid = Request(HttpMethod.Post, $"/api/v2/seasons/{a.Id}/inventory/{created.Holding.Id}/use", request); Assert.Equal(HttpStatusCode.UnprocessableEntity, (await member.SendAsync(invalid, TestContext.Current.CancellationToken)).StatusCode); }
-        foreach (var message in new[] { "text\n/say injection", new string('a', 51), "uses <t>'s potion", "invisible\u202Etext" })
+        var longMessage = new string('a', 200);
+        var longRecipe = await Command<Definition>(owner, HttpMethod.Post, $"/api/v2/seasons/{a.Id}/item-definitions",
+            new DefinitionWrite("potion", "Long emote", recipe.CategoryId, "", true, new(1, longMessage)));
+        Assert.Equal(longMessage, longRecipe.Potion.UseMessage);
+        foreach (var message in new[] { "text\n/say injection", new string('a', 201), "uses <t>'s potion", "invisible\u202Etext" })
         { using var unsafeRecipe = Request(HttpMethod.Post, $"/api/v2/seasons/{a.Id}/item-definitions", new DefinitionWrite("potion", "Unsafe", recipe.CategoryId, "", true, new(1, message))); Assert.Equal(HttpStatusCode.UnprocessableEntity, (await owner.SendAsync(unsafeRecipe, TestContext.Current.CancellationToken)).StatusCode); }
         Assert.Equal(1, (await member.GetFromJsonAsync<HoldingDetails>($"/api/v2/seasons/{a.Id}/inventory/{created.Holding.Id}", TestContext.Current.CancellationToken))!.Holding.Quantity);
         var b = await Create(owner, "Next season");

@@ -9,6 +9,7 @@ public sealed partial class AmorDbContext
     private static void ConfigureBilling(ModelBuilder m)
     {
         m.Entity<CommunityRow>().ToTable(t => t.HasCheckConstraint("ck_season_billing_tax", "\"BillingTaxPercent\" BETWEEN 0 AND 100 AND \"SeasonTreasuryOwned\" >= 0"));
+        m.Entity<GroupMembershipRow>().ToTable(t => t.HasCheckConstraint("ck_staff_commission", "\"CommissionPercent\" BETWEEN 0 AND 100"));
         m.Entity<GroupRow>().ToTable(t => t.HasCheckConstraint("ck_group_commission", "\"CommissionPercent\" BETWEEN 0 AND 100"));
         m.Entity<GroupTrustRow>(e => {
             e.ToTable("group_trusts"); e.HasKey(x => new { x.CommunityId, x.GroupId, x.CharacterId });

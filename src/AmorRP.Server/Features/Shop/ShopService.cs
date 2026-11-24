@@ -32,7 +32,7 @@ public sealed class ShopService(AmorDbContext db, SessionAccess sessions, Season
         var rows = await (from p in db.ShopProducts.AsNoTracking()
             join d in db.Definitions on new { p.CommunityId, Id = p.DefinitionId } equals new { d.CommunityId, d.Id }
             join r in db.DefinitionRevisions on new { p.CommunityId, p.DefinitionId, Revision = p.DefinitionRevision } equals new { r.CommunityId, r.DefinitionId, r.Revision }
-            where p.CommunityId == seasonId && (season.OwnerCharacterId == actor || p.Listed && !d.Retired)
+            where p.CommunityId == seasonId && !p.Deleted && (season.OwnerCharacterId == actor || p.Listed && !d.Retired)
             orderby r.Name, p.Id select new { Product = p, Revision = r }).ToArrayAsync(ct);
         return Results.Json(new ShopProducts(rows.Select(x => View(x.Product, x.Revision)).ToArray()));
     }
@@ -51,7 +51,7 @@ public sealed class ShopService(AmorDbContext db, SessionAccess sessions, Season
             && body.Buyer is "character" or "group" or "either" && body.Stock is null or >= 0
             && body.BuyerLimit is null or > 0, 422, "invalid_product", "Choose a positive price, buyer type, and valid stock and purchase limits.");
         var product = productId is { } id
-            ? await db.ShopProducts.SingleOrDefaultAsync(x => x.CommunityId == seasonId && x.Id == id, ct)
+            ? await db.ShopProducts.SingleOrDefaultAsync(x => x.CommunityId == seasonId && x.Id == id && !x.Deleted, ct)
             : new ShopProductRow { CommunityId = seasonId };
         ApiFault.Require(product != null, 404, "not_found", "Shop product unavailable.");
         var row = product!;
@@ -63,7 +63,7 @@ public sealed class ShopService(AmorDbContext db, SessionAccess sessions, Season
         }
         else
         {
-            ApiFault.Require(await db.ShopProducts.CountAsync(x => x.CommunityId == seasonId, ct) < 100, 409, "shop_full", "The season shop can have up to 100 listings.");
+            ApiFault.Require(await db.ShopProducts.CountAsync(x => x.CommunityId == seasonId && !x.Deleted, ct) < 100, 409, "shop_full", "The season shop can have up to 100 listings.");
             db.ShopProducts.Add(row);
         }
         var definition = await db.Definitions.SingleOrDefaultAsync(x => x.CommunityId == seasonId && x.Id == body.DefinitionId, ct);
@@ -82,6 +82,29 @@ public sealed class ShopService(AmorDbContext db, SessionAccess sessions, Season
         return result;
     }
 
+    public async Task<IResult> DeleteAsync(HttpContext h, Guid seasonId, Guid productId, CancellationToken ct)
+    {
+        var actor = (await sessions.GetAsync(h, ct)).CharacterId;
+        var scope = "character:" + actor;
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await CommandStore.LockAsync(db, [scope, "season:" + seasonId], ct);
+        var (season, _) = await seasons.RequireAsync(seasonId, actor, ct);
+        SeasonAccess.Owner(season, actor);
+        var replay = await commands.ReplayAsync(h, scope, null, ct);
+        if (replay != null) return commands.Replay(replay);
+        var row = await db.ShopProducts.SingleOrDefaultAsync(x => x.CommunityId == seasonId && x.Id == productId && !x.Deleted, ct);
+        ApiFault.Require(row != null, 404, "not_found", "Shop product unavailable.");
+        CommandStore.Match(h, Etag(row!));
+        row!.Deleted = true;
+        row.Listed = false;
+        row.Version++;
+        var op = commands.New(h, scope, null, actor, seasonId, "shop.product.delete");
+        op.Summary = "Removed shop listing.";
+        var result = await commands.SaveAsync(h, op, new CommandResult<Guid>(op.Id, row.Id), ct);
+        await tx.CommitAsync(ct);
+        return result;
+    }
+
     public async Task<IResult> BuyAsync(HttpContext h, Guid seasonId, ShopBuy body, CancellationToken ct)
     {
         var actor = (await sessions.GetAsync(h, ct)).CharacterId;
@@ -91,7 +114,7 @@ public sealed class ShopService(AmorDbContext db, SessionAccess sessions, Season
         var (season, member) = await seasons.RequireAsync(seasonId, actor, ct);
         var replay = await commands.ReplayAsync(h, scope, body, ct);
         if (replay != null) return commands.Replay(replay);
-        var row = await db.ShopProducts.SingleOrDefaultAsync(x => x.CommunityId == seasonId && x.Id == body.ProductId && x.Listed, ct);
+        var row = await db.ShopProducts.SingleOrDefaultAsync(x => x.CommunityId == seasonId && x.Id == body.ProductId && !x.Deleted && x.Listed, ct);
         ApiFault.Require(row != null, 404, "not_found", "Shop product unavailable.");
         ApiFault.Require(row!.Version == body.ExpectedVersion, 409, "product_changed", "The listing changed. Review the current price and stock.");
         ApiFault.Require(body.Quantity > 0 && body.Quantity <= policy.Value.MaxCreationQuantity && (row.Stock == null || row.Stock >= body.Quantity)

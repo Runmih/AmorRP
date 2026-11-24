@@ -9,6 +9,8 @@ public sealed partial class SeasonsPanel
 {
     private readonly GroupPermissionDraft groupFeaturesDraft = new(), groupStaffDraft = new();
     private Guid? groupStaffSelection;
+    private string? staffCommissionKey;
+    private int? staffCommission;
     private bool CanGroupAction(GroupProfile group, string action) => group.IsMember
         && GroupCapabilities.Enabled(group.EnabledFeatures ?? [], action)
         && (group.OwnerCharacterId == session?.Character.Id || group.MyCapabilities?.Contains(action) == true);
@@ -19,6 +21,9 @@ public sealed partial class SeasonsPanel
         GroupCapabilities.Notice => "Noticeboard post",
         GroupCapabilities.Events => "Group events",
         GroupCapabilities.Billing => "Bill trusted customers",
+        GroupCapabilities.Discord => "Discord Bot Permission",
+        GroupCapabilities.Storage => "View and deposit group items",
+        GroupCapabilities.StorageWithdraw => "Withdraw group items",
         GroupCapabilities.Treasury => "Currency treasury",
         GroupCapabilities.TreasuryRecords => "View treasury records",
         GroupCapabilities.TreasuryWithdraw => "Withdraw treasury currency",
@@ -33,7 +38,7 @@ public sealed partial class SeasonsPanel
         }
     }
     private void ClearGroupPermissions()
-    { groupFeaturesDraft.Clear(); groupStaffDraft.Clear(); groupStaffSelection = null; }
+    { groupFeaturesDraft.Clear(); groupStaffDraft.Clear(); groupStaffSelection = null; staffCommissionKey = null; }
 
     private void DrawGroupFeatures(GroupProfile group)
     {
@@ -62,12 +67,29 @@ public sealed partial class SeasonsPanel
         var key = group.Id + ":" + selectedMember.CharacterId;
         groupStaffDraft.Refresh(key, selectedMember.Etag, selectedMember.Capabilities ?? []);
         DrawGroupPermissionChoices(groupStaffDraft, GroupCapabilities.All.Where(x => GroupCapabilities.Enabled(group.EnabledFeatures ?? [], x)));
+        var commissionKey = key + ":" + selectedMember.Etag;
+        if (staffCommissionKey != commissionKey)
+        {
+            staffCommissionKey = commissionKey;
+            staffCommission = selectedMember.CommissionPercent;
+        }
+        if (GroupCapabilities.Enabled(group.EnabledFeatures ?? [], GroupCapabilities.Billing))
+        {
+            var custom = staffCommission.HasValue;
+            if (ImGui.Checkbox("Individual commission", ref custom)) staffCommission = custom ? 0 : null;
+            if (staffCommission is { } rate && ImGui.InputInt("Commission after tax (%)", ref rate))
+                staffCommission = Math.Clamp(rate, 0, 100);
+        }
         var stale = groupStaffDraft.ETag != selectedMember.Etag
             || groupStaffDraft.Actions.Any(x => !GroupCapabilities.Enabled(group.EnabledFeatures ?? [], x));
         if (stale) Wrapped("Staff permissions changed. Reload before saving.");
-        ImGui.BeginDisabled(stale || !groupStaffDraft.IsDirty);
-        if (ActionButton("Save staff permissions")) Mutate("PUT", GroupPath(group) + "/members/" + selectedMember.CharacterId + "/capabilities", new GroupStaffEdit(groupStaffDraft.Actions.Order().ToArray()), groupStaffDraft.ETag);
+        ImGui.BeginDisabled(stale || (!groupStaffDraft.IsDirty && staffCommission == selectedMember.CommissionPercent));
+        if (ActionButton("Save staff permissions")) Mutate("PUT", GroupPath(group) + "/members/" + selectedMember.CharacterId + "/capabilities", new GroupStaffEdit(groupStaffDraft.Actions.Order().ToArray(), staffCommission, true), groupStaffDraft.ETag);
         ImGui.EndDisabled(); ImGui.SameLine();
-        if (ImGui.Button("Reload staff permissions")) groupStaffDraft.Load(key, selectedMember.Etag, selectedMember.Capabilities ?? []);
+        if (ImGui.Button("Reload staff permissions"))
+        {
+            groupStaffDraft.Load(key, selectedMember.Etag, selectedMember.Capabilities ?? []);
+            staffCommission = selectedMember.CommissionPercent;
+        }
     }
 }

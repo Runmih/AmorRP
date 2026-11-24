@@ -33,7 +33,7 @@ public sealed partial class SeasonsPanel
         if (ImGui.InputTextWithHint("##SeasonCreatorSearch", "Search characters…", ref seasonCreationSearch, 400, ImGuiInputTextFlags.EnterReturnsTrue))
             LoadSeasonCreationAccess();
         ImGui.BeginDisabled(Busy);
-        if (ImGui.Button("Search / refresh")) LoadSeasonCreationAccess();
+        if (ImGui.Button("Search")) LoadSeasonCreationAccess();
         ImGui.EndDisabled();
         FieldLabel("Reason for permission changes");
         ImGui.SetNextItemWidth(-1); ImGui.InputText("##SeasonCreatorReason", ref seasonCreationReason, 501);

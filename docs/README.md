@@ -19,7 +19,7 @@ Windows package are recorded in [repo.json](../repo.json) and packages/*.json.
 | Persistent identities, financial invariants | [Data model](engineering/data-model.md) |
 | Authentication and access checks | [Authentication](engineering/authentication.md), [security](engineering/security.md) |
 | Build, test and publish | [Development](delivery/development.md), [versions](engineering/versions.md), [installer feed](delivery/plugin-repository.md) |
-| Maintain the home server | [Deployment](delivery/home-server.md), [operations](delivery/operations.md) |
+| Maintain the home server | [Deployment](delivery/home-server.md), [operations](delivery/operations.md), [Discord bot setup](delivery/discord-bot.md) |
 | In-game and operating acceptance | [Acceptance](delivery/acceptance.md) |
 | Continue development | [Agent handoff](delivery/agent-handoff.md) |
 | Important past changes and verified acceptance | [History](delivery/history.md) |

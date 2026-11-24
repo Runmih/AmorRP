@@ -11,7 +11,7 @@ public sealed record EventWrite(string Title, string Description, string Locatio
 public sealed record GroupAnnouncement(Guid Id, string Title, string Message, DateTimeOffset PublishedAt);
 public sealed record AnnouncementWrite(string Title, string Message);
 public sealed record GroupMember(Guid CharacterId, string Name, string World, bool IsOwner, string[]? Capabilities = null, string? Etag = null,
-    DateTimeOffset? ClockedInAt = null);
+    DateTimeOffset? ClockedInAt = null, int? CommissionPercent = null);
 public sealed record GroupPrivate(GroupMember[] Members, GroupAnnouncement[] Announcements, string? NextCursor = null);
 public sealed record GroupHub(GroupNotice[] Notices, GroupEvent[] Events);
 public sealed record FavoriteEvents(GroupEvent[] Items);

@@ -27,8 +27,8 @@ public sealed class ChatCommandTests
     [Fact]
     public void Grapheme_and_byte_limits_are_enforced()
     {
-        Assert.True(ChatCommand.TryCreate(new string('a', 50), 1, out _));
-        Assert.False(ChatCommand.TryCreate(new string('a', 51), 1, out _));
+        Assert.True(ChatCommand.TryCreate(new string('a', 200), 1, out _));
+        Assert.False(ChatCommand.TryCreate(new string('a', 201), 1, out _));
         Assert.True(ChatCommand.TryCreate(string.Concat(Enumerable.Repeat("e\u0301", 50)), 1, out _));
         Assert.False(ChatCommand.TryCreate("a" + new string('\u0301', 150), 1, out _));
     }

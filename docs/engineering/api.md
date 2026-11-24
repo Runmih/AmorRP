@@ -197,3 +197,26 @@ and carry their original recipe revision and optional consumable effect.
 | GET | `/api/v2/seasons/{seasonId}/ownership-effect` | Read the configured ownership debuff | Season owner |
 | PUT | `/api/v2/seasons/{seasonId}/ownership-effect` | Set or clear the ownership debuff | Season owner |
 | POST | `/api/v2/seasons/{seasonId}/inventory/{holdingId}/use-supplies` | Consume a pack for crafting points | Holding owner with the matching crafting permission |
+| DELETE | `/api/v2/seasons/{seasonId}/shop/products/{productId}` | Remove a shop listing and preserve past purchases | Season owner |
+| GET | `/api/v2/seasons/{seasonId}/groups/{groupId}/storage` | Read group stock | Authorized group storage user |
+| POST | `/api/v2/seasons/{seasonId}/groups/{groupId}/storage` | Deposit or withdraw an available stack | Authorized group storage user with the matching action permission |
+| GET | `/api/v2/seasons/{seasonId}/groups/{groupId}/shifts` | Read upcoming cashier shifts | Group owner or cashier viewing their assignments |
+| POST | `/api/v2/seasons/{seasonId}/groups/{groupId}/shifts` | Schedule a cashier shift | Group owner with billing enabled |
+| DELETE | `/api/v2/seasons/{seasonId}/groups/{groupId}/shifts/{shiftId}` | Cancel a cashier shift | Group owner with billing enabled |
+| POST | `/api/v2/seasons/{seasonId}/permits/{permitId}/transfers` | Offer a registered permit to another group | Current owning group owner with treasury enabled |
+| PUT | `/api/v2/seasons/{seasonId}/permit-transfers/{transferId}/approval` | Approve an offer as the registered character | Registered character |
+| PUT | `/api/v2/seasons/{seasonId}/permit-transfers/{transferId}/acceptance` | Pay the price and transfer the registration | Offered group owner after the registered character approves |
+| DELETE | `/api/v2/seasons/{seasonId}/permit-transfers/{transferId}` | Close a directed transfer offer | Transfer participant |
+| GET | `/api/v2/seasons/{seasonId}/discord` | Read own linking state or season reward policy | Verified season character |
+| PUT | `/api/v2/seasons/{seasonId}/discord/policy` | Change Discord earning limits | Season owner |
+| POST | `/api/v2/seasons/{seasonId}/discord/link` | Create an opt-in character link code | Verified season character |
+| DELETE | `/api/v2/seasons/{seasonId}/discord/link` | Opt out and unlink your character | Verified linked character |
+| GET | `/api/v2/seasons/{seasonId}/groups/{groupId}/discord` | Read own group connection status | Group owner with Discord Bot Permission |
+| POST | `/api/v2/seasons/{seasonId}/groups/{groupId}/discord/link` | Create a Discord server connection code | Group owner with Discord Bot Permission |
+| DELETE | `/api/v2/seasons/{seasonId}/groups/{groupId}/discord/link` | Disconnect Discord and queue bot removal | Group owner with Discord Bot Permission |
+| POST | `/api/v2/integrations/discord/guilds/redeem` | Redeem a single-use group code | Discord service and Discord Manage Server |
+| POST | `/api/v2/integrations/discord/players/redeem` | Redeem a single-use player code | Discord service for the Discord account |
+| PUT | `/api/v2/integrations/discord/guilds/{guildId}/channels` | Set eligible writing channels and role | Discord service and Discord Manage Server |
+| GET | `/api/v2/integrations/discord/guilds` | List connected Discord servers and queued removals | Discord service |
+| DELETE | `/api/v2/integrations/discord/guilds/{guildId}` | Acknowledge removal from a Discord server | Discord service |
+| POST | `/api/v2/integrations/discord/posts` | Evaluate a unique Discord message for a reward | Discord service |

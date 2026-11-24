@@ -67,7 +67,8 @@ def main():
             params = operation.get("parameters", [])
             actual = {p["name"] for p in params if p["in"] == "path"}
             require(actual == set(re.findall(r"\{([^}]+)\}", path)), f"Path parameters: {operation_id}")
-            if method not in {"get", "head", "options"}:
+            if method not in {"get", "head", "options"} and not any(
+                    "DiscordService" in auth for auth in operation.get("security", [])):
                 require(any(p["name"] == "Idempotency-Key" and p["required"] for p in params),
                         f"Missing operation key: {operation_id}")
 

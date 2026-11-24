@@ -60,7 +60,8 @@ public sealed class GroupActivityService(AmorDbContext db, SessionAccess session
             x.Membership.CharacterId == group.OwnerCharacterId,
             actor == group.OwnerCharacterId ? x.Membership.Capabilities : null,
             actor == group.OwnerCharacterId ? GroupAuthorization.ETag(x.Membership) : null,
-            actor == group.OwnerCharacterId || actor == x.Membership.CharacterId ? x.Membership.ClockedInAt : null)).ToArray();
+            actor == group.OwnerCharacterId || actor == x.Membership.CharacterId ? x.Membership.ClockedInAt : null,
+            actor == group.OwnerCharacterId || actor == x.Membership.CharacterId ? x.Membership.CommissionPercent : null)).ToArray();
         var posts = await db.GroupAnnouncements.AsNoTracking().Where(x => x.CommunityId == communityId && x.GroupId == groupId).OrderByDescending(x => x.PublishedAt).ThenByDescending(x => x.Id).Take(5)
             .Select(x => new GroupAnnouncement(x.Id, x.Title, x.Message, x.PublishedAt)).ToArrayAsync(ct);
         h.Response.Headers.CacheControl = "no-store";

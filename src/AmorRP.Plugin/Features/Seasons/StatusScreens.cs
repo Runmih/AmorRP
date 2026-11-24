@@ -18,20 +18,28 @@ public sealed partial class SeasonsPanel
     private string connectionError = "", connectionDiagnostic = "";
     private void DrawSeasonManagementSelection()
     {
-        if (communities.Length == 0) return;
-        ImGui.SetNextItemWidth(-1);
-        ImGui.BeginDisabled(WriteBlocked || Busy);
-        if (ImGui.BeginCombo("##Season", community?.Name ?? "Choose a season"))
+        const string create = "Create season";
+        var canSelect = IsSeasonAdministrator && communities.Length > 0;
+        var style = ImGui.GetStyle();
+        var buttonWidth = ImGui.CalcTextSize(create).X + style.FramePadding.X * 2 + style.ItemSpacing.X;
+        ImGui.SetNextItemWidth(Math.Max(1, ImGui.GetContentRegionAvail().X - (CanCreateSeasons ? buttonWidth : 0)));
+        ImGui.BeginDisabled(!canSelect || WriteBlocked || Busy);
+        if (ImGui.BeginCombo("##Season", community?.Name ?? "No season selected"))
         {
             var incoming = tradeInbox.Pending(DateTimeOffset.UtcNow).Select(x => x.CommunityId).ToHashSet();
             foreach (var entry in communities)
             {
                 var note = incoming.Contains(entry.Id) ? " • trade request" : announcementUnread.GetValueOrDefault(entry.Id) > 0 ? " • new announcements" : "";
-                var state = " · " + entry.SeasonState;
-                if (ImGui.Selectable(entry.Name + state + note + "###community" + entry.Id, selected == entry.Id) && community?.Id != entry.Id) SwitchCommunity(entry);
+                if (ImGui.Selectable($"{entry.Name} · {entry.SeasonState}{note}###community{entry.Id}", selected == entry.Id)
+                    && community?.Id != entry.Id) SwitchCommunity(entry);
             }
             ImGui.EndCombo();
         }
+        ImGui.EndDisabled();
+        if (!CanCreateSeasons) return;
+        ImGui.SameLine();
+        ImGui.BeginDisabled(WriteBlocked);
+        if (ImGui.Button(create)) OpenCreateCommunity?.Invoke();
         ImGui.EndDisabled();
     }
     private static void DrawSectionHeading(string title)

@@ -71,10 +71,10 @@ public sealed partial class SeasonsPanel
 
     private void DrawOwnershipEffect()
     {
-        DrawRefreshState(ownershipEffectRefresh, "Ownership effect");
+        DrawRefreshState(ownershipEffectRefresh, "Enslavement");
         if (community is not { } season || ownershipEffectPolicy is not { } policy) return;
         ImGui.BeginDisabled(SeasonReadOnly || WriteBlocked);
-        var valid = DrawMoodleEditor("Ownership effect", ref ownershipEffectDraft, ownership: true);
+        var valid = DrawMoodleEditor("Enslavement", ref ownershipEffectDraft, ownership: true);
         ImGui.BeginDisabled(!valid || ownershipEffectDraft == policy.Effect);
         if (ActionButton("Save ownership effect"))
             Mutate("PUT", $"api/v2/seasons/{season.Id}/ownership-effect", new OwnershipEffectPolicy(policy.Version, ownershipEffectDraft));

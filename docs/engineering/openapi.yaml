@@ -8156,6 +8156,66 @@ paths:
           $ref: '#/components/responses/Problem'
       x-authorization-policy: Season owner
       x-implementation-status: implemented
+    delete:
+      operationId: deleteShopProduct
+      summary: Remove a shop listing and preserve past purchases
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: productId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: If-Match
+        in: header
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResourceCommandResult'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Season owner
+      x-implementation-status: implemented
   /api/v2/seasons/{seasonId}/shop/purchases:
     post:
       operationId: buyShopProduct
@@ -9205,8 +9265,1135 @@ paths:
           $ref: '#/components/responses/Problem'
       x-authorization-policy: Season owner
       x-implementation-status: implemented
+  /api/v2/seasons/{seasonId}/groups/{groupId}/storage:
+    get:
+      operationId: readGroupStorage
+      summary: Read group stock
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: groupId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupStorage'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Authorized group storage user
+      x-implementation-status: implemented
+    post:
+      operationId: moveGroupStock
+      summary: Deposit or withdraw an available stack
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: groupId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GroupStockMove'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResourceCommandResult'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Authorized group storage user with the matching action permission
+      x-implementation-status: implemented
+  /api/v2/seasons/{seasonId}/groups/{groupId}/shifts:
+    get:
+      operationId: readGroupShifts
+      summary: Read upcoming cashier shifts
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: groupId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupShifts'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Group owner or cashier viewing their assignments
+      x-implementation-status: implemented
+    post:
+      operationId: createGroupShift
+      summary: Schedule a cashier shift
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: groupId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GroupShiftCreate'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResourceCommandResult'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Group owner with billing enabled
+      x-implementation-status: implemented
+  /api/v2/seasons/{seasonId}/groups/{groupId}/shifts/{shiftId}:
+    delete:
+      operationId: cancelGroupShift
+      summary: Cancel a cashier shift
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: groupId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: shiftId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResourceCommandResult'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Group owner with billing enabled
+      x-implementation-status: implemented
+  /api/v2/seasons/{seasonId}/permits/{permitId}/transfers:
+    post:
+      operationId: offerPermitTransfer
+      summary: Offer a registered permit to another group
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: permitId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PermitTransferCreate'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResourceCommandResult'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Current owning group owner with treasury enabled
+      x-implementation-status: implemented
+  /api/v2/seasons/{seasonId}/permit-transfers/{transferId}/approval:
+    put:
+      operationId: approvePermitTransfer
+      summary: Approve an offer as the registered character
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: transferId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResourceCommandResult'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Registered character
+      x-implementation-status: implemented
+  /api/v2/seasons/{seasonId}/permit-transfers/{transferId}/acceptance:
+    put:
+      operationId: acceptPermitTransfer
+      summary: Pay the price and transfer the registration
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: transferId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResourceCommandResult'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Offered group owner after the registered character approves
+      x-implementation-status: implemented
+  /api/v2/seasons/{seasonId}/permit-transfers/{transferId}:
+    delete:
+      operationId: cancelPermitTransfer
+      summary: Close a directed transfer offer
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: transferId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResourceCommandResult'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Transfer participant
+      x-implementation-status: implemented
+  /api/v2/seasons/{seasonId}/discord:
+    get:
+      operationId: discordPlayerState
+      summary: Read own linking state or season reward policy
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DiscordPlayerState'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Verified season character
+      x-implementation-status: implemented
+  /api/v2/seasons/{seasonId}/discord/policy:
+    put:
+      operationId: discordRewardPolicy
+      summary: Change Discord earning limits
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DiscordRewardPolicy'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DiscordPolicyResult'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Season owner
+      x-implementation-status: implemented
+  /api/v2/seasons/{seasonId}/discord/link:
+    post:
+      operationId: createDiscordPlayerCode
+      summary: Create an opt-in character link code
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DiscordCodeResult'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Verified season character
+      x-implementation-status: implemented
+    delete:
+      operationId: unlinkDiscordPlayer
+      summary: Opt out and unlink your character
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DiscordUnlinkResult'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Verified linked character
+      x-implementation-status: implemented
+  /api/v2/seasons/{seasonId}/groups/{groupId}/discord:
+    get:
+      operationId: discordGroupState
+      summary: Read own group connection status
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: groupId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DiscordGroupState'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Group owner with Discord Bot Permission
+      x-implementation-status: implemented
+  /api/v2/seasons/{seasonId}/groups/{groupId}/discord/link:
+    post:
+      operationId: createDiscordGroupCode
+      summary: Create a Discord server connection code
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: groupId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DiscordCodeResult'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Group owner with Discord Bot Permission
+      x-implementation-status: implemented
+    delete:
+      operationId: unlinkDiscordGroup
+      summary: Disconnect Discord and queue bot removal
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: groupId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DiscordUnlinkResult'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Group owner with Discord Bot Permission
+      x-implementation-status: implemented
+  /api/v2/integrations/discord/guilds/redeem:
+    post:
+      operationId: redeemDiscordGroupCode
+      summary: Redeem a single-use group code
+      security:
+      - DiscordService: []
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DiscordRedeem'
+      responses:
+        '200':
+          description: Success
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Discord service and Discord Manage Server
+      x-implementation-status: implemented
+  /api/v2/integrations/discord/players/redeem:
+    post:
+      operationId: redeemDiscordPlayerCode
+      summary: Redeem a single-use player code
+      security:
+      - DiscordService: []
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DiscordRedeem'
+      responses:
+        '200':
+          description: Success
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Discord service for the Discord account
+      x-implementation-status: implemented
+  /api/v2/integrations/discord/guilds/{guildId}/channels:
+    put:
+      operationId: configureDiscordChannels
+      summary: Set eligible writing channels and role
+      security:
+      - DiscordService: []
+      parameters:
+      - name: guildId
+        in: path
+        required: true
+        schema:
+          type: string
+          pattern: ^[1-9][0-9]{15,19}$
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DiscordChannels'
+      responses:
+        '200':
+          description: Success
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Discord service and Discord Manage Server
+      x-implementation-status: implemented
+  /api/v2/integrations/discord/guilds:
+    get:
+      operationId: reconcileDiscordGuilds
+      summary: List connected Discord servers and queued removals
+      security:
+      - DiscordService: []
+      parameters: []
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DiscordGuilds'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Discord service
+      x-implementation-status: implemented
+  /api/v2/integrations/discord/guilds/{guildId}:
+    delete:
+      operationId: discordGuildRemoved
+      summary: Acknowledge removal from a Discord server
+      security:
+      - DiscordService: []
+      parameters:
+      - name: guildId
+        in: path
+        required: true
+        schema:
+          type: string
+          pattern: ^[1-9][0-9]{15,19}$
+      responses:
+        '200':
+          description: Success
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Discord service
+      x-implementation-status: implemented
+  /api/v2/integrations/discord/posts:
+    post:
+      operationId: awardDiscordPost
+      summary: Evaluate a unique Discord message for a reward
+      security:
+      - DiscordService: []
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DiscordPost'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DiscordAward'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '412':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '428':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Discord service
+      x-implementation-status: implemented
 components:
   securitySchemes:
+    DiscordService:
+      type: apiKey
+      in: header
+      name: X-AmorRP-Discord-Key
+      description: Private service authorization. Bot callbacks use single-use codes, message IDs, or idempotent updates.
     Session:
       type: http
       scheme: bearer
@@ -9235,6 +10422,368 @@ components:
           schema:
             $ref: '#/components/schemas/Problem'
   schemas:
+    GroupStock:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        typeId:
+          type: string
+        quantity:
+          type: integer
+          format: int32
+        version:
+          type: integer
+          format: int32
+      required:
+      - id
+      - name
+      - typeId
+      - quantity
+      - version
+    GroupStorage:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/GroupStock'
+      required:
+      - items
+    GroupStockMove:
+      type: object
+      properties:
+        itemId:
+          type: string
+          format: uuid
+        version:
+          type: integer
+          format: int32
+        quantity:
+          type: integer
+          format: int32
+        withdraw:
+          type: boolean
+      required:
+      - itemId
+      - version
+      - quantity
+      - withdraw
+    GroupShift:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        characterId:
+          type: string
+          format: uuid
+        characterName:
+          type: string
+        start:
+          type: string
+          format: date-time
+        end:
+          type: string
+          format: date-time
+      required:
+      - id
+      - characterId
+      - characterName
+      - start
+      - end
+    GroupShifts:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/GroupShift'
+      required:
+      - items
+    GroupShiftCreate:
+      type: object
+      properties:
+        characterId:
+          type: string
+          format: uuid
+        start:
+          type: string
+          format: date-time
+        end:
+          type: string
+          format: date-time
+      required:
+      - characterId
+      - start
+      - end
+    PermitTransferCreate:
+      type: object
+      properties:
+        buyerGroupId:
+          type: string
+          format: uuid
+        price:
+          type: string
+          pattern: ^[0-9]+$
+      required:
+      - buyerGroupId
+      - price
+    PermitTransfer:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        permitId:
+          type: string
+          format: uuid
+        characterId:
+          type: string
+          format: uuid
+        characterName:
+          type: string
+        sellerId:
+          type: string
+          format: uuid
+        sellerGroup:
+          type: string
+        buyerId:
+          type: string
+          format: uuid
+        buyerGroup:
+          type: string
+        price:
+          type: string
+          pattern: ^[0-9]+$
+        expiresAt:
+          type: string
+          format: date-time
+        approved:
+          type: boolean
+      required:
+      - id
+      - permitId
+      - characterId
+      - characterName
+      - sellerId
+      - sellerGroup
+      - buyerId
+      - buyerGroup
+      - price
+      - expiresAt
+      - approved
+    DiscordRewardPolicy:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+        coinsPerPost:
+          type: integer
+          format: int32
+        minimumCharacters:
+          type: integer
+          format: int32
+        cooldownSeconds:
+          type: integer
+          format: int32
+        weeklyLimit:
+          type: integer
+          format: int32
+        seasonWeeklyBudget:
+          type: integer
+          format: int32
+        balanceCeiling:
+          type: integer
+          format: int64
+      required:
+      - enabled
+      - coinsPerPost
+      - minimumCharacters
+      - cooldownSeconds
+      - weeklyLimit
+      - seasonWeeklyBudget
+      - balanceCeiling
+    DiscordPlayerState:
+      type: object
+      properties:
+        available:
+          type: boolean
+        linked:
+          type: boolean
+        policy:
+          allOf:
+          - $ref: '#/components/schemas/DiscordRewardPolicy'
+          nullable: true
+      required:
+      - available
+      - linked
+      - policy
+    DiscordGroupState:
+      type: object
+      properties:
+        connected:
+          type: boolean
+        guildId:
+          type: string
+          pattern: ^[1-9][0-9]{15,19}$
+          nullable: true
+      required:
+      - connected
+      - guildId
+    DiscordCode:
+      type: object
+      properties:
+        code:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+      required:
+      - code
+      - expiresAt
+    DiscordRedeem:
+      type: object
+      properties:
+        code:
+          type: string
+        guildId:
+          type: string
+          pattern: ^[1-9][0-9]{15,19}$
+        userId:
+          type: string
+          pattern: ^[1-9][0-9]{15,19}$
+      required:
+      - code
+      - guildId
+      - userId
+    DiscordChannels:
+      type: object
+      properties:
+        channelIds:
+          type: array
+          items:
+            type: string
+            pattern: ^[1-9][0-9]{15,19}$
+        requiredRoleId:
+          type: string
+          pattern: ^[1-9][0-9]{15,19}$
+          nullable: true
+        paused:
+          type: boolean
+      required:
+      - channelIds
+      - requiredRoleId
+      - paused
+    DiscordPost:
+      type: object
+      properties:
+        messageId:
+          type: string
+          pattern: ^[1-9][0-9]{15,19}$
+        guildId:
+          type: string
+          pattern: ^[1-9][0-9]{15,19}$
+        channelId:
+          type: string
+          pattern: ^[1-9][0-9]{15,19}$
+        userId:
+          type: string
+          pattern: ^[1-9][0-9]{15,19}$
+        roleIds:
+          type: array
+          items:
+            type: string
+            pattern: ^[1-9][0-9]{15,19}$
+        characters:
+          type: integer
+          format: int32
+        fingerprint:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+      - messageId
+      - guildId
+      - channelId
+      - userId
+      - roleIds
+      - characters
+      - fingerprint
+      - createdAt
+    DiscordAward:
+      type: object
+      properties:
+        amount:
+          type: integer
+          format: int32
+      required:
+      - amount
+    DiscordGuilds:
+      type: object
+      properties:
+        connected:
+          type: array
+          items:
+            type: string
+            pattern: ^[1-9][0-9]{15,19}$
+        leave:
+          type: array
+          items:
+            type: string
+            pattern: ^[1-9][0-9]{15,19}$
+      required:
+      - connected
+      - leave
+    ResourceCommandResult:
+      type: object
+      properties:
+        operationId:
+          type: string
+          format: uuid
+        result:
+          type: string
+          format: uuid
+      required:
+      - operationId
+      - result
+    DiscordPolicyResult:
+      type: object
+      properties:
+        operationId:
+          type: string
+          format: uuid
+        result:
+          $ref: '#/components/schemas/DiscordRewardPolicy'
+      required:
+      - operationId
+      - result
+    DiscordCodeResult:
+      type: object
+      properties:
+        operationId:
+          type: string
+          format: uuid
+        result:
+          $ref: '#/components/schemas/DiscordCode'
+      required:
+      - operationId
+      - result
+    DiscordUnlinkResult:
+      type: object
+      properties:
+        operationId:
+          type: string
+          format: uuid
+        result:
+          type: boolean
+      required:
+      - operationId
+      - result
     SeasonClass:
       type: object
       properties:
@@ -9827,6 +11376,11 @@ components:
     PermitShop:
       type: object
       properties:
+        transfers:
+          type: array
+          nullable: true
+          items:
+            $ref: '#/components/schemas/PermitTransfer'
         policy:
           $ref: '#/components/schemas/PermitPolicy'
         listings:
@@ -12242,7 +13796,7 @@ components:
       properties:
         enabledFeatures:
           type: array
-          maxItems: 4
+          maxItems: 6
           uniqueItems: true
           items:
             type: string
@@ -12251,15 +13805,25 @@ components:
             - notice.manage
             - events.manage
             - treasury
+            - items.storage
+            - discord.bot
     GroupStaffEdit:
       type: object
       required:
       - capabilities
       additionalProperties: false
       properties:
+        commissionPercent:
+          type: integer
+          nullable: true
+          minimum: 0
+          maximum: 100
+        updateCommission:
+          type: boolean
+          default: false
         capabilities:
           type: array
-          maxItems: 6
+          maxItems: 8
           uniqueItems: true
           items:
             type: string
@@ -12270,6 +13834,8 @@ components:
             - treasury.records
             - treasury.withdraw
             - treasury.bill
+            - items.storage
+            - items.storage.withdraw
     GroupMemberResult:
       type: object
       required:
@@ -12294,7 +13860,7 @@ components:
           default: 0
         enabledFeatures:
           type: array
-          maxItems: 4
+          maxItems: 6
           uniqueItems: true
           items:
             type: string
@@ -12303,9 +13869,11 @@ components:
             - notice.manage
             - events.manage
             - treasury
+            - items.storage
+            - discord.bot
         myCapabilities:
           type: array
-          maxItems: 6
+          maxItems: 8
           uniqueItems: true
           items:
             type: string
@@ -12316,6 +13884,8 @@ components:
             - treasury.records
             - treasury.withdraw
             - treasury.bill
+            - items.storage
+            - items.storage.withdraw
         id: *id007
         seasonId: *id007
         name:
@@ -12542,13 +14112,18 @@ components:
       - world
       - isOwner
       properties:
+        commissionPercent:
+          type: integer
+          nullable: true
+          minimum: 0
+          maximum: 100
         clockedInAt:
           type: string
           format: date-time
           nullable: true
         capabilities:
           type: array
-          maxItems: 6
+          maxItems: 8
           uniqueItems: true
           items:
             type: string
@@ -12559,6 +14134,8 @@ components:
             - treasury.records
             - treasury.withdraw
             - treasury.bill
+            - items.storage
+            - items.storage.withdraw
           nullable: true
         etag:
           type: string
@@ -12832,6 +14409,11 @@ components:
       required: [commissionPercent, requireClockIn, etag]
       additionalProperties: false
       properties:
+        myCommissionPercent:
+          type: integer
+          nullable: true
+          minimum: 0
+          maximum: 100
         commissionPercent:
           type: integer
           minimum: 0

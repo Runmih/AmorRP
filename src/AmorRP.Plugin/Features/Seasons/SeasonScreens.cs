@@ -37,12 +37,6 @@ public sealed partial class SeasonsPanel
     {
         if (!CanCreateSeasons && !IsSeasonAdministrator) return;
         Wrapped("One season is active at a time. Activating another archives the current season. Each season keeps its own groups, items, finances and records.");
-        if (CanCreateSeasons)
-        {
-            ImGui.BeginDisabled(WriteBlocked);
-            if (ImGui.Button("Create season")) OpenCreateCommunity?.Invoke();
-            ImGui.EndDisabled();
-        }
         foreach (var entry in seasonContext!.Seasons)
         {
             ImGui.PushID(entry.Id.ToString()); ImGui.Separator();

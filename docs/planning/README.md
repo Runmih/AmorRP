@@ -14,7 +14,7 @@ the matching tab or window, and Power controls automatic HUDs.
 All verified players automatically belong to all non-deleted seasons, including
 drafts and archives. One season is active; drafts and archives are read-only.
 Economies and scoped grants remain separate. `seasons.create` is global and defaults
-to the configured Lodestone administrator. Other players never see creation controls.
+to the configured Lodestone administrator. Other players never see creation controls. Server administrators grant this under Season Management → Members.
 Season membership has no join, leave, removal, block or restore operation.
 
 Identity/pairing, inventories, recipe revisions, quotas, two-stage trading, group
@@ -46,8 +46,11 @@ manual checklist. Do not infer game or production acceptance from a successful b
 
 1. Finish the focused S03/S04, season, and window checks in game.
 2. Verify the Shop, permits, Gathering, class reset, group recipes and optional Moodles in game. Classes, group recipes and Moodles are implemented in the local 0.11 build.
-3. Keep integration adapters isolated. Discord linking is opt-in. Moodles diagnostics
-   appear in the activity log. Integration failures never affect gameplay or accounting.
+3. Verify the local 0.16 build in game, including the staff tools and permit transfer
+   screens. Run Discord linking, channel setup, payout and removal with a test
+   Discord installation before enabling it for players.
+4. Continue 1.0 readiness work on account moderation, data export and deletion,
+   and backup restore testing.
 
 ## Expansion dependencies
 
@@ -60,13 +63,17 @@ manual checklist. Do not infer game or production acceptance from a successful b
 | S08 | Classes and reset potion (0.9) | S05/S07 | Slot limits, permanent choices until reset, no weekly-budget refill exploit |
 | S09 | Group-restricted recipes (0.10) | S01/S07 budget rules | Membership and recipe/crafting authority remain separate; bounded durable limits |
 | S10 | Optional Moodles (0.11) | Consumable use; S06 for permit effect | Best-effort IPC; absence/rejection never blocks a committed action or displays errors |
-| S11 | Discord writing earnings | S01/S03; home host | Opt-in linking, weekly/balance limits, account selection, deduplication and automatic unlink |
+| S11 | Discord writing earnings (0.12) | S01/S03; home host | Implemented locally; live Discord acceptance pending |
+| S12 | Group item storage (0.13) | S02 and inventory revisions | Implemented locally; storage grants, atomic moves and disband returns |
+| S13 | Permit transfers (0.14) | S06 and group treasury | Implemented locally; directed consent, treasury payment and billing-lock transfer |
+| S14 | Staff shifts (0.15) | S04 clock-in and staff | Implemented locally; assigned, non-overlapping shifts and owner cancellation |
+| S15 | Individual cashier commission (0.16) | S04 bill allocation | Implemented locally; optional staff rates are pinned on new bills |
 
 Detailed requirements: [decisions](decisions.md), [economy](economy-and-groups.md),
 [gameplay](gameplay.md), [integrations](integrations.md). Nice-to-have work must not
-block independent required work. Later group item storage follows S02; permit
-trading follows S06 and a defined registration/billing-lock transfer rule. Schedules
-and per-staff rates are separate follow-ups.
+block independent required work. [The 0.16 local build](../delivery/release-0.16.0.0.md)
+includes the five feature milestones. The running server and published installer
+feed use the latest separately released version.
 
 User/account moderation remains separate planned work; do not implement bans by
 changing season membership. Incremental future extraction of SeasonsPanel should

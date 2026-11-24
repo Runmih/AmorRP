@@ -11,7 +11,6 @@ public sealed partial class SeasonsPanel
         if (!ImGui.BeginTabBar("InventorySubtabs")) return;
         if (ImGui.BeginTabItem("All")) { inventoryTab = 0; DrawInventory(); ImGui.EndTabItem(); }
         if (ImGui.BeginTabItem("Consumables")) { inventoryTab = 1; DrawInventory(); ImGui.EndTabItem(); }
-        if (ImGui.BeginTabItem("Books")) { inventoryTab = 2; DrawInventory(); ImGui.EndTabItem(); }
         ImGui.EndTabBar();
     }
     private void DrawCraftingTabs()

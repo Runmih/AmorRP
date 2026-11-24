@@ -32,7 +32,7 @@ public sealed partial class SeasonsPanel
         permitShop = null;
         permitBasePrice = permitFeedback = "";
         permitEnabled = permitTabRequested = false;
-        permitBuyerGroup = null;
+        permitBuyerGroup = transferPermit = transferBuyerGroup = null;
         privatePermitTarget = null;
         privatePermitMember = null;
     }
@@ -102,6 +102,7 @@ public sealed partial class SeasonsPanel
         var groups = communityGroups.Where(CanBuyPermitForGroup).ToArray();
         DrawPrivatePermitDraft(groups);
         DrawPermitOffers();
+        DrawPermitTransferOffers();
         DrawPermitListings(groups);
         if (permitShop.Permits.Length > 0 && ImGui.CollapsingHeader("Registered permits", ImGuiTreeNodeFlags.DefaultOpen))
         {
@@ -109,9 +110,11 @@ public sealed partial class SeasonsPanel
             {
                 ImGui.PushID(permit.Id.ToString());
                 Wrapped(permit.CharacterName + " · " + permit.GroupName);
-                if (communityGroups.Any(group => group.Id == permit.GroupId && group.OwnerCharacterId == session!.Character.Id)
-                    && ActionButton("Release character"))
-                    Mutate("DELETE", PermitsPath + "/" + permit.Id, null);
+                if (communityGroups.Any(group => group.Id == permit.GroupId && group.OwnerCharacterId == session!.Character.Id))
+                {
+                    if (ActionButton("Release character")) Mutate("DELETE", PermitsPath + "/" + permit.Id, null);
+                    DrawPermitTransferDraft(permit);
+                }
                 ImGui.PopID();
             }
         }
@@ -241,6 +244,10 @@ public sealed partial class SeasonsPanel
             CommandKind.ConsentPermitOffer => "Private offer completed.",
             CommandKind.WithdrawPermitOffer => "Offer closed.",
             CommandKind.ReleasePermit => "The character was released.",
+            CommandKind.OfferPermitTransfer => "Transfer offer sent.",
+            CommandKind.ApprovePermitTransfer => "Transfer approved.",
+            CommandKind.AcceptPermitTransfer => "Permit transferred.",
+            CommandKind.CancelPermitTransfer => "Transfer offer closed.",
             _ => "Permit changes saved."
         };
         if (purchased is { } permit && permitShop != null)
@@ -252,6 +259,7 @@ public sealed partial class SeasonsPanel
                 Permits = permitShop.Permits.Where(x => x.Id != permit.Id).Append(permit).ToArray()
             };
         }
+        else if (request.Operation.Kind == CommandKind.OfferPermitTransfer) transferPermit = null;
         else if (request.Operation.Kind == CommandKind.CreatePermitOffer)
         {
             privatePermitMember = null;

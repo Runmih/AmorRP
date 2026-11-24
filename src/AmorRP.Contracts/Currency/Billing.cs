@@ -4,7 +4,7 @@ public sealed record BillingPolicy(bool AllowDebt, int Version, string Etag, int
 public sealed record BillingPolicyEdit(bool AllowDebt,
     [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     int? TaxPercent = null);
-public sealed record GroupBillingSettings(int CommissionPercent, bool RequireClockIn, DateTimeOffset? ClockedInAt, string Etag);
+public sealed record GroupBillingSettings(int CommissionPercent, bool RequireClockIn, DateTimeOffset? ClockedInAt, string Etag, int? MyCommissionPercent = null);
 public sealed record GroupBillingEdit(int CommissionPercent, bool RequireClockIn);
 public sealed record ClockInEdit(bool ClockedIn, Guid? CharacterId = null);
 public sealed record BillAllocation(string SeasonTax, string Commission, string GroupTreasury);

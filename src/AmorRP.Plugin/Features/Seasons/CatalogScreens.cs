@@ -32,28 +32,55 @@ public sealed partial class SeasonsPanel
     }
     private void NewRecipe()
     { recipeEffectDraft = null; definitionGroup = null; definitionEditId = null; definitionEditRevision = null; definitionName = definitionDescription = definitionMessage = ""; definitionCost = 1; definitionEnabled = true; definitionCategory = definitionType = 0; }
+    private string RecipeAccessLabel(Guid? groupId) => groupId is { } id
+        ? communityGroups.FirstOrDefault(group => group.Id == id)?.Name ?? "Group"
+        : "Global";
+
     private void DrawCatalogEditor()
     {
         if (!(recipeCooking ? CanDefineCooking : CanDefinePotions)) return;
-        var narrow = ImGui.GetContentRegionAvail().X < ImGui.GetFontSize() * 38;
+        var narrow = ImGui.GetContentRegionAvail().X < ImGui.GetFontSize() * 59;
         if (!ImGui.BeginTable("RecipeLayout", narrow ? 1 : 2, ImGuiTableFlags.Resizable | ImGuiTableFlags.BordersInnerV)) return;
         ImGui.TableSetupColumn("Recipes", ImGuiTableColumnFlags.WidthStretch, .35f); if (!narrow) ImGui.TableSetupColumn("Editor", ImGuiTableColumnFlags.WidthStretch, .65f);
         ImGui.TableNextColumn(); ImGui.BeginChild("RecipeList", new(0, narrow ? ImGui.GetTextLineHeightWithSpacing() * 7 : 0), true);
-        ImGui.TextUnformatted("Season recipes");
         if (ImGui.Button("+ New recipe")) NewRecipe();
-        foreach (var recipe in definitions.Where(x => RecipeTypes.Contains(x.TypeId)))
+        var recipes = definitions.Where(recipe => RecipeTypes.Contains(recipe.TypeId)).ToArray();
+        if (ImGui.BeginTable("RecipeRows", 4, ImGuiTableFlags.RowBg | ImGuiTableFlags.BordersInnerH))
         {
-            ImGui.PushID(recipe.Id.ToString());
-            if (ImGui.Selectable(recipe.Name + "###Recipe", definitionEditId == recipe.Id)) SelectRecipe(recipe);
-            ImGui.TextDisabled($"{recipe.Potion.CreationCost} points · rev {recipe.Revision} · {(recipe.Retired ? "retired" : recipe.Enabled ? "enabled" : "disabled")}");
-            ImGui.PopID();
+            ImGui.TableSetupColumn("Name", ImGuiTableColumnFlags.WidthStretch, 2);
+            ImGui.TableSetupColumn("Cost", ImGuiTableColumnFlags.WidthFixed);
+            ImGui.TableSetupColumn("Access", ImGuiTableColumnFlags.WidthStretch);
+            ImGui.TableSetupColumn("Status", ImGuiTableColumnFlags.WidthFixed);
+            ImGui.TableHeadersRow();
+            foreach (var recipe in recipes)
+            {
+                ImGui.PushID(recipe.Id.ToString());
+                ImGui.TableNextRow();
+                ImGui.TableNextColumn();
+                if (ImGui.Selectable(recipe.Name + "###Recipe", definitionEditId == recipe.Id)) SelectRecipe(recipe);
+                ImGui.TableNextColumn();
+                ImGui.TextUnformatted($"{recipe.Potion.CreationCost} pts");
+                ImGui.TableNextColumn();
+                ImGui.TextUnformatted(RecipeAccessLabel(recipe.GroupId));
+                ImGui.TableNextColumn();
+                if (recipe.Retired) ImGui.TextDisabled("Retired");
+                else if (ActionButton(recipe.Enabled ? "Enabled##RecipeStatus" : "Disabled##RecipeStatus"))
+                {
+                    var body = new DefinitionWrite(recipe.TypeId, recipe.Name, recipe.CategoryId, recipe.Description,
+                        !recipe.Enabled, recipe.Potion, recipe.GroupId, recipe.Effect);
+                    Mutate("PATCH", $"api/v2/seasons/{community!.Id}/item-definitions/{recipe.Id}", body,
+                        ETag("definition", recipe.Id, recipe.Revision));
+                    if (definitionEditId == recipe.Id) definitionEnabled = body.Enabled;
+                }
+                ImGui.PopID();
+            }
+            ImGui.EndTable();
         }
-        if (!definitions.Any(x => RecipeTypes.Contains(x.TypeId))) Wrapped("No recipes yet. Define one here, then craft it from the matching crafting tab.");
+        if (recipes.Length == 0) Wrapped("No recipes yet.");
         ImGui.EndChild(); ImGui.TableNextColumn(); ImGui.BeginChild("RecipeEditor", Vector2.Zero, true);
         ImGui.PushItemWidth(-1);
         var editing = definitions.FirstOrDefault(x => x.Id == definitionEditId);
         ImGui.TextUnformatted(editing == null ? recipeCooking ? "New Cooking recipe" : "New Alchemy recipe" : editing.Name);
-        Wrapped("A recipe defines future units. Existing items keep their original description, use message, and effect.");
         FieldLabel("Item type"); ImGui.BeginDisabled(editing != null);
         if (ImGui.Combo("##RecipeType", ref definitionType, RecipeTypes.Select(TypeName).ToArray(), RecipeTypes.Length)) definitionCategory = 0;
         ImGui.EndDisabled();

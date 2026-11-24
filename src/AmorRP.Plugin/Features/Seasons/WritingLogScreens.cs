@@ -78,7 +78,6 @@ public sealed partial class SeasonsPanel
     private void DrawWritingLog()
     {
         ImGui.TextColored(InventoryGold, "WRITING LOG");
-        DrawSeasonState();
         if (community == null)
         {
             DrawNoSeason();
@@ -87,9 +86,7 @@ public sealed partial class SeasonsPanel
         ImGui.BeginDisabled(SeasonReadOnly);
         if (ImGui.Button("New writing")) { writingLogComposing = true; editingLetter = null; }
         ImGui.EndDisabled();
-        if (writingLogComposing)
-        { ImGui.SameLine(); if (ImGui.Button("Back to reading")) writingLogComposing = false; }
-        ImGui.SameLine();
+        DrawSeasonState();
         ImGui.BeginChild("WritingLogContent", System.Numerics.Vector2.Zero, false);
         var stacked = ImGui.GetContentRegionAvail().X < ImGui.GetFontSize() * 46;
         if (ImGui.BeginTable("WritingLogLayout", stacked ? 1 : 2, ImGuiTableFlags.Resizable | ImGuiTableFlags.BordersInnerV))

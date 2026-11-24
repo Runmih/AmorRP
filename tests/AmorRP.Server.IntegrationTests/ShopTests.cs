@@ -38,6 +38,11 @@ public sealed partial class FoundationTests
         Assert.Equal(HttpStatusCode.Conflict, conflict.StatusCode);
         Assert.Equal("30", (await OwnBalance(buyer, season)).Owned);
         Assert.Equal(0, Assert.Single((await buyer.GetFromJsonAsync<ShopProducts>(path + "/products", ct))!.Products).Stock);
+        var sold = Assert.Single((await owner.GetFromJsonAsync<ShopProducts>(path + "/products", ct))!.Products);
+        await Command<Guid>(owner, HttpMethod.Delete, path + "/products/" + sold.Id, etag: sold.Etag);
+        Assert.Empty((await owner.GetFromJsonAsync<ShopProducts>(path + "/products", ct))!.Products);
+        using (var request = Request(HttpMethod.Post, path + "/purchases", buy, key))
+        using (var replay = await buyer.SendAsync(request, ct)) Assert.True(replay.Headers.Contains("Idempotency-Replayed"));
         Assert.Equal("20", (await owner.GetFromJsonAsync<BillingPolicy>($"/api/v2/seasons/{season.Id}/billing-policy", ct))!.SeasonTreasury);
     }
 }

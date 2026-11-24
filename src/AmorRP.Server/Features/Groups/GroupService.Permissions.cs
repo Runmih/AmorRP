@@ -21,6 +21,8 @@ public sealed partial class GroupService
         var replay = await commands.ReplayAsync(h, scope, body, ct); if (replay != null) return commands.Replay(replay);
         CommandStore.Match(h, View(group).Etag); GroupAuthorization.Validate(body.EnabledFeatures, features: true);
         group.EnabledFeatures = body.EnabledFeatures.Order().ToArray(); group.Version++;
+        if (!group.EnabledFeatures.Contains(GroupCapabilities.Discord))
+            await AmorRP.Server.Features.Discord.DiscordRewardsService.DisconnectGroupAsync(db, communityId, groupId, ct);
         foreach (var member in await db.GroupMemberships.Where(x => x.CommunityId == communityId && x.GroupId == groupId).ToArrayAsync(ct))
         {
             var retained = member.Capabilities.Where(x => GroupCapabilities.Enabled(group.EnabledFeatures, x)).Order().ToArray();
@@ -52,10 +54,13 @@ public sealed partial class GroupService
         var member = await GroupAuthorization.MemberAsync(db, group, characterId, ct);
         CommandStore.Match(h, GroupAuthorization.ETag(member)); GroupAuthorization.Validate(body.Capabilities);
         ApiFault.Require(body.Capabilities.All(x => GroupCapabilities.Enabled(group.EnabledFeatures, x)), 403, "group_feature_disabled", "The season owner has not enabled that group feature.");
+        ApiFault.Require(!body.UpdateCommission || body.CommissionPercent is null or >= 0 and <= 100,
+            422, "invalid_commission_rate", "Choose a commission between 0 and 100, or use the group default.");
+        if (body.UpdateCommission) member.CommissionPercent = body.CommissionPercent;
         member.Capabilities = body.Capabilities.Order().ToArray(); member.PermissionVersion = Guid.CreateVersion7();
         if (!member.Capabilities.Contains(GroupCapabilities.Billing)) member.ClockedInAt = null;
         var character = await db.Characters.SingleAsync(x => x.Id == characterId, ct);
-        var dto = new GroupMember(character.Id, character.DisplayName, character.HomeWorldName, false, member.Capabilities, GroupAuthorization.ETag(member));
+        var dto = new GroupMember(character.Id, character.DisplayName, character.HomeWorldName, false, member.Capabilities, GroupAuthorization.ETag(member), member.ClockedInAt, member.CommissionPercent);
         h.Response.Headers.ETag = dto.Etag;
         var op = commands.New(h, scope, body, actor, communityId, "group.staff");
         op.SubjectCharacterId = characterId; op.Summary = "Group staff permissions updated.";

@@ -154,6 +154,16 @@ public sealed partial class SeasonsPanel
         var cap = draft.GroupRecipeLimit;
         var priceText = classPriceText ?? draft.ResetPrice.ToString(System.Globalization.CultureInfo.InvariantCulture);
         ImGui.BeginDisabled(WriteBlocked || SeasonReadOnly);
+        ImGui.BeginDisabled(draft.Classes.Length >= 32);
+        if (ImGui.Button("Add class"))
+        {
+            var c = new SeasonClass(Guid.NewGuid(), "New class", "", []);
+            draft = draft with { Classes = [.. draft.Classes, c] };
+            editingClass = c.Id;
+        }
+        ImGui.EndDisabled();
+        ImGui.SameLine();
+        ImGui.SetNextItemWidth(ImGui.GetFontSize() * 8);
         if (ImGui.InputInt("Class slots", ref slots)) draft = draft with { Slots = Math.Clamp(slots, 1, 8) };
         if (ImGui.InputInt("Active recipes per group", ref cap)) draft = draft with { GroupRecipeLimit = Math.Clamp(cap, 0, 100) };
         if (ImGui.InputText("Reset potion price", ref priceText, 21, ImGuiInputTextFlags.CharsDecimal)) classPriceText = priceText;
@@ -162,13 +172,6 @@ public sealed partial class SeasonsPanel
 
         foreach (var c in draft.Classes)
             if (ImGui.Selectable(c.Name.Replace("##", "# #") + "###Class_" + c.Id, editingClass == c.Id)) editingClass = c.Id;
-        if (draft.Classes.Length < 32 && ImGui.Button("Add class"))
-        {
-            var c = new SeasonClass(Guid.NewGuid(), "New class", "", []);
-            draft = draft with { Classes = [.. draft.Classes, c] };
-            editingClass = c.Id;
-        }
-
         var index = Array.FindIndex(draft.Classes, c => c.Id == editingClass);
         if (index >= 0)
         {

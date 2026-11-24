@@ -12,4 +12,8 @@ public sealed record PermitOffer(Guid Id, Guid CharacterId, string CharacterName
     Guid GroupId, string GroupName, bool Private, string Status, DateTimeOffset ExpiresAt, string Quote,
     string BasePrice, string Debt, string Total, string AssetsCurrency, PermitAsset[] Assets);
 public sealed record OwnershipPermit(Guid Id, Guid CharacterId, string CharacterName, Guid GroupId, string GroupName, DateTimeOffset RegisteredAt, DateTimeOffset? ReleasedAt);
-public sealed record PermitShop(PermitPolicy Policy, PermitListing[] Listings, PermitOffer[] Offers, OwnershipPermit[] Permits);
+public sealed record PermitShop(PermitPolicy Policy, PermitListing[] Listings, PermitOffer[] Offers, OwnershipPermit[] Permits, PermitTransfer[]? Transfers = null);
+
+public sealed record PermitTransferCreate(Guid BuyerGroupId, string Price);
+public sealed record PermitTransfer(Guid Id, Guid PermitId, Guid CharacterId, string CharacterName,
+    Guid SellerId, string SellerGroup, Guid BuyerId, string BuyerGroup, string Price, DateTimeOffset ExpiresAt, bool Approved);

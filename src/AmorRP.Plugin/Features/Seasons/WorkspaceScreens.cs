@@ -33,10 +33,10 @@ public sealed partial class SeasonsPanel
         }
 
         ImGui.TextColored(InventoryGold, WorkspaceWindow.Title(kind).ToUpperInvariant());
-        if (kind == WorkspaceKind.CommunityManagement && IsSeasonAdministrator) DrawSeasonManagementSelection();
+        if (kind == WorkspaceKind.CommunityManagement && (CanCreateSeasons || IsSeasonAdministrator)) DrawSeasonManagementSelection();
         DrawSeasonState();
         if (community == null && kind != WorkspaceKind.Season)
-        { if (kind == WorkspaceKind.CommunityManagement && (CanCreateSeasons || IsSeasonAdministrator)) DrawSeasonManagement(); else DrawNoSeason(); return; }
+        { if (kind == WorkspaceKind.CommunityManagement && (CanCreateSeasons || IsSeasonAdministrator)) DrawCommunityManagementWorkspace(); else DrawNoSeason(); return; }
         ImGui.BeginChild("WorkspaceContent", System.Numerics.Vector2.Zero, false);
         switch (kind)
         {
@@ -87,21 +87,45 @@ public sealed partial class SeasonsPanel
     private void DrawCommunityManagementWorkspace()
     {
         if (!ImGui.BeginTabBar("CommunityManagementTabs", ImGuiTabBarFlags.FittingPolicyScroll)) return;
-        if ((CanCreateSeasons || IsSeasonAdministrator) && ImGui.BeginTabItem("Seasons")) { DrawSeasonManagement(); ImGui.EndTabItem(); }
+        if ((CanCreateSeasons || IsSeasonAdministrator || CanAnnounce) && ImGui.BeginTabItem("Season###Seasons"))
+        {
+            if (community != null && CanAnnounce && ImGui.CollapsingHeader("Announcements", ImGuiTreeNodeFlags.DefaultOpen))
+                DrawAnnouncements();
+            if ((CanCreateSeasons || IsSeasonAdministrator) && ImGui.CollapsingHeader("Season list", ImGuiTreeNodeFlags.DefaultOpen))
+                DrawSeasonManagement();
+            ImGui.EndTabItem();
+        }
         if (CanGeneralModerate && ImGui.BeginTabItem("Profile")) { DrawHomeProfile(); DrawOwnershipCancellation(); ImGui.EndTabItem(); }
         var membersFlags = requestedManagementMembers ? ImGuiTabItemFlags.SetSelected : ImGuiTabItemFlags.None;
-        if (CanManageCommunityMembers && ImGui.BeginTabItem("Members", membersFlags))
-        { requestedManagementMembers = false; DrawMembers(MemberView.Management); ImGui.EndTabItem(); }
-        if (CanAnnounce && ImGui.BeginTabItem("Announcements")) { DrawAnnouncements(); ImGui.EndTabItem(); }
+        if ((CanManageCommunityMembers || IsSeasonAdministrator) && ImGui.BeginTabItem("Members", membersFlags))
+        {
+            requestedManagementMembers = false;
+            if (IsSeasonAdministrator && ImGui.CollapsingHeader("Administrator permissions"))
+                DrawSeasonCreationAccess();
+            if (community != null && CanManageCommunityMembers) DrawMembers(MemberView.Management);
+            ImGui.EndTabItem();
+        }
         if (CanManageGroups && ImGui.BeginTabItem(Owner ? "Group access" : "Groups"))
         { DrawCommunityGroups(administration: true); ImGui.EndTabItem(); }
-        if (CanGeneralModerate && ImGui.BeginTabItem("Currency"))
-        { LoadHomeDrafts(); DrawCurrencyNameEditor(); if (Owner) DrawCurrencyIconEditor(); ImGui.EndTabItem(); }
-        if (Owner && ImGui.BeginTabItem("Weekly limits")) { DrawWeeklyPolicy(); ImGui.EndTabItem(); }
-        if (Owner && ImGui.BeginTabItem("Classes")) { DrawClassPolicy(); ImGui.EndTabItem(); }
-        if (Owner && ImGui.BeginTabItem("Ownership effect")) { DrawOwnershipEffect(); ImGui.EndTabItem(); }
-        if (Owner && ImGui.BeginTabItem("Economy")) { DrawBillingPolicy(); ImGui.EndTabItem(); }
-        if (IsSeasonAdministrator && ImGui.BeginTabItem("Creation access")) { DrawSeasonCreationAccess(); ImGui.EndTabItem(); }
+        if (Owner && ImGui.BeginTabItem("Gameplay"))
+        {
+            if (ImGui.CollapsingHeader("Classes")) DrawClassPolicy();
+            if (ImGui.CollapsingHeader("Enslavement")) DrawOwnershipEffect();
+            if (ImGui.CollapsingHeader("Weekly limits")) DrawWeeklyPolicy();
+            ImGui.EndTabItem();
+        }
+        if (CanGeneralModerate && ImGui.BeginTabItem("Economy"))
+        {
+            if (ImGui.CollapsingHeader("Currency", ImGuiTreeNodeFlags.DefaultOpen))
+            {
+                LoadHomeDrafts();
+                DrawCurrencyNameEditor();
+                if (Owner) DrawCurrencyIconEditor();
+            }
+            if (Owner && ImGui.CollapsingHeader("Billing", ImGuiTreeNodeFlags.DefaultOpen)) DrawBillingPolicy();
+            if (Owner && ImGui.CollapsingHeader("Discord rewards")) DrawDiscordPolicy();
+            ImGui.EndTabItem();
+        }
         ImGui.EndTabBar();
     }
 }

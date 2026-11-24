@@ -3,7 +3,7 @@ namespace AmorRP.Core.Items;
 
 public static class LiteralChatText
 {
-    public const int DefaultCharacters = 50;
+    public const int DefaultCharacters = 200;
     public const int MaximumBytes = 200;
     public static string? Error(string? text, int maximum = DefaultCharacters)
     {

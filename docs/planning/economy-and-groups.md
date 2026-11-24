@@ -92,9 +92,11 @@ the customer's Trusted control; it does not silently erase debt, refund the orig
 purchase or reverse paid creditors. Disbanding voids all active permits and releases
 their characters. Client-side Moodle removal is silent and best-effort afterwards.
 
-Permit trading is deferred until registration, owner transfer, authorization, price,
-debt treatment and billing-lock movement are specified together. Do not enable it by
-merely marking an active permit tradeable in ordinary inventory.
+The permit transfer flow is implemented locally through Shop → Slave. The owning
+group owner offers a named recipient group a price (zero is allowed). The character
+allows the transfer, then the receiving group owner accepts. The receiving treasury
+pays the selling treasury. Registration and the billing lock move together; the
+character’s existing debt stays in place. Outstanding offers expire after two days.
 
 Verification: listing permission, missing or withdrawn consent, private buyer
 identity, concurrent buyers, changed quotes or assets, reserved items, insufficient

@@ -54,6 +54,7 @@ public sealed partial class SeasonsPanel
         pendingGroupSelection = requestedDirectoryGroup = null; pendingGroupCreation = false;
         ClearGroupPermissions(); ClearTreasury(); ClearGroupBilling();
         groupPrivate = null; privateRequestedFor = null; hub = new([], []); groupJoinPassword = ""; noticeDraftFor = null;
+        SetResourceGroup(null);
         communityGroups = []; selectedGroupId = null; creatingGroup = false;
         groupSearch = ""; favoriteGroupsOnly = false;
         groupDraft.Clear(); requestedGroupLogo = ""; groupLogos.Clear();

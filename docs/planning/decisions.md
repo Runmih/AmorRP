@@ -1,7 +1,7 @@
 # Expansion decisions
 
 Accepted feature requirements from 2026-10-29, updated for Seasons on 2026-11-16.
-S01–S07 are implemented. S08–S11 remain planned. Follow the [milestone plan](README.md).
+S01–S10 are implemented. S11–S15 are implemented in the local 0.16 build. Follow the [milestone plan](README.md).
 Every verified player belongs to every season. No season join/leave/block controls
 exist; user bans belong to separate account moderation. Creation requires seasons.create.
 
@@ -10,7 +10,7 @@ exist; user bans belong to separate account moderation. Creation requires season
 | ID | Decision |
 | --- | --- |
 | D01 | A season is the currency/permission boundary. Groups are owned subgroups inside it. Keep the existing three-owned-group limit per season and no numeric limit on groups joined; existing open/closed/password joining rules still apply. Creation still requires the season's Create Groups permission. |
-| D02 | Season owners choose which groups receive Treasury access and Discord Bot Permission. Creating a group does not enable either feature. |
+| D02 | Season owners choose which groups receive Treasury access and Discord Bot Permission. Creating a group does not enable either feature. Group item storage is also granted separately. |
 | D03 | Group owners assign staff permissions within season-approved features. They cannot grant their group a feature withheld by the season. Existing Manage Groups remains deletion-only; private group content is not opened to season moderators. |
 | D04 | Organize permissions and hide unauthorized tabs. Do not add permission-source explanations or locked-feature tabs. Classes grant gameplay permissions, not moderation powers. |
 | D05 | A character's Trusted switch authorizes automatic billing by that group, including while the character is offline. There is no payer confirmation per bill and no player-facing amount/spending cap. Deliberate overcharging can be RP. |

@@ -168,11 +168,26 @@ public sealed partial class SeasonsPanel
             Mutate(editingProduct == null ? "POST" : "PUT", ShopPath + "/products" + (editingProduct == null ? "" : "/" + editingProduct.Id), body, editingProduct?.Etag);
         }
         ImGui.EndDisabled();
+        if (editingProduct is { } listing)
+        {
+            ImGui.SameLine();
+            ImGui.BeginDisabled(stale);
+            if (ActionButton("Delete listing"))
+                Mutate("DELETE", ShopPath + "/products/" + listing.Id, null, listing.Etag);
+            ImGui.EndDisabled();
+        }
     }
 
     private void ApplyShopSuccess(CommandRequest request, string json)
     {
-        if (request.Operation.Kind == CommandKind.BuyShopProduct)
+        if (request.Operation.Kind == CommandKind.DeleteShopProduct)
+        {
+            var id = ReadCommand<Guid>(json);
+            shopProducts = shopProducts.Where(product => product.Id != id).ToArray();
+            if (editingProduct?.Id == id) LoadShopDraft(null);
+            if (shopSelection == id) shopSelection = null;
+        }
+        else if (request.Operation.Kind == CommandKind.BuyShopProduct)
         {
             var purchase = ReadCommand<ShopPurchase>(json);
             shopReceipt = $"Purchased {purchase.Quantity} × {purchase.Name} for {purchase.Total} {community!.Currency.Name}.";

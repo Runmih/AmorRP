@@ -30,6 +30,7 @@ public sealed partial class SeasonsPanel
     {
         ResetInventoryCompanion();
         ResetClasses();
+        ResetDiscordViews();
         ResetMoodles();
         ResetWritingLog();
         ClearBilling(); myBillsRefresh.Reset(); billingPolicyRefresh.Reset();
@@ -61,6 +62,12 @@ public sealed partial class SeasonsPanel
         ownershipEffectRefresh.Invalidate();
         characterDescriptionRefresh.Invalidate();
         groupBillingRefresh.Invalidate();
+        groupShiftsRefresh.Invalidate();
+        discordPlayerRefresh.Invalidate();
+        discordGroupRefresh.Invalidate();
+        groupStorageRefresh.Invalidate();
+        groupDepositRefresh.Invalidate();
+        seasonCreationAccessLoaded = false;
         contextCustomerRefresh.Invalidate();
         favoriteRefresh.Invalidate();
         iconRefresh.Invalidate();

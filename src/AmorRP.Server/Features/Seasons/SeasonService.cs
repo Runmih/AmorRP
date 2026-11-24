@@ -138,6 +138,9 @@ public sealed class SeasonService(AmorDbContext db, SessionAccess sessions, Comm
     {
         // Release reservations and settle released funds under the old rules before freezing records.
         await trades.CancelForAsync(season.Id, null, "Season archived.", ct);
+        await AmorRP.Server.Features.Discord.DiscordRewardsService.DisconnectSeasonAsync(db, season.Id, ct);
+        await db.PermitTransfers.Where(x => x.CommunityId == season.Id && (x.State == "pending" || x.State == "approved"))
+            .ExecuteUpdateAsync(fields => fields.SetProperty(x => x.State, "cancelled"), ct);
         foreach (var invite in await db.Invitations.Where(x => x.CommunityId == season.Id && !x.Revoked).ToArrayAsync(ct)) invite.Revoked = true;
         foreach (var transfer in await db.OwnershipTransfers.Where(x => x.CommunityId == season.Id && x.Status == "proposed").ToArrayAsync(ct)) transfer.Status = "cancelled";
         season.SeasonState = "archived"; season.Version++;

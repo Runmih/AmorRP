@@ -50,6 +50,8 @@ public sealed partial class SeasonsPanel
 
     private void DrawGroupActivityTabs(AmorRP.Contracts.Groups.Group group, bool management)
     {
+        if (group.OwnerCharacterId == session!.Character.Id && group.EnabledFeatures?.Contains(GroupCapabilities.Discord) == true
+            && ImGui.BeginTabItem("Discord")) { DrawDiscordGroup(group); ImGui.EndTabItem(); }
         if (ImGui.BeginTabItem("Members")) { DrawGroupMembers(group); ImGui.EndTabItem(); }
         if (group.IsMember && ImGui.BeginTabItem("Announcements"))
         {
@@ -70,6 +72,10 @@ public sealed partial class SeasonsPanel
             if (groupPrivate?.Announcements.Length == 0) Wrapped("No group announcements yet.");
             ImGui.EndTabItem();
         }
+        if ((CanGroupAction(group, GroupCapabilities.Storage) || CanGroupAction(group, GroupCapabilities.StorageWithdraw))
+            && ImGui.BeginTabItem("Storage")) { DrawGroupStorage(group); ImGui.EndTabItem(); }
+        if (CanGroupAction(group, GroupCapabilities.Billing) && ImGui.BeginTabItem("Schedule"))
+        { DrawGroupShifts(group); ImGui.EndTabItem(); }
         if (ImGui.BeginTabItem("Events")) { DrawGroupEvents(group, management); ImGui.EndTabItem(); }
         if (management && CanGroupAction(group, GroupCapabilities.Notice) && ImGui.BeginTabItem("Notice")) { DrawNoticeEditor(group); ImGui.EndTabItem(); }
         if (group.IsMember && group.EnabledFeatures?.Contains(GroupCapabilities.Treasury) == true && ImGui.BeginTabItem("Treasury")) { DrawGroupTreasury(group, management); ImGui.EndTabItem(); }

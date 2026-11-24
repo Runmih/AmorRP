@@ -1,6 +1,6 @@
 # Gameplay expansion
 
-S07 is implemented with game acceptance pending. S08–S09 remain planned. Read the [decisions](decisions.md) and [work order](README.md).
+S07–S09 are implemented with game acceptance pending. Read the [decisions](decisions.md) and [work order](README.md).
 Current consumable/writing inventory and season/group membership already exist;
 new budgets/classes must preserve their authority and item provenance.
 

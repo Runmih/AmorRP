@@ -17,7 +17,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AmorRP.Server.Features.Permits;
 
-public sealed class PermitService(AmorDbContext db, SessionAccess sessions, SeasonAccess seasons, CommandStore commands,
+public sealed partial class PermitService(AmorDbContext db, SessionAccess sessions, SeasonAccess seasons, CommandStore commands,
     DebtSettlement settlement, InventoryDelivery delivery, TimeProvider time)
 {
     public const string ManageListings = "permits.list.manage";
@@ -43,7 +43,7 @@ public sealed class PermitService(AmorDbContext db, SessionAccess sessions, Seas
             join c in db.Characters on p.CharacterId equals c.Id
             where p.CommunityId == seasonId && p.ReleasedAt == null && (p.CharacterId == actor || g.OwnerCharacterId == actor)
             orderby p.RegisteredAt select new OwnershipPermit(p.Id, p.CharacterId, c.DisplayName, g.Id, g.Name, p.RegisteredAt, p.ReleasedAt)).ToArrayAsync(ct);
-        return Results.Json(new PermitShop(new(Units(season.PermitPrice), season.PermitEnabled), listings, visible.ToArray(), permits));
+        return Results.Json(new PermitShop(new(Units(season.PermitPrice), season.PermitEnabled), listings, visible.ToArray(), permits, await ActiveTransfersAsync(seasonId, actor, now, ct)));
     }
 
     public Task<IResult> PolicyAsync(HttpContext h, Guid season, PermitPolicy body, CancellationToken ct) =>

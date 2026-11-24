@@ -8,6 +8,7 @@ public sealed class GroupMembershipRow
     public string[] Capabilities { get; set; } = [];
     public Guid PermissionVersion { get; set; } = Guid.CreateVersion7();
     public DateTimeOffset? ClockedInAt { get; set; }
+    public int? CommissionPercent { get; set; }
 }
 public sealed class GroupFavoriteRow
 {

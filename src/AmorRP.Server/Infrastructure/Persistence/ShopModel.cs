@@ -13,6 +13,7 @@ public sealed class ShopProductRow
     public int? Stock { get; set; }
     public int? BuyerLimit { get; set; }
     public bool Listed { get; set; }
+    public bool Deleted { get; set; }
     public int Version { get; set; } = 1;
 }
 
