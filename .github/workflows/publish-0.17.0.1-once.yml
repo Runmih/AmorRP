@@ -1,0 +1,70 @@
+name: Publish Amor RP 0.17.0.1
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/publish-0.17.0.1-once.yml']
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: plugin-main-repository
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_SOURCE: '200d8e186378af42925fe7dbfe34c6f404cd4e76'
+      WINDOWS_RUN: '45489309752'
+      SERVER_RUN: '45489309946'
+      WINDOWS_ARTIFACT: '14965467003'
+      ARTIFACT_DIGEST: 'sha256:0f13cf3e771851d3e6757d1a30904f783a0786196ebcf80237ee30d9a37e78d5'
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.12'
+      - name: Verify release source, workflow runs, and artifact
+        run: |
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = "$GITHUB_SHA"
+          git diff --exit-code "$RELEASE_SOURCE" HEAD -- . ':!.github/workflows/publish-0.17.0.1-once.yml'
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$WINDOWS_RUN" > "$RUNNER_TEMP/windows-run.json"
+          gh run watch "$SERVER_RUN" --repo "$GITHUB_REPOSITORY" --interval 8 --exit-status
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SERVER_RUN" > "$RUNNER_TEMP/server-run.json"
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          root = Path(os.environ["RUNNER_TEMP"])
+          workflows = {"windows": "Plugin package", "server": "Server and contracts"}
+          for kind, name in workflows.items():
+              run = json.loads((root / f"{kind}-run.json").read_text())
+              assert run["name"] == name
+              assert run["head_sha"] == os.environ["RELEASE_SOURCE"]
+              assert run["head_branch"] == "main"
+              assert run["event"] == "push" and run["conclusion"] == "success"
+          PY
+          test "$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$WINDOWS_ARTIFACT" --jq '.digest')" = "$ARTIFACT_DIGEST"
+      - name: Prepare the feed from that Windows build
+        run: |
+          curl --fail --silent --show-error --location --retry 3 \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$WINDOWS_ARTIFACT/zip" \
+            -o "$RUNNER_TEMP/windows.zip"
+          printf '%s  %s\n' "${ARTIFACT_DIGEST#sha256:}" "$RUNNER_TEMP/windows.zip" | sha256sum --check
+          mkdir "$RUNNER_TEMP/plugin-package"
+          unzip -p "$RUNNER_TEMP/windows.zip" latest.zip > "$RUNNER_TEMP/plugin-package/latest.zip"
+          python scripts/check-plugin-package.py "$RUNNER_TEMP/plugin-package/latest.zip"
+          python scripts/prepare-plugin-repository.py --package "$RUNNER_TEMP/plugin-package/latest.zip" --destination . --source-commit "$RELEASE_SOURCE" --build-url "https://github.com/$GITHUB_REPOSITORY/actions/runs/$WINDOWS_RUN"
+      - name: Publish the verified feed and package
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add repo.json packages/AmorRP-0.17.0.1.zip packages/AmorRP-0.17.0.1.zip.sha256 packages/AmorRP-0.17.0.1.json
+          git diff --cached --check
+          git commit -m 'Publish Amor RP 0.17.0.1 to the Dalamud feed'
+          git push origin HEAD:main
