@@ -12,6 +12,7 @@ public sealed class Configuration : IPluginConfiguration
     public CoinHudSettings CoinHud { get; set; } = new();
     public CoinHudSettings HealthHud { get; set; } = new() { FloatX = 85, FloatY = 70 };
     public CoinHudSettings ActionsHud { get; set; } = new() { FloatX = 72, FloatY = 56 };
+    public ActionsGridSettings ActionsGrid { get; set; } = new();
     public bool ShowFavoriteEvents { get; set; } = true;
     public bool ShowLauncher { get; set; } = true;
     public Features.Shell.LauncherEdge QuickBarEdge { get; set; } = Features.Shell.LauncherEdge.Left;
@@ -63,4 +64,14 @@ public sealed class CoinHudSettings
         if (Docked) Position = next.X;
         else { FloatX = next.X; FloatY = next.Y; }
     }
+}
+
+public sealed class ActionsGridSettings
+{
+    internal const int DefaultColumns = 4;
+
+    public int Columns { get; set; } = DefaultColumns;
+    public string[] ButtonOrder { get; set; } = [];
+    public string[] HiddenButtons { get; set; } = [];
+    public string ChatChannel { get; set; } = "";
 }

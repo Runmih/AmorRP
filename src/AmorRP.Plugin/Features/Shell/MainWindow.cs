@@ -14,10 +14,10 @@ public sealed class MainWindow : Window, IDisposable
 {
     private readonly AmorRP.Plugin.Features.Seasons.SeasonsPanel communities;
 
-    public MainWindow(IPlayerState playerState, IPartyList party, Configuration configuration, Action save, ITextureProvider textures, IFontAtlas atlas)
+    public MainWindow(IPlayerState playerState, IPartyList party, Configuration configuration, Action save, ITextureProvider textures, IFontAtlas atlas, ITargetManager targets)
         : base("###AmorRPMain")
     {
-        communities = new(playerState, configuration, save, party, textures, atlas);
+        communities = new(playerState, configuration, save, party, textures, atlas, targets);
         Size = new Vector2(660, 500);
         SizeCondition = ImGuiCond.FirstUseEver;
         SizeConstraints = new WindowSizeConstraints { MinimumSize = new(460, 360), MaximumSize = new(float.MaxValue) };
@@ -31,7 +31,6 @@ public sealed class MainWindow : Window, IDisposable
         communities.SetCoinHudVisible = visible => SetCoinHudVisible?.Invoke(visible);
         communities.SetHealthHudVisible = visible => SetHealthHudVisible?.Invoke(visible);
         communities.SetActionsHudVisible = visible => SetActionsHudVisible?.Invoke(visible);
-        communities.OpenCombatActions = () => OpenCombatActions?.Invoke();
         communities.SetLauncherVisible = visible => SetLauncherVisible?.Invoke(visible);
     }
 
@@ -60,7 +59,7 @@ public sealed class MainWindow : Window, IDisposable
     public CombatSheet[] ActionsHudRows() => communities.ActionsHudRows();
     public void DrawActionsHud(CombatSheet[] sheets) => communities.DrawActionsHud(sheets);
     public Action<bool>? SetActionsHudVisible { get; set; }
-    public Action? OpenCombatActions { get; set; }
+    public int ActionsHudFrameRows(CombatSheet[] sheets) => communities.ActionsHudFrameRows(sheets);
     public Action<bool>? SetHealthHudVisible { get; set; }
     public Action<bool>? SetCoinHudVisible { get; set; }
     public Action<bool>? SetFavoriteEventsVisible { get; set; }

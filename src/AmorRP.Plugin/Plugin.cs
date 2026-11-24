@@ -41,7 +41,7 @@ public sealed class Plugin : IDalamudPlugin
     private readonly CharacterContext context;
 
     public Plugin(IDalamudPluginInterface pluginInterface, ICommandManager commands, IPlayerState playerState,
-        IContextMenu contextMenu, IPartyList party, ITextureProvider textures, IObjectTable objects)
+        IContextMenu contextMenu, IPartyList party, ITextureProvider textures, IObjectTable objects, ITargetManager targets)
     {
         this.pluginInterface = pluginInterface;
         this.commands = commands;
@@ -51,7 +51,7 @@ public sealed class Plugin : IDalamudPlugin
         updateWindows.AddWindow(updateWindow);
         configuration = pluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
         if (configuration.Version < 4) { configuration.Version = 4; pluginInterface.SavePluginConfig(configuration); }
-        mainWindow = new MainWindow(playerState, party, configuration, () => pluginInterface.SavePluginConfig(configuration), textures, pluginInterface.UiBuilder.FontAtlas);
+        mainWindow = new MainWindow(playerState, party, configuration, () => pluginInterface.SavePluginConfig(configuration), textures, pluginInterface.UiBuilder.FontAtlas, targets);
         mainWindow.Moodles = new MoodleAdapter(pluginInterface, objects);
         mainWindow.CheckForPluginUpdates = CheckForUpdates;
         hub = new(configuration, mainWindow.DrawWorkspace, () => playerState.IsLoaded, () => mainWindow.CanOpenRecipeCreation);
@@ -141,14 +141,13 @@ public sealed class Plugin : IDalamudPlugin
         var actions = configuration.ActionsHud;
         actionsWindow = new("Amor RP — Actions###AmorRPCombatActionsWorkspace", "##ActionsContent",
             actions.Layout, actions.Move, () => actions.Docked = !actions.Docked, SaveHud,
-            mainWindow.ActionsHudRows, mainWindow.DrawActionsHud, () => playerState.IsLoaded, baseWidth: 360, frameRows: 7)
+            mainWindow.ActionsHudRows, mainWindow.DrawActionsHud, () => playerState.IsLoaded, baseWidth: 280, frameRows: mainWindow.ActionsHudFrameRows)
             { IsOpen = actions.Visible };
         mainWindow.SetActionsHudVisible = visible =>
         {
             actionsWindow.IsOpen = visible;
             if (visible) actionsWindow.Reveal();
         };
-        mainWindow.OpenCombatActions = ShowCombatActions;
         windows.AddWindow(actionsWindow);
         foreach (var menu in (Window[])[mainWindow, hub, compactWindow, tradeWindow, tradeRequestWindow, createCommunityWindow, billingForm, .. workspaceWindows.Values])
         {

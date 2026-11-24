@@ -12,7 +12,7 @@ internal readonly record struct HudLayout(bool Docked, LauncherEdge Edge, bool A
 }
 
 internal sealed class DockedHudWindow<T>(string title, string contentId, Func<HudLayout> layout,
-    Action<Vector2> move, Action toggleDock, Action save, Func<T[]> read, Action<T[]> draw, Func<bool> loaded, float baseWidth = 210, int frameRows = 0)
+    Action<Vector2> move, Action toggleDock, Action save, Func<T[]> read, Action<T[]> draw, Func<bool> loaded, float baseWidth = 210, Func<T[], int>? frameRows = null)
     : Window(title,
         ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoMove
         | ImGuiWindowFlags.NoSavedSettings | ImGuiWindowFlags.NoBackground | ImGuiWindowFlags.NoCollapse
@@ -46,9 +46,9 @@ internal sealed class DockedHudWindow<T>(string title, string contentId, Func<Hu
         var scale = ImGuiHelpers.GlobalScale;
         var size = LauncherDock.ClampPercent(current.Width, 60, 160, 100) / 100;
         expanded = handle.IsExpanded(current.Docked, current.Edge, current.AutoHide);
-        var lineCount = (frameRows == 0 ? Math.Min(8, rows.Length) : 0) + (current.ShowHeader ? 1 : 0);
+        var lineCount = (frameRows == null ? Math.Min(8, rows.Length) : 0) + (current.ShowHeader ? 1 : 0);
         var contentHeight = Math.Max(ImGui.GetTextLineHeightWithSpacing(),
-            lineCount * ImGui.GetTextLineHeightWithSpacing() + frameRows * ImGui.GetFrameHeightWithSpacing());
+            lineCount * ImGui.GetTextLineHeightWithSpacing() + (frameRows?.Invoke(rows) ?? 0) * ImGui.GetFrameHeightWithSpacing());
         dock = LauncherDock.PlacePanel(current.Edge, viewport.WorkPos, viewport.WorkSize,
             current.Position, new Vector2(baseWidth * scale * size, contentHeight), scale, expanded,
             current.Docked, current.FloatingPosition, 6 * scale);

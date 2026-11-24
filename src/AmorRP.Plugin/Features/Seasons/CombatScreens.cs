@@ -4,11 +4,9 @@ using AmorRP.Contracts.Inventory;
 using AmorRP.Contracts.Seasons;
 using AmorRP.Core.Combat;
 using AmorRP.Core.Items;
-using AmorRP.Plugin.Features.Shell;
 using AmorRP.Plugin.Services.Api;
 using AmorRP.Plugin.Services.Game;
 using Dalamud.Bindings.ImGui;
-using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 
 namespace AmorRP.Plugin.Features.Seasons;
@@ -22,13 +20,10 @@ public sealed partial class SeasonsPanel
     private CombatPolicy? combatPolicy, combatDraft;
     private Holding[] equipment = [];
     private readonly int[] allocation = new int[6];
-    private Guid? combatTarget;
-    private int combatChannel = 1;
     private string combatFeedback = "";
     private int staffHp = CombatRules.MaxHitPoints;
     public Action<bool>? SetHealthHudVisible { get; set; }
     public Action<bool>? SetActionsHudVisible { get; set; }
-    public Action? OpenCombatActions { get; set; }
 
     private string CombatPath => $"api/v2/seasons/{community!.Id}/combat";
 
@@ -43,7 +38,7 @@ public sealed partial class SeasonsPanel
         resetPotion = null;
         equipment = [];
         Array.Clear(allocation);
-        combatTarget = null;
+        ResetActionsTarget();
         combatFeedback = "";
     }
 
@@ -128,89 +123,7 @@ public sealed partial class SeasonsPanel
         ImGui.EndDisabled();
     }
 
-    public CombatSheet[] ActionsHudRows() =>
-        session is { } actor && actor.AccessExpiresAt > DateTimeOffset.UtcNow && serviceCompatible
-        && community != null && combatSheet is { } sheet ? [sheet] : [];
-
-    public void DrawActionsHud(CombatSheet[] sheets)
-    {
-        if (configuration.ActionsHud.ShowHeader) DrawSectionHeading("Actions");
-        if (sheets.Length == 0)
-        {
-            if (session == null) ImGui.TextWrapped("Sign in to use combat actions.");
-            else if (community == null) ImGui.TextWrapped("Combat actions require a season.");
-            else DrawRefreshState(combatRefresh, "Combat actions");
-            return;
-        }
-        DrawCombatActions(sheets[0]);
-    }
-
-    private void DrawCombatActions(CombatSheet sheet)
-    {
-        var target = members.Concat(memberSearchResults).FirstOrDefault(x => x.Character.Id == combatTarget);
-        if (ImGui.BeginCombo("Target", target == null ? "Choose a season member" : CombatTargetName(target)))
-        {
-            foreach (var row in members.Concat(memberSearchResults).DistinctBy(x => x.Character.Id)
-                .Where(x => x.Character.Id != session!.Character.Id).OrderBy(x => x.Character.DisplayName))
-                if (ImGui.Selectable(CombatTargetName(row) + "###target" + row.Character.Id, combatTarget == row.Character.Id))
-                    combatTarget = row.Character.Id;
-            ImGui.EndCombo();
-        }
-        if (ImGui.SmallButton("Find a member"))
-        {
-            requestedCommunityPage = CommunityBrowserPage.Members;
-            OpenWorkspace(WorkspaceKind.Season);
-        }
-        var buttonWidth = ImGui.GetFrameHeight() * 1.2f;
-        var rowEnd = ImGui.GetCursorScreenPos().X + ImGui.GetContentRegionAvail().X;
-        var canAttack = sheet.CanAttack && sheet.HitPoints > 0 && sheet.Weapon != null && target != null;
-        ImGui.BeginDisabled(!canAttack || WriteBlocked || SeasonReadOnly);
-        if (CombatIcon(sheet.Weapon?.Gear.Form == "staff" ? FontAwesomeIcon.WandSparkles : FontAwesomeIcon.Khanda,
-                sheet.Weapon == null ? "Equip a weapon to attack" : $"Attack with {sheet.Weapon.Name}", "Attack") && target != null)
-            Mutate("POST", CombatPath + "/attacks", new CombatAttack(target.Character.Id, CombatDestination()));
-        ImGui.EndDisabled();
-        for (var i = 0; i < CombatRules.Abilities.Count; i++)
-        {
-            if (ImGui.GetItemRectMax().X + ImGui.GetStyle().ItemSpacing.X + buttonWidth <= rowEnd)
-                ImGui.SameLine();
-            ImGui.BeginDisabled(WriteBlocked || SeasonReadOnly);
-            var ability = CombatRules.Abilities[i];
-            var icon = i switch
-            {
-                0 => FontAwesomeIcon.FistRaised,
-                1 => FontAwesomeIcon.ShoePrints,
-                2 => FontAwesomeIcon.Heartbeat,
-                3 => FontAwesomeIcon.Brain,
-                4 => FontAwesomeIcon.BookOpen,
-                _ => FontAwesomeIcon.Comments
-            };
-            if (CombatIcon(icon, $"{ability} check", ability))
-                Mutate("POST", CombatPath + "/checks", new CombatCheck(ability, CombatDestination()));
-            ImGui.EndDisabled();
-        }
-        if (!sheet.CanAttack) ImGui.TextDisabled("Attack permission is disabled.");
-        if (ImGui.BeginCombo("Post rolls to", combatChannel < 0 ? "Activity Log only" : ChatCommand.Destinations[combatChannel]))
-        {
-            if (ImGui.Selectable("Activity Log only", combatChannel < 0)) combatChannel = -1;
-            for (var i = 0; i < ChatCommand.Destinations.Length; i++)
-                if (ChatDestination.Available(player, party, i) && ImGui.Selectable(ChatCommand.Destinations[i], combatChannel == i))
-                    combatChannel = i;
-            ImGui.EndCombo();
-        }
-        if (combatFeedback.Length > 0) Wrapped(combatFeedback);
-    }
-
-    private static string CombatTargetName(Member row) => $"{row.Character.DisplayName} @ {row.Character.HomeWorldName}";
-    private string CombatDestination() => combatChannel < 0 ? "" : DestinationId(combatChannel);
     private static string Signed(int n) => n >= 0 ? $"+{n}" : n.ToString();
-    private static bool CombatIcon(FontAwesomeIcon icon, string tooltip, string id)
-    {
-        ImGui.PushFont(UiBuilder.IconFont);
-        var clicked = ImGui.Button(icon.ToIconString() + "###" + id, new(ImGui.GetFrameHeight() * 1.2f, ImGui.GetFrameHeight()));
-        ImGui.PopFont();
-        if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled)) ImGui.SetTooltip(tooltip);
-        return clicked;
-    }
 
     private void DrawEquipment(CombatSheet sheet)
     {

@@ -89,7 +89,10 @@ public sealed partial class SeasonsPanel
         if (ImGui.CollapsingHeader("Health"))
             DrawHudSettings("HealthHud", "Show health", "Hide when health is unavailable", configuration.HealthHud, SetHealthHudVisible);
         if (ImGui.CollapsingHeader("Actions"))
+        {
             DrawHudSettings("ActionsHud", "Show Actions", "Hide when combat is unavailable", configuration.ActionsHud, SetActionsHudVisible);
+            DrawActionsGridSettings();
+        }
     }
 
     private void DrawQuickBarSettings()

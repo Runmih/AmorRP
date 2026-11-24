@@ -17,7 +17,7 @@ using Dalamud.Plugin.Services;
 
 namespace AmorRP.Plugin.Features.Seasons;
 
-public sealed partial class SeasonsPanel(IPlayerState player, Configuration configuration, Action save, IPartyList party, ITextureProvider textures, IFontAtlas atlas) : IDisposable
+public sealed partial class SeasonsPanel(IPlayerState player, Configuration configuration, Action save, IPartyList party, ITextureProvider textures, IFontAtlas atlas, ITargetManager targets) : IDisposable
 {
     private readonly AmorRP.Plugin.Services.Ui.InterfaceFonts interfaceFonts = new(atlas);
     private readonly FoundationClient client = new();

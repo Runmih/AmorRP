@@ -77,11 +77,6 @@ public sealed partial class SeasonsPanel
                 if (target.Description.Length > 0) Wrapped(target.Description);
                 if (!SeasonReadOnly && target.Status == "active" && target.Character.Id != session!.Character.Id && !target.TradingRestricted && !community.MyTradingRestricted && ImGui.Button("Trade with this member"))
                 { if (BeginTradeRequest()) SendTradeRequest(target); }
-                if (target.Character.Id != session!.Character.Id && !SeasonReadOnly && ImGui.Button("Select combat target"))
-                {
-                    combatTarget = target.Character.Id;
-                    OpenCombatActions?.Invoke();
-                }
                 DrawPersonalNote(target);
             }
             if (CanNominatePermit && target.Status == "active" && ActionButton("Request Slave listing")) NominatePermit(target);
