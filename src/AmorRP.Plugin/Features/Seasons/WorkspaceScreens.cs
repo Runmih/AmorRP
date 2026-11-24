@@ -42,7 +42,6 @@ public sealed partial class SeasonsPanel
         {
             case WorkspaceKind.Shop: DrawShop(); break;
             case WorkspaceKind.Crafting: DrawCraftingTabs(); break;
-            case WorkspaceKind.CombatActions: DrawCombatActions(); break;
             case WorkspaceKind.RecipeCreation: DrawRecipeCreationTabs(); break;
             case WorkspaceKind.CommunityManagement:
                 if (CanOpenCommunityManagement) DrawCommunityManagementWorkspace();

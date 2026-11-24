@@ -27,6 +27,8 @@ public sealed partial class SeasonsPanel
     private string combatFeedback = "";
     private int staffHp = CombatRules.MaxHitPoints;
     public Action<bool>? SetHealthHudVisible { get; set; }
+    public Action<bool>? SetActionsHudVisible { get; set; }
+    public Action? OpenCombatActions { get; set; }
 
     private string CombatPath => $"api/v2/seasons/{community!.Id}/combat";
 
@@ -126,13 +128,25 @@ public sealed partial class SeasonsPanel
         ImGui.EndDisabled();
     }
 
-    private void DrawCombatActions()
+    public CombatSheet[] ActionsHudRows() =>
+        session is { } actor && actor.AccessExpiresAt > DateTimeOffset.UtcNow && serviceCompatible
+        && community != null && combatSheet is { } sheet ? [sheet] : [];
+
+    public void DrawActionsHud(CombatSheet[] sheets)
     {
-        if (combatSheet is not { } sheet)
+        if (configuration.ActionsHud.ShowHeader) DrawSectionHeading("Actions");
+        if (sheets.Length == 0)
         {
-            DrawRefreshState(combatRefresh, "Combat actions");
+            if (session == null) ImGui.TextWrapped("Sign in to use combat actions.");
+            else if (community == null) ImGui.TextWrapped("Combat actions require a season.");
+            else DrawRefreshState(combatRefresh, "Combat actions");
             return;
         }
+        DrawCombatActions(sheets[0]);
+    }
+
+    private void DrawCombatActions(CombatSheet sheet)
+    {
         var target = members.Concat(memberSearchResults).FirstOrDefault(x => x.Character.Id == combatTarget);
         if (ImGui.BeginCombo("Target", target == null ? "Choose a season member" : CombatTargetName(target)))
         {
@@ -147,6 +161,8 @@ public sealed partial class SeasonsPanel
             requestedCommunityPage = CommunityBrowserPage.Members;
             OpenWorkspace(WorkspaceKind.Season);
         }
+        var buttonWidth = ImGui.GetFrameHeight() * 1.2f;
+        var rowEnd = ImGui.GetCursorScreenPos().X + ImGui.GetContentRegionAvail().X;
         var canAttack = sheet.CanAttack && sheet.HitPoints > 0 && sheet.Weapon != null && target != null;
         ImGui.BeginDisabled(!canAttack || WriteBlocked || SeasonReadOnly);
         if (CombatIcon(sheet.Weapon?.Gear.Form == "staff" ? FontAwesomeIcon.WandSparkles : FontAwesomeIcon.Khanda,
@@ -155,7 +171,8 @@ public sealed partial class SeasonsPanel
         ImGui.EndDisabled();
         for (var i = 0; i < CombatRules.Abilities.Count; i++)
         {
-            ImGui.SameLine();
+            if (ImGui.GetItemRectMax().X + ImGui.GetStyle().ItemSpacing.X + buttonWidth <= rowEnd)
+                ImGui.SameLine();
             ImGui.BeginDisabled(WriteBlocked || SeasonReadOnly);
             var ability = CombatRules.Abilities[i];
             var icon = i switch

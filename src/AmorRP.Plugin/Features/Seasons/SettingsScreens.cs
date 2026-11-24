@@ -88,6 +88,8 @@ public sealed partial class SeasonsPanel
             DrawHudSettings("CoinHud", "Show coins", "Hide when the balance is unavailable", configuration.CoinHud, SetCoinHudVisible);
         if (ImGui.CollapsingHeader("Health"))
             DrawHudSettings("HealthHud", "Show health", "Hide when health is unavailable", configuration.HealthHud, SetHealthHudVisible);
+        if (ImGui.CollapsingHeader("Actions"))
+            DrawHudSettings("ActionsHud", "Show Actions", "Hide when combat is unavailable", configuration.ActionsHud, SetActionsHudVisible);
     }
 
     private void DrawQuickBarSettings()

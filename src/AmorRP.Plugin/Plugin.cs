@@ -34,6 +34,7 @@ public sealed class Plugin : IDalamudPlugin
     private readonly Dictionary<WorkspaceKind, WorkspaceWindow> workspaceWindows = [];
     private readonly MainWindow mainWindow;
     private readonly AmorRP.Plugin.Features.Inventory.CompactWindow compactWindow;
+    private readonly DockedHudWindow<AmorRP.Contracts.Combat.CombatSheet> actionsWindow;
     private readonly TradeWindow tradeWindow;
     private readonly TradeRequestWindow tradeRequestWindow;
     private readonly SeasonFormWindow createCommunityWindow;
@@ -137,6 +138,18 @@ public sealed class Plugin : IDalamudPlugin
             SaveHud, mainWindow.HealthHudRows, mainWindow.DrawHealthHud, HudAvailable) { IsOpen = health.Visible };
         mainWindow.SetHealthHudVisible = visible => healthWindow.IsOpen = visible;
         windows.AddWindow(healthWindow);
+        var actions = configuration.ActionsHud;
+        actionsWindow = new("Amor RP — Actions###AmorRPCombatActionsWorkspace", "##ActionsContent",
+            actions.Layout, actions.Move, () => actions.Docked = !actions.Docked, SaveHud,
+            mainWindow.ActionsHudRows, mainWindow.DrawActionsHud, () => playerState.IsLoaded, baseWidth: 360, frameRows: 7)
+            { IsOpen = actions.Visible };
+        mainWindow.SetActionsHudVisible = visible =>
+        {
+            actionsWindow.IsOpen = visible;
+            if (visible) actionsWindow.Reveal();
+        };
+        mainWindow.OpenCombatActions = ShowCombatActions;
+        windows.AddWindow(actionsWindow);
         foreach (var menu in (Window[])[mainWindow, hub, compactWindow, tradeWindow, tradeRequestWindow, createCommunityWindow, billingForm, .. workspaceWindows.Values])
         {
             if (MenuWindowButtons.Add(menu, Open, OpenLog, mainWindow.RefreshData) is { } logButton) logButtons.Add(logButton);
@@ -182,7 +195,7 @@ public sealed class Plugin : IDalamudPlugin
             case "writing": mainWindow.ShowWorkspace(WorkspaceKind.Writing); break;
             case "inventory": mainWindow.ShowWorkspace(WorkspaceKind.Inventory); break;
             case "crafting": mainWindow.ShowWorkspace(WorkspaceKind.Crafting); break;
-            case "actions": mainWindow.ShowWorkspace(WorkspaceKind.CombatActions); break;
+            case "actions": ShowCombatActions(); break;
             case "groups": mainWindow.ShowWorkspace(WorkspaceKind.Groups); break;
             case "manage": mainWindow.ShowWorkspace(WorkspaceKind.CommunityManagement); break;
             case "season": mainWindow.ShowWorkspace(WorkspaceKind.Season); break;
@@ -261,6 +274,18 @@ public sealed class Plugin : IDalamudPlugin
     {
         if (window.IsOpen) window.IsOpen = false;
         else open();
+    }
+
+    private void ShowCombatActions()
+    {
+        if (!configuration.ActionsHud.Visible)
+        {
+            configuration.ActionsHud.Visible = true;
+            pluginInterface.SavePluginConfig(configuration);
+        }
+        actionsWindow.IsOpen = true;
+        actionsWindow.Reveal();
+        actionsWindow.BringToFront();
     }
 
     private void ToggleAttachedInterfaces()

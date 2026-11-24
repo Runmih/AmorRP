@@ -80,7 +80,7 @@ public sealed partial class SeasonsPanel
                 if (target.Character.Id != session!.Character.Id && !SeasonReadOnly && ImGui.Button("Select combat target"))
                 {
                     combatTarget = target.Character.Id;
-                    OpenWorkspace(WorkspaceKind.CombatActions);
+                    OpenCombatActions?.Invoke();
                 }
                 DrawPersonalNote(target);
             }

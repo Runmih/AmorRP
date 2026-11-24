@@ -14,19 +14,12 @@ public sealed class WorkspaceWindow : Window
         : base($"###AmorRP{kind}Workspace")
     {
         this.kind = kind; this.draw = draw; this.loaded = loaded;
-        var isCombatActions = kind == WorkspaceKind.CombatActions;
-        Size = isCombatActions ? new(440, 280) : new(1040, 760);
-        SizeCondition = ImGuiCond.FirstUseEver;
-        SizeConstraints = new WindowSizeConstraints
-        {
-            MinimumSize = isCombatActions ? new(380, 220) : new(660, 480),
-            MaximumSize = new(float.MaxValue)
-        };
+        Size = new Vector2(1040, 760); SizeCondition = ImGuiCond.FirstUseEver;
+        SizeConstraints = new WindowSizeConstraints { MinimumSize = new(660, 480), MaximumSize = new(float.MaxValue) };
     }
     public static string Title(WorkspaceKind kind) => kind switch
     {
         WorkspaceKind.Shop => "Shop",
-        WorkspaceKind.CombatActions => "Actions",
         WorkspaceKind.Crafting => "Crafting",
         WorkspaceKind.RecipeCreation => "Recipe Creation",
         WorkspaceKind.Groups => "Groups",

@@ -11,6 +11,7 @@ public sealed class Configuration : IPluginConfiguration
     public Dictionary<string, string> ProtectedMemberNotes { get; set; } = [];
     public CoinHudSettings CoinHud { get; set; } = new();
     public CoinHudSettings HealthHud { get; set; } = new() { FloatX = 85, FloatY = 70 };
+    public CoinHudSettings ActionsHud { get; set; } = new() { FloatX = 72, FloatY = 56 };
     public bool ShowFavoriteEvents { get; set; } = true;
     public bool ShowLauncher { get; set; } = true;
     public Features.Shell.LauncherEdge QuickBarEdge { get; set; } = Features.Shell.LauncherEdge.Left;

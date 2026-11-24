@@ -25,6 +25,12 @@ internal sealed class PanelHandle
 
     public void HoldOpen() => visibleUntil = ImGui.GetTime() + .35;
 
+    public void Reveal(bool docked, LauncherEdge edge, bool autoHide)
+    {
+        IsExpanded(docked, edge, autoHide);
+        HoldOpen();
+    }
+
     public void Draw(LauncherDock dock, Vector2 position, Action<Vector2> move, Action save,
         Action toggleDock, Action? openSettings = null, Action? openLog = null, string? status = null)
     {

@@ -1,4 +1,5 @@
 using System.Numerics;
+using AmorRP.Contracts.Combat;
 using AmorRP.Contracts.Groups;
 using AmorRP.Plugin.Services.Api;
 using AmorRP.Plugin.Services.Game;
@@ -29,6 +30,8 @@ public sealed class MainWindow : Window, IDisposable
         communities.SetFavoriteEventsVisible = visible => SetFavoriteEventsVisible?.Invoke(visible);
         communities.SetCoinHudVisible = visible => SetCoinHudVisible?.Invoke(visible);
         communities.SetHealthHudVisible = visible => SetHealthHudVisible?.Invoke(visible);
+        communities.SetActionsHudVisible = visible => SetActionsHudVisible?.Invoke(visible);
+        communities.OpenCombatActions = () => OpenCombatActions?.Invoke();
         communities.SetLauncherVisible = visible => SetLauncherVisible?.Invoke(visible);
     }
 
@@ -54,6 +57,10 @@ public sealed class MainWindow : Window, IDisposable
     public void DrawCoinHud(string[] balance) => communities.DrawCoinHud(balance);
     public AmorRP.Contracts.Combat.CombatSheet[] HealthHudRows() => communities.HealthHudRows();
     public void DrawHealthHud(AmorRP.Contracts.Combat.CombatSheet[] sheets) => communities.DrawHealthHud(sheets);
+    public CombatSheet[] ActionsHudRows() => communities.ActionsHudRows();
+    public void DrawActionsHud(CombatSheet[] sheets) => communities.DrawActionsHud(sheets);
+    public Action<bool>? SetActionsHudVisible { get; set; }
+    public Action? OpenCombatActions { get; set; }
     public Action<bool>? SetHealthHudVisible { get; set; }
     public Action<bool>? SetCoinHudVisible { get; set; }
     public Action<bool>? SetFavoriteEventsVisible { get; set; }
