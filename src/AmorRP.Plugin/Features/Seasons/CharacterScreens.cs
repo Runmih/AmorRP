@@ -9,16 +9,32 @@ public sealed partial class SeasonsPanel
 {
     private void DrawCharacterPage()
     {
-        DrawCombatCharacter();
+        DrawCharacterStatsAndResources();
+        ImGui.Spacing();
+        DrawCharacterEquipment();
         ImGui.Spacing();
         DrawCharacterClasses();
-        ImGui.Spacing();
-        DrawCharacterResources();
         ImGui.Spacing();
         DrawCharacterDescription();
         ImGui.Spacing();
         DrawMyBills();
         DrawDiscordPlayer();
+    }
+
+    private void DrawCharacterStatsAndResources()
+    {
+        var narrow = ImGui.GetContentRegionAvail().X < ImGui.GetFontSize() * 42;
+        var flags = ImGuiTableFlags.SizingStretchProp;
+        if (!narrow) flags |= ImGuiTableFlags.BordersInnerV;
+        if (!ImGui.BeginTable("CharacterStatsAndResources", narrow ? 1 : 2, flags)) return;
+
+        ImGui.TableSetupColumn("Stats", ImGuiTableColumnFlags.WidthStretch, 0.55f);
+        if (!narrow) ImGui.TableSetupColumn("Your resources", ImGuiTableColumnFlags.WidthStretch, 0.45f);
+        ImGui.TableNextColumn();
+        DrawCharacterStats();
+        ImGui.TableNextColumn();
+        DrawCharacterResources();
+        ImGui.EndTable();
     }
 
     public Action<bool>? SetCoinHudVisible { get; set; }
@@ -39,6 +55,7 @@ public sealed partial class SeasonsPanel
     private void DrawCharacterResources()
     {
         DrawSectionHeading("Your resources");
+        if (combatSheet is { } sheet) DrawHealthBar(sheet);
         ImGui.PushStyleColor(ImGuiCol.PlotHistogram, PluginTheme.SelectedButton);
         var alchemyReset = CanCraftPotions ? DrawResourceBar("potion_points", "Alchemy points", FontAwesomeIcon.Flask) : null;
         var cookingReset = CanCraftCooking ? DrawResourceBar("cooking_points", "Cooking points", FontAwesomeIcon.KitchenSet) : null;

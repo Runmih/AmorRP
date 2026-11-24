@@ -64,7 +64,12 @@ public sealed class Plugin : IDalamudPlugin
                 hub.Show(WorkspaceKind.Season);
             }
             else if (HubWindow.Contains(kind)) hub.Show(kind);
-            else workspaceWindows[kind].IsOpen = true;
+            else
+            {
+                var window = workspaceWindows[kind];
+                window.IsOpen = true;
+                window.BringToFront();
+            }
         };
         compactWindow = new(mainWindow.DrawCompact);
         tradeWindow = new(mainWindow.DrawTrade, mainWindow.TradeOpened, mainWindow.TradeClosed);
@@ -177,6 +182,7 @@ public sealed class Plugin : IDalamudPlugin
             case "writing": mainWindow.ShowWorkspace(WorkspaceKind.Writing); break;
             case "inventory": mainWindow.ShowWorkspace(WorkspaceKind.Inventory); break;
             case "crafting": mainWindow.ShowWorkspace(WorkspaceKind.Crafting); break;
+            case "actions": mainWindow.ShowWorkspace(WorkspaceKind.CombatActions); break;
             case "groups": mainWindow.ShowWorkspace(WorkspaceKind.Groups); break;
             case "manage": mainWindow.ShowWorkspace(WorkspaceKind.CommunityManagement); break;
             case "season": mainWindow.ShowWorkspace(WorkspaceKind.Season); break;

@@ -162,7 +162,7 @@ public sealed partial class SeasonsPanel
             ImGui.TextDisabled("Seasons");
         ImGui.Spacing();
         Wrapped("Settings: /amorrp settings · Activity Log: /amorrp log");
-        Wrapped("Windows: /amorrp season (Home), /amorrp inventory, /amorrp crafting, /amorrp writing, /amorrp groups, /amorrp manage and /amorrp trade");
+        Wrapped("Windows: /amorrp season (Home), /amorrp inventory, /amorrp crafting, /amorrp actions, /amorrp writing, /amorrp groups, /amorrp manage and /amorrp trade");
         ImGui.Spacing();
         if (ImGui.Button("Copy version info"))
             ImGui.SetClipboardText($"Amor RP plugin: {PluginVersion}\nServer (last connected): {connectedServerVersion ?? "Not connected"}");

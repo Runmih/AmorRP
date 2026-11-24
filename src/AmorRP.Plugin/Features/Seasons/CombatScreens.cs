@@ -4,6 +4,7 @@ using AmorRP.Contracts.Inventory;
 using AmorRP.Contracts.Seasons;
 using AmorRP.Core.Combat;
 using AmorRP.Core.Items;
+using AmorRP.Plugin.Features.Shell;
 using AmorRP.Plugin.Services.Api;
 using AmorRP.Plugin.Services.Game;
 using Dalamud.Bindings.ImGui;
@@ -59,17 +60,21 @@ public sealed partial class SeasonsPanel
             ct => client.GetAsync<CombatSheet>(uri, path, actor.AccessToken, ct));
     }
 
-    private void DrawCombatCharacter()
+    private void DrawCharacterStats()
     {
+        if (!ImGui.CollapsingHeader("Stats", ImGuiTreeNodeFlags.DefaultOpen)) return;
         if (combatSheet is not { } sheet)
         {
             DrawRefreshState(combatRefresh, "Combat character");
             return;
         }
-        DrawHealthBar(sheet);
         ImGui.TextUnformatted($"Armor class {sheet.ArmorClass}");
-        DrawCombatActions(sheet);
-        if (ImGui.CollapsingHeader("Stats", ImGuiTreeNodeFlags.DefaultOpen)) DrawCombatStats(sheet);
+        DrawCombatStats(sheet);
+    }
+
+    private void DrawCharacterEquipment()
+    {
+        if (combatSheet is not { } sheet) return;
         if (ImGui.CollapsingHeader("Equipment")) DrawEquipment(sheet);
         if (sheet.ResetPotions > 0)
         {
@@ -121,9 +126,13 @@ public sealed partial class SeasonsPanel
         ImGui.EndDisabled();
     }
 
-    private void DrawCombatActions(CombatSheet sheet)
+    private void DrawCombatActions()
     {
-        DrawSectionHeading("Actions");
+        if (combatSheet is not { } sheet)
+        {
+            DrawRefreshState(combatRefresh, "Combat actions");
+            return;
+        }
         var target = members.Concat(memberSearchResults).FirstOrDefault(x => x.Character.Id == combatTarget);
         if (ImGui.BeginCombo("Target", target == null ? "Choose a season member" : CombatTargetName(target)))
         {
@@ -133,7 +142,11 @@ public sealed partial class SeasonsPanel
                     combatTarget = row.Character.Id;
             ImGui.EndCombo();
         }
-        if (ImGui.SmallButton("Find a member")) requestedCommunityPage = CommunityBrowserPage.Members;
+        if (ImGui.SmallButton("Find a member"))
+        {
+            requestedCommunityPage = CommunityBrowserPage.Members;
+            OpenWorkspace(WorkspaceKind.Season);
+        }
         var canAttack = sheet.CanAttack && sheet.HitPoints > 0 && sheet.Weapon != null && target != null;
         ImGui.BeginDisabled(!canAttack || WriteBlocked || SeasonReadOnly);
         if (CombatIcon(sheet.Weapon?.Gear.Form == "staff" ? FontAwesomeIcon.WandSparkles : FontAwesomeIcon.Khanda,

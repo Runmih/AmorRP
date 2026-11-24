@@ -54,7 +54,7 @@ public sealed class LauncherWindow : Window
         var viewport = ImGui.GetMainViewport();
         var buttonSize = ImGui.GetFrameHeight() * 1.4f * LauncherDock.ClampPercent(configuration.QuickBarSize, 60, 160, 100) / 100;
         dock = LauncherDock.Place(edge, viewport.WorkPos, viewport.WorkSize, configuration.QuickBarPosition,
-            buttonSize, ImGuiHelpers.GlobalScale, 7 + (showAdmin ? 1 : 0), expanded,
+            buttonSize, ImGuiHelpers.GlobalScale, 8 + (showAdmin ? 1 : 0), expanded,
             configuration.QuickBarDocked, new Vector2(configuration.QuickBarFloatX, configuration.QuickBarFloatY));
         ImGui.PushStyleVar(ImGuiStyleVar.WindowMinSize, Vector2.One);
         ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, Vector2.Zero);
@@ -132,6 +132,8 @@ public sealed class LauncherWindow : Window
         if (ToggleButton("LauncherWriting", FontAwesomeIcon.BookOpen, size, writingVisible(), "Writing log")) toggleWriting();
         Next();
         DrawWorkspaceButton("LauncherGroupManagement", FontAwesomeIcon.Flag, size, WorkspaceKind.Groups);
+        Next();
+        DrawWorkspaceButton("LauncherCombatActions", FontAwesomeIcon.Khanda, size, WorkspaceKind.CombatActions);
         Next();
         if (ToggleButton("LauncherTrade", FontAwesomeIcon.BalanceScale, size, tradeVisible(), "Trade", hasTrade)) toggleTrade();
         if (showAdmin)
