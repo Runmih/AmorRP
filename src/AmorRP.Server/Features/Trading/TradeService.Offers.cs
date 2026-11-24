@@ -38,7 +38,7 @@ public sealed partial class TradeService
             var snapshot = previous.SingleOrDefault(x => x.HoldingId == line.HoldingId);
             if (snapshot == null) { snapshot = new TradeLineRow { CommunityId = row.CommunityId, TradeId = row.Id, CharacterId = actor, HoldingId = holding.Id }; db.TradeLines.Add(snapshot); }
             snapshot.Quantity = line.Quantity; snapshot.TypeId = holding.TypeId; snapshot.Name = holding.Name;
-            if (CraftingTypes.IsConsumable(holding.TypeId))
+            if (CraftingTypes.IsStackable(holding.TypeId))
             {
                 var recipe = await db.DefinitionRevisions.SingleAsync(x => x.CommunityId == row.CommunityId && x.DefinitionId == holding.DefinitionId && x.Revision == holding.DefinitionRevision, ct);
                 snapshot.Description = recipe.Description; snapshot.UseMessage = recipe.UseMessage;
@@ -63,12 +63,12 @@ public sealed partial class TradeService
         await settlement.CollectAsync(a, "trade.complete", row.Id, ct);
         await settlement.CollectAsync(b, "trade.complete", row.Id, ct);
         // Net outgoing first: full-inventory swaps and near-limit stack exchanges remain possible.
-        foreach (var line in lines.Where(x => CraftingTypes.IsConsumable(x.TypeId))) { var source = holdings.Single(x => x.Id == line.HoldingId); source.Quantity -= line.Quantity; source.Version++; }
+        foreach (var line in lines.Where(x => CraftingTypes.IsStackable(x.TypeId))) { var source = holdings.Single(x => x.Id == line.HoldingId); source.Quantity -= line.Quantity; source.Version++; }
         foreach (var line in lines)
         {
             var source = holdings.Single(x => x.Id == line.HoldingId);
             var recipient = line.CharacterId == row.InitiatorId ? row.RecipientId : row.InitiatorId;
-            if (!CraftingTypes.IsConsumable(source.TypeId))
+            if (!CraftingTypes.IsStackable(source.TypeId))
             {
                 source.CharacterId = recipient; source.Version++;
                 (await db.Letters.SingleAsync(x => x.CommunityId == row.CommunityId && x.Id == source.LetterId, ct)).FirstTradedAt ??= time.GetUtcNow();

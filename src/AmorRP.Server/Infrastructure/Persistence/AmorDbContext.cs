@@ -36,6 +36,7 @@ public sealed partial class AmorDbContext(DbContextOptions<AmorDbContext> option
         ConfigureGroupActivity(modelBuilder);
         ConfigureGroupResources(modelBuilder);
         ConfigureDiscord(modelBuilder);
+        ConfigureCombat(modelBuilder);
         ConfigureTreasury(modelBuilder);
         ConfigureBilling(modelBuilder);
         ConfigureAnnouncements(modelBuilder);

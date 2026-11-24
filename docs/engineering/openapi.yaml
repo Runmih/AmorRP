@@ -10387,6 +10387,592 @@ paths:
           $ref: '#/components/responses/Problem'
       x-authorization-policy: Discord service
       x-implementation-status: implemented
+  /api/v2/seasons/{seasonId}/combat:
+    get:
+      operationId: readCombatSheet
+      summary: Read your combat sheet and equipment
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        required: true
+        schema:
+          type: string
+          format: uuid
+        in: path
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CombatSheet'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Verified season character
+      x-implementation-status: implemented
+  /api/v2/seasons/{seasonId}/combat/policy:
+    get:
+      operationId: readCombatPolicy
+      summary: Read combat rules
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        required: true
+        schema:
+          type: string
+          format: uuid
+        in: path
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CombatPolicy'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Season owner
+      x-implementation-status: implemented
+    put:
+      operationId: updateCombatPolicy
+      summary: Set point limits and the Downed effect
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        required: true
+        schema:
+          type: string
+          format: uuid
+        in: path
+      - name: Idempotency-Key
+        required: true
+        schema:
+          type: string
+          format: uuid
+        in: header
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CombatPolicy'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CombatPolicyResult'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Season owner
+      x-implementation-status: implemented
+  /api/v2/seasons/{seasonId}/combat/stats:
+    post:
+      operationId: allocateCombatStats
+      summary: Permanently spend unallocated points
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        required: true
+        schema:
+          type: string
+          format: uuid
+        in: path
+      - name: Idempotency-Key
+        required: true
+        schema:
+          type: string
+          format: uuid
+        in: header
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CombatAllocation'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CombatSheetResult'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Verified season character
+      x-implementation-status: implemented
+  /api/v2/seasons/{seasonId}/combat/equipment:
+    put:
+      operationId: equipCombatGear
+      summary: Equip or clear an available item
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        required: true
+        schema:
+          type: string
+          format: uuid
+        in: path
+      - name: Idempotency-Key
+        required: true
+        schema:
+          type: string
+          format: uuid
+        in: header
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CombatEquip'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CombatSheetResult'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Holding owner
+      x-implementation-status: implemented
+  /api/v2/seasons/{seasonId}/combat/attacks:
+    post:
+      operationId: attackCharacter
+      summary: Roll an attack and apply damage atomically
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        required: true
+        schema:
+          type: string
+          format: uuid
+        in: path
+      - name: Idempotency-Key
+        required: true
+        schema:
+          type: string
+          format: uuid
+        in: header
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CombatAttack'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CombatHitResult'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Season character with combat permission and an equipped weapon
+      x-implementation-status: implemented
+  /api/v2/seasons/{seasonId}/combat/checks:
+    post:
+      operationId: rollStatCheck
+      summary: Roll one ability check
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        required: true
+        schema:
+          type: string
+          format: uuid
+        in: path
+      - name: Idempotency-Key
+        required: true
+        schema:
+          type: string
+          format: uuid
+        in: header
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CombatCheck'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CombatRollResult'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Verified season character
+      x-implementation-status: implemented
+  /api/v2/seasons/{seasonId}/combat/health/{characterId}:
+    put:
+      operationId: setCombatHealth
+      summary: "Set a member\u2019s hit points"
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        required: true
+        schema:
+          type: string
+          format: uuid
+        in: path
+      - name: characterId
+        required: true
+        schema:
+          type: string
+          format: uuid
+        in: path
+      - name: Idempotency-Key
+        required: true
+        schema:
+          type: string
+          format: uuid
+        in: header
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CombatHealthEdit'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CombatSheetResult'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Authorized season moderator
+      x-implementation-status: implemented
+  /api/v2/seasons/{seasonId}/shop/reset-potion:
+    get:
+      operationId: readResetPotion
+      summary: Read the built-in reset potion and your purchase count
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        required: true
+        schema:
+          type: string
+          format: uuid
+        in: path
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResetPotionProduct'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Verified season character
+      x-implementation-status: implemented
+    put:
+      operationId: configureResetPotion
+      summary: Set the fixed product price and per-character limit
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        required: true
+        schema:
+          type: string
+          format: uuid
+        in: path
+      - name: Idempotency-Key
+        required: true
+        schema:
+          type: string
+          format: uuid
+        in: header
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPotionSettings'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResetPotionProductResult'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Season owner
+      x-implementation-status: implemented
+  /api/v2/seasons/{seasonId}/shop/reset-potion/purchases:
+    post:
+      operationId: buyResetPotion
+      summary: Buy a reset potion
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        required: true
+        schema:
+          type: string
+          format: uuid
+        in: path
+      - name: Idempotency-Key
+        required: true
+        schema:
+          type: string
+          format: uuid
+        in: header
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPotionBuy'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResetPotionProductResult'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Verified season character with available funds and purchase capacity
+      x-implementation-status: implemented
+  /api/v2/seasons/{seasonId}/combat/reset:
+    post:
+      operationId: useResetPotion
+      summary: Consume one potion to refund stats and clear classes
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        required: true
+        schema:
+          type: string
+          format: uuid
+        in: path
+      - name: Idempotency-Key
+        required: true
+        schema:
+          type: string
+          format: uuid
+        in: header
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CombatSheetResult'
+        '400':
+          $ref: '#/components/responses/Problem'
+        '401':
+          $ref: '#/components/responses/Problem'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '404':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+        '429':
+          $ref: '#/components/responses/Problem'
+        '500':
+          $ref: '#/components/responses/Problem'
+        '503':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Reset potion owner
+      x-implementation-status: implemented
 components:
   securitySchemes:
     DiscordService:
@@ -10422,6 +11008,372 @@ components:
           schema:
             $ref: '#/components/schemas/Problem'
   schemas:
+    CombatGear:
+      type: object
+      properties:
+        form:
+          type: string
+          enum:
+          - sword
+          - staff
+          - armor
+        ability:
+          type: string
+          enum:
+          - STR
+          - DEX
+          - CON
+          - INT
+          - WIS
+          - CHA
+          nullable: true
+        value:
+          type: integer
+          format: int32
+      required:
+      - form
+      - ability
+      - value
+    EquippedItem:
+      type: object
+      properties:
+        holdingId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        gear:
+          $ref: '#/components/schemas/CombatGear'
+      required:
+      - holdingId
+      - name
+      - gear
+    CombatSheet:
+      type: object
+      properties:
+        version:
+          type: integer
+          format: int32
+        scores:
+          type: array
+          items:
+            type: integer
+            format: int32
+          minItems: 6
+          maxItems: 6
+        availablePoints:
+          type: integer
+          format: int32
+        bonusPoints:
+          type: integer
+          format: int32
+        hitPoints:
+          type: integer
+          format: int32
+        maxHitPoints:
+          type: integer
+          format: int32
+        armorClass:
+          type: integer
+          format: int32
+        weapon:
+          allOf:
+          - $ref: '#/components/schemas/EquippedItem'
+          nullable: true
+        armor:
+          allOf:
+          - $ref: '#/components/schemas/EquippedItem'
+          nullable: true
+        canAttack:
+          type: boolean
+        resetPotions:
+          type: integer
+          format: int32
+      required:
+      - version
+      - scores
+      - availablePoints
+      - bonusPoints
+      - hitPoints
+      - maxHitPoints
+      - armorClass
+      - weapon
+      - armor
+      - canAttack
+      - resetPotions
+    CombatPolicy:
+      type: object
+      properties:
+        version:
+          type: integer
+          format: int32
+        statPoints:
+          type: integer
+          minimum: 0
+          maximum: 60
+        blacksmithingPoints:
+          type: integer
+          minimum: 0
+          maximum: 100000
+        downedEffect:
+          allOf:
+          - $ref: '#/components/schemas/MoodleEffect'
+          nullable: true
+      required:
+      - version
+      - statPoints
+      - blacksmithingPoints
+      - downedEffect
+    CombatAllocation:
+      type: object
+      properties:
+        version:
+          type: integer
+          format: int32
+        points:
+          type: array
+          items:
+            type: integer
+            minimum: 0
+            maximum: 10
+          minItems: 6
+          maxItems: 6
+      required:
+      - version
+      - points
+    CombatEquip:
+      type: object
+      properties:
+        version:
+          type: integer
+          format: int32
+        slot:
+          type: string
+          enum:
+          - weapon
+          - armor
+        holdingId:
+          type: string
+          format: uuid
+          nullable: true
+      required:
+      - version
+      - slot
+      - holdingId
+    CombatAttack:
+      type: object
+      properties:
+        targetId:
+          type: string
+          format: uuid
+        destination:
+          type: string
+          default: ''
+      required:
+      - targetId
+    CombatCheck:
+      type: object
+      properties:
+        ability:
+          type: string
+          enum:
+          - STR
+          - DEX
+          - CON
+          - INT
+          - WIS
+          - CHA
+        destination:
+          type: string
+          default: ''
+      required:
+      - ability
+    CombatRoll:
+      type: object
+      properties:
+        ability:
+          type: string
+          enum:
+          - STR
+          - DEX
+          - CON
+          - INT
+          - WIS
+          - CHA
+        die:
+          type: integer
+          minimum: 1
+          maximum: 20
+        modifier:
+          type: integer
+          format: int32
+        proficiency:
+          type: integer
+          format: int32
+        total:
+          type: integer
+          format: int32
+      required:
+      - ability
+      - die
+      - modifier
+      - proficiency
+      - total
+    CombatHit:
+      type: object
+      properties:
+        attacker:
+          type: string
+        target:
+          type: string
+        weapon:
+          type: string
+        roll:
+          $ref: '#/components/schemas/CombatRoll'
+        armorClass:
+          type: integer
+          format: int32
+        hit:
+          type: boolean
+        critical:
+          type: boolean
+        damage:
+          type: integer
+          format: int32
+        remainingHp:
+          type: integer
+          format: int32
+        downed:
+          type: boolean
+      required:
+      - attacker
+      - target
+      - weapon
+      - roll
+      - armorClass
+      - hit
+      - critical
+      - damage
+      - remainingHp
+      - downed
+    CombatHealthEdit:
+      type: object
+      properties:
+        hitPoints:
+          type: integer
+          minimum: 0
+          maximum: 20
+      required:
+      - hitPoints
+    ResetPotionProduct:
+      type: object
+      properties:
+        version:
+          type: integer
+          format: int32
+        price:
+          type: integer
+          format: int64
+        perCharacterLimit:
+          type: integer
+          format: int32
+        purchased:
+          type: integer
+          format: int32
+        owned:
+          type: integer
+          format: int32
+        name:
+          type: string
+          nullable: true
+      required:
+      - version
+      - price
+      - perCharacterLimit
+      - purchased
+      - owned
+      - name
+    ResetPotionSettings:
+      type: object
+      properties:
+        version:
+          type: integer
+          format: int32
+        price:
+          type: integer
+          format: int64
+          minimum: 1
+        perCharacterLimit:
+          type: integer
+          minimum: 0
+          maximum: 1000
+      required:
+      - version
+      - price
+      - perCharacterLimit
+    ResetPotionBuy:
+      type: object
+      properties:
+        version:
+          type: integer
+          format: int32
+      required:
+      - version
+    CombatPolicyResult:
+      type: object
+      properties:
+        operationId:
+          type: string
+          format: uuid
+        result:
+          $ref: '#/components/schemas/CombatPolicy'
+      required:
+      - operationId
+      - result
+    CombatSheetResult:
+      type: object
+      properties:
+        operationId:
+          type: string
+          format: uuid
+        result:
+          $ref: '#/components/schemas/CombatSheet'
+      required:
+      - operationId
+      - result
+    CombatRollResult:
+      type: object
+      properties:
+        operationId:
+          type: string
+          format: uuid
+        result:
+          $ref: '#/components/schemas/CombatRoll'
+      required:
+      - operationId
+      - result
+    CombatHitResult:
+      type: object
+      properties:
+        operationId:
+          type: string
+          format: uuid
+        result:
+          $ref: '#/components/schemas/CombatHit'
+      required:
+      - operationId
+      - result
+    ResetPotionProductResult:
+      type: object
+      properties:
+        operationId:
+          type: string
+          format: uuid
+        result:
+          $ref: '#/components/schemas/ResetPotionProduct'
+      required:
+      - operationId
+      - result
     GroupStock:
       type: object
       properties:
@@ -12245,6 +13197,9 @@ components:
     Member:
       type: object
       properties:
+        combatRestricted:
+          type: boolean
+          default: false
         character:
           $ref: '#/components/schemas/Character'
         status:
@@ -12278,6 +13233,9 @@ components:
     MemberCapabilities:
       type: object
       properties:
+        combatAllowed:
+          type: boolean
+          nullable: true
         capabilities:
           type: array
           items:
@@ -12382,6 +13340,14 @@ components:
     Definition:
       type: object
       properties:
+        gear:
+          allOf:
+          - $ref: '#/components/schemas/CombatGear'
+          nullable: true
+        statPoints:
+          type: integer
+          minimum: 0
+          maximum: 10
         groupId:
           type: string
           format: uuid
@@ -12444,6 +13410,14 @@ components:
     DefinitionWrite:
       type: object
       properties:
+        gear:
+          allOf:
+          - $ref: '#/components/schemas/CombatGear'
+          nullable: true
+        statPoints:
+          type: integer
+          minimum: 0
+          maximum: 10
         groupId:
           type: string
           format: uuid

@@ -44,6 +44,11 @@ manual checklist. Do not infer game or production acceptance from a successful b
 
 ## Next work
 
+The local [0.17 combat build](../delivery/release-0.17.0.0.md) adds character
+stats, equipment, Blacksmithing, dice checks, attacks, a health HUD, Downed
+effects and the fixed reset potion. Verify it in game before broad rollout.
+Spells and Mana remain future work.
+
 1. Finish the focused S03/S04, season, and window checks in game.
 2. Verify the Shop, permits, Gathering, class reset, group recipes and optional Moodles in game. Classes, group recipes and Moodles are implemented in the local 0.11 build.
 3. Verify the local 0.16 build in game, including the staff tools and permit transfer

@@ -103,7 +103,7 @@ public sealed partial class SeasonsPanel
     {
         if (ImGui.BeginTabBar("CompanionItemFamilies", ImGuiTabBarFlags.FittingPolicyScroll))
         {
-            foreach (var section in Enum.GetValues<InventoryCompanionSection>().Where(section => section is InventoryCompanionSection.All or InventoryCompanionSection.Consumables))
+            foreach (var section in Enum.GetValues<InventoryCompanionSection>().Where(section => section is InventoryCompanionSection.All or InventoryCompanionSection.Consumables or InventoryCompanionSection.Equipment))
             {
                 if (!ImGui.BeginTabItem(section.ToString())) continue;
                 if (companionQuery.Section != section)

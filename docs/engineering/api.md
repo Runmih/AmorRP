@@ -220,3 +220,15 @@ and carry their original recipe revision and optional consumable effect.
 | GET | `/api/v2/integrations/discord/guilds` | List connected Discord servers and queued removals | Discord service |
 | DELETE | `/api/v2/integrations/discord/guilds/{guildId}` | Acknowledge removal from a Discord server | Discord service |
 | POST | `/api/v2/integrations/discord/posts` | Evaluate a unique Discord message for a reward | Discord service |
+| GET | `/api/v2/seasons/{seasonId}/combat` | Read your combat sheet and equipment | Verified season character |
+| GET | `/api/v2/seasons/{seasonId}/combat/policy` | Read combat rules | Season owner |
+| PUT | `/api/v2/seasons/{seasonId}/combat/policy` | Set point limits and the Downed effect | Season owner |
+| POST | `/api/v2/seasons/{seasonId}/combat/stats` | Permanently spend unallocated points | Verified season character |
+| PUT | `/api/v2/seasons/{seasonId}/combat/equipment` | Equip or clear an available item | Holding owner |
+| POST | `/api/v2/seasons/{seasonId}/combat/attacks` | Roll an attack and apply damage atomically | Season character with combat permission and an equipped weapon |
+| POST | `/api/v2/seasons/{seasonId}/combat/checks` | Roll one ability check | Verified season character |
+| PUT | `/api/v2/seasons/{seasonId}/combat/health/{characterId}` | Set a member’s hit points | Authorized season moderator |
+| GET | `/api/v2/seasons/{seasonId}/shop/reset-potion` | Read the built-in reset potion and your purchase count | Verified season character |
+| PUT | `/api/v2/seasons/{seasonId}/shop/reset-potion` | Set the fixed product price and per-character limit | Season owner |
+| POST | `/api/v2/seasons/{seasonId}/shop/reset-potion/purchases` | Buy a reset potion | Verified season character with available funds and purchase capacity |
+| POST | `/api/v2/seasons/{seasonId}/combat/reset` | Consume one potion to refund stats and clear classes | Reset potion owner |

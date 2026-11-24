@@ -84,7 +84,10 @@ public sealed partial class SeasonsPanel
         }
 
         if (ImGui.CollapsingHeader("Favorite Events")) DrawFavoriteEventsSettings();
-        if (ImGui.CollapsingHeader("Coins")) DrawCoinHudSettings();
+        if (ImGui.CollapsingHeader("Coins"))
+            DrawHudSettings("CoinHud", "Show coins", "Hide when the balance is unavailable", configuration.CoinHud, SetCoinHudVisible);
+        if (ImGui.CollapsingHeader("Health"))
+            DrawHudSettings("HealthHud", "Show health", "Hide when health is unavailable", configuration.HealthHud, SetHealthHudVisible);
     }
 
     private void DrawQuickBarSettings()
@@ -131,23 +134,22 @@ public sealed partial class SeasonsPanel
         ImGui.PopID();
     }
 
-    private void DrawCoinHudSettings()
+    private void DrawHudSettings(string id, string visibleLabel, string emptyLabel, CoinHudSettings panel, Action<bool>? setVisible)
     {
-        ImGui.PushID("CoinHud");
-        var coin = configuration.CoinHud;
-        var show = coin.Visible;
-        if (ImGui.Checkbox("Show coins", ref show))
-        { coin.Visible = show; save(); SetCoinHudVisible?.Invoke(show); }
-        var header = coin.ShowHeader;
-        if (ImGui.Checkbox("Show header", ref header)) { coin.ShowHeader = header; save(); }
-        var hideEmpty = coin.HideWhenEmpty;
-        if (ImGui.Checkbox("Hide when the balance is unavailable", ref hideEmpty))
-        { coin.HideWhenEmpty = hideEmpty; save(); }
-        DrawDockSettings(HudEdges, coin.Docked, x => coin.Docked = x, coin.Edge, x => coin.Edge = x,
-            coin.AutoHide, x => coin.AutoHide = x, coin.Position, x => coin.Position = x);
-        PercentSlider("Width", coin.Width, 60, 160, 100, x => coin.Width = x);
-        PercentSlider("Opacity", coin.Opacity, 25, 100, 100, x => coin.Opacity = x);
-        PercentSlider("Background opacity", coin.BackgroundOpacity, 0, 100, 100, x => coin.BackgroundOpacity = x);
+        ImGui.PushID(id);
+        var show = panel.Visible;
+        if (ImGui.Checkbox(visibleLabel, ref show))
+        { panel.Visible = show; save(); setVisible?.Invoke(show); }
+        var header = panel.ShowHeader;
+        if (ImGui.Checkbox("Show header", ref header)) { panel.ShowHeader = header; save(); }
+        var hideEmpty = panel.HideWhenEmpty;
+        if (ImGui.Checkbox(emptyLabel, ref hideEmpty))
+        { panel.HideWhenEmpty = hideEmpty; save(); }
+        DrawDockSettings(HudEdges, panel.Docked, x => panel.Docked = x, panel.Edge, x => panel.Edge = x,
+            panel.AutoHide, x => panel.AutoHide = x, panel.Position, x => panel.Position = x);
+        PercentSlider("Width", panel.Width, 60, 160, 100, x => panel.Width = x);
+        PercentSlider("Opacity", panel.Opacity, 25, 100, 100, x => panel.Opacity = x);
+        PercentSlider("Background opacity", panel.BackgroundOpacity, 0, 100, 100, x => panel.BackgroundOpacity = x);
         ImGui.PopID();
     }
 

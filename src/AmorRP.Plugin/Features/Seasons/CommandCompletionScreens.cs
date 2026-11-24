@@ -39,6 +39,7 @@ public sealed partial class SeasonsPanel
             case CommandHandler.SeasonForm: ApplyFormSuccess(request, response.Json); break;
             case CommandHandler.Gathering: ApplyGatheringSuccess(request, response.Json); break;
             case CommandHandler.Permit: ApplyPermitSuccess(request, response.Json); break;
+            case CommandHandler.Combat: ApplyCombatSuccess(request, response, recovering); break;
             case CommandHandler.Discord: ApplyDiscordSuccess(request, response.Json, recovering); break;
             case CommandHandler.Shop: ApplyShopSuccess(request, response.Json); break;
             case CommandHandler.Home: ApplyHomeSuccess(request, response.Json); break;

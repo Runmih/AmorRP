@@ -10,6 +10,7 @@ public sealed class Configuration : IPluginConfiguration
     public int Version { get; set; } = 4;
     public Dictionary<string, string> ProtectedMemberNotes { get; set; } = [];
     public CoinHudSettings CoinHud { get; set; } = new();
+    public CoinHudSettings HealthHud { get; set; } = new() { FloatX = 85, FloatY = 70 };
     public bool ShowFavoriteEvents { get; set; } = true;
     public bool ShowLauncher { get; set; } = true;
     public Features.Shell.LauncherEdge QuickBarEdge { get; set; } = Features.Shell.LauncherEdge.Left;

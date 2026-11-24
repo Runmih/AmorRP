@@ -126,6 +126,12 @@ public sealed class Plugin : IDalamudPlugin
             SaveHud, mainWindow.CoinBalance, mainWindow.DrawCoinHud, HudAvailable) { IsOpen = coin.Visible };
         mainWindow.SetCoinHudVisible = visible => coinWindow.IsOpen = visible;
         windows.AddWindow(coinWindow);
+        var health = configuration.HealthHud;
+        var healthWindow = new DockedHudWindow<AmorRP.Contracts.Combat.CombatSheet>(
+            "Amor RP — Health###AmorRPHealth", "##HealthContent", health.Layout, health.Move, () => health.Docked = !health.Docked,
+            SaveHud, mainWindow.HealthHudRows, mainWindow.DrawHealthHud, HudAvailable) { IsOpen = health.Visible };
+        mainWindow.SetHealthHudVisible = visible => healthWindow.IsOpen = visible;
+        windows.AddWindow(healthWindow);
         foreach (var menu in (Window[])[mainWindow, hub, compactWindow, tradeWindow, tradeRequestWindow, createCommunityWindow, billingForm, .. workspaceWindows.Values])
         {
             if (MenuWindowButtons.Add(menu, Open, OpenLog, mainWindow.RefreshData) is { } logButton) logButtons.Add(logButton);

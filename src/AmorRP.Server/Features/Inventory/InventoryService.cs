@@ -1,4 +1,6 @@
 using AmorRP.Contracts.Common;
+using AmorRP.Core.Combat;
+using AmorRP.Server.Features.Combat;
 using AmorRP.Contracts.Inventory;
 using AmorRP.Core.Items;
 using AmorRP.Server.Features.Authentication;
@@ -15,7 +17,7 @@ using Microsoft.Extensions.Options;
 namespace AmorRP.Server.Features.Inventory;
 
 public sealed partial class InventoryService(AmorDbContext db, SessionAccess sessions, SeasonAccess communities,
-    CatalogService catalog, InventoryDelivery delivery, MoodleService moodles, CommandStore commands, PageCursor cursors, TimeProvider time, IOptions<ServicePolicyOptions> policy)
+    CatalogService catalog, InventoryDelivery delivery, MoodleService moodles, CombatService combat, CommandStore commands, PageCursor cursors, TimeProvider time, IOptions<ServicePolicyOptions> policy)
 {
     public static Holding View(HoldingRow x) => new(x.Id, x.CommunityId, x.CharacterId, x.TypeId, x.Name, x.CategoryId,
         x.Quantity, x.Reserved, x.Quantity - x.Reserved, x.Version, x.DefinitionId, x.DefinitionRevision, x.LetterId);
@@ -25,7 +27,7 @@ public sealed partial class InventoryService(AmorDbContext db, SessionAccess ses
         var period = SeasonAccess.Period(time.GetUtcNow());
         return await db.Quotas.SingleOrDefaultAsync(x => x.CommunityId == community.Id && x.CharacterId == actor && x.Kind == kind && x.PeriodStart == period, ct)
             ?? new QuotaRow { CommunityId = community.Id, CharacterId = actor, Kind = kind, PeriodStart = period,
-                Limit = kind == GatheringService.QuotaKind ? SeasonAccess.GatheringPoints(community, time.GetUtcNow()) : kind == "cooking_points" ? SeasonAccess.Policies(community, time.GetUtcNow()).Current.CookingPoints : kind == "potion_points" ? SeasonAccess.Policies(community, time.GetUtcNow()).Current.PotionPoints : SeasonAccess.Policies(community, time.GetUtcNow()).Current.Letters };
+                Limit = kind == CombatRules.BlacksmithingQuota ? community.BlacksmithingPoints : kind == GatheringService.QuotaKind ? SeasonAccess.GatheringPoints(community, time.GetUtcNow()) : kind == "cooking_points" ? SeasonAccess.Policies(community, time.GetUtcNow()).Current.CookingPoints : kind == "potion_points" ? SeasonAccess.Policies(community, time.GetUtcNow()).Current.PotionPoints : SeasonAccess.Policies(community, time.GetUtcNow()).Current.Letters };
     }
     internal async Task<QuotaRow> SpendAsync(CommunityRow community, Guid actor, string kind, int cost, CancellationToken ct)
     {
@@ -50,6 +52,8 @@ public sealed partial class InventoryService(AmorDbContext db, SessionAccess ses
         var quotas = new List<Quota>();
         foreach (var kind in new[] { "potion_points", "letters", "cooking_points" })
             quotas.Add(ViewQuota(await QuotaAsync(community, actor, kind, ct)));
+        if (SeasonAccess.HasAction(community, member, CraftingTypes.BlacksmithPermission))
+            quotas.Add(ViewQuota(await QuotaAsync(community, actor, CombatRules.BlacksmithingQuota, ct)));
         if (SeasonAccess.HasAction(community, member, CraftingTypes.GatherPermission))
             quotas.Add(ViewQuota(await QuotaAsync(community, actor, GatheringService.QuotaKind, ct)));
         return Results.Json(new Quotas(communityId, actor, quotas.ToArray()));
@@ -93,7 +97,7 @@ public sealed partial class InventoryService(AmorDbContext db, SessionAccess ses
     {
         var actor = (await sessions.GetAsync(h, ct)).CharacterId; await communities.RequireAsync(communityId, actor, ct); var holding = await HoldingAsync(communityId, actor, id, ct);
         Definition? definition = null; Letter? letter = null;
-        if (CraftingTypes.IsConsumable(holding.TypeId))
+        if (CraftingTypes.IsStackable(holding.TypeId))
         {
             var row = await db.Definitions.SingleAsync(x => x.CommunityId == communityId && x.Id == holding.DefinitionId, ct);
             var rev = await db.DefinitionRevisions.SingleAsync(x => x.CommunityId == communityId && x.DefinitionId == holding.DefinitionId && x.Revision == holding.DefinitionRevision, ct);
@@ -166,12 +170,13 @@ public sealed partial class InventoryService(AmorDbContext db, SessionAccess ses
         if (body is ConsumptionRequest use)
         {
             var validChat = use.ChatConsent ? ItemText.Destination(use.Destination) : use.Destination == "";
-            ApiFault.Require(CraftingTypes.IsRecipe(holding.TypeId) && validChat, 422, "invalid_use",
+            ApiFault.Require(CraftingTypes.IsRecipe(holding.TypeId) && !CraftingTypes.IsGear(holding.TypeId) && validChat, 422, "invalid_use",
                 "Leave the destination blank or choose a supported destination with chat permission.");
             ApiFault.Require(target == actor, 403, "invalid_use", "You may only use your own items.");
             var revision = await db.DefinitionRevisions.SingleAsync(x => x.CommunityId == communityId && x.DefinitionId == holding.DefinitionId && x.Revision == holding.DefinitionRevision, ct);
             message = revision.UseMessage;
             ApiFault.Require(!use.ChatConsent || ItemText.Chat(message, policy.Value.ChatMessageTextElements), 422, "invalid_message", "Potion message is not safe for posting.");
+            if (revision.StatPoints > 0) await combat.GrantPointsAsync(communityId, actor, revision.StatPoints, ct);
             if (revision.MoodleEffectJson is { } effect) await moodles.RefreshConsumableAsync(communityId, actor, effect, ct);
         }
         holding.Quantity -= quantity; holding.Version++;

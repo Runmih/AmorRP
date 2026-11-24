@@ -1,4 +1,5 @@
 using AmorRP.Contracts.Auth;
+using AmorRP.Core.Items;
 using AmorRP.Contracts.Seasons;
 using AmorRP.Contracts.Currency;
 using AmorRP.Contracts.History;
@@ -11,7 +12,7 @@ namespace AmorRP.Server.Features.Seasons;
 
 public sealed class SeasonAccess(AmorDbContext db)
 {
-    public static readonly string[] GrantableActions = ["currency.manage", "items.potion.create", "inventory.remove", "items.potion.define", "items.cooking.create", "items.cooking.define", "season.moderate", "announcements.manage", "members.gameplay.manage", "groups.create", "groups.manage", AmorRP.Server.Features.Permits.PermitService.ManageListings, AmorRP.Core.Items.CraftingTypes.GatherPermission];
+    public static readonly string[] GrantableActions = [CraftingTypes.BlacksmithPermission, CraftingTypes.BlacksmithRecipePermission, "currency.manage", "items.potion.create", "inventory.remove", "items.potion.define", "items.cooking.create", "items.cooking.define", "season.moderate", "announcements.manage", "members.gameplay.manage", "groups.create", "groups.manage", AmorRP.Server.Features.Permits.PermitService.ManageListings, AmorRP.Core.Items.CraftingTypes.GatherPermission];
     public async Task<(CommunityRow Season, MembershipRow Member)> RequireAsync(Guid communityId, Guid actor, CancellationToken ct)
     {
         var community = await db.Seasons.SingleOrDefaultAsync(x => x.Id == communityId && !x.Deleted, ct);

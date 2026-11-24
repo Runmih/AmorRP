@@ -1,4 +1,5 @@
 using System.Net;
+using AmorRP.Contracts.Combat;
 using System.Net.Http.Json;
 using AmorRP.Contracts.Groups;
 using AmorRP.Contracts.Common;
@@ -38,18 +39,24 @@ public sealed partial class FoundationTests
         var original = await Command<ClassSelection>(member, HttpMethod.Put, root + "/classes/selection",
             new ClassSelectionEdit(policy.PolicyVersion, 1, [alchemist.Id], 0));
         await Command<ProductionResult>(member, HttpMethod.Post, root + "/inventory/potions", new PotionCreate(recipe.Id, recipe.Revision, 1));
-        var swap = new ClassSelectionEdit(original.PolicyVersion, original.SelectionVersion, [gatherer.Id], 1000);
-        using (var req = Request(HttpMethod.Put, root + "/classes/selection", swap with { ConfirmedPrice = 0 }))
+        var swap = new ClassSelectionEdit(original.PolicyVersion, original.SelectionVersion, [gatherer.Id], 0);
+        using (var req = Request(HttpMethod.Put, root + "/classes/selection", swap))
         using (var denied = await member.SendAsync(req, ct))
             Assert.Equal(HttpStatusCode.Conflict, denied.StatusCode);
+        var product = (await member.GetFromJsonAsync<ResetPotionProduct>(root + "/shop/reset-potion", ct))!;
         var key = Guid.CreateVersion7(clock.UtcNow);
         for (var i = 0; i < 2; i++)
         {
-            using var req = Request(HttpMethod.Put, root + "/classes/selection", swap, key);
+            using var req = Request(HttpMethod.Post, root + "/shop/reset-potion/purchases", new ResetPotionBuy(product.Version), key);
             using var response = await member.SendAsync(req, ct);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.Equal(i == 1, response.Headers.Contains("Idempotency-Replayed"));
         }
+        await Command<CombatSheet>(member, HttpMethod.Post, root + "/combat/reset");
+        var empty = (await member.GetFromJsonAsync<ClassSelection>(root + "/classes", ct))!;
+        Assert.Empty(empty.Selected);
+        await Command<ClassSelection>(member, HttpMethod.Put, root + "/classes/selection",
+            new ClassSelectionEdit(empty.PolicyVersion, empty.SelectionVersion, [gatherer.Id], 0));
         var updated = await Enroll(member, season);
         Assert.DoesNotContain("items.potion.create", updated.MyCapabilities);
         Assert.Contains("items.cooking.create", updated.MyCapabilities);

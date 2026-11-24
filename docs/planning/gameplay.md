@@ -65,11 +65,11 @@ grants without silently deleting those grants. Exact precedence/owner restrictio
 belong in the S08 checklist. The authoritative result is checked on the server and
 unavailable tabs stay hidden. No new permission-source explanation interface.
 
-The Shop's Class reset tab offers an Alchemy reset potion, priced at 1,000 season
-coins by default. The season owner can change the price. The purchase applies
-one dose immediately when the player confirms replacement classes. Selection,
-payment to the season treasury and receipt commit together. Resetting preserves
-weekly spending and supply bonuses.
+The 0.17 Character Reset Potion replaces the earlier Class reset tab. The
+fixed product is sold under Shop → Products. The owner controls its price and
+per-character season limit under Manage products. Using it refunds allocated
+ability points and clears the selected classes, while preserving earned bonus
+points and weekly usage.
 
 Players can fill new or empty slots without payment. If the owner removes a class
 or lowers the slot count, the player can make the necessary correction for free.

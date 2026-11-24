@@ -3,8 +3,6 @@ using AmorRP.Contracts.Common;
 using AmorRP.Contracts.Seasons;
 using AmorRP.Core.Items;
 using AmorRP.Server.Features.Authentication;
-using AmorRP.Server.Features.Currency;
-using AmorRP.Server.Features.Shop;
 using AmorRP.Server.Infrastructure.Persistence;
 using AmorRP.Server.Infrastructure.Security;
 using Microsoft.EntityFrameworkCore;
@@ -13,7 +11,7 @@ namespace AmorRP.Server.Features.Seasons;
 
 public sealed class SeasonClassService(AmorDbContext db, SessionAccess sessions, SeasonAccess seasons, CommandStore commands)
 {
-    public static readonly string[] GameplayGrants = ["items.potion.create", "items.cooking.create", CraftingTypes.GatherPermission];
+    public static readonly string[] GameplayGrants = ["items.potion.create", "items.cooking.create", CraftingTypes.GatherPermission, CraftingTypes.BlacksmithPermission];
 
     private static ClassPolicy Policy(CommunityRow season) => new(season.ClassSlots, season.ClassResetPrice,
         JsonSerializer.Deserialize<SeasonClass[]>(season.ClassCatalog) ?? [], season.GroupRecipeLimit);
@@ -49,8 +47,8 @@ public sealed class SeasonClassService(AmorDbContext db, SessionAccess sessions,
         if (replay != null) return commands.Replay(replay);
         ApiFault.Require(edit.ExpectedVersion == season.ClassPolicyVersion, 409, "class_policy_changed", "Reload the class settings.");
         var policy = edit.Policy;
-        ApiFault.Require(policy != null && policy.Slots is >= 1 and <= 8 && policy.ResetPrice > 0 &&
-            policy.GroupRecipeLimit is >= 0 and <= 100 && policy.Classes is { Length: <= 32 }, 422, "invalid_class_policy", "Choose valid class slots, potion price and limits.");
+        ApiFault.Require(policy != null && policy.Slots is >= 1 and <= 8 &&
+            policy.GroupRecipeLimit is >= 0 and <= 100 && policy.Classes is { Length: <= 32 }, 422, "invalid_class_policy", "Choose valid class slots and recipe limits.");
         var seen = new HashSet<Guid>();
         foreach (var c in policy!.Classes)
             ApiFault.Require(c != null && c.Id != Guid.Empty && seen.Add(c.Id) &&
@@ -59,7 +57,6 @@ public sealed class SeasonClassService(AmorDbContext db, SessionAccess sessions,
                 422, "invalid_class", "Classes require a unique ID, a name and valid gameplay grants.");
 
         season.ClassSlots = policy.Slots;
-        season.ClassResetPrice = policy.ResetPrice;
         season.GroupRecipeLimit = policy.GroupRecipeLimit;
         season.ClassCatalog = JsonSerializer.Serialize(policy.Classes);
         season.ClassPolicyVersion++;
@@ -92,20 +89,15 @@ public sealed class SeasonClassService(AmorDbContext db, SessionAccess sessions,
         ApiFault.Require(!member.ClassIds.ToHashSet().SetEquals(selected), 422, "class_selection_unchanged", "Choose a different set of classes.");
         // An owner policy change permits the smallest correction needed to fit the new choices.
         var retained = member.ClassIds.Intersect(policy.Classes.Select(c => c.Id)).ToArray();
-        var price = selected.Intersect(retained).Count() < Math.Min(policy.Slots, retained.Length) ? policy.ResetPrice : 0;
-        ApiFault.Require(edit.ConfirmedPrice == price, 409, "class_price_changed", "Review the reset potion cost before confirming.");
-        if (price > 0)
-        {
-            CurrencyAccounts.Apply(member, -price);
-            ShopService.CreditSeason(season, price);
-        }
+        ApiFault.Require(selected.Intersect(retained).Count() >= Math.Min(policy.Slots, retained.Length), 409,
+            "reset_potion_required", "Use a Character Reset Potion before replacing chosen classes.");
         member.ClassIds = selected;
         member.ClassSelectionVersion++;
         ApplyGrants(policy, member);
         season.InventoryVersion++;
-        var op = commands.New(h, scope, edit, actor, id, price > 0 ? "classes.reset" : "classes.select");
+        var op = commands.New(h, scope, edit, actor, id, "classes.select");
         op.SubjectCharacterId = actor;
-        op.Summary = price > 0 ? $"Used a class reset potion for {price} coins." : "Updated class selection.";
+        op.Summary = "Updated class selection.";
         var result = await commands.SaveAsync(h, op, new CommandResult<ClassSelection>(op.Id, View(season, member)), ct);
         await tx.CommitAsync(ct);
         return result;

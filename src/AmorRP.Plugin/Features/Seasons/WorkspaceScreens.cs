@@ -13,9 +13,9 @@ public sealed partial class SeasonsPanel
     private CommunityBrowserPage activeCommunityPage;
     public bool GroupsSelected => (requestedCommunityPage ?? activeCommunityPage) == CommunityBrowserPage.Groups;
     public void SelectGroupsPage() => requestedCommunityPage = CommunityBrowserPage.Groups;
-    public bool CanOpenRecipeCreation => session != null && (CanDefinePotions || CanDefineCooking);
+    public bool CanOpenRecipeCreation => session != null && (CanDefinePotions || CanDefineCooking || CanDefineBlacksmith);
     public bool CanOpenCommunityManagement => CanCreateSeasons || IsSeasonAdministrator || WorkspaceAccess.CommunityManagement(community, session?.Character.Id);
-    private bool CanManageCommunityMembers => Owner || CanManageGameplay || CanCoins || community?.MyCapabilities.Contains("inventory.remove") == true;
+    private bool CanManageCommunityMembers => Owner || CanGeneralModerate || CanManageGameplay || CanCoins || community?.MyCapabilities.Contains("inventory.remove") == true;
 
     public void OpenWorkspace(WorkspaceKind kind) => OpenWorkspaceWindow?.Invoke(kind);
 
@@ -109,6 +109,7 @@ public sealed partial class SeasonsPanel
         { DrawCommunityGroups(administration: true); ImGui.EndTabItem(); }
         if (Owner && ImGui.BeginTabItem("Gameplay"))
         {
+            if (ImGui.CollapsingHeader("Combat")) DrawCombatRules();
             if (ImGui.CollapsingHeader("Classes")) DrawClassPolicy();
             if (ImGui.CollapsingHeader("Enslavement")) DrawOwnershipEffect();
             if (ImGui.CollapsingHeader("Weekly limits")) DrawWeeklyPolicy();

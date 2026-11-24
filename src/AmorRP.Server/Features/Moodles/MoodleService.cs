@@ -71,6 +71,16 @@ public sealed class MoodleService(AmorDbContext db, SessionAccess sessions, Seas
                 active.Add(new(id, ownershipEffect, null));
             else remove.Add(id);
         }
+        var downedEffect = Decode(season?.DownedEffectJson);
+        var combatStates = await db.CombatSheets.AsNoTracking().Where(x => x.CharacterId == actor)
+            .Select(x => new { x.CommunityId, x.HitPoints }).ToArrayAsync(ct);
+        foreach (var state in combatStates)
+        {
+            var id = EffectId(state.CommunityId, actor, "combat", "downed");
+            if (state.CommunityId == season?.Id && state.HitPoints == 0 && downedEffect != null)
+                active.Add(new(id, downedEffect, null));
+            else remove.Add(id);
+        }
         h.Response.Headers.CacheControl = "no-store";
         return Results.Json(new MoodleGrants(active.ToArray(), remove.ToArray(), now));
     }

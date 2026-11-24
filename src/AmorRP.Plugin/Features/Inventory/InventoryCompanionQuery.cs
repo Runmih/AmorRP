@@ -4,7 +4,7 @@ using AmorRP.Core.Items;
 
 namespace AmorRP.Plugin.Features.Inventory;
 
-internal enum InventoryCompanionSection { All, Consumables, Writing, Supplies, Documents }
+internal enum InventoryCompanionSection { All, Consumables, Writing, Supplies, Documents, Equipment }
 
 // This browser has its own filters and pagination; the main menu can remain open.
 internal sealed class InventoryCompanionQuery
@@ -15,11 +15,12 @@ internal sealed class InventoryCompanionQuery
     public int Sort { get; set; }
     public bool CanLoad => IsSupported(Section);
     public static bool IsSupported(InventoryCompanionSection section) =>
-        section is InventoryCompanionSection.All or InventoryCompanionSection.Consumables or InventoryCompanionSection.Writing;
+        section is InventoryCompanionSection.All or InventoryCompanionSection.Consumables or InventoryCompanionSection.Writing or InventoryCompanionSection.Equipment;
     public string[] Types => Section switch
     {
         InventoryCompanionSection.All => CraftingTypes.All,
         InventoryCompanionSection.Consumables => CraftingTypes.Consumables,
+        InventoryCompanionSection.Equipment => CraftingTypes.Blacksmithing,
         InventoryCompanionSection.Writing => CraftingTypes.Writing,
         _ => []
     };

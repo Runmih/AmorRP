@@ -82,7 +82,7 @@ public sealed partial class SeasonsPanel
         ImGui.EndDisabled();
     }
 
-    private bool DrawMoodleEditor(string label, ref MoodleEffect? draft, bool ownership = false)
+    private bool DrawMoodleEditor(string label, ref MoodleEffect? draft, bool ownership = false, string persistentDescription = "Displayed while the permit is active.")
     {
         ImGui.PushID(label);
         var enabled = draft != null;
@@ -103,7 +103,7 @@ public sealed partial class SeasonsPanel
         ImGui.InputText("Effect name", ref name, 321);
         ImGui.InputTextMultiline("Effect description", ref description, 1201, new(-1, ImGui.GetTextLineHeightWithSpacing() * 3));
         ImGui.InputInt("Status icon ID", ref icon);
-        if (ownership) ImGui.TextDisabled("Displayed while the permit is active.");
+        if (ownership) ImGui.TextDisabled(persistentDescription);
         else ImGui.InputInt("Duration (seconds)", ref duration);
         if (!ownership) ImGui.Checkbox("Debuff", ref debuff);
         draft = new(name, description, icon, duration, debuff);

@@ -3,6 +3,15 @@ namespace AmorRP.Plugin.Services.Api;
 internal enum CommandKind
 {
     Unknown,
+    EditCombatPolicy,
+    AllocateCombatStats,
+    EquipCombatGear,
+    AttackCharacter,
+    RollStatCheck,
+    AdjustCombatHealth,
+    EditResetPotion,
+    BuyResetPotion,
+    UseResetPotion,
     ActivateSeason,
     ArchiveSeason,
     SetSeasonCreationPermission,
@@ -97,7 +106,7 @@ internal enum CommandKind
     BuyPermit,
 }
 
-internal enum CommandHandler { None, SeasonForm, Home, Balance, Policy, Member, Inventory, Trade, GroupProfile, GroupActivity, Treasury, Billing, BillingPolicy, GroupBilling, Shop, Permit, Gathering, Discord, SignOut }
+internal enum CommandHandler { None, SeasonForm, Home, Balance, Policy, Member, Inventory, Trade, GroupProfile, GroupActivity, Treasury, Billing, BillingPolicy, GroupBilling, Shop, Permit, Gathering, Discord, Combat, SignOut }
 
 [Flags]
 internal enum RefreshTargets
@@ -152,6 +161,15 @@ internal static class CommandRoutes
         new("DELETE", "api/v2/seasons/{seasonId}/discord/link", new(CommandKind.UnlinkDiscordPlayer, CommandHandler.Discord, RefreshTargets.None)),
         new("POST", "api/v2/seasons/{seasonId}/groups/{groupId}/discord/link", new(CommandKind.CreateDiscordGroupCode, CommandHandler.Discord, RefreshTargets.None)),
         new("DELETE", "api/v2/seasons/{seasonId}/groups/{groupId}/discord/link", new(CommandKind.UnlinkDiscordGroup, CommandHandler.Discord, RefreshTargets.None)),
+        new("PUT", "api/v2/seasons/{seasonId}/combat/policy", new(CommandKind.EditCombatPolicy, CommandHandler.Combat, RefreshTargets.Inventory)),
+        new("POST", "api/v2/seasons/{seasonId}/combat/stats", new(CommandKind.AllocateCombatStats, CommandHandler.Combat, RefreshTargets.None)),
+        new("PUT", "api/v2/seasons/{seasonId}/combat/equipment", new(CommandKind.EquipCombatGear, CommandHandler.Combat, RefreshTargets.None)),
+        new("POST", "api/v2/seasons/{seasonId}/combat/attacks", new(CommandKind.AttackCharacter, CommandHandler.Combat, RefreshTargets.None)),
+        new("POST", "api/v2/seasons/{seasonId}/combat/checks", new(CommandKind.RollStatCheck, CommandHandler.Combat, RefreshTargets.None)),
+        new("PUT", "api/v2/seasons/{seasonId}/combat/health/{characterId}", new(CommandKind.AdjustCombatHealth, CommandHandler.Combat, RefreshTargets.None)),
+        new("PUT", "api/v2/seasons/{seasonId}/shop/reset-potion", new(CommandKind.EditResetPotion, CommandHandler.Combat, RefreshTargets.None)),
+        new("POST", "api/v2/seasons/{seasonId}/shop/reset-potion/purchases", new(CommandKind.BuyResetPotion, CommandHandler.Combat, RefreshTargets.Season)),
+        new("POST", "api/v2/seasons/{seasonId}/combat/reset", new(CommandKind.UseResetPotion, CommandHandler.Combat, RefreshTargets.Season | RefreshTargets.Inventory | RefreshTargets.Classes)),
         new("POST", "api/v2/seasons/{seasonId}/shop/products", new(CommandKind.SaveShopProduct, CommandHandler.Shop, RefreshTargets.None)),
         new("PUT", "api/v2/seasons/{seasonId}/shop/products/{productId}", new(CommandKind.SaveShopProduct, CommandHandler.Shop, RefreshTargets.None)),
         new("DELETE", "api/v2/seasons/{seasonId}/shop/products/{productId}", new(CommandKind.DeleteShopProduct, CommandHandler.Shop, RefreshTargets.None)),

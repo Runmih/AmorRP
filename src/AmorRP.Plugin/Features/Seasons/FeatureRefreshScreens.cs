@@ -30,6 +30,7 @@ public sealed partial class SeasonsPanel
     {
         ResetInventoryCompanion();
         ResetClasses();
+        ResetCombat();
         ResetDiscordViews();
         ResetMoodles();
         ResetWritingLog();
@@ -55,6 +56,10 @@ public sealed partial class SeasonsPanel
         refreshNeeded = true;
         RefreshCommunityFeatures();
         shopRefresh.Invalidate();
+        combatRefresh.Invalidate();
+        equipmentRefresh.Invalidate();
+        combatPolicyRefresh.Invalidate();
+        resetPotionRefresh.Invalidate();
         permitsRefresh.Invalidate();
         gatheringRefresh.Invalidate();
         classRefresh.Invalidate();

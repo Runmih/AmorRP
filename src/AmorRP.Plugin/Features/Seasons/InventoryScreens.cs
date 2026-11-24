@@ -67,7 +67,7 @@ public sealed partial class SeasonsPanel
     {
         if (state == null) { ClearInventoryViews(); return; }
         var filterId = filterCategory > 0 && filterCategory <= categories.Length ? (Guid?)categories[filterCategory - 1].Id : null;
-        var productionTypes = craftCooking ? CraftingTypes.Cooking : CraftingTypes.Alchemy;
+        var productionTypes = CraftingTypes.Types(craftDiscipline);
         var currentRecipes = definitions.Where(x => !x.Retired && x.Enabled && productionTypes.Contains(x.TypeId)).ToArray();
         var recipeId = recipeChoice < currentRecipes.Length ? (Guid?)currentRecipes[recipeChoice].Id : null;
         categories = state.Categories; definitions = state.Definitions; holdings = state.Holdings.Items; holdingCursor = state.Holdings.NextCursor;
@@ -93,12 +93,20 @@ public sealed partial class SeasonsPanel
     {
         var quota = quotas?.Items.FirstOrDefault(x => x.Kind == kind);
         if (quota == null) return;
-        Wrapped(kind == "potion_points" ? $"Weekly Alchemy points: {quota.Remaining} of {quota.Limit} remaining" : kind == "cooking_points" ? $"Weekly Cooking points: {quota.Remaining} of {quota.Limit} remaining" : $"You can create {quota.Remaining} more written items this week.");
+        var label = kind switch
+        {
+            "potion_points" => "Alchemy",
+            "cooking_points" => "Cooking",
+            AmorRP.Core.Combat.CombatRules.BlacksmithingQuota => "Blacksmithing",
+            _ => null
+        };
+        Wrapped(label == null ? $"You can create {quota.Remaining} more written items this week."
+            : $"Weekly {label} points: {quota.Remaining} of {quota.Limit} remaining");
         Wrapped($"Next reset: {quota.ResetAt.LocalDateTime:g} (your local time)");
     }
     // One type registry feeds both the fixed category tabs and All's dependent
     // type choices. Add future types to their family here.
-    private static readonly (string Id, int Tab)[] inventoryTypes = AmorRP.Core.Items.CraftingTypes.Consumables.Select(x => (Id: x, Tab: 1)).Concat(AmorRP.Core.Items.CraftingTypes.Writing.Select(x => (Id: x, Tab: 2))).ToArray();
+    private static readonly (string Id, int Tab)[] inventoryTypes = AmorRP.Core.Items.CraftingTypes.Consumables.Select(x => (Id: x, Tab: 1)).Concat(CraftingTypes.Writing.Select(x => (Id: x, Tab: 2))).Concat(CraftingTypes.Blacksmithing.Select(x => (Id: x, Tab: 3))).ToArray();
     private string[] InventoryTypes()
     {
         var allowed = inventoryTab == 0 && filterCategory > 0 && filterCategory <= categories.Length ? categories[filterCategory - 1].AllowedTypeIds : null;
@@ -176,7 +184,7 @@ public sealed partial class SeasonsPanel
         var item = selectedItem.Holding;
         var definition = selectedItem.Definition;
         ImGui.PushID(item.Id.ToString());
-        if (definition != null && CraftingTypes.IsRecipe(item.TypeId))
+        if (definition != null && CraftingTypes.IsRecipe(item.TypeId) && !CraftingTypes.IsGear(item.TypeId))
         {
             DrawConsumeButton(selectedItem);
             ImGui.SameLine();
@@ -193,11 +201,12 @@ public sealed partial class SeasonsPanel
         Wrapped(item.Name);
         ImGui.PopStyleColor();
         if (definition != null && definition.Description.Length > 0) Wrapped(definition.Description);
-        if (definition != null && CraftingTypes.IsRecipe(item.TypeId)) DrawConsumptionDetails(definition);
+        if (definition != null && CraftingTypes.IsRecipe(item.TypeId) && !CraftingTypes.IsGear(item.TypeId)) DrawConsumptionDetails(definition);
+        else if (definition?.Gear is { } gear) ImGui.TextUnformatted(GearLabel(gear));
         else if (definition != null && CraftingTypes.IsSupply(item.TypeId))
             Wrapped($"Adds {definition.BonusPoints} {(item.TypeId == CraftingTypes.AlchemySupplies ? "Alchemy" : "Cooking")} points until the weekly reset.");
         if (selectedItem.Letter != null && ImGui.SmallButton("Read in Writing Log")) OpenWritingLog(item);
-        if (definition != null && ImGui.SmallButton(pinned.Contains(item.Id) ? "Unpin from consumables" : "Pin to consumables")) TogglePin(item.Id);
+        if (definition != null && CraftingTypes.IsConsumable(item.TypeId) && ImGui.SmallButton(pinned.Contains(item.Id) ? "Unpin from consumables" : "Pin to consumables")) TogglePin(item.Id);
         ImGui.PopID();
         return openDiscard;
     }
@@ -292,6 +301,7 @@ public sealed partial class SeasonsPanel
             removeItemsConfirmed = false;
         }
         if (consumption == null) return;
+        combatRefresh.Invalidate();
         actionResult = "Item consumed.";
         if (consumption.Destination.Length == 0) return;
         var channel = DestinationIndex(consumption.Destination);

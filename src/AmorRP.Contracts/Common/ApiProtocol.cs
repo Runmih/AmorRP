@@ -4,6 +4,6 @@ namespace AmorRP.Contracts.Common;
 public static class ApiProtocol
 {
     public const string Version = "2";
-    public const string MinimumServerVersion = "0.16.0.0";
+    public const string MinimumServerVersion = "0.17.0.0";
     public const string MinimumClientVersion = "0.4.0.3";
 }

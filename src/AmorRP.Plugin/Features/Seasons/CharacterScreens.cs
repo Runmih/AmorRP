@@ -9,6 +9,8 @@ public sealed partial class SeasonsPanel
 {
     private void DrawCharacterPage()
     {
+        DrawCombatCharacter();
+        ImGui.Spacing();
         DrawCharacterClasses();
         ImGui.Spacing();
         DrawCharacterResources();
@@ -40,10 +42,11 @@ public sealed partial class SeasonsPanel
         ImGui.PushStyleColor(ImGuiCol.PlotHistogram, PluginTheme.SelectedButton);
         var alchemyReset = CanCraftPotions ? DrawResourceBar("potion_points", "Alchemy points", FontAwesomeIcon.Flask) : null;
         var cookingReset = CanCraftCooking ? DrawResourceBar("cooking_points", "Cooking points", FontAwesomeIcon.KitchenSet) : null;
+        var blacksmithReset = CanBlacksmith ? DrawResourceBar(AmorRP.Core.Combat.CombatRules.BlacksmithingQuota, "Blacksmithing points", FontAwesomeIcon.Hammer) : null;
         var gatheringReset = CanGather ? DrawResourceBar("gathering_points", "Gathering and Hunting points", FontAwesomeIcon.Leaf) : null;
         var writingReset = DrawResourceBar("letters", "Writing allowance", FontAwesomeIcon.FeatherAlt);
         ImGui.PopStyleColor();
-        if ((alchemyReset ?? cookingReset ?? gatheringReset ?? writingReset) is { } reset)
+        if ((alchemyReset ?? cookingReset ?? blacksmithReset ?? gatheringReset ?? writingReset) is { } reset)
             ImGui.TextDisabled($"Next reset: {reset.LocalDateTime:g}");
     }
 

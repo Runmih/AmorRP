@@ -2,6 +2,7 @@ using AmorRP.Contracts.Common;
 using AmorRP.Contracts.Inventory;
 using AmorRP.Core.Items;
 using AmorRP.Server.Features.Authentication;
+using AmorRP.Server.Features.Combat;
 using AmorRP.Server.Features.Seasons;
 using AmorRP.Server.Features.Moodles;
 using AmorRP.Server.Infrastructure.Persistence;
@@ -17,11 +18,12 @@ public sealed class CatalogService(AmorDbContext db, SessionAccess sessions, Sea
 {
     public static Category View(CategoryRow row) => new(row.Id, row.CommunityId, row.Name, row.AllowedTypeIds, row.Retired, row.Version);
     public static Definition View(DefinitionRow row, DefinitionRevisionRow rev) => new(row.Id, row.CommunityId, row.TypeId,
-        rev.Revision, rev.TypeDataVersion, rev.Name, rev.CategoryId, rev.Description, rev.Enabled, row.Retired, new(rev.CreationCost, rev.UseMessage), rev.BonusPoints, row.GroupId, MoodleService.Decode(rev.MoodleEffectJson));
+        rev.Revision, rev.TypeDataVersion, rev.Name, rev.CategoryId, rev.Description, rev.Enabled, row.Retired, new(rev.CreationCost, rev.UseMessage), rev.BonusPoints, row.GroupId, MoodleService.Decode(rev.MoodleEffectJson), CombatService.Gear(rev.GearJson), rev.StatPoints);
     public static void Seed(AmorDbContext db, Guid communityId)
     {
         db.Categories.AddRange(new CategoryRow { CommunityId = communityId, Name = "Alchemy", AllowedTypeIds = CraftingTypes.Alchemy },
             new CategoryRow { CommunityId = communityId, Name = "Cooking", AllowedTypeIds = CraftingTypes.Cooking },
+            new CategoryRow { CommunityId = communityId, Name = "Blacksmithing", AllowedTypeIds = CraftingTypes.Blacksmithing },
             new CategoryRow { CommunityId = communityId, Name = "Books", AllowedTypeIds = ["book", "letter", "note"] });
     }
     public async Task<CategoryRow> RequireCategoryAsync(Guid communityId, Guid id, string type, CancellationToken ct)
@@ -56,7 +58,7 @@ public sealed class CatalogService(AmorDbContext db, SessionAccess sessions, Sea
         if (id.HasValue) CommandStore.Match(h, CommandStore.ETag("category", row!.Id, row.Version));
         if (body != null)
         {
-            ApiFault.Text(body.Name, 80); ApiFault.Require(body.AllowedTypeIds is { Length: > 0 and <= 11 } && body.AllowedTypeIds.All(x => CraftingTypes.All.Contains(x)) && body.AllowedTypeIds.Distinct().Count() == body.AllowedTypeIds.Length, 422, "invalid_request", "Select supported item types.");
+            ApiFault.Text(body.Name, 80); ApiFault.Require(body.AllowedTypeIds is { Length: > 0 } && body.AllowedTypeIds.Length <= CraftingTypes.All.Length && body.AllowedTypeIds.All(x => CraftingTypes.All.Contains(x)) && body.AllowedTypeIds.Distinct().Count() == body.AllowedTypeIds.Length, 422, "invalid_request", "Select supported item types.");
             ApiFault.Require(!row!.Retired, 409, "category_retired", "Retired categories cannot be edited.");
             row.Name = body.Name.Trim(); row.AllowedTypeIds = body.AllowedTypeIds;
         }
@@ -110,12 +112,19 @@ public sealed class CatalogService(AmorDbContext db, SessionAccess sessions, Sea
         DefinitionRevisionRow rev;
         if (body != null)
         {
-            ApiFault.Require(CraftingTypes.IsRecipe(body.TypeId) && (!id.HasValue || row!.TypeId == body.TypeId) && body.Potion != null && body.Potion.CreationCost > 0, 422, "invalid_request", "Choose an Alchemy or Cooking item type and a positive supported point cost.");
+            ApiFault.Require(CraftingTypes.IsRecipe(body.TypeId) && (!id.HasValue || row!.TypeId == body.TypeId) && body.Potion != null && body.Potion.CreationCost > 0, 422, "invalid_request", "Choose a recipe item type and a positive point cost.");
             var nameError = AmorRP.Core.Items.PlainText.Error(body.Name, policy.Value.DefinitionNameTextElements);
+            ApiFault.Require(!string.Equals(body.Name?.Trim(), "Character Reset Potion", StringComparison.OrdinalIgnoreCase),
+                422, "reserved_item_name", "Character Reset Potion is a built-in shop product.");
             var descriptionError = AmorRP.Core.Items.PlainText.Error(body.Description, policy.Value.DefinitionDescriptionTextElements, multiline: true, required: false);
             ApiFault.Require(nameError == null && descriptionError == null, 422, "invalid_request", nameError != null ? "Item name: " + nameError : "Item description: " + descriptionError);
-            var messageError = AmorRP.Core.Items.LiteralChatText.Error(body.Potion!.UseMessage, policy.Value.ChatMessageTextElements);
+            var messageError = CraftingTypes.IsGear(body.TypeId) ? null : AmorRP.Core.Items.LiteralChatText.Error(body.Potion!.UseMessage, policy.Value.ChatMessageTextElements);
             ApiFault.Require(messageError == null, 422, "invalid_message", messageError ?? "Invalid potion message.");
+            var gear = CombatService.EncodeGear(body.TypeId, body.Gear);
+            ApiFault.Require(body.StatPoints == 0 || (body.TypeId == "potion" && body.StatPoints is >= 1 and <= 10),
+                422, "invalid_stat_effect", "Stat point effects belong to potions and grant 1 to 10 points.");
+            ApiFault.Require(!CraftingTypes.IsGear(body.TypeId) || body.Effect == null, 422,
+                "invalid_gear_effect", "Gear recipes use the equipment fields.");
             await RequireCategoryAsync(communityId, body.CategoryId, body.TypeId, ct);
             if (!id.HasValue && groupId is { } group)
                 ApiFault.Require(await db.Definitions.CountAsync(x => x.CommunityId == communityId && x.GroupId == group && !x.Retired, ct) < community.GroupRecipeLimit,
@@ -123,14 +132,14 @@ public sealed class CatalogService(AmorDbContext db, SessionAccess sessions, Sea
             row.GroupId = groupId;
             row.TypeId = body.TypeId;
             if (id.HasValue) row.Revision++;
-            rev = new() { CommunityId = communityId, DefinitionId = row.Id, Revision = row.Revision, Name = body.Name.Trim(), CategoryId = body.CategoryId, Description = body.Description ?? "", Enabled = body.Enabled, CreationCost = body.Potion.CreationCost, UseMessage = body.Potion.UseMessage, MoodleEffectJson = MoodleService.Encode(body.Effect) };
+            rev = new() { CommunityId = communityId, DefinitionId = row.Id, Revision = row.Revision, Name = body.Name!.Trim(), CategoryId = body.CategoryId, Description = body.Description ?? "", Enabled = body.Enabled, CreationCost = body.Potion!.CreationCost, UseMessage = CraftingTypes.IsGear(body.TypeId) ? "" : body.Potion.UseMessage, MoodleEffectJson = MoodleService.Encode(body.Effect), GearJson = gear, StatPoints = body.StatPoints };
             db.DefinitionRevisions.Add(rev); if (!id.HasValue) db.Definitions.Add(row);
         }
         else
         {
             var previous = await db.DefinitionRevisions.SingleAsync(x => x.CommunityId == communityId && x.DefinitionId == row.Id && x.Revision == row.Revision, ct);
             row.Retired = true; row.Revision++;
-            rev = new() { CommunityId = communityId, DefinitionId = row.Id, Revision = row.Revision, Name = previous.Name, CategoryId = previous.CategoryId, Description = previous.Description, Enabled = false, CreationCost = previous.CreationCost, UseMessage = previous.UseMessage, MoodleEffectJson = previous.MoodleEffectJson };
+            rev = new() { CommunityId = communityId, DefinitionId = row.Id, Revision = row.Revision, Name = previous.Name, CategoryId = previous.CategoryId, Description = previous.Description, Enabled = false, CreationCost = previous.CreationCost, UseMessage = previous.UseMessage, MoodleEffectJson = previous.MoodleEffectJson, GearJson = previous.GearJson, StatPoints = previous.StatPoints };
             db.DefinitionRevisions.Add(rev);
         }
         community.InventoryVersion++;

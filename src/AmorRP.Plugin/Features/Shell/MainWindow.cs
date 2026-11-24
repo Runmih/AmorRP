@@ -28,6 +28,7 @@ public sealed class MainWindow : Window, IDisposable
         communities.CloseCreateCommunity = () => CloseCreateCommunity?.Invoke();
         communities.SetFavoriteEventsVisible = visible => SetFavoriteEventsVisible?.Invoke(visible);
         communities.SetCoinHudVisible = visible => SetCoinHudVisible?.Invoke(visible);
+        communities.SetHealthHudVisible = visible => SetHealthHudVisible?.Invoke(visible);
         communities.SetLauncherVisible = visible => SetLauncherVisible?.Invoke(visible);
     }
 
@@ -51,6 +52,9 @@ public sealed class MainWindow : Window, IDisposable
     public GroupEvent[] UpcomingFavoriteEvents() => communities.UpcomingFavoriteEvents();
     public string[] CoinBalance() => communities.CoinBalance();
     public void DrawCoinHud(string[] balance) => communities.DrawCoinHud(balance);
+    public AmorRP.Contracts.Combat.CombatSheet[] HealthHudRows() => communities.HealthHudRows();
+    public void DrawHealthHud(AmorRP.Contracts.Combat.CombatSheet[] sheets) => communities.DrawHealthHud(sheets);
+    public Action<bool>? SetHealthHudVisible { get; set; }
     public Action<bool>? SetCoinHudVisible { get; set; }
     public Action<bool>? SetFavoriteEventsVisible { get; set; }
     public Action<bool>? SetLauncherVisible { get; set; }

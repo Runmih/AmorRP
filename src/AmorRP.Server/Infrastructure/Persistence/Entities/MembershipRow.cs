@@ -11,6 +11,7 @@ public sealed class MembershipRow
     public Guid[] ReadAnnouncementIds { get; set; } = [];
     public string Description { get; set; } = "";
     public string[] Capabilities { get; set; } = [];
+    public bool CombatRestricted { get; set; }
     public bool TradingRestricted { get; set; }
     public int Version { get; set; } = 1;
     public long LastCollectionAttempt { get; set; }

@@ -48,7 +48,7 @@ public sealed partial class FoundationTests
         await db.Database.MigrateAsync(ct);
         Assert.Equal(currency, (await db.Seasons.SingleAsync(ct)).CurrencyId);
         Assert.Equal(12345, (await db.Memberships.SingleAsync(ct)).Owned);
-        Assert.Equal(new[] { "Alchemy", "Consumables", "Cooking", "Correspondence" }, await db.Categories.OrderBy(x => x.Name).Select(x => x.Name).ToArrayAsync(ct));
+        Assert.Equal(new[] { "Alchemy", "Blacksmithing", "Consumables", "Cooking", "Correspondence" }, await db.Categories.OrderBy(x => x.Name).Select(x => x.Name).ToArrayAsync(ct));
         Assert.Empty(await db.Database.GetPendingMigrationsAsync(ct));
     }
     [Fact]

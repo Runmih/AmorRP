@@ -254,6 +254,51 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                     b.ToTable("characters", (string)null);
                 });
 
+            modelBuilder.Entity("AmorRP.Server.Infrastructure.Persistence.CombatSheetRow", b =>
+                {
+                    b.Property<Guid>("CommunityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CharacterId")
+                        .HasColumnType("uuid");
+
+                    b.PrimitiveCollection<int[]>("Allocated")
+                        .IsRequired()
+                        .HasColumnType("integer[]");
+
+                    b.Property<Guid?>("ArmorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("BonusPoints")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("HitPoints")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ResetPotions")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ResetPurchases")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("WeaponId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("CommunityId", "CharacterId");
+
+                    b.ToTable("combat_sheets", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_combat_allocated", "cardinality(\"Allocated\") = 6 AND 0 <= ALL(\"Allocated\") AND 10 >= ALL(\"Allocated\")");
+
+                            t.HasCheckConstraint("ck_combat_hp", "\"HitPoints\" BETWEEN 0 AND 20");
+
+                            t.HasCheckConstraint("ck_combat_points_and_potions", "\"BonusPoints\" BETWEEN 0 AND 60 AND \"ResetPurchases\" >= \"ResetPotions\" AND \"ResetPotions\" >= 0");
+                        });
+                });
+
             modelBuilder.Entity("AmorRP.Server.Infrastructure.Persistence.CommunityRow", b =>
                 {
                     b.Property<Guid>("Id")
@@ -270,6 +315,11 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
 
                     b.Property<int>("BillingTaxPercent")
                         .HasColumnType("integer");
+
+                    b.Property<int>("BlacksmithingPoints")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(10);
 
                     b.Property<string>("ClassCatalog")
                         .IsRequired()
@@ -288,6 +338,11 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                         .HasDefaultValue(1000L);
 
                     b.Property<int>("ClassSlots")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
+                    b.Property<int>("CombatPolicyVersion")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
                         .HasDefaultValue(1);
@@ -336,6 +391,9 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("DownedEffectJson")
+                        .HasColumnType("text");
 
                     b.Property<int>("GatheringVersion")
                         .HasColumnType("integer");
@@ -396,6 +454,16 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                     b.Property<int>("PolicyVersion")
                         .HasColumnType("integer");
 
+                    b.Property<int>("ResetPotionLimit")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
+                    b.Property<int>("ResetPotionVersion")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
                     b.Property<string>("SeasonState")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
@@ -405,6 +473,11 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
 
                     b.Property<long>("SeasonTreasuryOwned")
                         .HasColumnType("bigint");
+
+                    b.Property<int>("StatPointAllowance")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(6);
 
                     b.Property<int>("Version")
                         .HasColumnType("integer");
@@ -467,12 +540,18 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                     b.Property<bool>("Enabled")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("GearJson")
+                        .HasColumnType("text");
+
                     b.Property<string>("MoodleEffectJson")
                         .HasColumnType("text");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<int>("StatPoints")
+                        .HasColumnType("integer");
 
                     b.Property<int>("TypeDataVersion")
                         .HasColumnType("integer");
@@ -1048,7 +1127,7 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
 
                     b.ToTable("holdings", null, t =>
                         {
-                            t.HasCheckConstraint("ck_holding_payload", "(\"TypeId\" IN ('potion','poison','explosive','drug','medicine','meal','drink','dessert','alchemy-supplies','cooking-supplies') AND \"DefinitionId\" IS NOT NULL AND \"DefinitionRevision\" IS NOT NULL AND \"LetterId\" IS NULL) OR (\"TypeId\" IN ('letter','book','note') AND \"LetterId\" IS NOT NULL AND \"DefinitionId\" IS NULL AND \"DefinitionRevision\" IS NULL AND \"Quantity\" <= 1)");
+                            t.HasCheckConstraint("ck_holding_payload", "(\"TypeId\" IN ('potion','poison','explosive','drug','medicine','meal','drink','dessert','alchemy-supplies','cooking-supplies','weapon','armor') AND \"DefinitionId\" IS NOT NULL AND \"DefinitionRevision\" IS NOT NULL AND \"LetterId\" IS NULL) OR (\"TypeId\" IN ('letter','book','note') AND \"LetterId\" IS NOT NULL AND \"DefinitionId\" IS NULL AND \"DefinitionRevision\" IS NULL AND \"Quantity\" <= 1)");
 
                             t.HasCheckConstraint("ck_holding_quantity", "\"Quantity\" >= 0 AND \"Reserved\" >= 0 AND \"Reserved\" <= \"Quantity\"");
                         });
@@ -1313,6 +1392,11 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
 
                     b.Property<bool>("CollectionPending")
                         .HasColumnType("boolean");
+
+                    b.Property<bool>("CombatRestricted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -2097,6 +2181,15 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                     b.HasOne("AmorRP.Server.Infrastructure.Persistence.CommunityRow", null)
                         .WithMany()
                         .HasForeignKey("CommunityId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AmorRP.Server.Infrastructure.Persistence.CombatSheetRow", b =>
+                {
+                    b.HasOne("AmorRP.Server.Infrastructure.Persistence.MembershipRow", null)
+                        .WithMany()
+                        .HasForeignKey("CommunityId", "CharacterId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });

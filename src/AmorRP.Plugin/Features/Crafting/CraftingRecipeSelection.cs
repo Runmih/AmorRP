@@ -6,9 +6,9 @@ namespace AmorRP.Plugin.Features.Crafting;
 internal sealed class CraftingRecipeSelection
 {
     public Guid? SelectedId { get; private set; }
-    public static Definition[] View(IEnumerable<Definition> definitions, bool cooking, string search)
+    public static Definition[] View(IEnumerable<Definition> definitions, CraftingDiscipline discipline, string search)
     {
-        var types = cooking ? CraftingTypes.Cooking : CraftingTypes.Alchemy;
+        var types = CraftingTypes.Types(discipline);
         return definitions.Where(x => !x.Retired && x.Enabled && types.Contains(x.TypeId)
                 && x.Name.Contains(search.Trim(), StringComparison.OrdinalIgnoreCase))
             .OrderBy(x => x.Name, StringComparer.OrdinalIgnoreCase).ThenBy(x => x.Id).ToArray();

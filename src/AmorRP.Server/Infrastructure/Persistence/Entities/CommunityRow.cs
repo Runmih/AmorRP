@@ -3,6 +3,12 @@ namespace AmorRP.Server.Infrastructure.Persistence;
 public sealed class CommunityRow
 {
     public int ClassSlots { get; set; } = 1;
+    public int StatPointAllowance { get; set; } = 6;
+    public int BlacksmithingPoints { get; set; } = 10;
+    public int CombatPolicyVersion { get; set; } = 1;
+    public string? DownedEffectJson { get; set; }
+    public int ResetPotionLimit { get; set; } = 1;
+    public int ResetPotionVersion { get; set; } = 1;
     public long ClassResetPrice { get; set; } = 1000;
     public string ClassCatalog { get; set; } = "[]";
     public int ClassPolicyVersion { get; set; } = 1;

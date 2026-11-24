@@ -26,12 +26,12 @@ public sealed partial class SeasonsPanel
         LoadMoreInventory(true);
         DrawDiscardDialog(details?.Holding, DrawDetails(details));
     }
-    private bool craftCooking;
+    private CraftingDiscipline craftDiscipline;
 
-    private void SetCraftMode(bool cooking)
+    private void SetCraftMode(CraftingDiscipline discipline)
     {
-        if (craftCooking == cooking) return;
-        craftCooking = cooking;
+        if (craftDiscipline == discipline) return;
+        craftDiscipline = discipline;
         recipeChoice = 0;
         productionSearch = "";
         productionSelection.Reset();
@@ -39,14 +39,14 @@ public sealed partial class SeasonsPanel
 
     private void DrawPotionCreation()
     {
-        if (!(craftCooking ? CanCraftCooking : CanCraftPotions))
+        if (!CanCraft(craftDiscipline))
         {
             Wrapped("Ask the season owner or a moderator for permission to craft these items.");
             return;
         }
-        if (CraftingRecipeSelection.View(definitions, craftCooking, "").Length == 0)
+        if (CraftingRecipeSelection.View(definitions, craftDiscipline, "").Length == 0)
         {
-            Wrapped((craftCooking ? CanDefineCooking : CanDefinePotions) ? "No enabled recipes. Define one in Recipe Creation, then return here to craft it." : "No enabled recipes yet. Ask a recipe creator to define and enable one.");
+            Wrapped(CanDefine(craftDiscipline) ? "No enabled recipes. Define one in Recipe Creation, then return here to craft it." : "No enabled recipes yet. Ask a recipe creator to define and enable one.");
             return;
         }
         var narrow = ImGui.GetContentRegionAvail().X < ImGui.GetFontSize() * 38;
@@ -55,7 +55,7 @@ public sealed partial class SeasonsPanel
         ImGui.TableNextColumn(); ImGui.BeginChild("ProductionRecipes", new(0, narrow ? ImGui.GetTextLineHeightWithSpacing() * 7 : 0), true);
         ImGui.SetNextItemWidth(-1);
         ImGui.InputTextWithHint("##ProductionSearch", "Search recipes…", ref productionSearch, 100);
-        var recipes = CraftingRecipeSelection.View(definitions, craftCooking, productionSearch);
+        var recipes = CraftingRecipeSelection.View(definitions, craftDiscipline, productionSearch);
         recipeChoice = productionSelection.Resolve(recipes);
         if (ImGui.BeginTable("ProductionRecipeRows", 3, ImGuiTableFlags.RowBg | ImGuiTableFlags.BordersInnerH))
         {
@@ -86,11 +86,19 @@ public sealed partial class SeasonsPanel
         if (recipes.Length == 0)
         { Wrapped("No recipes match this search. Clear it to see all available recipes."); ImGui.PopItemWidth(); ImGui.EndChild(); ImGui.EndTable(); return; }
         var recipe = recipes[recipeChoice]; ImGui.TextUnformatted(recipe.Name); Wrapped(recipe.Description);
-        ImGui.Separator(); ImGui.TextUnformatted("Message posted when used");
-        ImGui.BeginChild("ProductionMessage", new(0, ImGui.GetTextLineHeightWithSpacing() * 4), true); Wrapped(recipe.Potion.UseMessage); ImGui.EndChild();
+        ImGui.Separator();
+        if (recipe.Gear is { } gear) ImGui.TextUnformatted(GearLabel(gear));
+        else
+        {
+            ImGui.TextUnformatted("Message posted when used");
+            ImGui.BeginChild("ProductionMessage", new(0, ImGui.GetTextLineHeightWithSpacing() * 4), true);
+            Wrapped(recipe.Potion.UseMessage);
+            ImGui.EndChild();
+            if (recipe.StatPoints > 0) ImGui.TextUnformatted($"Grants {recipe.StatPoints} permanent stat points.");
+        }
         FieldLabel("Units to craft"); ImGui.InputInt("##ProductionQuantity", ref productionQuantity);
         var cost = (long)productionQuantity * recipe.Potion.CreationCost;
-        var remaining = quotas?.Items.FirstOrDefault(x => x.Kind == (craftCooking ? "cooking_points" : "potion_points"))?.Remaining ?? 0;
+        var remaining = quotas?.Items.FirstOrDefault(x => x.Kind == CraftingTypes.QuotaKind(recipe.TypeId))?.Remaining ?? 0;
         var max = serviceLimits?.MaxCreationQuantity ?? 100;
         var error = productionQuantity < 1 || productionQuantity > max ? $"Choose between 1 and {max} copies."
             : cost > remaining ? $"Not enough points: {cost} needed, {remaining} remaining." : null;
@@ -117,6 +125,7 @@ public sealed partial class SeasonsPanel
 
     private void DrawConsumptionDetails(Definition definition)
     {
+        if (definition.StatPoints > 0) ImGui.TextUnformatted($"Stat points: +{definition.StatPoints} permanent");
         FieldLabel("Duration");
         Wrapped(definition.Effect is { } effect ? TimeSpan.FromSeconds(effect.DurationSeconds).ToString("g") : "—");
         FieldLabel("Emote text");

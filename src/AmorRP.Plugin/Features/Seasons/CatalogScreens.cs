@@ -1,5 +1,6 @@
 using System.Numerics;
 using System.Text;
+using AmorRP.Contracts.Combat;
 using AmorRP.Contracts.Inventory;
 using AmorRP.Core.Items;
 using Dalamud.Bindings.ImGui;
@@ -9,13 +10,15 @@ public sealed partial class SeasonsPanel
 {
     private string definitionName = "", definitionDescription = "", definitionMessage = "";
     private int definitionCost = 1, definitionCategory, definitionType;
-    private bool recipeCooking;
-    private string[] RecipeTypes => recipeCooking ? CraftingTypes.Cooking : CraftingTypes.Alchemy;
+    private CraftingDiscipline recipeDiscipline;
+    private CombatGear? recipeGear;
+    private int recipeStatPoints;
+    private string[] RecipeTypes => CraftingTypes.Types(recipeDiscipline);
     private string RecipeType => RecipeTypes[Math.Clamp(definitionType, 0, RecipeTypes.Length - 1)];
-    private void SetRecipeMode(bool cooking)
+    private void SetRecipeMode(CraftingDiscipline discipline)
     {
-        if (recipeCooking == cooking) return;
-        recipeCooking = cooking;
+        if (recipeDiscipline == discipline) return;
+        recipeDiscipline = discipline;
         NewRecipe();
     }
     private bool definitionEnabled = true;
@@ -25,20 +28,42 @@ public sealed partial class SeasonsPanel
     {
         definitionGroup = recipe.GroupId;
         recipeEffectDraft = recipe.Effect;
+        recipeGear = recipe.Gear;
+        recipeStatPoints = recipe.StatPoints;
         definitionType = Math.Max(0, Array.IndexOf(RecipeTypes, recipe.TypeId));
         definitionEditId = recipe.Id; definitionEditRevision = recipe.Revision; definitionName = recipe.Name;
         definitionDescription = recipe.Description; definitionMessage = recipe.Potion.UseMessage; definitionCost = recipe.Potion.CreationCost; definitionEnabled = recipe.Enabled;
         definitionCategory = Math.Max(0, Array.FindIndex(categories.Where(x => !x.Retired && x.AllowedTypeIds.Contains(RecipeType)).ToArray(), x => x.Id == recipe.CategoryId));
     }
     private void NewRecipe()
-    { recipeEffectDraft = null; definitionGroup = null; definitionEditId = null; definitionEditRevision = null; definitionName = definitionDescription = definitionMessage = ""; definitionCost = 1; definitionEnabled = true; definitionCategory = definitionType = 0; }
+    { recipeGear = null; recipeStatPoints = 0; recipeEffectDraft = null; definitionGroup = null; definitionEditId = null; definitionEditRevision = null; definitionName = definitionDescription = definitionMessage = ""; definitionCost = 1; definitionEnabled = true; definitionCategory = definitionType = 0; }
     private string RecipeAccessLabel(Guid? groupId) => groupId is { } id
         ? communityGroups.FirstOrDefault(group => group.Id == id)?.Name ?? "Group"
         : "Global";
 
+    private void DrawGearRecipeFields(string type)
+    {
+        var gear = recipeGear ?? (type == "weapon" ? new CombatGear("sword", "STR", 3) : new CombatGear("armor", null, 12));
+        var value = gear.Value;
+        if (type == "weapon")
+        {
+            var form = gear.Form == "staff" ? 1 : 0;
+            var ability = gear.Ability == "DEX" ? 1 : 0;
+            ImGui.Combo("Weapon icon", ref form, ["Sword", "Staff"], 2);
+            ImGui.Combo("Attack and damage stat", ref ability, ["STR", "DEX"], 2);
+            ImGui.InputInt("Weapon power", ref value);
+            recipeGear = new(form == 0 ? "sword" : "staff", ability == 0 ? "STR" : "DEX", Math.Clamp(value, 1, 100));
+        }
+        else
+        {
+            ImGui.InputInt("Armor class", ref value);
+            recipeGear = new("armor", null, Math.Clamp(value, 10, 25));
+        }
+    }
+
     private void DrawCatalogEditor()
     {
-        if (!(recipeCooking ? CanDefineCooking : CanDefinePotions)) return;
+        if (!CanDefine(recipeDiscipline)) return;
         var narrow = ImGui.GetContentRegionAvail().X < ImGui.GetFontSize() * 59;
         if (!ImGui.BeginTable("RecipeLayout", narrow ? 1 : 2, ImGuiTableFlags.Resizable | ImGuiTableFlags.BordersInnerV)) return;
         ImGui.TableSetupColumn("Recipes", ImGuiTableColumnFlags.WidthStretch, .35f); if (!narrow) ImGui.TableSetupColumn("Editor", ImGuiTableColumnFlags.WidthStretch, .65f);
@@ -67,7 +92,7 @@ public sealed partial class SeasonsPanel
                 else if (ActionButton(recipe.Enabled ? "Enabled##RecipeStatus" : "Disabled##RecipeStatus"))
                 {
                     var body = new DefinitionWrite(recipe.TypeId, recipe.Name, recipe.CategoryId, recipe.Description,
-                        !recipe.Enabled, recipe.Potion, recipe.GroupId, recipe.Effect);
+                        !recipe.Enabled, recipe.Potion, recipe.GroupId, recipe.Effect, recipe.Gear, recipe.StatPoints);
                     Mutate("PATCH", $"api/v2/seasons/{community!.Id}/item-definitions/{recipe.Id}", body,
                         ETag("definition", recipe.Id, recipe.Revision));
                     if (definitionEditId == recipe.Id) definitionEnabled = body.Enabled;
@@ -80,9 +105,14 @@ public sealed partial class SeasonsPanel
         ImGui.EndChild(); ImGui.TableNextColumn(); ImGui.BeginChild("RecipeEditor", Vector2.Zero, true);
         ImGui.PushItemWidth(-1);
         var editing = definitions.FirstOrDefault(x => x.Id == definitionEditId);
-        ImGui.TextUnformatted(editing == null ? recipeCooking ? "New Cooking recipe" : "New Alchemy recipe" : editing.Name);
+        ImGui.TextUnformatted(editing?.Name ?? $"New {recipeDiscipline} recipe");
         FieldLabel("Item type"); ImGui.BeginDisabled(editing != null);
-        if (ImGui.Combo("##RecipeType", ref definitionType, RecipeTypes.Select(TypeName).ToArray(), RecipeTypes.Length)) definitionCategory = 0;
+        if (ImGui.Combo("##RecipeType", ref definitionType, RecipeTypes.Select(TypeName).ToArray(), RecipeTypes.Length))
+        {
+            definitionCategory = 0;
+            recipeGear = null;
+            if (RecipeType != "potion") recipeStatPoints = 0;
+        }
         ImGui.EndDisabled();
         var choices = categories.Where(x => !x.Retired && x.AllowedTypeIds.Contains(RecipeType)).ToArray();
         if (choices.Length == 0) Wrapped("No active category accepts this item type. Ask the season owner to check the catalog.");
@@ -102,18 +132,33 @@ public sealed partial class SeasonsPanel
         var nameLimit = serviceLimits?.DefinitionNameTextElements ?? 80;
         var descriptionLimit = Math.Min(300, serviceLimits?.DefinitionDescriptionTextElements ?? 300);
         FieldLabel("Item name"); LimitedInput("##RecipeName", ref definitionName, nameLimit);
-        var nameError = PlainText.Error(definitionName, nameLimit);
+        var nameError = PlainText.Error(definitionName, nameLimit)
+            ?? (string.Equals(definitionName.Trim(), "Character Reset Potion", StringComparison.OrdinalIgnoreCase)
+                ? "Character Reset Potion is a built-in shop product." : null);
         FieldNote("RecipeName", nameError, $"{PlainText.Characters(definitionName)}/{nameLimit} characters");
         FieldLabel("Description"); WrappedInput("##RecipeDescription", ref definitionDescription, 524288, new(-1, ImGui.GetTextLineHeightWithSpacing() * 4), maximumCharacters: descriptionLimit);
         var descriptionError = PlainText.Error(definitionDescription, descriptionLimit, multiline: true, required: false);
         FieldNote("RecipeDescription", descriptionError, $"{PlainText.Characters(definitionDescription)}/{descriptionLimit} characters · optional");
-        FieldLabel("Message posted when used"); LimitedInput("##RecipeMessage", ref definitionMessage, ChatLimit, LiteralChatText.MaximumBytes + 1);
-        var messageError = LiteralChatText.Error(definitionMessage, ChatLimit);
-        FieldNote("RecipeMessage", messageError, $"{PlainText.Characters(definitionMessage)}/{ChatLimit} characters · {Encoding.UTF8.GetByteCount(definitionMessage)}/{LiteralChatText.MaximumBytes} bytes · <3 is allowed");
-        ImGui.TextUnformatted("Exact text players will post");
-        ImGui.BeginChild("RecipePreview", new(0, ImGui.GetTextLineHeightWithSpacing() * 3), true); Wrapped(definitionMessage.Length == 0 ? "Enter a use message above." : definitionMessage); ImGui.EndChild();
-        FieldLabel(recipeCooking ? "Cooking points per unit" : "Alchemy points per unit"); ImGui.InputInt("##RecipeCost", ref definitionCost);
-        var effectValid = DrawMoodleEditor("Moodle effect", ref recipeEffectDraft);
+        var isGear = CraftingTypes.IsGear(RecipeType);
+        string? messageError = null;
+        var effectValid = true;
+        if (isGear) DrawGearRecipeFields(RecipeType);
+        else
+        {
+            FieldLabel("Message posted when used");
+            LimitedInput("##RecipeMessage", ref definitionMessage, ChatLimit, LiteralChatText.MaximumBytes + 1);
+            messageError = LiteralChatText.Error(definitionMessage, ChatLimit);
+            FieldNote("RecipeMessage", messageError, $"{PlainText.Characters(definitionMessage)}/{ChatLimit} characters · {Encoding.UTF8.GetByteCount(definitionMessage)}/{LiteralChatText.MaximumBytes} bytes · <3 is allowed");
+            effectValid = DrawMoodleEditor("Moodle effect", ref recipeEffectDraft);
+            if (RecipeType == "potion" && ImGui.CollapsingHeader("Extra effects", recipeStatPoints > 0 ? ImGuiTreeNodeFlags.DefaultOpen : ImGuiTreeNodeFlags.None))
+            {
+                var grantPoints = recipeStatPoints > 0;
+                if (ImGui.Checkbox("Grant stat points", ref grantPoints)) recipeStatPoints = grantPoints ? 1 : 0;
+                if (grantPoints && ImGui.InputInt("Permanent stat points", ref recipeStatPoints))
+                    recipeStatPoints = Math.Clamp(recipeStatPoints, 1, 10);
+            }
+        }
+        FieldLabel($"{recipeDiscipline} points per unit"); ImGui.InputInt("##RecipeCost", ref definitionCost);
         var costValid = definitionCost > 0;
         FieldNote("RecipeCost", costValid ? null : "Enter a positive whole-point cost.", "Each authorized character spends their own weekly points to create copies.");
         ImGui.Checkbox("Allow members to create copies of this recipe", ref definitionEnabled);
@@ -123,7 +168,8 @@ public sealed partial class SeasonsPanel
         ImGui.BeginDisabled(choices.Length == 0 || nameError != null || descriptionError != null || messageError != null || !costValid || !effectValid || stale || editing?.Retired == true);
         if (ActionButton(definitionEditId == null ? "Define recipe" : "Save recipe revision"))
         {
-            var body = new DefinitionWrite(RecipeType, definitionName, choices[definitionCategory].Id, definitionDescription, definitionEnabled, new(definitionCost, definitionMessage), definitionGroup, recipeEffectDraft);
+            var body = new DefinitionWrite(RecipeType, definitionName, choices[definitionCategory].Id, definitionDescription, definitionEnabled, new(definitionCost, isGear ? "" : definitionMessage), definitionGroup,
+                isGear ? null : recipeEffectDraft, recipeGear, recipeStatPoints);
             if (definitionEditId.HasValue) Mutate("PATCH", $"api/v2/seasons/{community!.Id}/item-definitions/{definitionEditId}", body, ETag("definition", definitionEditId.Value, definitionEditRevision ?? 0));
             else Mutate("POST", $"api/v2/seasons/{community!.Id}/item-definitions", body);
         }

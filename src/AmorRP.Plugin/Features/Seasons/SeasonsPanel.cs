@@ -61,7 +61,7 @@ public sealed partial class SeasonsPanel(IPlayerState player, Configuration conf
     private string name = "", description = "", currencyName = "Coins", symbol = "C";
     private int initialPoints, initialCooking, initialLetters = 5;
     private Guid? memberSelection;
-    private bool grantPermitListings, grantGathering;
+    private bool grantPermitListings, grantGathering, grantBlacksmithing, grantBlacksmithDefinitions, combatAllowed;
     private bool grantCoins, grantPotions, grantRemoval, grantDefinitions, grantGeneralModeration, grantAnnouncements, grantGameplayPermissions, grantGroupCreation, grantGroupManagement, grantCooking, grantCookingDefinitions;
     private bool tradingAllowed = true;
     private string reason = "", delta = "";
@@ -196,7 +196,7 @@ public sealed partial class SeasonsPanel(IPlayerState player, Configuration conf
         if (session != null && !Busy && saved != null && session.AccessExpiresAt < DateTimeOffset.UtcNow.AddMinutes(5) && DateTimeOffset.UtcNow >= nextRenewAttempt) Resume(saved);
         if (refreshNeeded && !Busy && !SyncBusy && session != null && session.AccessExpiresAt > DateTimeOffset.UtcNow) { refreshNeeded = false; Refresh(); }
         if (session != null && !Busy && !SyncBusy && !WriteBlocked && DateTimeOffset.UtcNow >= nextRefresh) Refresh();
-        TickFeatureRefreshes(); TickClasses(); TickMoodles(); TickFavoriteEvents();
+        TickFeatureRefreshes(); TickClasses(); TickCombat(); TickMoodles(); TickFavoriteEvents();
         PumpContextTargetResolution(); TickTradeInbox(); TickTrades(); TickAnnouncements();
     }
     private bool Owner => community != null && session?.Character.Id == community.OwnerCharacterId;

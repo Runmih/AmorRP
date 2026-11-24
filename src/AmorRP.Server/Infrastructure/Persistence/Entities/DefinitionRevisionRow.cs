@@ -2,6 +2,8 @@ namespace AmorRP.Server.Infrastructure.Persistence;
 
 public sealed class DefinitionRevisionRow
 {
+    public string? GearJson { get; set; }
+    public int StatPoints { get; set; }
     public string? MoodleEffectJson { get; set; }
     public Guid CommunityId { get; set; }
     public Guid DefinitionId { get; set; }

@@ -1,5 +1,7 @@
 using System.Numerics;
 using AmorRP.Contracts.Seasons;
+using AmorRP.Core.Items;
+using AmorRP.Core.Combat;
 using AmorRP.Plugin.Features.Shell;
 using AmorRP.Plugin.Services.Ui;
 using Dalamud.Bindings.ImGui;
@@ -19,7 +21,11 @@ public sealed partial class SeasonsPanel
         inspectorRefresh.Reset();
         memberSelection = row.Character.Id; memberDraftEtag = row.Etag;
         LoadPersonalNote(row);
-        grantGathering = row.Capabilities.Contains(AmorRP.Core.Items.CraftingTypes.GatherPermission);
+        grantGathering = row.Capabilities.Contains(CraftingTypes.GatherPermission);
+        grantBlacksmithing = row.Capabilities.Contains(CraftingTypes.BlacksmithPermission);
+        grantBlacksmithDefinitions = row.Capabilities.Contains(CraftingTypes.BlacksmithRecipePermission);
+        combatAllowed = !row.CombatRestricted;
+        staffHp = CombatRules.MaxHitPoints;
         grantCooking = row.Capabilities.Contains("items.cooking.create"); grantCookingDefinitions = row.Capabilities.Contains("items.cooking.define");
         grantPermitListings = row.Capabilities.Contains(ManagePermitListings);
         grantGroupCreation = row.Capabilities.Contains("groups.create"); grantGroupManagement = row.Capabilities.Contains("groups.manage");
@@ -71,6 +77,11 @@ public sealed partial class SeasonsPanel
                 if (target.Description.Length > 0) Wrapped(target.Description);
                 if (!SeasonReadOnly && target.Status == "active" && target.Character.Id != session!.Character.Id && !target.TradingRestricted && !community.MyTradingRestricted && ImGui.Button("Trade with this member"))
                 { if (BeginTradeRequest()) SendTradeRequest(target); }
+                if (target.Character.Id != session!.Character.Id && !SeasonReadOnly && ImGui.Button("Select combat target"))
+                {
+                    combatTarget = target.Character.Id;
+                    requestedCommunityPage = CommunityBrowserPage.Character;
+                }
                 DrawPersonalNote(target);
             }
             if (CanNominatePermit && target.Status == "active" && ActionButton("Request Slave listing")) NominatePermit(target);
@@ -85,6 +96,7 @@ public sealed partial class SeasonsPanel
                 }
                 else DrawMemberAuthorizations(target);
             }
+            if (view == MemberView.Management && CanGeneralModerate && target.Status == "active") DrawCombatHealthAdmin(target);
             if (view != MemberView.Directory && Owner && target.Status == "active" && !target.IsOwner) DrawCommunityPermissions(target);
             if (view != MemberView.Directory && CanCoins && target.Status == "active")
             {
@@ -104,7 +116,10 @@ public sealed partial class SeasonsPanel
         return personalNote != savedPersonalNote
             || delta.Length > 0 || reason.Length > 0 || itemRemovalReason.Length > 0
             || tradingAllowed == current.TradingRestricted || grantCoins != caps.Contains("currency.manage")
-            || grantGathering != caps.Contains(AmorRP.Core.Items.CraftingTypes.GatherPermission)
+            || grantGathering != caps.Contains(CraftingTypes.GatherPermission)
+            || grantBlacksmithing != caps.Contains(CraftingTypes.BlacksmithPermission)
+            || grantBlacksmithDefinitions != caps.Contains(CraftingTypes.BlacksmithRecipePermission)
+            || combatAllowed == current.CombatRestricted
             || grantPotions != caps.Contains("items.potion.create") || grantCooking != caps.Contains("items.cooking.create")
             || grantDefinitions != caps.Contains("items.potion.define") || grantCookingDefinitions != caps.Contains("items.cooking.define")
             || grantRemoval != caps.Contains("inventory.remove") || grantGeneralModeration != caps.Contains("season.moderate")
@@ -137,18 +152,21 @@ public sealed partial class SeasonsPanel
         ImGui.Separator(); ImGui.TextUnformatted("Gameplay permissions");
         DrawPermissionConflict(target);
         ImGui.Checkbox("Trading", ref tradingAllowed);
+        ImGui.Checkbox("Combat attacks", ref combatAllowed);
         ImGui.Checkbox("Craft Alchemy Items", ref grantPotions);
         ImGui.Checkbox("Craft Cooking Items", ref grantCooking);
         ImGui.Checkbox("Gathering and Hunting", ref grantGathering);
+        ImGui.Checkbox("Blacksmithing", ref grantBlacksmithing);
         ImGui.BeginDisabled(memberDraftEtag != target.Etag);
         if (ActionButton("Save permissions"))
         {
             // Preserve moderator grants; this form only changes gameplay actions.
-            var actions = target.Capabilities.Where(x => x is not ("items.potion.create" or "items.cooking.create" or AmorRP.Core.Items.CraftingTypes.GatherPermission)).ToList();
+            var actions = target.Capabilities.Where(x => x is not ("items.potion.create" or "items.cooking.create" or CraftingTypes.GatherPermission or CraftingTypes.BlacksmithPermission)).ToList();
             if (grantPotions) actions.Add("items.potion.create");
             if (grantCooking) actions.Add("items.cooking.create");
-            if (grantGathering) actions.Add(AmorRP.Core.Items.CraftingTypes.GatherPermission);
-            SaveMemberPermissions(target, new MemberCapabilities(actions.ToArray(), tradingAllowed));
+            if (grantGathering) actions.Add(CraftingTypes.GatherPermission);
+            if (grantBlacksmithing) actions.Add(CraftingTypes.BlacksmithPermission);
+            SaveMemberPermissions(target, new MemberCapabilities(actions.ToArray(), tradingAllowed, combatAllowed));
         }
         ImGui.EndDisabled(); DrawAuthorizationFeedback(target);
     }
@@ -176,6 +194,7 @@ public sealed partial class SeasonsPanel
         ImGui.Separator(); ImGui.TextUnformatted("Recipe creation");
         ImGui.Checkbox("Create Alchemy Recipes", ref grantDefinitions);
         ImGui.Checkbox("Create Cooking Recipes", ref grantCookingDefinitions);
+        ImGui.Checkbox("Create Blacksmithing Recipes", ref grantBlacksmithDefinitions);
         ImGui.Separator(); ImGui.TextUnformatted("Group administration");
         ImGui.Checkbox("Create Groups", ref grantGroupCreation);
         ImGui.Checkbox("Manage Groups", ref grantGroupManagement);
@@ -186,7 +205,7 @@ public sealed partial class SeasonsPanel
         if (ActionButton("Save moderator permissions"))
         {
             // Do not silently save or discard an unfinished gameplay draft.
-            var actions = target.Capabilities.Where(x => x is not ("currency.manage" or "inventory.remove" or "items.potion.define" or "season.moderate" or "announcements.manage" or "members.gameplay.manage" or "groups.create" or "groups.manage" or "items.cooking.define" or ManagePermitListings)).ToList();
+            var actions = target.Capabilities.Where(x => x is not ("currency.manage" or "inventory.remove" or "items.potion.define" or "season.moderate" or "announcements.manage" or "members.gameplay.manage" or "groups.create" or "groups.manage" or "items.cooking.define" or CraftingTypes.BlacksmithRecipePermission or ManagePermitListings)).ToList();
             if (grantPermitListings) actions.Add(ManagePermitListings);
             if (grantGroupCreation) actions.Add("groups.create");
             if (grantGroupManagement) actions.Add("groups.manage");
@@ -197,6 +216,7 @@ public sealed partial class SeasonsPanel
             if (grantRemoval) actions.Add("inventory.remove");
             if (grantDefinitions) actions.Add("items.potion.define");
             if (grantCookingDefinitions) actions.Add("items.cooking.define");
+            if (grantBlacksmithDefinitions) actions.Add(CraftingTypes.BlacksmithRecipePermission);
             SaveMemberPermissions(target, new MemberCapabilities(actions.ToArray()));
         }
         ImGui.EndDisabled();

@@ -81,7 +81,7 @@ public sealed partial class SeasonsPanel
         if (groupDepositRefresh.TryCollect(now, dataGeneration, out var page)) groupDeposits = page;
         var requested = Math.Max(depositLoadCount, groupDeposits.Items.Length);
         var inventory = $"api/v2/seasons/{group.CommunityId}/inventory?sort=name&typeIds="
-            + string.Join(",", CraftingTypes.Consumables);
+            + string.Join(",", CraftingTypes.Stackable);
         groupDepositRefresh.Start(now, dataGeneration, requests.Token, ct => ReadGroupDepositsAsync(uri, token, inventory, requested, ct));
         DrawRefreshState(groupDepositRefresh, "Deposit items");
         var items = groupDeposits.Items.Where(x => x.DefinitionId != null && x.Available > 0).ToArray();

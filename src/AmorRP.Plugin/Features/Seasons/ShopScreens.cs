@@ -44,6 +44,7 @@ public sealed partial class SeasonsPanel
         if (!ImGui.BeginTabBar("SeasonShopTabs")) return;
         if (ImGui.BeginTabItem("Products"))
         {
+            DrawResetPotion(manage: false);
             DrawShopProducts();
             ImGui.EndTabItem();
         }
@@ -53,9 +54,9 @@ public sealed partial class SeasonsPanel
             DrawPermits();
             ImGui.EndTabItem();
         }
-        if (classState?.Selected.Length > 0 && ImGui.BeginTabItem("Class reset")) { DrawClassSelection(shop: true); ImGui.EndTabItem(); }
         if (Owner && ImGui.BeginTabItem("Manage products"))
         {
+            DrawResetPotion(manage: true);
             DrawShopEditor();
             ImGui.EndTabItem();
         }
@@ -65,11 +66,7 @@ public sealed partial class SeasonsPanel
     private void DrawShopProducts()
     {
         var listed = shopProducts.Where(x => x.Listed).ToArray();
-        if (listed.Length == 0)
-        {
-            if (shopRefresh.HasLoaded) Wrapped("No products are listed yet.");
-            return;
-        }
+        if (listed.Length == 0) return;
 
         foreach (var product in listed)
             if (ImGui.Selectable($"{product.Name} · {product.Price} {community!.Currency.Name}###shop{product.Id}", shopSelection == product.Id))
