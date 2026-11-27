@@ -3,6 +3,7 @@ using System.Text;
 using AmorRP.Contracts.Combat;
 using AmorRP.Contracts.Inventory;
 using AmorRP.Core.Items;
+using AmorRP.Core.Combat;
 using Dalamud.Bindings.ImGui;
 namespace AmorRP.Plugin.Features.Seasons;
 
@@ -12,6 +13,8 @@ public sealed partial class SeasonsPanel
     private int definitionCost = 1, definitionCategory, definitionType;
     private CraftingDiscipline recipeDiscipline;
     private CombatGear? recipeGear;
+    private StatusEffectReference? recipeStatus;
+    private StatusEffect? pinnedRecipeStatus;
     private int recipeStatPoints;
     private string[] RecipeTypes => CraftingTypes.Types(recipeDiscipline);
     private string RecipeType => RecipeTypes[Math.Clamp(definitionType, 0, RecipeTypes.Length - 1)];
@@ -27,7 +30,8 @@ public sealed partial class SeasonsPanel
     private void SelectRecipe(Definition recipe)
     {
         definitionGroup = recipe.GroupId;
-        recipeEffectDraft = recipe.Effect;
+        pinnedRecipeStatus = recipe.StatusEffect;
+        recipeStatus = pinnedRecipeStatus?.Reference();
         recipeGear = recipe.Gear;
         recipeStatPoints = recipe.StatPoints;
         definitionType = Math.Max(0, Array.IndexOf(RecipeTypes, recipe.TypeId));
@@ -36,26 +40,29 @@ public sealed partial class SeasonsPanel
         definitionCategory = Math.Max(0, Array.FindIndex(categories.Where(x => !x.Retired && x.AllowedTypeIds.Contains(RecipeType)).ToArray(), x => x.Id == recipe.CategoryId));
     }
     private void NewRecipe()
-    { recipeGear = null; recipeStatPoints = 0; recipeEffectDraft = null; definitionGroup = null; definitionEditId = null; definitionEditRevision = null; definitionName = definitionDescription = definitionMessage = ""; definitionCost = 1; definitionEnabled = true; definitionCategory = definitionType = 0; }
+    { recipeGear = null; recipeStatPoints = 0; recipeStatus = null; pinnedRecipeStatus = null; definitionGroup = null; definitionEditId = null; definitionEditRevision = null; definitionName = definitionDescription = definitionMessage = ""; definitionCost = 1; definitionEnabled = true; definitionCategory = definitionType = 0; }
     private string RecipeAccessLabel(Guid? groupId) => groupId is { } id
         ? communityGroups.FirstOrDefault(group => group.Id == id)?.Name ?? "Group"
         : "Global";
 
     private void DrawGearRecipeFields(string type)
     {
-        var gear = recipeGear ?? (type == "weapon" ? new CombatGear("sword", "STR", 3) : new CombatGear("armor", null, 12));
-        var value = gear.Value;
         if (type == "weapon")
         {
-            var form = gear.Form == "staff" ? 1 : 0;
-            var ability = gear.Ability == "DEX" ? 1 : 0;
-            ImGui.Combo("Weapon icon", ref form, ["Sword", "Staff"], 2);
-            ImGui.Combo("Attack and damage stat", ref ability, ["STR", "DEX"], 2);
-            ImGui.InputInt("Weapon power", ref value);
-            recipeGear = new(form == 0 ? "sword" : "staff", ability == 0 ? "STR" : "DEX", Math.Clamp(value, 1, 100));
+            var gear = recipeGear is { Form: "melee" } current ? current : new CombatGear("melee", "STR", 0, 1, 6);
+            var abilities = CombatRules.Abilities.ToArray();
+            var ability = Math.Max(0, Array.IndexOf(abilities, gear.Ability));
+            var count = gear.DiceCount;
+            var sides = gear.DiceSides;
+            ImGui.Combo("Attack and damage stat", ref ability, abilities, abilities.Length);
+            ImGui.InputInt("Damage dice count", ref count);
+            ImGui.InputInt("Sides per die", ref sides);
+            recipeGear = new("melee", abilities[ability], 0, Math.Clamp(count, 1, 20), Math.Clamp(sides, 1, 200));
+            ImGui.TextDisabled($"Damage: {recipeGear.DiceCount}d{recipeGear.DiceSides} + {recipeGear.Ability} modifier");
         }
         else
         {
+            var value = recipeGear is { Form: "armor" } armor ? armor.Value : 12;
             ImGui.InputInt("Armor class", ref value);
             recipeGear = new("armor", null, Math.Clamp(value, 10, 25));
         }
@@ -92,7 +99,7 @@ public sealed partial class SeasonsPanel
                 else if (ActionButton(recipe.Enabled ? "Enabled##RecipeStatus" : "Disabled##RecipeStatus"))
                 {
                     var body = new DefinitionWrite(recipe.TypeId, recipe.Name, recipe.CategoryId, recipe.Description,
-                        !recipe.Enabled, recipe.Potion, recipe.GroupId, recipe.Effect, recipe.Gear, recipe.StatPoints);
+                        !recipe.Enabled, recipe.Potion, recipe.GroupId, recipe.StatusEffect?.Reference(), recipe.Gear, recipe.StatPoints);
                     Mutate("PATCH", $"api/v2/seasons/{community!.Id}/item-definitions/{recipe.Id}", body,
                         ETag("definition", recipe.Id, recipe.Revision));
                     if (definitionEditId == recipe.Id) definitionEnabled = body.Enabled;
@@ -141,7 +148,6 @@ public sealed partial class SeasonsPanel
         FieldNote("RecipeDescription", descriptionError, $"{PlainText.Characters(definitionDescription)}/{descriptionLimit} characters · optional");
         var isGear = CraftingTypes.IsGear(RecipeType);
         string? messageError = null;
-        var effectValid = true;
         if (isGear) DrawGearRecipeFields(RecipeType);
         else
         {
@@ -149,7 +155,7 @@ public sealed partial class SeasonsPanel
             LimitedInput("##RecipeMessage", ref definitionMessage, ChatLimit, LiteralChatText.MaximumBytes + 1);
             messageError = LiteralChatText.Error(definitionMessage, ChatLimit);
             FieldNote("RecipeMessage", messageError, $"{PlainText.Characters(definitionMessage)}/{ChatLimit} characters · {Encoding.UTF8.GetByteCount(definitionMessage)}/{LiteralChatText.MaximumBytes} bytes · <3 is allowed");
-            effectValid = DrawMoodleEditor("Moodle effect", ref recipeEffectDraft);
+            recipeStatus = DrawStatusSelector(recipeStatus, pinnedRecipeStatus);
             if (RecipeType == "potion" && ImGui.CollapsingHeader("Extra effects", recipeStatPoints > 0 ? ImGuiTreeNodeFlags.DefaultOpen : ImGuiTreeNodeFlags.None))
             {
                 var grantPoints = recipeStatPoints > 0;
@@ -165,11 +171,11 @@ public sealed partial class SeasonsPanel
         var stale = editing != null && editing.Revision != definitionEditRevision;
         if (stale) { Wrapped("This recipe changed on the server. Reload it before saving a new revision."); if (ImGui.Button("Reload saved recipe")) SelectRecipe(editing!); }
         if (editing?.Retired == true) Wrapped("This recipe is retired. Its existing copies still work. Select New recipe to define another.");
-        ImGui.BeginDisabled(choices.Length == 0 || nameError != null || descriptionError != null || messageError != null || !costValid || !effectValid || stale || editing?.Retired == true);
+        ImGui.BeginDisabled(choices.Length == 0 || nameError != null || descriptionError != null || messageError != null || !costValid || stale || editing?.Retired == true);
         if (ActionButton(definitionEditId == null ? "Define recipe" : "Save recipe revision"))
         {
             var body = new DefinitionWrite(RecipeType, definitionName, choices[definitionCategory].Id, definitionDescription, definitionEnabled, new(definitionCost, isGear ? "" : definitionMessage), definitionGroup,
-                isGear ? null : recipeEffectDraft, recipeGear, recipeStatPoints);
+                isGear ? null : recipeStatus, recipeGear, recipeStatPoints);
             if (definitionEditId.HasValue) Mutate("PATCH", $"api/v2/seasons/{community!.Id}/item-definitions/{definitionEditId}", body, ETag("definition", definitionEditId.Value, definitionEditRevision ?? 0));
             else Mutate("POST", $"api/v2/seasons/{community!.Id}/item-definitions", body);
         }

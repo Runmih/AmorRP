@@ -14,9 +14,25 @@ public sealed class CombatRulesTests
         Assert.Equal(hit, CombatRules.Hits(die, total, armorClass));
 
     [Theory]
-    [InlineData(3, 2, false, 5)]
-    [InlineData(3, 2, true, 8)]
-    [InlineData(2, -3, false, 1)]
-    public void Critical_hits_double_weapon_power_before_applying_the_modifier(int power, int modifier, bool critical, int damage) =>
-        Assert.Equal(damage, CombatRules.Damage(power, modifier, critical));
+    [InlineData(8, 0)]
+    [InlineData(13, 5)]
+    [InlineData(14, 7)]
+    [InlineData(15, 9)]
+    public void Point_buy_uses_the_5e_cost_table(int score, int cost) => Assert.Equal(cost, CombatRules.ScoreCost(score));
+
+    [Theory]
+    [InlineData(8, 19)]
+    [InlineData(10, 20)]
+    [InlineData(14, 22)]
+    public void Constitution_modifies_hit_point_maximum(int constitution, int hp) =>
+        Assert.Equal(hp, CombatRules.HitPointMaximum(constitution));
+
+    [Fact]
+    public void Critical_hits_double_the_number_of_dice_and_add_the_modifier_once()
+    {
+        Assert.Equal(4, CombatRules.DamageDiceCount(2, true));
+        Assert.Equal(2, CombatRules.DamageDiceCount(2, false));
+        Assert.Equal(9, CombatRules.Damage(7, 2));
+        Assert.Equal(0, CombatRules.Damage(2, -3));
+    }
 }

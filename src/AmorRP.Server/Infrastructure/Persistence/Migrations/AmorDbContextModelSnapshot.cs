@@ -281,6 +281,9 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                     b.Property<int>("ResetPurchases")
                         .HasColumnType("integer");
 
+                    b.Property<DateTimeOffset?>("StayedStandingPeriod")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<int>("Version")
                         .HasColumnType("integer");
 
@@ -291,9 +294,9 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
 
                     b.ToTable("combat_sheets", null, t =>
                         {
-                            t.HasCheckConstraint("ck_combat_allocated", "cardinality(\"Allocated\") = 6 AND 0 <= ALL(\"Allocated\") AND 10 >= ALL(\"Allocated\")");
+                            t.HasCheckConstraint("ck_combat_allocated", "cardinality(\"Allocated\") = 6 AND 0 <= ALL(\"Allocated\") AND 12 >= ALL(\"Allocated\")");
 
-                            t.HasCheckConstraint("ck_combat_hp", "\"HitPoints\" BETWEEN 0 AND 20");
+                            t.HasCheckConstraint("ck_combat_hp", "\"HitPoints\" BETWEEN 0 AND 20 + floor((\"Allocated\"[3] - 2) / 2.0)");
 
                             t.HasCheckConstraint("ck_combat_points_and_potions", "\"BonusPoints\" BETWEEN 0 AND 60 AND \"ResetPurchases\" >= \"ResetPotions\" AND \"ResetPotions\" >= 0");
                         });
@@ -474,10 +477,21 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                     b.Property<long>("SeasonTreasuryOwned")
                         .HasColumnType("bigint");
 
+                    b.Property<string>("SkillCatalog")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("[]");
+
+                    b.Property<int>("SkillLibraryVersion")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
                     b.Property<int>("StatPointAllowance")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
-                        .HasDefaultValue(6);
+                        .HasDefaultValue(27);
 
                     b.Property<int>("Version")
                         .HasColumnType("integer");
@@ -543,15 +557,15 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                     b.Property<string>("GearJson")
                         .HasColumnType("text");
 
-                    b.Property<string>("MoodleEffectJson")
-                        .HasColumnType("text");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<int>("StatPoints")
                         .HasColumnType("integer");
+
+                    b.Property<string>("StatusEffectJson")
+                        .HasColumnType("text");
 
                     b.Property<int>("TypeDataVersion")
                         .HasColumnType("integer");
@@ -1369,6 +1383,12 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                     b.Property<int>("BalanceVersion")
                         .HasColumnType("integer");
 
+                    b.PrimitiveCollection<string[]>("BlockedGameplayGrants")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text[]")
+                        .HasDefaultValueSql("ARRAY[]::text[]");
+
                     b.PrimitiveCollection<string[]>("Capabilities")
                         .IsRequired()
                         .HasColumnType("text[]");
@@ -1437,31 +1457,6 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
 
                             t.HasCheckConstraint("ck_membership_status", "\"Status\" = 'active'");
                         });
-                });
-
-            modelBuilder.Entity("AmorRP.Server.Infrastructure.Persistence.MoodleGrantRow", b =>
-                {
-                    b.Property<Guid>("CommunityId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CharacterId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("EffectJson")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTimeOffset>("ExpiresAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("CommunityId", "CharacterId", "Id");
-
-                    b.HasIndex("CharacterId", "ExpiresAt");
-
-                    b.ToTable("moodle_grants", (string)null);
                 });
 
             modelBuilder.Entity("AmorRP.Server.Infrastructure.Persistence.OperationRow", b =>
@@ -1900,6 +1895,57 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                         {
                             t.HasCheckConstraint("ck_shop_purchase", " \"Quantity\" > 0 ");
                         });
+                });
+
+            modelBuilder.Entity("AmorRP.Server.Infrastructure.Persistence.StatusEffectGrantRow", b =>
+                {
+                    b.Property<Guid>("CommunityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CharacterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("EffectJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("StatusEffectId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("CommunityId", "CharacterId", "Id");
+
+                    b.HasIndex("CharacterId", "ExpiresAt");
+
+                    b.HasIndex("CommunityId", "CharacterId", "StatusEffectId")
+                        .IsUnique();
+
+                    b.ToTable("moodle_grants", (string)null);
+                });
+
+            modelBuilder.Entity("AmorRP.Server.Infrastructure.Persistence.StatusEffectRevisionRow", b =>
+                {
+                    b.Property<Guid>("CommunityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Revision")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("EffectJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("CommunityId", "Id", "Revision");
+
+                    b.ToTable("status_effect_revisions", (string)null);
                 });
 
             modelBuilder.Entity("AmorRP.Server.Infrastructure.Persistence.TradeLineRow", b =>
@@ -2488,15 +2534,6 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("AmorRP.Server.Infrastructure.Persistence.MoodleGrantRow", b =>
-                {
-                    b.HasOne("AmorRP.Server.Infrastructure.Persistence.MembershipRow", null)
-                        .WithMany()
-                        .HasForeignKey("CommunityId", "CharacterId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("AmorRP.Server.Infrastructure.Persistence.OwnershipPermitRow", b =>
                 {
                     b.HasOne("AmorRP.Server.Infrastructure.Persistence.PermitOfferRow", null)
@@ -2630,6 +2667,24 @@ namespace AmorRP.Server.Infrastructure.Persistence.Migrations
                     b.HasOne("AmorRP.Server.Infrastructure.Persistence.ShopProductRow", null)
                         .WithMany()
                         .HasForeignKey("CommunityId", "ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AmorRP.Server.Infrastructure.Persistence.StatusEffectGrantRow", b =>
+                {
+                    b.HasOne("AmorRP.Server.Infrastructure.Persistence.MembershipRow", null)
+                        .WithMany()
+                        .HasForeignKey("CommunityId", "CharacterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AmorRP.Server.Infrastructure.Persistence.StatusEffectRevisionRow", b =>
+                {
+                    b.HasOne("AmorRP.Server.Infrastructure.Persistence.CommunityRow", null)
+                        .WithMany()
+                        .HasForeignKey("CommunityId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });

@@ -33,5 +33,8 @@ public static class CraftingTypes
     public static bool IsCooking(string type) => Cooking.Contains(type);
     public static string CraftPermission(string type) => IsGear(type) ? BlacksmithPermission : IsCooking(type) ? "items.cooking.create" : "items.potion.create";
     public static string RecipePermission(string type) => IsGear(type) ? BlacksmithRecipePermission : IsCooking(type) ? "items.cooking.define" : "items.potion.define";
+    public static IReadOnlyList<string> ClassGameplayGrants { get; } =
+        Array.AsReadOnly(new[] { "items.potion.create", "items.cooking.create", GatherPermission, BlacksmithPermission });
+
     public static string QuotaKind(string type) => IsGear(type) ? AmorRP.Core.Combat.CombatRules.BlacksmithingQuota : IsCooking(type) ? "cooking_points" : "potion_points";
 }

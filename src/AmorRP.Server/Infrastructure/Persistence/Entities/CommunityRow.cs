@@ -3,7 +3,7 @@ namespace AmorRP.Server.Infrastructure.Persistence;
 public sealed class CommunityRow
 {
     public int ClassSlots { get; set; } = 1;
-    public int StatPointAllowance { get; set; } = 6;
+    public int StatPointAllowance { get; set; } = AmorRP.Core.Combat.CombatRules.DefaultStatPoints;
     public int BlacksmithingPoints { get; set; } = 10;
     public int CombatPolicyVersion { get; set; } = 1;
     public string? DownedEffectJson { get; set; }
@@ -11,6 +11,8 @@ public sealed class CommunityRow
     public int ResetPotionVersion { get; set; } = 1;
     public long ClassResetPrice { get; set; } = 1000;
     public string ClassCatalog { get; set; } = "[]";
+    public string SkillCatalog { get; set; } = "[]";
+    public int SkillLibraryVersion { get; set; } = 1;
     public int ClassPolicyVersion { get; set; } = 1;
     public int GroupRecipeLimit { get; set; } = 10;
     public string? OwnershipEffectJson { get; set; }

@@ -5,8 +5,8 @@ Source package/assembly version lives once in
 The package validator and home updater read that same value. Do not hardcode a
 second server version in capabilities or an obsolete milestone label in build tools.
 
-ApiProtocol defines application API v2. Plugin 0.17.0.0 requires server 0.17.0.0 or
-newer. The server continues accepting clients from 0.4.0.3. XIVAuth independently uses external API
+ApiProtocol defines application API v2. The point-buy and weapon dice rules in 0.18.0.0 require both
+the plugin and server to be on 0.18.0.0 or newer. XIVAuth independently uses external API
 v1. ServiceCompatibility validates the advertised API/server/minimum-client tuple;
 malformed, unsupported and too-old tuples fail closed. There is no API adapter or
 alternative community mode.

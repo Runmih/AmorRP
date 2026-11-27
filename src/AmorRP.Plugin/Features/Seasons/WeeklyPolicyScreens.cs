@@ -33,6 +33,7 @@ public sealed partial class SeasonsPanel
     private void DrawWeeklyPolicy()
     {
         ReadGathering();
+        ReadCombatPolicy();
         var maxPoints = serviceLimits?.MaxWeeklyPotionPoints ?? 1000000;
         var maxLetters = serviceLimits?.MaxWeeklyLetters ?? 10000;
         var gatheringEdit = GatheringEdited ? GatheringDraft : null;
@@ -45,6 +46,11 @@ public sealed partial class SeasonsPanel
         if (ActionButton("Save weekly limits"))
             Mutate("PUT", $"api/v2/seasons/{community!.Id}/policies", new PolicyEdit(nextPoints, nextLetters, nextCooking, gatheringEdit),
                 ETag("policy", community.Id, policyDraftVersion));
+        ImGui.EndDisabled();
+        ImGui.SameLine();
+        ImGui.BeginDisabled(combatPolicy == null || combatDraft == null || combatPolicy.BlacksmithingPoints == combatDraft.BlacksmithingPoints);
+        if (ActionButton("Save Blacksmithing limit") && combatPolicy is { } saved && combatDraft is { } forgeDraft)
+            Mutate("PUT", CombatPolicyPath, saved with { BlacksmithingPoints = forgeDraft.BlacksmithingPoints });
         ImGui.EndDisabled();
         if (stale && policies != null)
         {
@@ -64,11 +70,26 @@ public sealed partial class SeasonsPanel
         ImGui.BeginDisabled(WriteBlocked || SeasonReadOnly);
         DrawWeeklyLimitField("Alchemy", "Points per character", "##WeeklyAlchemyPoints", policies.Current.PotionPoints, ref nextPoints);
         DrawWeeklyLimitField("Cooking", "Points per character", "##WeeklyCookingPoints", policies.Current.CookingPoints, ref nextCooking);
+        DrawBlacksmithingLimit();
         DrawWeeklyLimitField("Writing", "Books, letters and notes per character", "##WeeklyWrittenItems", policies.Current.Letters, ref nextLetters);
         ImGui.Spacing();
         DrawSectionHeading("Gathering and Hunting");
         DrawGatheringSettings();
         ImGui.EndDisabled();
+    }
+
+    private void DrawBlacksmithingLimit()
+    {
+        ImGui.Spacing();
+        DrawSectionHeading("Blacksmithing");
+        DrawRefreshState(combatPolicyRefresh, "Blacksmithing limit");
+        if (combatDraft is not { } draft) return;
+
+        FieldLabel("Points per character");
+        var points = draft.BlacksmithingPoints;
+        if (ImGui.InputInt("##WeeklyBlacksmithingPoints", ref points))
+            combatDraft = draft with { BlacksmithingPoints = Math.Clamp(points, 0, 100000) };
+        ImGui.TextDisabled("The new limit applies when a character next starts using their weekly points.");
     }
 
     private static void DrawWeeklyLimitField(string section, string label, string id, int current, ref int scheduled)

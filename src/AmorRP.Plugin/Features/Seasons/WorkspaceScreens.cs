@@ -109,10 +109,33 @@ public sealed partial class SeasonsPanel
         { DrawCommunityGroups(administration: true); ImGui.EndTabItem(); }
         if (Owner && ImGui.BeginTabItem("Gameplay"))
         {
-            if (ImGui.CollapsingHeader("Combat")) DrawCombatRules();
-            if (ImGui.CollapsingHeader("Classes")) DrawClassPolicy();
-            if (ImGui.CollapsingHeader("Enslavement")) DrawOwnershipEffect();
+            if (ImGui.CollapsingHeader("Global Moodles"))
+            {
+                DrawOwnershipEffect();
+                ImGui.Spacing();
+                DrawDownedMoodleSettings();
+            }
             if (ImGui.CollapsingHeader("Weekly limits")) DrawWeeklyPolicy();
+            ImGui.EndTabItem();
+        }
+        if (Owner && ImGui.BeginTabItem("Character Settings"))
+        {
+            DrawStatPointSettings();
+            ImGui.EndTabItem();
+        }
+        if (Owner && ImGui.BeginTabItem("Classes"))
+        {
+            DrawClassPolicy();
+            ImGui.EndTabItem();
+        }
+        if (Owner && ImGui.BeginTabItem("Status Effects"))
+        {
+            DrawStatusEffects();
+            ImGui.EndTabItem();
+        }
+        if (Owner && ImGui.BeginTabItem("Skills & Spells"))
+        {
+            DrawSkillLibrary();
             ImGui.EndTabItem();
         }
         if (CanGeneralModerate && ImGui.BeginTabItem("Economy"))

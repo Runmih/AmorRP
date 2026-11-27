@@ -62,11 +62,11 @@ public sealed class GatheringService(AmorDbContext db, SessionAccess sessions, S
             await catalog.RequireCategoryAsync(seasonId, revision.CategoryId, definition.TypeId, ct);
             var cost = (long)revision.CreationCost * body.Quantity;
             ApiFault.Require(cost <= int.MaxValue, 422, "invalid_quantity", "The total package cost is too large.");
-            var quota = await inventory.SpendAsync(season, member.CharacterId, QuotaKind, (int)cost, ct);
+            var quota = await inventory.SpendAsync(season, member, QuotaKind, (int)cost, ct);
             var holding = await delivery.AddAsync(seasonId, member.CharacterId, definition, revision, body.Quantity, ct);
             season.InventoryVersion++;
             op.SubjectCharacterId = member.CharacterId; op.Summary = $"Gathered {body.Quantity} × {revision.Name}.";
-            return new ProductionResult(InventoryService.View(holding), InventoryService.ViewQuota(quota));
+            return new ProductionResult(InventoryService.View(holding), quota);
         }, ct);
 
     public Task<IResult> UseAsync(HttpContext h, Guid seasonId, Guid holdingId, UseSupplies body, CancellationToken ct) =>
@@ -82,14 +82,14 @@ public sealed class GatheringService(AmorDbContext db, SessionAccess sessions, S
             var revision = await db.DefinitionRevisions.SingleAsync(x => x.CommunityId == seasonId && x.DefinitionId == holding.DefinitionId
                 && x.Revision == holding.DefinitionRevision, ct);
             var quota = await inventory.QuotaAsync(season, member.CharacterId, CraftingTypes.QuotaKind(craftType), ct);
-            ApiFault.Require(revision.BonusPoints > 0 && (long)quota.Limit + quota.Bonus + revision.BonusPoints <= int.MaxValue,
+            ApiFault.Require(revision.BonusPoints > 0 && (long)InventoryService.EffectiveQuotaLimit(season, member, quota) + quota.Bonus + revision.BonusPoints <= int.MaxValue,
                 409, "quota_overflow", "The points would exceed the supported numeric range. The package is still available.");
             if (db.Entry(quota).State == EntityState.Detached) db.Quotas.Add(quota);
             quota.Bonus += revision.BonusPoints;
             holding.Quantity--; holding.Version++; season.InventoryVersion++;
             op.SubjectCharacterId = member.CharacterId;
             op.Summary = $"Used {revision.Name} for {revision.BonusPoints} crafting points.";
-            return new ProductionResult(InventoryService.View(holding), InventoryService.ViewQuota(quota));
+            return new ProductionResult(InventoryService.View(holding), InventoryService.ViewQuota(season, member, quota));
         }, ct);
 
     private async Task<SupplyPackage> SavePackageAsync(Guid season, string type, string name, int cost, int bonus, CancellationToken ct)

@@ -87,10 +87,13 @@ public sealed partial class SeasonsPanel
         if (editCharacterClasses) DrawClassSelection();
     }
 
-    private static void DrawClassDetails(SeasonClass c)
+    private void DrawClassDetails(SeasonClass c)
     {
         if (!string.IsNullOrWhiteSpace(c.Description)) Wrapped(c.Description);
         if (c.Grants.Length > 0) ImGui.TextDisabled(string.Join(" · ", c.Grants.Select(ClassGrantName)));
+        var names = (classState?.Abilities ?? []).Where(skill => c.SkillIds?.Contains(skill.Id) == true).Select(skill => skill.Name).ToArray();
+        if (names.Length > 0) Wrapped(string.Join(" · ", names));
+        if (c.DownedBehavior == "stay_standing") ImGui.TextDisabled("Stay Standing · Once per week");
     }
 
     private void DrawClassSelection()
@@ -127,8 +130,53 @@ public sealed partial class SeasonsPanel
         ImGui.EndDisabled();
     }
 
+    private SeasonClass DrawClassCrafting(SeasonClass c)
+    {
+        var bonus = c.Crafting ?? new ClassCraftingBonuses();
+        var grants = c.Grants;
+        if (grants.Any(CraftingTypes.ClassGameplayGrants.Contains)) DrawSectionHeading("Crafting");
+        var alchemy = grants.Contains("items.potion.create")
+            ? DrawClassCraftBonus("Alchemy bonus", bonus.Alchemy, policies?.Current.PotionPoints) : 0;
+        var cooking = grants.Contains("items.cooking.create")
+            ? DrawClassCraftBonus("Cooking bonus", bonus.Cooking, policies?.Current.CookingPoints) : 0;
+        var gatheringPoints = grants.Contains(CraftingTypes.GatherPermission)
+            ? DrawClassCraftBonus("Gathering and Hunting bonus", bonus.Gathering, gathering?.WeeklyPoints) : 0;
+        var blacksmithing = grants.Contains(CraftingTypes.BlacksmithPermission)
+            ? DrawClassCraftBonus("Blacksmithing bonus", bonus.Blacksmithing, combatPolicy?.BlacksmithingPoints) : 0;
+        var updated = new ClassCraftingBonuses(alchemy, cooking, gatheringPoints, blacksmithing);
+        return updated == bonus ? c : c with { Crafting = updated };
+    }
+
+    private static int DrawClassCraftBonus(string label, int bonus, int? baseline)
+    {
+        if (ImGui.InputInt(label, ref bonus)) bonus = Math.Clamp(bonus, 0, 100000);
+        if (baseline is { } points) ImGui.TextDisabled($"Season base {points:N0} · With class {points + bonus:N0}");
+        return bonus;
+    }
+
+    private SeasonClass DrawClassSkills(SeasonClass c)
+    {
+        DrawSectionHeading("Skills & Spells");
+        DrawRefreshState(skillLibraryRefresh, "Skills & Spells");
+        if (skillLibrary is not { } library) return c;
+        if (library.Skills.Length == 0) ImGui.TextDisabled("Create abilities in the Skills & Spells tab first.");
+        var assigned = c.SkillIds ?? [];
+        foreach (var skill in library.Skills)
+        {
+            var selected = assigned.Contains(skill.Id);
+            ImGui.BeginDisabled(!selected && assigned.Length >= 16);
+            if (ImGui.Checkbox(SkillLabel(skill) + "###Grant_" + skill.Id, ref selected))
+                assigned = selected ? [.. assigned, skill.Id] : assigned.Where(id => id != skill.Id).ToArray();
+            ImGui.EndDisabled();
+        }
+        return assigned.Length == 0 && c.SkillIds == null || assigned == c.SkillIds ? c : c with { SkillIds = assigned };
+    }
+
     private void DrawClassPolicy()
     {
+        ReadSkillLibrary();
+        ReadGathering();
+        ReadCombatPolicy();
         DrawRefreshState(classRefresh, "Class settings");
         if (classState is not { } state || classDraft is not { } draft || community is not { } season) return;
         var slots = draft.Slots;
@@ -158,12 +206,20 @@ public sealed partial class SeasonsPanel
             if (ImGui.InputText("Class name", ref name, 321)) c = c with { Name = name };
             if (ImGui.InputTextMultiline("Description", ref description, 1201, new(-1, ImGui.GetTextLineHeightWithSpacing() * 3)))
                 c = c with { Description = description };
-            foreach (var grant in new[] { "items.potion.create", "items.cooking.create", CraftingTypes.GatherPermission, CraftingTypes.BlacksmithPermission })
+            DrawSectionHeading("Gameplay permissions");
+            foreach (var grant in CraftingTypes.ClassGameplayGrants)
             {
                 var enabled = c.Grants.Contains(grant);
                 if (ImGui.Checkbox(ClassGrantName(grant), ref enabled))
                     c = c with { Grants = enabled ? [.. c.Grants, grant] : c.Grants.Where(g => g != grant).ToArray() };
             }
+            c = DrawClassCrafting(c);
+            c = DrawClassSkills(c);
+            DrawSectionHeading("Downed behavior");
+            var downed = c.DownedBehavior == "stay_standing" ? 1 : 0;
+            if (ImGui.Combo("Behavior", ref downed, ["Normal", "Stay Standing (once per week)"], 2))
+                c = c with { DownedBehavior = downed == 0 ? "normal" : "stay_standing" };
+            if (downed == 1) ImGui.TextWrapped("The first hit that would drop you to 0 HP leaves you at 1 HP. Shared across classes.");
             if (ImGui.Button("Remove class"))
             {
                 draft = draft with { Classes = draft.Classes.Where(x => x.Id != editingClass).ToArray() };

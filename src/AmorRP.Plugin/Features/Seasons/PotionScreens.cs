@@ -127,7 +127,7 @@ public sealed partial class SeasonsPanel
     {
         if (definition.StatPoints > 0) ImGui.TextUnformatted($"Stat points: +{definition.StatPoints} permanent");
         FieldLabel("Duration");
-        Wrapped(definition.Effect is { } effect ? TimeSpan.FromSeconds(effect.DurationSeconds).ToString("g") : "—");
+        Wrapped(definition.StatusEffect is { } effect ? effect.Name + " · " + StatusSummary(effect) : "—");
         FieldLabel("Emote text");
         Wrapped(string.IsNullOrWhiteSpace(definition.Potion.UseMessage) ? "—" : definition.Potion.UseMessage);
         FieldLabel("Emote Channel");

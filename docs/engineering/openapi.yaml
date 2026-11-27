@@ -10427,6 +10427,183 @@ paths:
           $ref: '#/components/responses/Problem'
       x-authorization-policy: Verified season character
       x-implementation-status: implemented
+  /api/v2/seasons/{seasonId}/status-effects:
+    get:
+      operationId: listStatusEffects
+      summary: List the latest revision of each status effect
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StatusEffect'
+      x-authorization-policy: Verified season member
+      x-implementation-status: implemented
+  /api/v2/seasons/{seasonId}/status-effects/{effectId}:
+    put:
+      operationId: saveStatusEffect
+      summary: Publish a new status effect revision
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: effectId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusEffectResult'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Season owner
+      x-implementation-status: implemented
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StatusEffect'
+  /api/v2/seasons/{seasonId}/combat/skills:
+    get:
+      operationId: readSkillLibrary
+      summary: Read the skill and spell library
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        required: true
+        schema:
+          type: string
+          format: uuid
+        in: path
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SkillLibrary'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Season owner
+      x-implementation-status: implemented
+    put:
+      operationId: saveSkillLibrary
+      summary: Save the skill and spell library
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        required: true
+        schema:
+          type: string
+          format: uuid
+        in: path
+      - name: Idempotency-Key
+        required: true
+        schema:
+          type: string
+          format: uuid
+        in: header
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SkillLibrary'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SkillLibraryResult'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Season owner
+      x-implementation-status: implemented
+  /api/v2/seasons/{seasonId}/combat/skill-uses:
+    post:
+      operationId: useClassSkill
+      summary: Use a class skill or spell
+      security:
+      - Session: []
+      parameters:
+      - name: seasonId
+        required: true
+        schema:
+          type: string
+          format: uuid
+        in: path
+      - name: Idempotency-Key
+        required: true
+        schema:
+          type: string
+          format: uuid
+        in: header
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SkillUse'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SkillUseResult'
+        '403':
+          $ref: '#/components/responses/Problem'
+        '409':
+          $ref: '#/components/responses/Problem'
+        '422':
+          $ref: '#/components/responses/Problem'
+      x-authorization-policy: Active season member with combat permission and selected class grant
+      x-implementation-status: implemented
   /api/v2/seasons/{seasonId}/combat/policy:
     get:
       operationId: readCombatPolicy
@@ -11008,14 +11185,260 @@ components:
           schema:
             $ref: '#/components/schemas/Problem'
   schemas:
+    StatusEffectReference:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        revision:
+          type: integer
+          minimum: 1
+      required:
+      - id
+      - revision
+    StatusEffect:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        revision:
+          type: integer
+          minimum: 0
+          description: Pass zero to create or the current revision to publish an update.
+        name:
+          type: string
+          maxLength: 80
+        durationSeconds:
+          type: integer
+          minimum: 15
+          maximum: 86400
+        modifier:
+          type: string
+          enum:
+          - display
+          - ac
+          - attack
+          - check
+        amount:
+          type: integer
+          minimum: -10
+          maximum: 10
+        ability:
+          type: string
+          nullable: true
+          enum:
+          - STR
+          - DEX
+          - CON
+          - INT
+          - WIS
+          - CHA
+        moodle:
+          allOf:
+          - $ref: '#/components/schemas/MoodleEffect'
+          nullable: true
+      required:
+      - id
+      - revision
+      - name
+      - durationSeconds
+      - modifier
+      - amount
+    StatusEffectResult:
+      type: object
+      properties:
+        operationId:
+          type: string
+          format: uuid
+        result:
+          $ref: '#/components/schemas/StatusEffect'
+      required:
+      - operationId
+      - result
+    CombatSkill:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          maxLength: 80
+        description:
+          type: string
+          maxLength: 300
+        kind:
+          type: string
+          enum: [skill, spell]
+        icon:
+          type: string
+          enum: [strike, magic, heal, shield, spark]
+        target:
+          type: string
+          enum: [self, selected]
+        resolution:
+          type: string
+          enum: [automatic, attack, save]
+        rollAbility:
+          type: string
+          enum: [STR, DEX, CON, INT, WIS, CHA]
+        saveDc:
+          type: integer
+          minimum: 1
+          maximum: 30
+        effect:
+          type: string
+          enum: [damage, healing, status]
+        diceCount:
+          type: integer
+          minimum: 0
+          maximum: 20
+        diceSides:
+          type: integer
+          minimum: 0
+          maximum: 200
+        effectAbility:
+          type: string
+          nullable: true
+          enum: [STR, DEX, CON, INT, WIS, CHA]
+        statusEffect:
+          allOf:
+          - $ref: '#/components/schemas/StatusEffectReference'
+          nullable: true
+      required:
+      - id
+      - name
+      - description
+      - kind
+      - icon
+      - target
+      - resolution
+      - rollAbility
+      - saveDc
+      - effect
+      - diceCount
+      - diceSides
+    SkillLibrary:
+      type: object
+      properties:
+        version:
+          type: integer
+        skills:
+          type: array
+          items:
+            $ref: '#/components/schemas/CombatSkill'
+      required:
+      - version
+      - skills
+    SkillUse:
+      type: object
+      properties:
+        skillId:
+          type: string
+          format: uuid
+        libraryVersion:
+          type: integer
+        targetId:
+          type: string
+          format: uuid
+          nullable: true
+        destination:
+          type: string
+      required:
+      - skillId
+      - libraryVersion
+    SkillResult:
+      type: object
+      properties:
+        skill:
+          type: string
+        actor:
+          type: string
+        target:
+          type: string
+        effect:
+          type: string
+        applied:
+          type: boolean
+        roll:
+          nullable: true
+          allOf:
+          - $ref: '#/components/schemas/CombatRoll'
+        difficulty:
+          type: integer
+          nullable: true
+        rolledEffect:
+          type: integer
+        effectModifier:
+          type: integer
+        amount:
+          type: integer
+        remainingHp:
+          type: integer
+        stayedStanding:
+          type: boolean
+        appliedStatus:
+          type: string
+          nullable: true
+      required:
+      - skill
+      - actor
+      - target
+      - effect
+      - applied
+      - amount
+      - remainingHp
+      - stayedStanding
+    SkillLibraryResult:
+      type: object
+      properties:
+        operationId:
+          type: string
+          format: uuid
+        result:
+          $ref: '#/components/schemas/SkillLibrary'
+      required:
+      - operationId
+      - result
+    SkillUseResult:
+      type: object
+      properties:
+        operationId:
+          type: string
+          format: uuid
+        result:
+          $ref: '#/components/schemas/SkillResult'
+      required:
+      - operationId
+      - result
+    ClassCraftingBonuses:
+      type: object
+      properties:
+        alchemy:
+          type: integer
+          minimum: 0
+          maximum: 100000
+        cooking:
+          type: integer
+          minimum: 0
+          maximum: 100000
+        gathering:
+          type: integer
+          minimum: 0
+          maximum: 100000
+        blacksmithing:
+          type: integer
+          minimum: 0
+          maximum: 100000
     CombatGear:
       type: object
       properties:
         form:
           type: string
           enum:
-          - sword
-          - staff
+          - melee
           - armor
         ability:
           type: string
@@ -11030,6 +11453,16 @@ components:
         value:
           type: integer
           format: int32
+        diceCount:
+          type: integer
+          default: 0
+          minimum: 0
+          maximum: 20
+        diceSides:
+          type: integer
+          default: 0
+          minimum: 0
+          maximum: 200
       required:
       - form
       - ability
@@ -11089,6 +11522,12 @@ components:
         resetPotions:
           type: integer
           format: int32
+        skillLibraryVersion:
+          type: integer
+        skills:
+          type: array
+          items:
+            $ref: '#/components/schemas/CombatSkill'
       required:
       - version
       - scores
@@ -11135,7 +11574,7 @@ components:
           items:
             type: integer
             minimum: 0
-            maximum: 10
+            maximum: 7
           minItems: 6
           maxItems: 6
       required:
@@ -11213,6 +11652,9 @@ components:
         total:
           type: integer
           format: int32
+        statusModifier:
+          type: integer
+          default: 0
       required:
       - ability
       - die
@@ -11245,6 +11687,14 @@ components:
           format: int32
         downed:
           type: boolean
+        rolledDamage:
+          type: integer
+        damageDiceCount:
+          type: integer
+        damageDiceSides:
+          type: integer
+        stayedStanding:
+          type: boolean
       required:
       - attacker
       - target
@@ -11262,7 +11712,10 @@ components:
         hitPoints:
           type: integer
           minimum: 0
-          maximum: 20
+          maximum: 25
+        restoreFull:
+          type: boolean
+          default: false
       required:
       - hitPoints
     ResetPotionProduct:
@@ -11756,7 +12209,21 @@ components:
             - items.potion.create
             - items.cooking.create
             - items.gather.create
-          maxItems: 3
+            - items.blacksmith.create
+          maxItems: 4
+        skillIds:
+          type: array
+          nullable: true
+          items: {type: string, format: uuid}
+          maxItems: 16
+        crafting:
+          nullable: true
+          allOf:
+          - $ref: '#/components/schemas/ClassCraftingBonuses'
+        downedBehavior:
+          type: string
+          enum: [normal, stay_standing]
+          default: normal
       required:
       - id
       - name
@@ -11810,6 +12277,10 @@ components:
           minimum: 1
         freeCorrection:
           type: boolean
+        abilities:
+          type: array
+          items:
+            $ref: '#/components/schemas/CombatSkill'
       required:
       - policy
       - policyVersion
@@ -13221,6 +13692,11 @@ components:
         description:
           type: string
           description: Season-specific plain text; at most 300 Unicode text elements. Empty when unset.
+        blockedGameplayGrants:
+          type: array
+          nullable: true
+          items: {type: string}
+          maxItems: 4
       required:
       - character
       - status
@@ -13246,6 +13722,11 @@ components:
           nullable: true
           description: Optional positive trading permission. Omitted or null preserves the current setting; false
             cancels open trades and releases reservations in the same transaction. No reason is required.
+        blockedGameplayGrants:
+          type: array
+          nullable: true
+          items: {type: string}
+          maxItems: 4
       required:
       - capabilities
       additionalProperties: false
@@ -13352,8 +13833,10 @@ components:
           type: string
           format: uuid
           description: Optional immutable group scope. Authoring and crafting enforce separate permissions.
-        effect:
-          $ref: '#/components/schemas/MoodleEffect'
+        statusEffect:
+          allOf:
+          - $ref: '#/components/schemas/StatusEffect'
+          nullable: true
         bonusPoints:
           type: integer
         id: *id002
@@ -13422,8 +13905,10 @@ components:
           type: string
           format: uuid
           description: Optional immutable group scope. Authoring and crafting enforce separate permissions.
-        effect:
-          $ref: '#/components/schemas/MoodleEffect'
+        statusEffect:
+          allOf:
+          - $ref: '#/components/schemas/StatusEffectReference'
+          nullable: true
         typeId:
           type: string
           enum:

@@ -14,6 +14,12 @@ namespace AmorRP.Server.Features.Moodles;
 
 public sealed class MoodleService(AmorDbContext db, SessionAccess sessions, SeasonAccess seasons, CommandStore commands, TimeProvider time)
 {
+    public static MoodleEffect EnslavementEffect(string? json) =>
+        Decode(json) ?? new("Enslaved", "An active ownership permit is in effect.", 200001, 90, true);
+
+    public static MoodleEffect DownedEffect(string? json) =>
+        Decode(json) ?? new("Downed", "Your character has 0 HP.", 200001, 90, true);
+
     public static MoodleEffect? Decode(string? json) => json == null ? null : JsonSerializer.Deserialize<MoodleEffect>(json);
 
     public static string? Encode(MoodleEffect? effect, bool ownership = false)
@@ -34,50 +40,37 @@ public sealed class MoodleService(AmorDbContext db, SessionAccess sessions, Seas
     internal static Guid EffectId(Guid season, Guid actor, string kind, string source) =>
         new(SHA256.HashData(Encoding.UTF8.GetBytes($"AmorRP:{season:N}:{actor:N}:{kind}:{source}")).AsSpan(0, 16));
 
-    public async Task RefreshConsumableAsync(Guid season, Guid character, string effectJson, CancellationToken ct)
-    {
-        var now = time.GetUtcNow();
-        var id = EffectId(season, character, "consumable", effectJson);
-        await db.MoodleGrants.Where(x => x.CommunityId == season && x.CharacterId == character && x.ExpiresAt <= now && x.Id != id).ExecuteDeleteAsync(ct);
-        var row = await db.MoodleGrants.SingleOrDefaultAsync(x => x.CommunityId == season && x.CharacterId == character && x.Id == id, ct);
-        if (row == null)
-        {
-            row = new MoodleGrantRow { CommunityId = season, CharacterId = character, Id = id, EffectJson = effectJson };
-            db.MoodleGrants.Add(row);
-        }
-        row.ExpiresAt = now.AddSeconds(Decode(effectJson)!.DurationSeconds);
-    }
-
     public async Task<IResult> ReadAsync(HttpContext h, CancellationToken ct)
     {
         var actor = (await sessions.GetAsync(h, ct)).CharacterId;
         var now = time.GetUtcNow();
         var season = await db.Seasons.AsNoTracking().SingleOrDefaultAsync(s => !s.Deleted && s.SeasonState == "active", ct);
-        var consumables = await db.MoodleGrants.AsNoTracking()
+        var statuses = await db.StatusGrants.AsNoTracking()
             .Where(x => x.CharacterId == actor && x.ExpiresAt > now).ToArrayAsync(ct);
         var permits = await db.OwnershipPermits.AsNoTracking().Where(x => x.CharacterId == actor).ToArrayAsync(ct);
         var active = new List<MoodleGrant>();
         var remove = new List<Guid>();
-        foreach (var row in consumables)
+        foreach (var row in statuses)
         {
-            if (row.CommunityId == season?.Id) active.Add(new(row.Id, Decode(row.EffectJson)!, row.ExpiresAt));
+            if (row.CommunityId == season?.Id && StatusEffectService.Decode(row.EffectJson)?.Moodle is { } moodle)
+                active.Add(new(row.Id, moodle, row.ExpiresAt));
             else remove.Add(row.Id);
         }
-        var ownershipEffect = Decode(season?.OwnershipEffectJson);
+        var ownershipEffect = EnslavementEffect(season?.OwnershipEffectJson);
         foreach (var permit in permits)
         {
             var id = EffectId(permit.CommunityId, actor, "ownership", permit.Id.ToString("N"));
-            if (permit.CommunityId == season?.Id && permit.ReleasedAt == null && ownershipEffect != null)
+            if (permit.CommunityId == season?.Id && permit.ReleasedAt == null)
                 active.Add(new(id, ownershipEffect, null));
             else remove.Add(id);
         }
-        var downedEffect = Decode(season?.DownedEffectJson);
+        var downedEffect = DownedEffect(season?.DownedEffectJson);
         var combatStates = await db.CombatSheets.AsNoTracking().Where(x => x.CharacterId == actor)
             .Select(x => new { x.CommunityId, x.HitPoints }).ToArrayAsync(ct);
         foreach (var state in combatStates)
         {
             var id = EffectId(state.CommunityId, actor, "combat", "downed");
-            if (state.CommunityId == season?.Id && state.HitPoints == 0 && downedEffect != null)
+            if (state.CommunityId == season?.Id && state.HitPoints == 0)
                 active.Add(new(id, downedEffect, null));
             else remove.Add(id);
         }
@@ -92,7 +85,7 @@ public sealed class MoodleService(AmorDbContext db, SessionAccess sessions, Seas
         {
             var (season, _) = await seasons.RequireAsync(id, actor, ct);
             SeasonAccess.Owner(season, actor);
-            return Results.Json(new OwnershipEffectPolicy(season.OwnershipEffectVersion, Decode(season.OwnershipEffectJson)));
+            return Results.Json(new OwnershipEffectPolicy(season.OwnershipEffectVersion, EnslavementEffect(season.OwnershipEffectJson)));
         }
 
         var scope = "character:" + actor;
@@ -103,12 +96,12 @@ public sealed class MoodleService(AmorDbContext db, SessionAccess sessions, Seas
         var replay = await commands.ReplayAsync(h, scope, edit, ct);
         if (replay != null) return commands.Replay(replay);
         ApiFault.Require(edit.Version == editing.OwnershipEffectVersion, 409, "ownership_effect_changed", "Reload the ownership effect before saving.");
-        editing.OwnershipEffectJson = Encode(edit.Effect, ownership: true);
+        editing.OwnershipEffectJson = Encode(edit.Effect ?? EnslavementEffect(null), ownership: true);
         editing.OwnershipEffectVersion++;
         var op = commands.New(h, scope, edit, actor, id, "moodle.ownership_policy");
         op.Summary = "Updated the ownership permit effect.";
         var result = await commands.SaveAsync(h, op, new CommandResult<OwnershipEffectPolicy>(op.Id,
-            new(editing.OwnershipEffectVersion, Decode(editing.OwnershipEffectJson))), ct);
+            new(editing.OwnershipEffectVersion, EnslavementEffect(editing.OwnershipEffectJson))), ct);
         await tx.CommitAsync(ct);
         return result;
     }

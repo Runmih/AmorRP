@@ -15,7 +15,7 @@ public sealed partial class SeasonsPanel
     private OwnershipEffectPolicy? ownershipEffectPolicy;
     private string? lastMoodleGrantError;
     private bool? hadActiveMoodleGrants;
-    private MoodleEffect? ownershipEffectDraft, recipeEffectDraft;
+    private MoodleEffect? ownershipEffectDraft;
 
     private void TickMoodles()
     {
@@ -62,6 +62,7 @@ public sealed partial class SeasonsPanel
     private void ResetMoodles()
     {
         moodleRefresh.Reset();
+        ResetStatusEffects();
         hadActiveMoodleGrants = null;
         lastMoodleGrantError = null;
         ownershipEffectRefresh.Reset();
@@ -71,23 +72,30 @@ public sealed partial class SeasonsPanel
 
     private void DrawOwnershipEffect()
     {
-        DrawRefreshState(ownershipEffectRefresh, "Enslavement");
+        DrawRefreshState(ownershipEffectRefresh, "Enslavement Moodle");
         if (community is not { } season || ownershipEffectPolicy is not { } policy) return;
         ImGui.BeginDisabled(SeasonReadOnly || WriteBlocked);
         var valid = DrawMoodleEditor("Enslavement", ref ownershipEffectDraft, ownership: true);
         ImGui.BeginDisabled(!valid || ownershipEffectDraft == policy.Effect);
-        if (ActionButton("Save ownership effect"))
+        if (ActionButton("Save Enslavement Moodle"))
             Mutate("PUT", $"api/v2/seasons/{season.Id}/ownership-effect", new OwnershipEffectPolicy(policy.Version, ownershipEffectDraft));
         ImGui.EndDisabled();
         ImGui.EndDisabled();
     }
 
-    private bool DrawMoodleEditor(string label, ref MoodleEffect? draft, bool ownership = false, string persistentDescription = "Displayed while the permit is active.")
+    private bool DrawMoodleEditor(string label, ref MoodleEffect? draft, bool ownership = false, string persistentDescription = "Displayed while the permit is active.", int? durationOverride = null)
     {
         ImGui.PushID(label);
-        var enabled = draft != null;
-        if (ImGui.Checkbox(label, ref enabled))
-            draft = enabled ? new("", "", 200001, ownership ? 90 : 60, ownership) : null;
+        if (ownership)
+        {
+            DrawSectionHeading(label);
+            draft ??= new(label, "", 200001, 90, true);
+        }
+        else
+        {
+            var enabled = draft != null;
+            if (ImGui.Checkbox(label, ref enabled)) draft = enabled ? new("", "", 200001, durationOverride ?? 60, false) : null;
+        }
 
         if (draft is not { } effect)
         {
@@ -98,13 +106,13 @@ public sealed partial class SeasonsPanel
         var name = effect.Name;
         var description = effect.Description;
         var icon = effect.IconId;
-        var duration = effect.DurationSeconds;
+        var duration = durationOverride ?? effect.DurationSeconds;
         var debuff = effect.Debuff;
         ImGui.InputText("Effect name", ref name, 321);
         ImGui.InputTextMultiline("Effect description", ref description, 1201, new(-1, ImGui.GetTextLineHeightWithSpacing() * 3));
         ImGui.InputInt("Status icon ID", ref icon);
         if (ownership) ImGui.TextDisabled(persistentDescription);
-        else ImGui.InputInt("Duration (seconds)", ref duration);
+        else if (durationOverride == null) ImGui.InputInt("Duration (seconds)", ref duration);
         if (!ownership) ImGui.Checkbox("Debuff", ref debuff);
         draft = new(name, description, icon, duration, debuff);
 

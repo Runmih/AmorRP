@@ -21,7 +21,7 @@ public sealed partial class SeasonsPanel
     private Holding[] equipment = [];
     private readonly int[] allocation = new int[6];
     private string combatFeedback = "";
-    private int staffHp = CombatRules.MaxHitPoints;
+    private int staffHp = CombatRules.StartingHitPoints;
     public Action<bool>? SetHealthHudVisible { get; set; }
     public Action<bool>? SetActionsHudVisible { get; set; }
 
@@ -32,6 +32,7 @@ public sealed partial class SeasonsPanel
         combatRefresh.Reset();
         equipmentRefresh.Reset();
         combatPolicyRefresh.Reset();
+        ResetSkillLibrary();
         resetPotionRefresh.Reset();
         combatSheet = null;
         combatPolicy = combatDraft = null;
@@ -86,7 +87,8 @@ public sealed partial class SeasonsPanel
 
     private void DrawCombatStats(CombatSheet sheet)
     {
-        ImGui.TextUnformatted($"Unspent points: {Math.Max(0, sheet.AvailablePoints - allocation.Sum())}");
+        var draftCost = sheet.Scores.Select((score, index) => CombatRules.AllocationCost(score, allocation[index])).Sum();
+        ImGui.TextUnformatted($"Unspent points: {Math.Max(0, sheet.AvailablePoints - draftCost)}");
         if (sheet.BonusPoints > 0) ImGui.TextDisabled($"Permanent points earned from potions: {sheet.BonusPoints}");
         if (ImGui.BeginTable("CombatStats", 4, ImGuiTableFlags.RowBg))
         {
@@ -106,22 +108,32 @@ public sealed partial class SeasonsPanel
                 ImGui.TableNextColumn();
                 ImGui.TextUnformatted(Signed(CombatRules.AbilityModifier(sheet.Scores[i] + allocation[i])));
                 ImGui.TableNextColumn();
-                ImGui.BeginDisabled(SeasonReadOnly || allocation[i] == 0);
-                if (ImGui.SmallButton("−")) allocation[i]--;
+                ImGui.BeginDisabled(WriteBlocked || SeasonReadOnly || allocation[i] == 0);
+                if (ImGui.SmallButton("-")) allocation[i]--;
+                if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
+                    ImGui.SetTooltip("Undo one pending increase. Saved scores reset with a Character Reset Potion.");
                 ImGui.EndDisabled();
                 ImGui.SameLine();
-                ImGui.BeginDisabled(SeasonReadOnly || allocation.Sum() >= sheet.AvailablePoints
-                    || sheet.Scores[i] + allocation[i] >= CombatRules.MaximumScore);
+                var previewScore = sheet.Scores[i] + allocation[i];
+                var nextCost = CombatRules.AllocationCost(previewScore, 1);
+                ImGui.BeginDisabled(WriteBlocked || SeasonReadOnly || draftCost + nextCost > sheet.AvailablePoints
+                    || previewScore >= CombatRules.PointBuyMaximum);
                 if (ImGui.SmallButton("+")) allocation[i]++;
+                if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
+                    ImGui.SetTooltip(previewScore >= CombatRules.PointBuyMaximum
+                        ? "Point buy caps new increases at 15." : $"Cost: {nextCost} point(s).");
                 ImGui.EndDisabled();
                 ImGui.PopID();
             }
             ImGui.EndTable();
         }
-        ImGui.BeginDisabled(allocation.Sum() == 0 || allocation.Sum() > sheet.AvailablePoints);
+        ImGui.BeginDisabled(draftCost == 0 || draftCost > sheet.AvailablePoints);
         if (ActionButton("Apply stat points")) Mutate("POST", CombatPath + "/stats", new CombatAllocation(sheet.Version, allocation.ToArray()));
         ImGui.EndDisabled();
     }
+
+    private static string StatusRollText(CombatRoll roll) =>
+        roll.StatusModifier == 0 ? "" : $" {Signed(roll.StatusModifier)} status";
 
     private static string Signed(int n) => n >= 0 ? $"+{n}" : n.ToString();
 
@@ -165,7 +177,7 @@ public sealed partial class SeasonsPanel
     }
 
     private static string GearLabel(CombatGear gear) =>
-        gear.Form == "armor" ? $"Armor class {gear.Value}" : $"{gear.Ability} · Power {gear.Value}";
+        gear.Form == "armor" ? $"Armor class {gear.Value}" : $"{gear.Ability} · {gear.DiceCount}d{gear.DiceSides}";
 
     public CombatSheet[] HealthHudRows() => combatSheet is { } sheet && community?.SeasonState == "active" ? [sheet] : [];
     public void DrawHealthHud(CombatSheet[] sheets)
@@ -182,37 +194,72 @@ public sealed partial class SeasonsPanel
         ImGui.PopStyleColor();
     }
 
-    private void DrawCombatRules()
+    private string CombatPolicyPath => CombatPath + "/policy";
+
+    private void ReadCombatPolicy()
     {
         var now = DateTimeOffset.UtcNow;
         if (combatPolicyRefresh.TryCollect(now, dataGeneration, out var updated) && combatPolicy?.Version != updated.Version)
             combatPolicy = combatDraft = updated;
-        var path = CombatPath + "/policy";
+        var path = CombatPolicyPath;
         var token = session!.AccessToken;
         var uri = origin!;
         combatPolicyRefresh.Start(now, dataGeneration, requests.Token, ct => client.GetAsync<CombatPolicy>(uri, path, token, ct));
-        DrawRefreshState(combatPolicyRefresh, "Combat rules");
-        if (combatDraft is not { } draft) return;
+    }
+
+    private void DrawStatPointSettings()
+    {
+        ReadCombatPolicy();
+        DrawSectionHeading("Stat points");
+        DrawRefreshState(combatPolicyRefresh, "Stat points");
+        if (combatPolicy is not { } saved || combatDraft is not { } draft) return;
+        ImGui.BeginDisabled(WriteBlocked || SeasonReadOnly);
         var points = draft.StatPoints;
-        var forge = draft.BlacksmithingPoints;
-        if (ImGui.InputInt("Allocatable stat points", ref points)) points = Math.Clamp(points, 0, 60);
-        if (ImGui.InputInt("Weekly Blacksmithing points", ref forge)) forge = Math.Clamp(forge, 0, 100000);
-        var effect = draft.DownedEffect;
-        var valid = DrawMoodleEditor("Downed Moodle", ref effect, ownership: true, persistentDescription: "Displayed while the character has 0 HP.");
-        combatDraft = draft with { StatPoints = points, BlacksmithingPoints = forge, DownedEffect = effect };
-        ImGui.BeginDisabled(!valid || combatDraft == combatPolicy);
-        if (ActionButton("Save combat rules")) Mutate("PUT", path, combatDraft);
+        if (ImGui.InputInt("Point-buy budget", ref points)) points = Math.Clamp(points, 0, 60);
+        combatDraft = draft with { StatPoints = points };
+        ImGui.BeginDisabled(points == saved.StatPoints);
+        if (ActionButton("Save stat points")) Mutate("PUT", CombatPolicyPath, saved with { StatPoints = points });
         ImGui.EndDisabled();
+        ImGui.EndDisabled();
+    }
+
+    private void DrawDownedMoodleSettings()
+    {
+        ReadCombatPolicy();
+        DrawRefreshState(combatPolicyRefresh, "Downed Moodle");
+        if (combatPolicy is not { } saved || combatDraft is not { } draft) return;
+        ImGui.BeginDisabled(WriteBlocked || SeasonReadOnly);
+        var effect = draft.DownedEffect;
+        var valid = DrawMoodleEditor("Downed", ref effect, ownership: true, persistentDescription: "Displayed while the character has 0 HP.");
+        combatDraft = draft with { DownedEffect = effect };
+        ImGui.BeginDisabled(!valid || effect == saved.DownedEffect);
+        if (ActionButton("Save Downed Moodle")) Mutate("PUT", CombatPolicyPath, saved with { DownedEffect = effect });
+        ImGui.EndDisabled();
+        ImGui.EndDisabled();
+    }
+
+    private void AcceptCombatPolicySave(CombatPolicy updated, CombatPolicy submitted)
+    {
+        var draft = combatDraft ?? submitted;
+        combatPolicy = updated;
+        combatDraft = updated with
+        {
+            StatPoints = draft.StatPoints == submitted.StatPoints ? updated.StatPoints : draft.StatPoints,
+            DownedEffect = draft.DownedEffect == submitted.DownedEffect ? updated.DownedEffect : draft.DownedEffect,
+            BlacksmithingPoints = draft.BlacksmithingPoints == submitted.BlacksmithingPoints
+                ? updated.BlacksmithingPoints : draft.BlacksmithingPoints
+        };
+        combatPolicyRefresh.Invalidate();
     }
 
     private void DrawCombatHealthAdmin(Member target)
     {
         if (!ImGui.CollapsingHeader("Combat health")) return;
-        if (ImGui.InputInt("Set HP", ref staffHp)) staffHp = Math.Clamp(staffHp, 0, CombatRules.MaxHitPoints);
+        if (ImGui.InputInt("Set HP", ref staffHp)) staffHp = Math.Clamp(staffHp, 0, CombatRules.HighestHitPoints);
         if (ActionButton("Apply HP")) Mutate("PUT", CombatPath + "/health/" + target.Character.Id, new CombatHealthEdit(staffHp));
         ImGui.SameLine();
         if (ActionButton("Restore full HP"))
-            Mutate("PUT", CombatPath + "/health/" + target.Character.Id, new CombatHealthEdit(CombatRules.MaxHitPoints));
+            Mutate("PUT", CombatPath + "/health/" + target.Character.Id, new CombatHealthEdit(0, RestoreFull: true));
     }
 
     private void ApplyCombatSuccess(CommandRequest request, CommandResponse response, bool recovering)
@@ -222,18 +269,41 @@ public sealed partial class SeasonsPanel
             case CommandKind.RollStatCheck:
                 var roll = ReadCommand<CombatRoll>(response.Json);
                 var check = JsonSerializer.Deserialize<CombatCheck>(request.Json!, FoundationClient.Json)!;
-                WriteCombatResult($"{session!.Character.DisplayName}: {roll.Ability} check {roll.Die} {Signed(roll.Modifier)} = {roll.Total}.",
+                WriteCombatResult($"{session!.Character.DisplayName}: {roll.Ability} check {roll.Die} {Signed(roll.Modifier)}{StatusRollText(roll)} = {roll.Total}.",
                     check.Destination, recovering || response.Replayed);
                 break;
             case CommandKind.AttackCharacter:
                 var hit = ReadCommand<CombatHit>(response.Json);
                 var attack = JsonSerializer.Deserialize<CombatAttack>(request.Json!, FoundationClient.Json)!;
                 var result = hit.Hit ? $"{(hit.Critical ? "Critical hit" : "Hit")} for {hit.Damage} damage{(hit.Downed ? ", Downed" : "")}" : "Miss";
-                WriteCombatResult($"{hit.Attacker} attacks {hit.Target}: {hit.Roll.Ability} {hit.Roll.Die} {Signed(hit.Roll.Modifier)} +{hit.Roll.Proficiency} = {hit.Roll.Total} vs AC {hit.ArmorClass}. {result}.",
+                if (hit.StayedStanding) result += ", target stays standing at 1 HP";
+                if (hit.Hit && hit.DamageDiceCount > 0)
+                    result += $" ({hit.DamageDiceCount}d{hit.DamageDiceSides}: {hit.RolledDamage} {Signed(hit.Roll.Modifier)})";
+                WriteCombatResult($"{hit.Attacker} attacks {hit.Target}: {hit.Roll.Ability} {hit.Roll.Die} {Signed(hit.Roll.Modifier)} +{hit.Roll.Proficiency}{StatusRollText(hit.Roll)} = {hit.Roll.Total} vs AC {hit.ArmorClass}. {result}.",
                     attack.Destination, recovering || response.Replayed);
                 break;
+            case CommandKind.SaveStatusEffect:
+                AcceptStatusEffect(ReadCommand<StatusEffect>(response.Json));
+                break;
+            case CommandKind.SaveSkillLibrary:
+                AcceptSkillLibrary(ReadCommand<SkillLibrary>(response.Json));
+                break;
+            case CommandKind.UseSkill:
+            {
+                var skill = ReadCommand<SkillResult>(response.Json);
+                var use = JsonSerializer.Deserialize<SkillUse>(request.Json!, FoundationClient.Json)!;
+                var outcome = skill.Effect == "status" ? (skill.AppliedStatus is { } applied ? applied + " applied" : "no effect")
+                    : skill.Applied ? $"{skill.Amount} {skill.Effect}" : "no effect";
+                var rollDetails = skill.Roll is { } skillRoll ? $" ({skillRoll.Ability} {skillRoll.Total} vs {skill.Difficulty})" : "";
+                var standing = skill.StayedStanding ? $" {skill.Target} stays standing at 1 HP." : "";
+                if (skill.Effect != "status" && skill.AppliedStatus is { } status) outcome += $", {status} applied";
+                WriteCombatResult($"{skill.Actor} uses {skill.Skill} on {skill.Target}: {outcome}{rollDetails}.{standing}",
+                    use.Destination, recovering || response.Replayed);
+                break;
+            }
             case CommandKind.EditCombatPolicy:
-                combatPolicy = combatDraft = ReadCommand<CombatPolicy>(response.Json);
+                AcceptCombatPolicySave(ReadCommand<CombatPolicy>(response.Json),
+                    JsonSerializer.Deserialize<CombatPolicy>(request.Json!, FoundationClient.Json)!);
                 break;
             case CommandKind.BuyResetPotion:
             case CommandKind.EditResetPotion:

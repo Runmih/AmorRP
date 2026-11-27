@@ -74,9 +74,11 @@ public sealed partial class SeasonsPanel
         session is { } actor && actor.AccessExpiresAt > DateTimeOffset.UtcNow && serviceCompatible
         && community != null && combatSheet is { } sheet ? [sheet] : [];
 
-    private string[] OrderedCombatButtons() =>
-        configuration.ActionsGrid.ButtonOrder.Concat(DefaultCombatButtonOrder)
-            .Where(DefaultCombatButtonOrder.Contains).Distinct().ToArray();
+    private string[] OrderedCombatButtons(CombatSheet? sheet)
+    {
+        var available = DefaultCombatButtonOrder.Concat((sheet?.Skills ?? []).Select(skill => skill.Id.ToString("N"))).ToArray();
+        return configuration.ActionsGrid.ButtonOrder.Concat(available).Where(available.Contains).Distinct().ToArray();
+    }
 
     private int CombatGridColumns => Math.Clamp(configuration.ActionsGrid.Columns, 1, CombatButtons.Length);
     private bool CombatButtonVisible(string id) => !configuration.ActionsGrid.HiddenButtons.Contains(id);
@@ -84,7 +86,7 @@ public sealed partial class SeasonsPanel
     public int ActionsHudFrameRows(CombatSheet[] sheets)
     {
         if (sheets.Length == 0) return 2;
-        var count = CombatButtons.Count(button => CombatButtonVisible(button.Id));
+        var count = OrderedCombatButtons(sheets[0]).Count(CombatButtonVisible);
         var rows = Math.Max(1, (count + CombatGridColumns - 1) / CombatGridColumns);
         return rows + (combatFeedback.Length > 0 ? 3 : 0);
     }
@@ -99,7 +101,7 @@ public sealed partial class SeasonsPanel
             else DrawRefreshState(combatRefresh, "Combat actions");
             return;
         }
-        var shown = OrderedCombatButtons().Where(CombatButtonVisible).ToArray();
+        var shown = OrderedCombatButtons(sheets[0]).Where(CombatButtonVisible).ToArray();
         if (shown.Length == 0) ImGui.TextWrapped("Choose buttons in Settings → Interface → Actions.");
         else DrawCombatGrid(sheets[0], shown);
         if (combatFeedback.Length > 0) Wrapped(combatFeedback);
@@ -120,12 +122,30 @@ public sealed partial class SeasonsPanel
                 DrawAttackButton(sheet, size);
                 continue;
             }
+            if (Guid.TryParseExact(id, "N", out var skillId))
+            {
+                var skill = sheet.Skills?.FirstOrDefault(action => action.Id == skillId);
+                if (skill != null) DrawSkillButton(sheet, skill, size);
+                continue;
+            }
             var button = CombatButtons.First(button => button.Id == id);
             ImGui.BeginDisabled(WriteBlocked || SeasonReadOnly);
             if (CombatIcon(button.Icon, button.Label + " check", id, size))
                 Mutate("POST", CombatPath + "/checks", new CombatCheck(id, CombatDestination()));
             ImGui.EndDisabled();
         }
+    }
+
+    private void DrawSkillButton(CombatSheet sheet, CombatSkill skill, Vector2 size)
+    {
+        var needsTarget = skill.Target == "selected";
+        var allowed = sheet.CanAttack && sheet.HitPoints > 0 && !WriteBlocked && !SeasonReadOnly;
+        var target = allowed && needsTarget ? ResolveActionsTarget(ReadActionsTarget()) : null;
+        ImGui.BeginDisabled(!allowed || (needsTarget && target == null));
+        var hint = needsTarget && target == null && allowed ? "\nSelect an active season player." : "";
+        if (CombatIcon(SkillIcon(skill.Icon), skill.Name + hint, skill.Id.ToString("N"), size))
+            Mutate("POST", CombatPath + "/skill-uses", new SkillUse(skill.Id, sheet.SkillLibraryVersion, target?.Character.Id, CombatDestination()));
+        ImGui.EndDisabled();
     }
 
     private void DrawAttackButton(CombatSheet sheet, Vector2 size)
@@ -148,8 +168,7 @@ public sealed partial class SeasonsPanel
                     : "Checking the selected player…";
         }
         ImGui.BeginDisabled(reason != null);
-        var icon = sheet.Weapon?.Gear.Form == "staff" ? FontAwesomeIcon.WandSparkles : FontAwesomeIcon.Khanda;
-        if (CombatIcon(icon, reason ?? $"Attack {member!.Character.DisplayName}", AttackAction, size) && member != null)
+        if (CombatIcon(FontAwesomeIcon.Khanda, reason ?? $"Attack {member!.Character.DisplayName}", AttackAction, size) && member != null)
             Mutate("POST", CombatPath + "/attacks", new CombatAttack(member.Character.Id, CombatDestination()));
         ImGui.EndDisabled();
     }
@@ -188,11 +207,13 @@ public sealed partial class SeasonsPanel
         if (ImGui.SliderInt("Buttons per row", ref columns, 1, CombatButtons.Length)) grid.Columns = columns;
         if (ImGui.IsItemDeactivatedAfterEdit()) save();
 
-        var order = OrderedCombatButtons();
+        var order = OrderedCombatButtons(combatSheet);
         for (var i = 0; i < order.Length; i++)
         {
             var id = order[i];
-            var button = CombatButtons.First(button => button.Id == id);
+            var label = Guid.TryParseExact(id, "N", out var skillId)
+                ? combatSheet?.Skills?.FirstOrDefault(skill => skill.Id == skillId)?.Name ?? id
+                : CombatButtons.First(button => button.Id == id).Label;
             ImGui.PushID(id);
             ImGui.BeginDisabled(i == 0);
             var moveUp = ImGui.ArrowButton("Up", ImGuiDir.Up);
@@ -203,7 +224,7 @@ public sealed partial class SeasonsPanel
             ImGui.EndDisabled();
             ImGui.SameLine();
             var show = CombatButtonVisible(id);
-            if (ImGui.Checkbox(button.Label, ref show))
+            if (ImGui.Checkbox(label.Replace("##", "# #"), ref show))
             {
                 grid.HiddenButtons = show ? grid.HiddenButtons.Where(hidden => hidden != id).ToArray() : [.. grid.HiddenButtons, id];
                 save();

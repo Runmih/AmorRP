@@ -14,6 +14,7 @@ public sealed partial class SeasonsPanel
     private string memberSearch = "", appliedMemberSearch = "";
     private Member[] memberSearchResults = [];
     private string? memberSearchCursor;
+    private readonly HashSet<string> blockedGameplayGrants = [];
     private Member? SelectedMember => members.Concat(memberSearchResults).FirstOrDefault(x => x.Character.Id == memberSelection);
     private void SelectMember(Member row)
     {
@@ -21,11 +22,13 @@ public sealed partial class SeasonsPanel
         inspectorRefresh.Reset();
         memberSelection = row.Character.Id; memberDraftEtag = row.Etag;
         LoadPersonalNote(row);
+        blockedGameplayGrants.Clear();
+        blockedGameplayGrants.UnionWith(row.BlockedGameplayGrants ?? []);
         grantGathering = row.Capabilities.Contains(CraftingTypes.GatherPermission);
         grantBlacksmithing = row.Capabilities.Contains(CraftingTypes.BlacksmithPermission);
         grantBlacksmithDefinitions = row.Capabilities.Contains(CraftingTypes.BlacksmithRecipePermission);
         combatAllowed = !row.CombatRestricted;
-        staffHp = CombatRules.MaxHitPoints;
+        staffHp = CombatRules.StartingHitPoints;
         grantCooking = row.Capabilities.Contains("items.cooking.create"); grantCookingDefinitions = row.Capabilities.Contains("items.cooking.define");
         grantPermitListings = row.Capabilities.Contains(ManagePermitListings);
         grantGroupCreation = row.Capabilities.Contains("groups.create"); grantGroupManagement = row.Capabilities.Contains("groups.manage");
@@ -108,7 +111,7 @@ public sealed partial class SeasonsPanel
         var current = SelectedMember;
         if (current == null) return false;
         var caps = current.Capabilities;
-        return personalNote != savedPersonalNote
+        return !blockedGameplayGrants.SetEquals(current.BlockedGameplayGrants ?? []) || personalNote != savedPersonalNote
             || delta.Length > 0 || reason.Length > 0 || itemRemovalReason.Length > 0
             || tradingAllowed == current.TradingRestricted || grantCoins != caps.Contains("currency.manage")
             || grantGathering != caps.Contains(CraftingTypes.GatherPermission)
@@ -152,6 +155,16 @@ public sealed partial class SeasonsPanel
         ImGui.Checkbox("Craft Cooking Items", ref grantCooking);
         ImGui.Checkbox("Gathering and Hunting", ref grantGathering);
         ImGui.Checkbox("Blacksmithing", ref grantBlacksmithing);
+        if (ImGui.CollapsingHeader("Gameplay restrictions"))
+        {
+            foreach (var grant in CraftingTypes.ClassGameplayGrants)
+            {
+                var blocked = blockedGameplayGrants.Contains(grant);
+                if (!ImGui.Checkbox("Block " + ClassGrantName(grant), ref blocked)) continue;
+                if (blocked) blockedGameplayGrants.Add(grant);
+                else blockedGameplayGrants.Remove(grant);
+            }
+        }
         ImGui.BeginDisabled(memberDraftEtag != target.Etag);
         if (ActionButton("Save permissions"))
         {
@@ -161,7 +174,7 @@ public sealed partial class SeasonsPanel
             if (grantCooking) actions.Add("items.cooking.create");
             if (grantGathering) actions.Add(CraftingTypes.GatherPermission);
             if (grantBlacksmithing) actions.Add(CraftingTypes.BlacksmithPermission);
-            SaveMemberPermissions(target, new MemberCapabilities(actions.ToArray(), tradingAllowed, combatAllowed));
+            SaveMemberPermissions(target, new MemberCapabilities(actions.ToArray(), tradingAllowed, combatAllowed, blockedGameplayGrants.Order().ToArray()));
         }
         ImGui.EndDisabled(); DrawAuthorizationFeedback(target);
     }

@@ -1,5 +1,7 @@
 using System.Text.Json;
 using AmorRP.Contracts.Common;
+using AmorRP.Core.Combat;
+using AmorRP.Server.Features.Combat;
 using AmorRP.Contracts.Seasons;
 using AmorRP.Core.Items;
 using AmorRP.Server.Features.Authentication;
@@ -11,10 +13,39 @@ namespace AmorRP.Server.Features.Seasons;
 
 public sealed class SeasonClassService(AmorDbContext db, SessionAccess sessions, SeasonAccess seasons, CommandStore commands)
 {
-    public static readonly string[] GameplayGrants = ["items.potion.create", "items.cooking.create", CraftingTypes.GatherPermission, CraftingTypes.BlacksmithPermission];
+    internal static SeasonClass[] Classes(CommunityRow season) =>
+        JsonSerializer.Deserialize<SeasonClass[]>(season.ClassCatalog) ?? [];
 
-    private static ClassPolicy Policy(CommunityRow season) => new(season.ClassSlots, season.ClassResetPrice,
-        JsonSerializer.Deserialize<SeasonClass[]>(season.ClassCatalog) ?? [], season.GroupRecipeLimit);
+    internal static IEnumerable<SeasonClass> Selected(CommunityRow season, MembershipRow member) =>
+        member.ClassIds.Length == 0 ? [] : Classes(season).Where(c => member.ClassIds.Contains(c.Id));
+
+    internal static int WeeklyBonus(CommunityRow season, MembershipRow member, string kind)
+    {
+        if (member.ClassIds.Length == 0) return 0;
+        var grant = kind switch
+        {
+            "potion_points" => "items.potion.create",
+            "cooking_points" => "items.cooking.create",
+            "gathering_points" => CraftingTypes.GatherPermission,
+            CombatRules.BlacksmithingQuota => CraftingTypes.BlacksmithPermission,
+            _ => null
+        };
+        if (grant == null || !SeasonAccess.HasAction(season, member, grant)) return 0;
+        return Selected(season, member).Where(c => c.Grants.Contains(grant))
+            .Select(c => c.Crafting is { } bonus ? kind switch
+            {
+                "potion_points" => bonus.Alchemy,
+                "cooking_points" => bonus.Cooking,
+                "gathering_points" => bonus.Gathering,
+                _ => bonus.Blacksmithing
+            } : 0).DefaultIfEmpty().Max();
+    }
+
+    private static bool ValidBonus(int bonus, SeasonClass c, int grantIndex) =>
+        bonus is >= 0 and <= 100000 && (bonus == 0 || c.Grants.Contains(CraftingTypes.ClassGameplayGrants[grantIndex]));
+
+    private static ClassPolicy Policy(CommunityRow season) =>
+        new(season.ClassSlots, season.ClassResetPrice, Classes(season), season.GroupRecipeLimit);
 
     private static bool NeedsCorrection(ClassPolicy policy, MembershipRow member) =>
         member.ClassIds.Length > policy.Slots || member.ClassIds.Except(policy.Classes.Select(c => c.Id)).Any();
@@ -22,7 +53,9 @@ public sealed class SeasonClassService(AmorDbContext db, SessionAccess sessions,
     private static ClassSelection View(CommunityRow season, MembershipRow member)
     {
         var policy = Policy(season);
-        return new(policy, season.ClassPolicyVersion, member.ClassIds, member.ClassSelectionVersion, NeedsCorrection(policy, member));
+        var publishedIds = policy.Classes.SelectMany(c => c.SkillIds ?? []).ToHashSet();
+        var abilities = CombatService.Library(season).Skills.Where(skill => publishedIds.Contains(skill.Id)).ToArray();
+        return new(policy, season.ClassPolicyVersion, member.ClassIds, member.ClassSelectionVersion, NeedsCorrection(policy, member), abilities);
     }
 
     private static void ApplyGrants(ClassPolicy policy, MembershipRow member) =>
@@ -50,11 +83,16 @@ public sealed class SeasonClassService(AmorDbContext db, SessionAccess sessions,
         ApiFault.Require(policy != null && policy.Slots is >= 1 and <= 8 &&
             policy.GroupRecipeLimit is >= 0 and <= 100 && policy.Classes is { Length: <= 32 }, 422, "invalid_class_policy", "Choose valid class slots and recipe limits.");
         var seen = new HashSet<Guid>();
+        var skillIds = CombatService.Library(season).Skills.Select(skill => skill.Id).ToHashSet();
         foreach (var c in policy!.Classes)
             ApiFault.Require(c != null && c.Id != Guid.Empty && seen.Add(c.Id) &&
                 PlainText.Error(c.Name, 80) == null && PlainText.Error(c.Description, 300, multiline: true, required: false) == null &&
-                c.Grants != null && c.Grants.Distinct().Count() == c.Grants.Length && c.Grants.All(GameplayGrants.Contains),
-                422, "invalid_class", "Classes require a unique ID, a name and valid gameplay grants.");
+                c.Grants != null && c.Grants.Distinct().Count() == c.Grants.Length && c.Grants.All(CraftingTypes.ClassGameplayGrants.Contains)
+                && (c.SkillIds == null || (c.SkillIds.Length <= 16 && c.SkillIds.Distinct().Count() == c.SkillIds.Length && c.SkillIds.All(skillIds.Contains)))
+                && c.DownedBehavior is "normal" or "stay_standing"
+                && (c.Crafting is not { } bonus || (ValidBonus(bonus.Alchemy, c, 0) && ValidBonus(bonus.Cooking, c, 1)
+                    && ValidBonus(bonus.Gathering, c, 2) && ValidBonus(bonus.Blacksmithing, c, 3))),
+                422, "invalid_class", "Choose valid class grants, crafting bonuses, skills and Downed behavior.");
 
         season.ClassSlots = policy.Slots;
         season.GroupRecipeLimit = policy.GroupRecipeLimit;

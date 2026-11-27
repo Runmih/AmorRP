@@ -42,6 +42,8 @@ public sealed partial class SeasonsPanel
     {
         members = members.Select(x => x.Character.Id == current.Character.Id ? current : x).ToArray();
         memberDraftEtag = current.Etag;
+        blockedGameplayGrants.Clear();
+        blockedGameplayGrants.UnionWith(current.BlockedGameplayGrants ?? []);
         grantGathering = current.Capabilities.Contains(AmorRP.Core.Items.CraftingTypes.GatherPermission);
         grantBlacksmithing = current.Capabilities.Contains(AmorRP.Core.Items.CraftingTypes.BlacksmithPermission);
         grantBlacksmithDefinitions = current.Capabilities.Contains(AmorRP.Core.Items.CraftingTypes.BlacksmithRecipePermission);

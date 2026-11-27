@@ -36,7 +36,7 @@ public sealed partial class SeasonResourceService
         {
             var character = characters[row.CharacterId];
             items.Add(new(SessionAccess.View(character), row.Status, community.OwnerCharacterId == row.CharacterId,
-                community.OwnerCharacterId == row.CharacterId ? SeasonAccess.GrantableActions : row.Capabilities, row.TradingRestricted, row.Version, SeasonAccess.MemberETag(row), row.Description, row.CombatRestricted));
+                community.OwnerCharacterId == row.CharacterId ? SeasonAccess.GrantableActions : row.Capabilities, row.TradingRestricted, row.Version, SeasonAccess.MemberETag(row), row.Description, row.CombatRestricted, row.BlockedGameplayGrants));
         }
         return Results.Json(new MemberPage(items.ToArray(), rows.Length > limit ? pages.Write(rows[limit-1].CharacterId, scope) : null, community.Version.ToString(), null));
     }
@@ -65,6 +65,13 @@ public sealed partial class SeasonResourceService
                     var protectedAfter = grant.Capabilities!.Where(x => x is not ("items.potion.create" or "items.cooking.create" or CraftingTypes.GatherPermission or CraftingTypes.BlacksmithPermission)).Order();
                     ApiFault.Require(protectedBefore.SequenceEqual(protectedAfter), 403, "owner_required", "Only the owner may change moderator permissions.");
                 }
+                if (grant.BlockedGameplayGrants is { } blocked)
+                {
+                    ApiFault.Require(blocked.Length <= CraftingTypes.ClassGameplayGrants.Count &&
+                        blocked.Distinct().Count() == blocked.Length && blocked.All(CraftingTypes.ClassGameplayGrants.Contains),
+                        422, "invalid_request", "Unknown or repeated gameplay restriction.");
+                    target.BlockedGameplayGrants = blocked.Order().ToArray();
+                }
                 target.Capabilities = grant.Capabilities!.Order().ToArray();
                 if (grant.CombatAllowed is { } combatAllowed) target.CombatRestricted = !combatAllowed;
                 if (grant.TradingAllowed.HasValue)
@@ -81,7 +88,7 @@ public sealed partial class SeasonResourceService
         }
         target.Version++; community.Version++;
         var dto = new Member(SessionAccess.View(await db.Characters.SingleAsync(x => x.Id == characterId, ct)), target.Status, false,
-            target.Capabilities, target.TradingRestricted, target.Version, SeasonAccess.MemberETag(target), target.Description, target.CombatRestricted);
+            target.Capabilities, target.TradingRestricted, target.Version, SeasonAccess.MemberETag(target), target.Description, target.CombatRestricted, target.BlockedGameplayGrants);
         http.Response.Headers.ETag = dto.Etag;
         var result = await commands.SaveAsync(http, op, new CommandResult<Member>(op.Id, dto), ct); await tx.CommitAsync(ct); return result;
     }
@@ -97,5 +104,5 @@ public sealed partial class SeasonResourceService
     private async Task<Member> MemberViewAsync(CommunityRow g, MembershipRow m, CancellationToken ct) => new(
         SessionAccess.View(await db.Characters.SingleAsync(x => x.Id == m.CharacterId, ct)), m.Status,
         m.CharacterId == g.OwnerCharacterId, m.CharacterId == g.OwnerCharacterId ? SeasonAccess.GrantableActions : m.Capabilities,
-        m.TradingRestricted, m.Version, SeasonAccess.MemberETag(m), m.Description, m.CombatRestricted);
+        m.TradingRestricted, m.Version, SeasonAccess.MemberETag(m), m.Description, m.CombatRestricted, m.BlockedGameplayGrants);
 }

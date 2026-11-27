@@ -4,6 +4,7 @@ public sealed class MembershipRow
 {
     public Guid[] ClassIds { get; set; } = [];
     public string[] ClassCapabilities { get; set; } = [];
+    public string[] BlockedGameplayGrants { get; set; } = [];
     public int ClassSelectionVersion { get; set; } = 1;
     public Guid CommunityId { get; set; }
     public Guid CharacterId { get; set; }

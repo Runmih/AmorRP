@@ -130,12 +130,21 @@ public sealed partial class FoundationTests
         var category = (await Recipe(owner, season)).CategoryId;
         var root = $"/api/v2/seasons/{season.Id}";
         var effect = new MoodleEffect("Warmth", "Feels warm.", 200001, 20, false);
-        var draft = new DefinitionWrite("potion", "Warming potion", category, "", true, new(1, "drinks a warming potion."), Effect: effect);
+        var statusId = Guid.NewGuid();
+        var statusPath = root + "/status-effects/" + statusId;
+        var status = await Command<StatusEffect>(owner, HttpMethod.Put, statusPath,
+            new StatusEffect(statusId, 0, "Warmth", 20, "ac", 2, null, effect));
+        var draft = new DefinitionWrite("potion", "Warming potion", category, "", true, new(1, "drinks a warming potion."), StatusEffect: status.Reference());
         var recipe = await Command<Definition>(owner, HttpMethod.Post, root + "/item-definitions", draft);
         var holding = (await Command<ProductionResult>(owner, HttpMethod.Post, root + "/inventory/potions",
             new PotionCreate(recipe.Id, recipe.Revision, 2))).Holding;
-        await Command<Definition>(owner, HttpMethod.Patch, root + $"/item-definitions/{recipe.Id}",
-            draft with { Effect = effect with { Name = "A new effect" } }, $"\"definition:{recipe.Id:N}:{recipe.Revision}\"");
+        var updated = await Command<StatusEffect>(owner, HttpMethod.Put, statusPath,
+            status with { Amount = 4, DurationSeconds = 40, Moodle = effect with { Name = "A new effect" } });
+        var recipe2 = await Command<Definition>(owner, HttpMethod.Patch, root + $"/item-definitions/{recipe.Id}",
+            draft with { StatusEffect = updated.Reference() }, $"\"definition:{recipe.Id:N}:{recipe.Revision}\"");
+        var newPotion = (await Command<ProductionResult>(owner, HttpMethod.Post, root + "/inventory/potions",
+            new PotionCreate(recipe2.Id, recipe2.Revision, 2))).Holding;
+        var baseline = (await owner.GetFromJsonAsync<CombatSheet>(root + "/combat", ct))!.ArmorClass;
         var usePath = root + $"/inventory/{holding.Id}/use";
         using (var req = Request(HttpMethod.Post, usePath, new ConsumptionRequest(holding.Version, false, "say"), Guid.CreateVersion7(clock.UtcNow)))
         using (var response = await owner.SendAsync(req, ct)) Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
@@ -145,7 +154,12 @@ public sealed partial class FoundationTests
         Assert.Equal("none", used.ChatDelivery);
         var first = Assert.Single((await owner.GetFromJsonAsync<MoodleGrants>("/api/v2/me/moodle-effects", ct))!.Active);
         Assert.Equal(effect, first.Effect);
+        Assert.Equal(baseline + 2, (await owner.GetFromJsonAsync<CombatSheet>(root + "/combat", ct))!.ArmorClass);
         clock.UtcNow = clock.UtcNow.AddSeconds(10);
+        var newPath = root + $"/inventory/{newPotion.Id}/use";
+        var newUsed = await Command<ConsumptionResult>(owner, HttpMethod.Post, newPath, new ConsumptionRequest(newPotion.Version, false, ""));
+        Assert.Equal(first, Assert.Single((await owner.GetFromJsonAsync<MoodleGrants>("/api/v2/me/moodle-effects", ct))!.Active));
+        Assert.Equal(baseline + 2, (await owner.GetFromJsonAsync<CombatSheet>(root + "/combat", ct))!.ArmorClass);
         var key = Guid.CreateVersion7(clock.UtcNow);
         var useAgain = new ConsumptionRequest(used.Holding.Version, true, "say");
         using (var req = Request(HttpMethod.Post, usePath, useAgain, key))
@@ -159,5 +173,12 @@ public sealed partial class FoundationTests
         Assert.Equal(refreshed, Assert.Single((await owner.GetFromJsonAsync<MoodleGrants>("/api/v2/me/moodle-effects", ct))!.Active));
         clock.UtcNow = clock.UtcNow.AddSeconds(16);
         Assert.Empty((await owner.GetFromJsonAsync<MoodleGrants>("/api/v2/me/moodle-effects", ct))!.Active);
+        Assert.Equal(baseline, (await owner.GetFromJsonAsync<CombatSheet>(root + "/combat", ct))!.ArmorClass);
+        await Command<ConsumptionResult>(owner, HttpMethod.Post, newPath, new ConsumptionRequest(newUsed.Holding.Version, false, ""));
+        var final = Assert.Single((await owner.GetFromJsonAsync<MoodleGrants>("/api/v2/me/moodle-effects", ct))!.Active);
+        Assert.Equal(updated.Moodle, final.Effect);
+        // PostgreSQL stamps timestamps to microsecond precision.
+        Assert.InRange(final.ExpiresAt!.Value, clock.UtcNow.AddSeconds(40).AddTicks(-9), clock.UtcNow.AddSeconds(40));
+        Assert.Equal(baseline + 4, (await owner.GetFromJsonAsync<CombatSheet>(root + "/combat", ct))!.ArmorClass);
     }
 }

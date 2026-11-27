@@ -51,7 +51,7 @@ public sealed partial class SeasonResourceService
                 ApiFault.Require(row.ToCharacterId == session.CharacterId, 403, "recipient_required", "Only the proposed recipient may accept.");
                 var target = await access.TargetAsync(communityId, row.ToCharacterId, true, ct);
                 var former = await access.TargetAsync(communityId, row.FromCharacterId, true, ct); former.Capabilities = []; former.Version++;
-                target.Capabilities = []; target.TradingRestricted = target.CombatRestricted = false; target.Version++;
+                target.Capabilities = []; target.BlockedGameplayGrants = []; target.TradingRestricted = target.CombatRestricted = false; target.Version++;
                 community.OwnerCharacterId = row.ToCharacterId; row.Status = "accepted";
             }
             else row.Status = "cancelled";

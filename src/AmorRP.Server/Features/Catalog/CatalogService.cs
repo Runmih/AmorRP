@@ -14,11 +14,11 @@ using Microsoft.Extensions.Options;
 namespace AmorRP.Server.Features.Catalog;
 
 public sealed class CatalogService(AmorDbContext db, SessionAccess sessions, SeasonAccess communities,
-    CommandStore commands, PageCursor cursors, IOptions<ServicePolicyOptions> policy)
+    CommandStore commands, PageCursor cursors, IOptions<ServicePolicyOptions> policy, StatusEffectService effects)
 {
     public static Category View(CategoryRow row) => new(row.Id, row.CommunityId, row.Name, row.AllowedTypeIds, row.Retired, row.Version);
     public static Definition View(DefinitionRow row, DefinitionRevisionRow rev) => new(row.Id, row.CommunityId, row.TypeId,
-        rev.Revision, rev.TypeDataVersion, rev.Name, rev.CategoryId, rev.Description, rev.Enabled, row.Retired, new(rev.CreationCost, rev.UseMessage), rev.BonusPoints, row.GroupId, MoodleService.Decode(rev.MoodleEffectJson), CombatService.Gear(rev.GearJson), rev.StatPoints);
+        rev.Revision, rev.TypeDataVersion, rev.Name, rev.CategoryId, rev.Description, rev.Enabled, row.Retired, new(rev.CreationCost, rev.UseMessage), rev.BonusPoints, row.GroupId, StatusEffectService.Decode(rev.StatusEffectJson), CombatService.Gear(rev.GearJson), rev.StatPoints);
     public static void Seed(AmorDbContext db, Guid communityId)
     {
         db.Categories.AddRange(new CategoryRow { CommunityId = communityId, Name = "Alchemy", AllowedTypeIds = CraftingTypes.Alchemy },
@@ -123,8 +123,9 @@ public sealed class CatalogService(AmorDbContext db, SessionAccess sessions, Sea
             var gear = CombatService.EncodeGear(body.TypeId, body.Gear);
             ApiFault.Require(body.StatPoints == 0 || (body.TypeId == "potion" && body.StatPoints is >= 1 and <= 10),
                 422, "invalid_stat_effect", "Stat point effects belong to potions and grant 1 to 10 points.");
-            ApiFault.Require(!CraftingTypes.IsGear(body.TypeId) || body.Effect == null, 422,
-                "invalid_gear_effect", "Gear recipes use the equipment fields.");
+            ApiFault.Require(!CraftingTypes.IsGear(body.TypeId) || body.StatusEffect == null, 422,
+                "invalid_gear_effect", "Only consumable recipes can apply a status effect.");
+            var effect = await effects.FindAsync(communityId, body.StatusEffect, ct);
             await RequireCategoryAsync(communityId, body.CategoryId, body.TypeId, ct);
             if (!id.HasValue && groupId is { } group)
                 ApiFault.Require(await db.Definitions.CountAsync(x => x.CommunityId == communityId && x.GroupId == group && !x.Retired, ct) < community.GroupRecipeLimit,
@@ -132,14 +133,14 @@ public sealed class CatalogService(AmorDbContext db, SessionAccess sessions, Sea
             row.GroupId = groupId;
             row.TypeId = body.TypeId;
             if (id.HasValue) row.Revision++;
-            rev = new() { CommunityId = communityId, DefinitionId = row.Id, Revision = row.Revision, Name = body.Name!.Trim(), CategoryId = body.CategoryId, Description = body.Description ?? "", Enabled = body.Enabled, CreationCost = body.Potion!.CreationCost, UseMessage = CraftingTypes.IsGear(body.TypeId) ? "" : body.Potion.UseMessage, MoodleEffectJson = MoodleService.Encode(body.Effect), GearJson = gear, StatPoints = body.StatPoints };
+            rev = new() { CommunityId = communityId, DefinitionId = row.Id, Revision = row.Revision, Name = body.Name!.Trim(), CategoryId = body.CategoryId, Description = body.Description ?? "", Enabled = body.Enabled, CreationCost = body.Potion!.CreationCost, UseMessage = CraftingTypes.IsGear(body.TypeId) ? "" : body.Potion.UseMessage, StatusEffectJson = effect == null ? null : StatusEffectService.Encode(effect), GearJson = gear, StatPoints = body.StatPoints };
             db.DefinitionRevisions.Add(rev); if (!id.HasValue) db.Definitions.Add(row);
         }
         else
         {
             var previous = await db.DefinitionRevisions.SingleAsync(x => x.CommunityId == communityId && x.DefinitionId == row.Id && x.Revision == row.Revision, ct);
             row.Retired = true; row.Revision++;
-            rev = new() { CommunityId = communityId, DefinitionId = row.Id, Revision = row.Revision, Name = previous.Name, CategoryId = previous.CategoryId, Description = previous.Description, Enabled = false, CreationCost = previous.CreationCost, UseMessage = previous.UseMessage, MoodleEffectJson = previous.MoodleEffectJson, GearJson = previous.GearJson, StatPoints = previous.StatPoints };
+            rev = new() { CommunityId = communityId, DefinitionId = row.Id, Revision = row.Revision, Name = previous.Name, CategoryId = previous.CategoryId, Description = previous.Description, Enabled = false, CreationCost = previous.CreationCost, UseMessage = previous.UseMessage, StatusEffectJson = previous.StatusEffectJson, GearJson = previous.GearJson, StatPoints = previous.StatPoints };
             db.DefinitionRevisions.Add(rev);
         }
         community.InventoryVersion++;

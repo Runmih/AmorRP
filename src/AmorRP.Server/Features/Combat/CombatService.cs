@@ -15,10 +15,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AmorRP.Server.Features.Combat;
 
-public sealed class CombatService(AmorDbContext db, SessionAccess sessions, SeasonAccess seasons, CommandStore commands)
+public sealed partial class CombatService(AmorDbContext db, SessionAccess sessions, SeasonAccess seasons, CommandStore commands, TimeProvider time, StatusEffectService effects)
 {
     public static void Map(WebApplication app)
     {
+        app.MapGet("/api/v2/seasons/{seasonId}/combat/skills", (HttpContext h, Guid seasonId, CombatService s, CancellationToken ct) => s.ReadSkillLibraryAsync(h, seasonId, ct));
+        app.MapPut("/api/v2/seasons/{seasonId}/combat/skills", (HttpContext h, Guid seasonId, SkillLibrary body, CombatService s, CancellationToken ct) => s.SaveSkillLibraryAsync(h, seasonId, body, ct));
+        app.MapPost("/api/v2/seasons/{seasonId}/combat/skill-uses", (HttpContext h, Guid seasonId, SkillUse body, CombatService s, CancellationToken ct) => s.UseSkillAsync(h, seasonId, body, ct));
         app.MapGet("/api/v2/seasons/{seasonId}/combat", (HttpContext h, Guid seasonId, CombatService s, CancellationToken ct) => s.ReadAsync(h, seasonId, ct));
         app.MapGet("/api/v2/seasons/{seasonId}/combat/policy", (HttpContext h, Guid seasonId, CombatService s, CancellationToken ct) => s.PolicyAsync(h, seasonId, ct));
         app.MapPut("/api/v2/seasons/{seasonId}/combat/policy", (HttpContext h, Guid seasonId, CombatPolicy body, CombatService s, CancellationToken ct) => s.SavePolicyAsync(h, seasonId, body, ct));
@@ -43,9 +46,10 @@ public sealed class CombatService(AmorDbContext db, SessionAccess sessions, Seas
             return null;
         }
         ApiFault.Require(type == "weapon"
-            ? gear is { Form: "sword" or "staff", Ability: "STR" or "DEX", Value: >= 1 and <= 100 }
-            : gear is { Form: "armor", Ability: null, Value: >= 10 and <= 25 },
-            422, "invalid_gear", "Choose valid weapon Power and an ability, or an armor class from 10 to 25.");
+            ? gear is { Form: "melee", Ability: not null, Value: 0, DiceCount: >= 1 and <= 20, DiceSides: >= 1 and <= 200 }
+                && CombatRules.Abilities.Contains(gear.Ability)
+            : gear is { Form: "armor", Ability: null, Value: >= 10 and <= 25, DiceCount: 0, DiceSides: 0 },
+            422, "invalid_gear", "Choose valid weapon damage dice and an ability, or an armor class from 10 to 25.");
         return JsonSerializer.Serialize(gear);
     }
 
@@ -68,7 +72,7 @@ public sealed class CombatService(AmorDbContext db, SessionAccess sessions, Seas
     }
 
     private static int Available(CommunityRow season, CombatSheetRow sheet) =>
-        Math.Max(0, season.StatPointAllowance + sheet.BonusPoints - sheet.Allocated.Sum());
+        Math.Max(0, season.StatPointAllowance + sheet.BonusPoints - sheet.Allocated.Sum(offset => CombatRules.ScoreCost(CombatRules.BaseScore + offset)));
 
     private async Task<EquippedItem?> GearAsync(CombatSheetRow sheet, Guid? id, string type, CancellationToken ct)
     {
@@ -89,14 +93,30 @@ public sealed class CombatService(AmorDbContext db, SessionAccess sessions, Seas
         return CombatRules.AbilityModifier(CombatRules.BaseScore + sheet.Allocated[index]);
     }
 
-    private static int ArmorClass(CombatSheetRow sheet, EquippedItem? armor) => armor?.Gear.Value ?? 10 + Modifier(sheet, "DEX");
+    private static int MaximumHp(CombatSheetRow sheet) =>
+        CombatRules.HitPointMaximum(CombatRules.BaseScore + sheet.Allocated[CombatRules.ConstitutionIndex]);
+
+    private static void ApplyMaximumHpChange(CombatSheetRow sheet, int oldMaximum)
+    {
+        if (sheet.HitPoints == 0) return;
+        var maximum = MaximumHp(sheet);
+        sheet.HitPoints = Math.Clamp(sheet.HitPoints + maximum - oldMaximum, 1, maximum);
+    }
+
+    private async Task<int> ArmorClassAsync(CombatSheetRow sheet, EquippedItem? armor, CancellationToken ct)
+    {
+        var baseline = armor?.Gear.Value ?? 10 + Modifier(sheet, "DEX");
+        return baseline + await effects.ModifierAsync(sheet.CommunityId, sheet.CharacterId, "ac", ct);
+    }
 
     private async Task<CombatSheet> ViewAsync(CommunityRow season, MembershipRow member, CombatSheetRow sheet, CancellationToken ct)
     {
         var weapon = await GearAsync(sheet, sheet.WeaponId, "weapon", ct);
         var armor = await GearAsync(sheet, sheet.ArmorId, "armor", ct);
+        var library = Library(season);
         return new(sheet.Version, sheet.Allocated.Select(x => CombatRules.BaseScore + x).ToArray(), Available(season, sheet), sheet.BonusPoints,
-            sheet.HitPoints, CombatRules.MaxHitPoints, ArmorClass(sheet, armor), weapon, armor, !member.CombatRestricted, sheet.ResetPotions);
+            sheet.HitPoints, MaximumHp(sheet), await ArmorClassAsync(sheet, armor, ct), weapon, armor, !member.CombatRestricted, sheet.ResetPotions,
+            library.Version, GrantedSkills(season, member, library));
     }
 
     private async Task<IResult> ReadAsync(HttpContext h, Guid id, CancellationToken ct)
@@ -107,7 +127,7 @@ public sealed class CombatService(AmorDbContext db, SessionAccess sessions, Seas
     }
 
     private static CombatPolicy ViewPolicy(CommunityRow season) => new(season.CombatPolicyVersion,
-        season.StatPointAllowance, season.BlacksmithingPoints, MoodleService.Decode(season.DownedEffectJson));
+        season.StatPointAllowance, season.BlacksmithingPoints, MoodleService.DownedEffect(season.DownedEffectJson));
 
     private async Task<IResult> PolicyAsync(HttpContext h, Guid id, CancellationToken ct)
     {
@@ -126,7 +146,7 @@ public sealed class CombatService(AmorDbContext db, SessionAccess sessions, Seas
                 422, "invalid_combat_policy", "Choose a stat allowance up to 60 and a valid Blacksmithing limit.");
             season.StatPointAllowance = body.StatPoints;
             season.BlacksmithingPoints = body.BlacksmithingPoints;
-            season.DownedEffectJson = MoodleService.Encode(body.DownedEffect, ownership: true);
+            season.DownedEffectJson = MoodleService.Encode(body.DownedEffect ?? MoodleService.DownedEffect(null), ownership: true);
             season.CombatPolicyVersion++;
             operation.Summary = "Updated combat rules and the Downed effect.";
             return Task.FromResult(ViewPolicy(season));
@@ -138,13 +158,17 @@ public sealed class CombatService(AmorDbContext db, SessionAccess sessions, Seas
             var sheet = await SheetAsync(id, member.CharacterId, true, ct);
             CheckVersion(sheet, body.Version);
             var points = body.Points;
-            ApiFault.Require(points is { Length: 6 } && points.All(x => x is >= 0 and <= 10)
-                && points.Sum() > 0 && points.Sum() <= Available(season, sheet)
-                && points.Select((amount, i) => CombatRules.BaseScore + sheet.Allocated[i] + amount).All(x => x <= CombatRules.MaximumScore),
-                422, "invalid_stat_allocation", "Allocate available points without raising a score above 20.");
+            ApiFault.Require(points is { Length: 6 } && points.All(x => x is >= 0 and <= CombatRules.PointBuyMaximum - CombatRules.BaseScore)
+                && points.Any(x => x > 0)
+                && points.Select((amount, i) => amount == 0 || CombatRules.BaseScore + sheet.Allocated[i] + amount <= CombatRules.PointBuyMaximum).All(valid => valid),
+                422, "invalid_stat_allocation", "Point buy can raise an ability to 15.");
+            var cost = points!.Select((amount, i) => CombatRules.AllocationCost(CombatRules.BaseScore + sheet.Allocated[i], amount)).Sum();
+            ApiFault.Require(cost <= Available(season, sheet), 422, "invalid_stat_allocation", "The allocation exceeds your remaining point-buy budget.");
+            var oldMaximum = MaximumHp(sheet);
             sheet.Allocated = sheet.Allocated.Select((amount, i) => amount + points[i]).ToArray();
+            ApplyMaximumHpChange(sheet, oldMaximum);
             sheet.Version++;
-            operation.Summary = $"Allocated {points.Sum()} stat points.";
+            operation.Summary = $"Spent {cost} point-buy points.";
             return await ViewAsync(season, member, sheet, ct);
         }, ct);
 
@@ -170,19 +194,20 @@ public sealed class CombatService(AmorDbContext db, SessionAccess sessions, Seas
         ApiFault.Require(destination == "" || ItemText.Destination(destination), 422, "invalid_chat_destination",
             "Choose a supported chat channel.");
 
-    private static CombatRoll Roll(CombatSheetRow sheet, string ability, int proficiency = 0)
+    private static CombatRoll Roll(CombatSheetRow sheet, string ability, int proficiency = 0, int statusModifier = 0)
     {
         var modifier = Modifier(sheet, ability);
         var die = RandomNumberGenerator.GetInt32(1, 21);
-        return new(ability, die, modifier, proficiency, die + modifier + proficiency);
+        return new(ability, die, modifier, proficiency, die + modifier + proficiency + statusModifier, statusModifier);
     }
 
     private Task<IResult> CheckAsync(HttpContext h, Guid id, CombatCheck body, CancellationToken ct) =>
         CommandAsync(h, id, body, "combat.check", async (season, member, operation) =>
         {
             ValidateDestination(body.Destination);
-            var roll = Roll(await SheetAsync(id, member.CharacterId, false, ct), body.Ability);
-            operation.Summary = $"{roll.Ability} check: {roll.Die} + {roll.Modifier} = {roll.Total}.";
+            var status = await effects.ModifierAsync(id, member.CharacterId, "check", ct, body.Ability);
+            var roll = Roll(await SheetAsync(id, member.CharacterId, false, ct), body.Ability, statusModifier: status);
+            operation.Summary = $"{roll.Ability} check: {roll.Total}.";
             return roll;
         }, ct);
 
@@ -192,43 +217,43 @@ public sealed class CombatService(AmorDbContext db, SessionAccess sessions, Seas
             ValidateDestination(body.Destination);
             ApiFault.Require(!member.CombatRestricted, 403, "combat_restricted", "You do not have permission to attack.");
             ApiFault.Require(member.CharacterId != body.TargetId, 422, "invalid_target", "Select another character.");
-            await seasons.TargetAsync(id, body.TargetId, true, ct);
+            var targetMember = await seasons.TargetAsync(id, body.TargetId, true, ct);
             var attacker = await SheetAsync(id, member.CharacterId, false, ct);
             ApiFault.Require(attacker.HitPoints > 0, 409, "attacker_downed", "A Downed character cannot attack.");
             var weapon = await GearAsync(attacker, attacker.WeaponId, "weapon", ct);
             ApiFault.Require(weapon != null, 409, "weapon_required", "Equip an available weapon first.");
             var target = await SheetAsync(id, body.TargetId, false, ct);
             ApiFault.Require(target.HitPoints > 0, 409, "target_downed", "That character is already Downed.");
-            var ac = ArmorClass(target, await GearAsync(target, target.ArmorId, "armor", ct));
-            var roll = Roll(attacker, weapon!.Gear.Ability!, CombatRules.WeaponProficiency);
+            var ac = await ArmorClassAsync(target, await GearAsync(target, target.ArmorId, "armor", ct), ct);
+            var status = await effects.ModifierAsync(id, member.CharacterId, "attack", ct);
+            var roll = Roll(attacker, weapon!.Gear.Ability!, CombatRules.WeaponProficiency, status);
             var hit = CombatRules.Hits(roll.Die, roll.Total, ac);
             var critical = roll.Die == 20;
-            var damage = hit ? CombatRules.Damage(weapon.Gear.Value, roll.Modifier, critical) : 0;
-            if (hit)
-            {
-                if (db.Entry(target).State == EntityState.Detached) db.CombatSheets.Add(target);
-                target.HitPoints = Math.Max(0, target.HitPoints - damage);
-                target.Version++;
-            }
+            var diceCount = hit ? CombatRules.DamageDiceCount(weapon.Gear.DiceCount, critical) : 0;
+            var rolledDamage = RollDice(diceCount, weapon.Gear.DiceSides);
+            var damage = hit ? CombatRules.Damage(rolledDamage, roll.Modifier) : 0;
+            var stayedStanding = damage > 0 && ApplyDamage(season, targetMember, target, damage);
             var names = await db.Characters.Where(c => c.Id == member.CharacterId || c.Id == body.TargetId)
                 .ToDictionaryAsync(c => c.Id, c => c.DisplayName, ct);
             operation.SubjectCharacterId = body.TargetId;
             operation.Summary = hit ? $"Hit {names[body.TargetId]} with {weapon.Name} for {damage} damage." : $"Missed {names[body.TargetId]} with {weapon.Name}.";
             return new CombatHit(names[member.CharacterId], names[body.TargetId], weapon.Name, roll, ac, hit, critical,
-                damage, target.HitPoints, target.HitPoints == 0);
+                damage, target.HitPoints, target.HitPoints == 0, rolledDamage, diceCount, weapon.Gear.DiceSides, stayedStanding);
         }, ct);
 
     private Task<IResult> HealthAsync(HttpContext h, Guid id, Guid character, CombatHealthEdit body, CancellationToken ct) =>
         CommandAsync(h, id, body, "combat.health", async (season, member, operation) =>
         {
             SeasonAccess.Action(season, member, "season.moderate");
-            ApiFault.Require(body.HitPoints is >= 0 and <= CombatRules.MaxHitPoints, 422, "invalid_health", "Choose a valid HP total.");
             var target = await seasons.TargetAsync(id, character, true, ct);
             var sheet = await SheetAsync(id, character, true, ct);
-            sheet.HitPoints = body.HitPoints;
+            var maximum = MaximumHp(sheet);
+            var hp = body.RestoreFull ? maximum : body.HitPoints;
+            ApiFault.Require(hp >= 0 && hp <= maximum, 422, "invalid_health", $"Choose HP from 0 to {maximum}.");
+            sheet.HitPoints = hp;
             sheet.Version++;
             operation.SubjectCharacterId = character;
-            operation.Summary = $"Set HP to {body.HitPoints}.";
+            operation.Summary = $"Set HP to {hp}.";
             return await ViewAsync(season, target, sheet, ct);
         }, ct);
 
@@ -280,7 +305,9 @@ public sealed class CombatService(AmorDbContext db, SessionAccess sessions, Seas
             ApiFault.Require(sheet.ResetPotions > 0, 409, "reset_potion_required", "You need a Character Reset Potion from the Shop.");
             ApiFault.Require(sheet.Allocated.Any(x => x != 0) || member.ClassIds.Length > 0, 409, "reset_empty", "Your character has no stat allocations or classes to reset.");
             sheet.ResetPotions--;
+            var oldMaximum = MaximumHp(sheet);
             sheet.Allocated = new int[6];
+            ApplyMaximumHpChange(sheet, oldMaximum);
             sheet.Version++;
             member.ClassIds = [];
             member.ClassCapabilities = [];

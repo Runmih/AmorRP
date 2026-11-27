@@ -221,6 +221,11 @@ and carry their original recipe revision and optional consumable effect.
 | DELETE | `/api/v2/integrations/discord/guilds/{guildId}` | Acknowledge removal from a Discord server | Discord service |
 | POST | `/api/v2/integrations/discord/posts` | Evaluate a unique Discord message for a reward | Discord service |
 | GET | `/api/v2/seasons/{seasonId}/combat` | Read your combat sheet and equipment | Verified season character |
+| GET | `/api/v2/seasons/{seasonId}/status-effects` | List the latest revision of each status effect | Verified season member |
+| PUT | `/api/v2/seasons/{seasonId}/status-effects/{effectId}` | Publish a new status effect revision | Season owner |
+| GET | `/api/v2/seasons/{seasonId}/combat/skills` | Read the skill and spell library | Season owner |
+| PUT | `/api/v2/seasons/{seasonId}/combat/skills` | Save the skill and spell library | Season owner |
+| POST | `/api/v2/seasons/{seasonId}/combat/skill-uses` | Use a class skill or spell | Season member with combat permission and class grant |
 | GET | `/api/v2/seasons/{seasonId}/combat/policy` | Read combat rules | Season owner |
 | PUT | `/api/v2/seasons/{seasonId}/combat/policy` | Set point limits and the Downed effect | Season owner |
 | POST | `/api/v2/seasons/{seasonId}/combat/stats` | Permanently spend unallocated points | Verified season character |

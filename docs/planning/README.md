@@ -44,10 +44,18 @@ manual checklist. Do not infer game or production acceptance from a successful b
 
 ## Next work
 
-The local [0.17 combat build](../delivery/release-0.17.0.0.md) adds character
-stats, equipment, Blacksmithing, dice checks, attacks, a health HUD, Downed
-effects and the fixed reset potion. Verify it in game before broad rollout.
-Spells and Mana remain future work.
+The [0.17 combat release](../delivery/release-0.17.0.0.md) introduced stats,
+equipment, Blacksmithing, dice checks, attacks, a health HUD, Downed effects,
+and the Character Reset Potion. The local 0.18 update adds 5e point buy,
+Constitution-based HP, weapon damage dice, and a Global Moodles settings section.
+It also adds a season library for single-target Skills & Spells and a Classes
+tab for assigning abilities, crafting bonuses, and the weekly Stay Standing
+trait. The Status Effects library owns optional Moodles, durations and combat
+modifiers used by consumable recipes and successful skills. Crafted items keep
+their effect revision, and reapplying it refreshes its timer. For competing
+modifiers, the strongest bonus and strongest penalty both apply. Verify these
+changes in game before broad rollout. Weapon triggers, reaction triggers,
+encounters, and Mana remain future work.
 
 1. Finish the focused S03/S04, season, and window checks in game.
 2. Verify the Shop, permits, Gathering, class reset, group recipes and optional Moodles in game. Classes, group recipes and Moodles are implemented in the local 0.11 build.
